@@ -421,16 +421,22 @@ def create_subprocess(cmd, cwd=None, env=None, stdout=True, log=True, show_progr
         if error_buf:
             buf = deque(maxlen=error_buf)
         output = []
-        proc = subprocess.Popen(cmd, cwd=cwd, env=subproc_env, 
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+        proc = subprocess.Popen(cmd,
+                cwd=cwd,
+                env=subproc_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                close_fds=False,
+                universal_newlines=True,
+                bufsize=1)
         with proc.stdout:
             # Use iter to avoid hidden read-ahead buffer bug in named pipes:
             # http://bugs.python.org/issue3907
-            for line in iter(proc.stdout.readline, b''):
+            for line in proc.stdout.readlines():
                 if log:
                     LOGGER.debug(line[:-1])
                 if stdout:
-                    print(line)
+                    print(line, end='')
                 if error_buf:
                     buf.append(line)
                 if record_output:
@@ -719,7 +725,8 @@ def _parse_line(line):
             if "/" in parts[0]:
                 dep_path = pathlib.Path(parts[0])
             else:
-                soname = parts[0]
+                # No path
+                return {}
 
         return {soname: {'path': dep_path.as_posix() if dep_path else None, 'found': found}}
 

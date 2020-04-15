@@ -1,4 +1,5 @@
 import sys
+from os import environ
 from e4s_cl import util
 from e4s_cl.error import InternalError
 
@@ -21,7 +22,8 @@ class Container(object):
         self.env = {}
 
     def bind_file(self, path, dest=None, options=None):
-        self.bound += [path]
+        self.bound.append((path, dest, options))
+
     def bind_env_var(self, key, value):
         self.env.update({key: value})
 

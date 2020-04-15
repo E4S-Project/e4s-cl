@@ -11,16 +11,28 @@ from e4s_cl.cf import containers
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
-def _comma_list(string):
+def _path_comma_list(string):
     items = [Path(data) for data in string.split(',')]
 
-    def assertExistence(path):
+    for path in items:
         if not path.exists():
             raise ArgumentTypeError("File {} does not exist".format(path.as_posix()))
 
-    [assertExistence(item) for item in items]
-
     return items
+
+def compute_libs(lib_list, container):
+    output = container.run(['ldconfig', '-p'])
+    present_in_container = [line.strip().split(' ')[0] for line in output[1:]]
+    selected = {}
+
+    for path in lib_list:
+        dependencies = list_dependencies(path)
+        for dependency in dependencies.keys():
+            if dependency not in present_in_container and dependencies[dependency]['path']:
+                selected.update({dependency: dependencies[dependency]['path']})
+
+    for path in selected.values():
+        container.bind_file(path, dest="/hostlibs{}".format(path), options='ro')
 
 class ExecuteCommand(AbstractCommand):
     """``help`` subcommand."""
@@ -44,12 +56,11 @@ class ExecuteCommand(AbstractCommand):
         parser.add_argument('--files',
                             help="Files to bind, comma-separated",
                             metavar='files',
-                            type=str,
-                            nargs=1)
+                            type=_path_comma_list)
         parser.add_argument('--libraries',
                             help="Libraries to bind, comma-separated",
                             metavar='libraries',
-                            type=_comma_list)
+                            type=_path_comma_list)
         parser.add_argument('cmd',
                             help="Executable command, e.g. './a.out'",
                             metavar='command',
@@ -61,16 +72,26 @@ class ExecuteCommand(AbstractCommand):
             for backend in containers.BACKENDS:
                 group.add_argument("--{}".format(backend),
                         help="Use {} as the container backend".format(backend),
-                        action='store_true')
+                        dest='backend',
+                        action='store_const',
+                        const=backend)
 
         return parser
 
     def main(self, argv):
         args = self._parse_args(argv)
-        #deps = ExecuteCommand._parse_dependencies(args.libraries)
-        container = containers.Container(backend='singularity', image=args.image)
-        #container.bind_file('/etc/test')
-        container.run(" ".join(args.cmd))
+        container = containers.Container(backend=args.backend, image=args.image)
+
+        if args.libraries:
+            compute_libs(args.libraries, container)
+            container.bind_env_var('LD_LIBRARY_PATH', '/hostlibs')
+
+        if args.files:
+            for path in args.files:
+                container.bind_file(path, dest=path, options='ro')
+
+        container.run(args.cmd)
+
         return EXIT_SUCCESS
     
 COMMAND = ExecuteCommand(__name__, summary_fmt="Execute a command in a container with a tailor-made environment.")
