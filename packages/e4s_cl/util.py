@@ -386,6 +386,55 @@ def path_accessible(path, mode='r'):
 def _null_context(label):
     yield
 
+def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
+    """Create a subprocess.
+
+    See :any:`subprocess.Popen`.
+
+    Args:
+        cmd (list): Command and its command line arguments.
+        env (dict): Environment variables to set or unset before launching cmd.
+        redirect_stdout (bool): If True return the process' output, 
+            instead of passing it to stdtout
+
+    Returns:
+        retval: Int Subprocess return code.
+        output: String if redirect_stdout is True
+    """
+    subproc_env = os.environ
+    if env:
+        for key, val in env.items():
+            if val is None:
+                subproc_env.pop(key, None)
+                _heavy_debug("unset %s", key)
+            else:
+                subproc_env[key] = val
+                _heavy_debug("%s=%s", key, val)
+
+    LOGGER.debug("Creating subprocess: cmd={0}".format(' '.join(cmd)))
+    out = (subprocess.PIPE if redirect_stdout else sys.stdout)
+    proc = subprocess.Popen(cmd,
+                env=subproc_env,
+                stdout=out,
+                stderr=subprocess.PIPE,
+                close_fds=False,
+                universal_newlines=True)
+
+    output, errors = proc.communicate()
+    retval = proc.returncode
+
+    if redirect_stdout:
+        LOGGER.debug(output)
+
+    if errors:
+        if retval != 0:
+            LOGGER.error(errors)
+        else:
+            LOGGER.warning(errors)
+
+    LOGGER.debug("%s returned %d", cmd, retval)
+
+    return retval, output
 
 def create_subprocess(cmd, cwd=None, env=None, stdout=True, log=True, show_progress=False, error_buf=50, record_output=False):
     """Create a subprocess.

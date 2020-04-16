@@ -2,21 +2,15 @@ import os
 import sys
 import subprocess
 from e4s_cl import logger
-from e4s_cl.util import which, create_subprocess, _ldd_output_parser
+from e4s_cl.util import which, create_subprocess_exp, _ldd_output_parser
 from e4s_cl.cf.containers import Container
 
 LOGGER = logger.get_logger(__name__)
 
 class SingularityContainer(Container):
-    def run(self, command, **kwargs):
-        composite_env = os.environ.update(self.env)
+    def run(self, command, redirect_stdout=False):
         container_cmd = [which('singularity'), 'exec'] + self.format_bound() + [self.image] + command
-        retval, output = create_subprocess(container_cmd, env=composite_env, stdout=False, record_output=True)
-        #proc = subprocess.Popen(container_cmd,
-        #                    close_fds=False, #If all fds are required
-        #                    stdout=sys.stdout,
-        #                    stderr=sys.stderr)
-        #proc.communicate()
+        retval, output = create_subprocess_exp(container_cmd, env=self.env, redirect_stdout=redirect_stdout)
         return output
 
 

@@ -21,7 +21,7 @@ def _path_comma_list(string):
     return items
 
 def compute_libs(lib_list, container):
-    output = container.run(['ldconfig', '-p'])
+    output = container.run(['ldconfig', '-p'], redirect_stdout=True)
     present_in_container = [line.strip().split(' ')[0] for line in output[1:]]
     selected = {}
 
@@ -90,7 +90,7 @@ class ExecuteCommand(AbstractCommand):
             for path in args.files:
                 container.bind_file(path, dest=path, options='ro')
 
-        container.run(args.cmd)
+        container.run(args.cmd, redirect_stdout=False)
 
         return EXIT_SUCCESS
     
