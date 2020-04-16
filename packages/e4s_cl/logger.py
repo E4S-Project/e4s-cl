@@ -38,6 +38,7 @@ a rotating debug file in the user's TAU Commander project prefix, typically "~/.
 """
 
 import os
+import re
 import sys
 import errno
 import textwrap
@@ -50,6 +51,14 @@ from datetime import datetime
 from termcolor import termcolor
 from e4s_cl import USER_PREFIX, TAUCMDR_VERSION
 
+def _prune_ansi(line):
+    pattern = re.compile('\x1b[^m]+m')
+    match = pattern.search(line)
+    while match:
+        index = line.find(match.group(0))
+        line = line[:index] + line[index+len(match.group(0)):]
+        match = pattern.search(line)
+    return line
 
 def get_terminal_size():
     """Discover the size of the user's terminal.
@@ -295,7 +304,10 @@ class LogFormatter(logging.Formatter, object):
 
     def _textwrap_message(self, record):
         for line in record.getMessage().split('\n'):
-            if line and (not self.printable_only or set(line).issubset(self._printable_chars)):
+            if self.printable_only and not set(line).issubset(self._printable_chars):
+                line = self._prune_ansi(line)
+                line = "".join([c for c in line if c in self._printable_chars])
+            if line:
                 yield self._text_wrapper.fill(line)
             else:
                 yield self.line_marker
@@ -370,7 +382,7 @@ if not _ROOT_LOGGER.handlers:
         if not (exc.errno == errno.EEXIST and os.path.isdir(_LOG_FILE_PREFIX)):
             raise
     _STDOUT_HANDLER = logging.StreamHandler(sys.stdout)
-    _STDOUT_HANDLER.setFormatter(LogFormatter(line_width=LINE_WIDTH, printable_only=True))
+    _STDOUT_HANDLER.setFormatter(LogFormatter(line_width=LINE_WIDTH, printable_only=False))
     _STDOUT_HANDLER.setLevel(LOG_LEVEL)
     _ROOT_LOGGER.addHandler(_STDOUT_HANDLER)
     _FILE_HANDLER = handlers.TimedRotatingFileHandler(LOG_FILE, when='D', interval=1, backupCount=3)
