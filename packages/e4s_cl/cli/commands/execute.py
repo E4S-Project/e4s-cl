@@ -11,14 +11,16 @@ from e4s_cl.cf import containers
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
-def _path_comma_list(string):
-    items = [Path(data) for data in string.split(',')]
+def _argument_path(string):
+    path = Path(string)
 
-    for path in items:
-        if not path.exists():
-            raise ArgumentTypeError("File {} does not exist".format(path.as_posix()))
+    if not path.exists():
+        raise ArgumentTypeError("File {} does not exist".format(path.as_posix()))
 
-    return items
+    return path
+
+def _argument_path_comma_list(string):
+    return [_argument_path(data) for data in string.split(',')]
 
 def compute_libs(lib_list, container):
     output = container.run(['ldconfig', '-p'], redirect_stdout=True)
@@ -51,16 +53,17 @@ class ExecuteCommand(AbstractCommand):
         parser = arguments.get_parser(prog=self.command, usage=usage, description=self.summary)
         parser.add_argument('--image',
                             help="Container image to use",
-                            #type= TODO Container iamge checking method
+                            required=True,
+                            type=_argument_path,
                             metavar='image')
         parser.add_argument('--files',
                             help="Files to bind, comma-separated",
                             metavar='files',
-                            type=_path_comma_list)
+                            type=_argument_path_comma_list)
         parser.add_argument('--libraries',
                             help="Libraries to bind, comma-separated",
                             metavar='libraries',
-                            type=_path_comma_list)
+                            type=_argument_path_comma_list)
         parser.add_argument('cmd',
                             help="Executable command, e.g. './a.out'",
                             metavar='command',
