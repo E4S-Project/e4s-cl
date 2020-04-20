@@ -58,8 +58,8 @@ def _proc_stat_cpu_load_average():
     if prev and cur:
         prev_idle = prev['idle'] + prev['iowait']
         cur_idle = cur['idle'] + cur['iowait']
-        prev_total = sum(prev.itervalues())
-        cur_total = sum(cur.itervalues())
+        prev_total = sum(prev.values())
+        cur_total = sum(cur.values())
         diff_total = cur_total - prev_total
         diff_idle = cur_idle - prev_idle
         _proc_stat_cpu_load_average.prev = cur
