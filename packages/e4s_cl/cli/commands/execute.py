@@ -11,6 +11,14 @@ from e4s_cl.cf import containers
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
+HOST_LIBS_DIR = Path('/hostlibs/').as_posix()
+
+def _existing_backend(string):
+    if not string in containers.BACKENDS:
+        raise ArgumentTypeError("Backend {} is not available on this machine".format(string))
+
+    return string
+
 def _argument_path(string):
     path = Path(string)
 
@@ -24,7 +32,7 @@ def _argument_path_comma_list(string):
 
 def compute_libs(lib_list, container):
     output = container.run(['ldconfig', '-p'], redirect_stdout=True)
-    present_in_container = [line.strip().split(' ')[0] for line in output[1:]]
+    present_in_container = [line.strip().split(' ')[0] for line in output.split('\n')[1:]]
     selected = {}
 
     for path in lib_list:
@@ -34,7 +42,7 @@ def compute_libs(lib_list, container):
                 selected.update({dependency: dependencies[dependency]['path']})
 
     for path in selected.values():
-        container.bind_file(path, dest="/hostlibs{}".format(path), options='ro')
+        container.bind_file(path, dest="{}/{}".format(HOST_LIBS_DIR, Path(path).name), options='ro')
 
 class ExecuteCommand(AbstractCommand):
     """``help`` subcommand."""
@@ -51,25 +59,38 @@ class ExecuteCommand(AbstractCommand):
     def _construct_parser(self):
         usage = "%s [arguments] <command> [command_arguments]" % self.command
         parser = arguments.get_parser(prog=self.command, usage=usage, description=self.summary)
-        parser.add_argument('--image',
-                            help="Container image to use",
+
+        parser.add_argument("--backend",
+                            choices=containers.BACKENDS,
+                            type=_existing_backend,
+                            dest='backend',
                             required=True,
+                            help="Specify the container backend",
+                            metavar='Available')
+
+        parser.add_argument('--image',
                             type=_argument_path,
+                            required=True,
+                            help="Container image to use",
                             metavar='image')
+
         parser.add_argument('--files',
+                            type=_argument_path_comma_list,
                             help="Files to bind, comma-separated",
-                            metavar='files',
-                            type=_argument_path_comma_list)
+                            metavar='files')
+
         parser.add_argument('--libraries',
+                            type=_argument_path_comma_list,
                             help="Libraries to bind, comma-separated",
-                            metavar='libraries',
-                            type=_argument_path_comma_list)
+                            metavar='libraries')
+
         parser.add_argument('cmd',
+                            type=str,
                             help="Executable command, e.g. './a.out'",
                             metavar='command',
-                            type=str,
                             nargs=arguments.REMAINDER)
 
+        """Simpler way of specifying backend, but less robust catching errors
         if containers.BACKENDS:
             group = parser.add_mutually_exclusive_group(required=True)
             for backend in containers.BACKENDS:
@@ -77,7 +98,7 @@ class ExecuteCommand(AbstractCommand):
                         help="Use {} as the container backend".format(backend),
                         dest='backend',
                         action='store_const',
-                        const=backend)
+                        const=backend)"""
 
         return parser
 
@@ -87,7 +108,8 @@ class ExecuteCommand(AbstractCommand):
 
         if args.libraries:
             compute_libs(args.libraries, container)
-            container.bind_env_var('LD_LIBRARY_PATH', '/hostlibs')
+            #container.bind_env_var('LD_DEBUG', 'files')
+            container.bind_env_var('LD_LIBRARY_PATH', HOST_LIBS_DIR)
 
         if args.files:
             for path in args.files:

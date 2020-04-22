@@ -9,7 +9,7 @@ LOGGER = logger.get_logger(__name__)
 
 class SingularityContainer(Container):
     def run(self, command, redirect_stdout=False):
-        container_cmd = [which('singularity'), 'exec'] + self.format_bound() + [self.image.as_posix()] + command
+        container_cmd = [which('singularity'), 'exec', '--nv'] + self.format_bound() + [self.image.as_posix()] + command
         retval, output = create_subprocess_exp(container_cmd, env=self.env, redirect_stdout=redirect_stdout)
         return output
 

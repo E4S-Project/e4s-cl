@@ -357,7 +357,7 @@ Don't change directly. May be changed via :any:`set_log_level`.
 LOG_FILE = os.path.join(USER_PREFIX, 'debug_log')
 """str: Absolute path to a log file to receive all debugging output."""
 
-LINE_MARKER = os.environ.get('TAU_LINE_MARKER', '[TAU] ')
+LINE_MARKER = os.environ.get('TAU_LINE_MARKER', "[{} on {}] ".format(os.getpid(), socket.gethostname()))
 """str: Marker for each line of output."""
 
 COLORED_LINE_MARKER = termcolor.colored(LINE_MARKER, 'red')
