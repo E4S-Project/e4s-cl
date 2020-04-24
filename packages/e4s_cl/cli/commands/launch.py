@@ -8,20 +8,6 @@ from e4s_cl.error import ConfigurationError
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
-PROGRAM_LAUNCHERS = {'mpirun': ['-app', '--app', '-configfile'],
-                     'mpiexec': ['-app', '--app', '-configfile'],
-                     'mpiexec.hydra': ['-app', '--app', '-configfile'],
-                     'mpiexec.mpd': ['-app', '--app', '-configfile'],
-                     'orterun': ['-app', '--app', '-configfile'],
-                     'mpiexec_mpt': [],
-                     'ccc_mprun': [],
-                     'mpirun_rsh': [],
-                     'ibrun': [],
-                     'aprun': [],
-                     'qsub': [],
-                     'srun': ['--multi-prog'],
-                     'oshrun': [],
-                     'cafrun': []}
 
 class LaunchCommand(AbstractCommand):
     """``help`` subcommand."""
@@ -84,7 +70,7 @@ class LaunchCommand(AbstractCommand):
         if args.libraries:
             execute_command += ['--libraries', args.libraries]
         if args.backend:
-            execute_command += ["--{}".format(args.backend)]
+            execute_command += ['--backend', args.backend]
         if args.image:
             execute_command += ["--image", args.image]
 

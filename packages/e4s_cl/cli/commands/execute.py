@@ -20,7 +20,7 @@ def _existing_backend(string):
     return string
 
 def _argument_path(string):
-    path = Path(string)
+    path = Path(string.strip())
 
     if not path.exists():
         raise ArgumentTypeError("File {} does not exist".format(path.as_posix()))
@@ -36,6 +36,7 @@ def compute_libs(lib_list, container):
     selected = {}
 
     for path in lib_list:
+        container.add_ld_preload("{}/{}".format(HOST_LIBS_DIR, path.name))
         dependencies = list_dependencies(path)
         for dependency in dependencies.keys():
             if dependency not in present_in_container and dependencies[dependency]['path']:
@@ -90,16 +91,6 @@ class ExecuteCommand(AbstractCommand):
                             metavar='command',
                             nargs=arguments.REMAINDER)
 
-        """Simpler way of specifying backend, but less robust catching errors
-        if containers.BACKENDS:
-            group = parser.add_mutually_exclusive_group(required=True)
-            for backend in containers.BACKENDS:
-                group.add_argument("--{}".format(backend),
-                        help="Use {} as the container backend".format(backend),
-                        dest='backend',
-                        action='store_const',
-                        const=backend)"""
-
         return parser
 
     def main(self, argv):
@@ -108,8 +99,7 @@ class ExecuteCommand(AbstractCommand):
 
         if args.libraries:
             compute_libs(args.libraries, container)
-            #container.bind_env_var('LD_DEBUG', 'files')
-            container.bind_env_var('LD_LIBRARY_PATH', HOST_LIBS_DIR)
+            container.add_ld_library_path(HOST_LIBS_DIR)
 
         if args.files:
             for path in args.files:

@@ -9,7 +9,11 @@ LOGGER = logger.get_logger(__name__)
 
 class SingularityContainer(Container):
     def run(self, command, redirect_stdout=False):
-        container_cmd = [which('singularity'), 'exec', '--nv'] + self.format_bound() + [self.image.as_posix()] + command
+        self.add_ld_library_path("/.singularity.d/libs")
+        self.env.update({'SINGULARITYENV_LD_PRELOAD': ":".join(self.ld_preload)})
+        self.env.update({'SINGULARITYENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
+        self.format_bound()
+        container_cmd = [which('singularity'), 'exec', '--nv', self.image.as_posix()] + command
         retval, output = create_subprocess_exp(container_cmd, env=self.env, redirect_stdout=redirect_stdout)
         return output
 
@@ -17,8 +21,7 @@ class SingularityContainer(Container):
         fileList = ["{}:{}:{}".format(*request) for request in self.bound]
         files = ','.join(fileList)
         if files:
-            return ['-B', files]
-        return []
+            self.env.update({"SINGULARITY_BIND": files})
 
     def bind_env_var(self, key, value):
         new_key = "SINGULARITYENV_{}".format(key)

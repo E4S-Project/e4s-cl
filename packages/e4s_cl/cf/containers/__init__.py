@@ -20,12 +20,20 @@ class Container(object):
         self.image = image
         self.bound = []
         self.env = {}
+        self.ld_preload = []
+        self.ld_lib_path = []
 
     def bind_file(self, path, dest=None, options=None):
         self.bound.append((path, dest, options))
 
     def bind_env_var(self, key, value):
         self.env.update({key: value})
+
+    def add_ld_preload(self, path):
+        self.ld_preload.append(path)
+
+    def add_ld_library_path(self, path):
+        self.ld_lib_path.append(path)
 
     def run(self, command):
         raise InternalError("Not implemented")
