@@ -53,7 +53,6 @@ from zipfile import ZipFile
 from termcolor import termcolor
 from e4s_cl import logger
 from e4s_cl.error import InternalError
-from e4s_cl.progress import ProgressIndicator
 
 LOGGER = logger.get_logger(__name__)
 
@@ -108,14 +107,6 @@ def mkdtemp(*args, **kwargs):
     path = tempfile.mkdtemp(*args, **kwargs)
     _DTEMP_STACK.append(path)
     return path
-
-
-def copy_file(src, dest, show_progress=True):
-    """Works just like :any:`shutil.copy` except with progress bars."""
-    context = ProgressIndicator if show_progress else _null_context
-    with context(""):
-        shutil.copy(src, dest)
-
 
 def mkdirp(*args):
     """Creates a directory and all its parents.
@@ -261,86 +252,6 @@ def archive_toplevel(archive):
         LOGGER.debug("Top-level directory in '%s' is '%s'", archive, topdir)
         return topdir
 
-
-def _show_extract_progress(members):
-    with ProgressIndicator("Extracting", total_size=len(members), show_cpu=False) as progress_bar:
-        for i, member in enumerate(members):
-            progress_bar.update(i)
-            yield member
-
-def extract_archive(archive, dest, show_progress=True):
-    """Extracts archive file to dest.
-    
-    Supports compressed and uncompressed tar archives. Destination folder will
-    be created if it doesn't exist.
-    
-    Args:
-        archive (str): Path to archive file to extract.
-        dest (str): Destination folder.
-    
-    Returns:
-        str: Full path to extracted files.
-        
-    Raises:
-        IOError: Failed to extract archive.
-    """
-    topdir = archive_toplevel(archive)
-    full_dest = os.path.join(dest, topdir)
-    mkdirp(dest)
-    with tarfile.open(archive) as fin:
-        if show_progress:
-            LOGGER.info("Checking contents of '%s'", archive)
-            with ProgressIndicator("Extracting archive", show_cpu=False):
-                members = fin.getmembers()
-            LOGGER.info("Extracting '%s' to create '%s'", archive, full_dest)
-            fin.extractall(dest, members=_show_extract_progress(members))
-        else:
-            LOGGER.info("Extracting '%s' to create '%s'", archive, full_dest)
-            fin.extractall(dest)
-    if not os.path.isdir(full_dest):
-        raise IOError("Extracting '%s' does not create '%s'" % (archive, full_dest))
-    return full_dest
-
-
-def create_archive(fmt, dest, items, cwd=None, show_progress=True):
-    """Creates a new archive file in the specified format.
-    
-    Args:
-        fmt (str): Archive fmt, e.g. 'zip' or 'tgz'.
-        dest (str): Path to the archive file that will be created.
-        items (list): Items (i.e. files or folders) to add to the archive.
-        cwd (str): Current working directory while creating the archive. 
-    """
-    if cwd:
-        oldcwd = os.getcwd()
-        os.chdir(cwd)
-    if show_progress:
-        LOGGER.info("Writing '%s'...", dest)
-        context = ProgressIndicator
-    else:
-        context = _null_context
-    with context(""):
-        try:
-            if fmt == 'zip':
-                with ZipFile(dest, 'w') as archive:
-                    archive.comment = "Created by TAU Commander"
-                    for item in items:
-                        archive.write(item)
-            elif fmt in ('tar', 'tgz', 'tar.bz2'):
-                mode_map = {'tar': 'w', 'tgz': 'w:gz', 'tar.bz2': 'w:bz2'}
-                with tarfile.open(dest, mode_map[fmt]) as archive:
-                    for item in items:
-                        archive.add(item)
-            elif fmt == 'gz':
-                with open(items[0], 'rb') as fin, gzip.open(dest, 'wb') as fout:
-                    shutil.copyfileobj(fin, fout)
-            else:
-                raise InternalError("Invalid archive format: %s" % fmt)
-        finally:
-            if cwd:
-                os.chdir(oldcwd)
-
-
 def path_accessible(path, mode='r'):
     """Check if a file or directory exists and is accessable.
     
@@ -436,7 +347,7 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
 
     return retval, output
 
-def create_subprocess(cmd, cwd=None, env=None, stdout=True, log=True, show_progress=False, error_buf=50, record_output=False):
+def create_subprocess(cmd, cwd=None, env=None, stdout=True, log=True, error_buf=50, record_output=False):
     """Create a subprocess.
     
     See :any:`subprocess.Popen`.
@@ -465,41 +376,41 @@ def create_subprocess(cmd, cwd=None, env=None, stdout=True, log=True, show_progr
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
     LOGGER.debug("Creating subprocess: cmd=%s, cwd='%s'\n", cmd, cwd)
-    context = ProgressIndicator if show_progress else _null_context
-    with context(""):
-        if error_buf:
-            buf = deque(maxlen=error_buf)
-        output = []
-        proc = subprocess.Popen(cmd,
-                cwd=cwd,
-                env=subproc_env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                close_fds=False,
-                universal_newlines=True,
-                bufsize=1)
-        with proc.stdout:
-            # Use iter to avoid hidden read-ahead buffer bug in named pipes:
-            # http://bugs.python.org/issue3907
-            for line in proc.stdout.readlines():
-                if log:
-                    LOGGER.debug(line[:-1])
-                if stdout:
-                    print(line, end='')
-                if error_buf:
-                    buf.append(line)
-                if record_output:
-                    output.append(line)
-        proc.wait()
+    if error_buf:
+        buf = deque(maxlen=error_buf)
+    output = []
+    proc = subprocess.Popen(cmd,
+                            cwd=cwd,
+                            env=subproc_env,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            close_fds=False,
+                            universal_newlines=True,
+                            bufsize=1)
+    with proc.stdout:
+        # Use iter to avoid hidden read-ahead buffer bug in named pipes:
+        # http://bugs.python.org/issue3907
+        for line in proc.stdout.readlines():
+            if log:
+                LOGGER.debug(line[:-1])
+            if stdout:
+                print(line, end='')
+            if error_buf:
+                buf.append(line)
+            if record_output:
+                output.append(line)
+    proc.wait()
+
     retval = proc.returncode
     LOGGER.debug("%s returned %d", cmd, retval)
+
     if retval and error_buf and not stdout:
         for line in buf:
             print(line)
+
     if record_output:
         return retval, output
-    else:
-        return retval
+    return retval
 
 
 def get_command_output(cmd):

@@ -1,3 +1,9 @@
+"""containers module
+
+Defines an abstract class to simplify the use of container technology.
+Creating an instance of ``Container`` will return a specific class to
+the required backend."""
+
 import sys
 from os import environ
 from e4s_cl import util
@@ -6,7 +12,8 @@ from e4s_cl.error import InternalError
 BACKENDS = []
 SUPPORTED_MIMES = {}
 
-class Container(object):
+class Container():
+    """Abstract class to complete depending on the container tech."""
     def __new__(cls, backend=None, image=None):
         if backend:
             module_name = "{}.{}".format(__name__, backend)
@@ -35,20 +42,14 @@ class Container(object):
     def add_ld_library_path(self, path):
         self.ld_lib_path.append(path)
 
-    def run(self, command):
+    def run(self, command, redirect_stdout=False):
         raise InternalError("Not implemented")
 
-for _, module_name, _ in util.walk_packages(__path__, prefix=__name__ + "."):
-    __import__(module_name)
-    module = sys.modules[module_name]
-    if not ('AVAILABLE' in dir(module) and module.AVAILABLE):
+for _, existing_backend, _ in util.walk_packages(__path__, prefix=__name__ + "."):
+    __import__(existing_backend)
+    backend_module = sys.modules[existing_backend]
+    if not ('AVAILABLE' in dir(backend_module) and backend_module.AVAILABLE):
         # The module is incomplete or unavailable
         continue
 
-    BACKENDS.append(module_name.split('.')[-1])
-
-    for mime in sys.modules[module_name].MIMES:
-        modules = SUPPORTED_MIMES.get(mime, [])
-        modules.append(sys.modules[module_name].__name__)
-        SUPPORTED_MIMES[mime] = modules
-
+    BACKENDS.append(existing_backend.split('.')[-1])

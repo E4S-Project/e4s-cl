@@ -1,24 +1,34 @@
+"""mpirun launcher support
+
+Defines the ``parse_cli`` command adapted to mpirun to interpret
+mpirun commands"""
+
 from e4s_cl import logger
 
 LOGGER = logger.get_logger(__name__)
 
 ARGUMENTS = {"-genv": 2,
-        "-genvlist": 1,
-        "-genvnone": 0,
-        "-genvall": 0,
-        "-f": 1,
-        "-hosts": 1,
-        "-wdir": 1,
-        "-configfile": 1}
+             "-genvlist": 1,
+             "-genvnone": 0,
+             "-genvall": 0,
+             "-f": 1,
+             "-hosts": 1,
+             "-wdir": 1,
+             "-configfile": 1}
 
 LOCAL_ARGUMENTS = {"-env": 2,
-        "-envlist": 1,
-        "-envnone": 0,
-        "-envall": 0,
-        "-n": 1,
-        "-np": 1}
+                   "-envlist": 1,
+                   "-envnone": 0,
+                   "-envall": 0,
+                   "-n": 1,
+                   "-np": 1}
 
 def parse_cli(cmd):
+    """
+    parse_cli: list[str] -> list[str], list[str]
+
+    Separate a command line into launcher and program.
+    """
     position = 0
     known = True
     launcher = []
@@ -28,12 +38,12 @@ def parse_cli(cmd):
 
     if cmd[position] != 'mpirun':
         return [], cmd
-    else:
-        launcher.append(cmd[position])
-        position += 1
+
+    launcher.append(cmd[position])
+    position += 1
 
     while known and position < len(cmd):
-        LOGGER.debug("Evaluating {}".format(cmd[position]))
+        LOGGER.debug("Evaluating %s", cmd[position])
         if cmd[position] not in full_list.keys():
             known = False
             break

@@ -1,24 +1,25 @@
+"""Launch command
+
+Definition of arguments and hooks related to the launch command,
+launcher detection, profile loading, and subprocess creation.
+"""
+
 import os
 from e4s_cl.cf.launchers import LAUNCHERS, parse_cli
-from e4s_cl import EXIT_SUCCESS, HELP_CONTACT, E4S_CL_SCRIPT
-from e4s_cl import logger, util, cli
-from e4s_cl.cli import arguments, UnknownCommandError
+from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
+from e4s_cl import logger, util
+from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
-from e4s_cl.error import ConfigurationError
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 class LaunchCommand(AbstractCommand):
-    """``help`` subcommand."""
+    """``launch`` subcommand."""
 
     def _construct_parser(self):
         usage = "%s [arguments] [launcher] [launcher_arguments] [--] <command> [command_arguments]" % self.command
         parser = arguments.get_parser(prog=self.command, usage=usage, description=self.summary)
-        """parser.add_argument('--profile',
-                            help="Program profile to use",
-                            metavar='profile',
-                            nargs=1)"""
         parser.add_argument('--image',
                             help="Container image to use",
                             metavar='image')

@@ -1,11 +1,18 @@
+"""Execute command
+
+Definition of arguments and hooks related to the execute command,
+file import calculations, and execution of a program passed as an
+argument.
+"""
+
 import os
 from pathlib import Path
-from e4s_cl import EXIT_SUCCESS, HELP_CONTACT, E4S_CL_SCRIPT
-from e4s_cl import logger, cli
+from argparse import ArgumentTypeError
+from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
+from e4s_cl import logger
 from e4s_cl.util import list_dependencies
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
-from argparse import ArgumentTypeError
 from e4s_cl.cf import containers
 
 LOGGER = logger.get_logger(__name__)
@@ -14,12 +21,16 @@ _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 HOST_LIBS_DIR = Path('/hostlibs/').as_posix()
 
 def _existing_backend(string):
+    """Argument type callback.
+    Asserts that the selected backend is available."""
     if not string in containers.BACKENDS:
         raise ArgumentTypeError("Backend {} is not available on this machine".format(string))
 
     return string
 
 def _argument_path(string):
+    """Argument type callback.
+    Asserts that the string corresponds to an existing path."""
     path = Path(string.strip())
 
     if not path.exists():
@@ -28,9 +39,17 @@ def _argument_path(string):
     return path
 
 def _argument_path_comma_list(string):
+    """Argument type callback.
+    Asserts that the string corresponds to a list of existing paths."""
     return [_argument_path(data) for data in string.split(',')]
 
 def compute_libs(lib_list, container):
+    """Necessary library computation.
+
+    This method will first determine what libraries are available 
+    inside the container, then list the dependencies of the requested imports.
+    All of the necessary dependencies that are not present in the container
+    will get bound."""
     output = container.run(['ldconfig', '-p'], redirect_stdout=True)
     present_in_container = [line.strip().split(' ')[0] for line in output.split('\n')[1:]]
     selected = {}
@@ -38,15 +57,15 @@ def compute_libs(lib_list, container):
     for path in lib_list:
         container.add_ld_preload("{}/{}".format(HOST_LIBS_DIR, path.name))
         dependencies = list_dependencies(path)
-        for dependency in dependencies.keys():
-            if dependency not in present_in_container and dependencies[dependency]['path']:
-                selected.update({dependency: dependencies[dependency]['path']})
+        for dependency, data in dependencies.items():
+            if dependency not in present_in_container and data['path']:
+                selected.update({dependency: data['path']})
 
     for path in selected.values():
         container.bind_file(path, dest="{}/{}".format(HOST_LIBS_DIR, Path(path).name), options='ro')
 
 class ExecuteCommand(AbstractCommand):
-    """``help`` subcommand."""
+    """``execute`` subcommand."""
 
     @classmethod
     def _parse_dependencies(cls, libraries):
