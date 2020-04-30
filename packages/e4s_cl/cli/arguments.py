@@ -1,35 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2015, ParaTools, Inc.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# (1) Redistributions of source code must retain the above copyright notice,
-#     this list of conditions and the following disclaimer.
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-#     this list of conditions and the following disclaimer in the documentation
-#     and/or other materials provided with the distribution.
-# (3) Neither the name of ParaTools, Inc. nor the names of its contributors may
-#     be used to endorse or promote products derived from this software without
-#     specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-"""TAU Commander command line interface (CLI).
-
-Extensions to :any:`argparse` to support the TAU Commander command line interface.
-"""
-
 import os
 import sys
 import re
@@ -366,7 +334,7 @@ class MarkdownHelpFormatter(HelpFormatter):
         trans = {'<': '*', 
                  '>': '*', 
                  '|': r'\|'}
-        self._escape_rep = {re.escape(k): v for k, v in trans.iteritems()}
+        self._escape_rep = {re.escape(k): v for k, v in trans.items()}
         self._escape_pattern = re.compile("|".join(self._escape_rep.keys()))
 
     
@@ -444,43 +412,6 @@ class MarkdownHelpFormatter(HelpFormatter):
         for subaction in self._iter_indented_subactions(action):
             parts.append(self._format_action(subaction))
         return self._join_parts(parts)
-
-
-class ParsePackagePathAction(argparse.Action):
-    """Argument parser action for software package paths.
-    
-    This action checks that an argument's value is one of these cases:
-    1) The path to an existing software package installation.
-    2) The path to an archive file containing the software package.
-    3) A URL to an archive file containing the software package.
-    4) The magic word "download" or value that parses to True via :any:`taucmdr.util.parse_bool`.
-    5) A value that parses to False via :any:`parse_bool`.
-    """
-    # pylint: disable=too-few-public-methods
-
-    def __call__(self, parser, namespace, value, unused_option_string=None):
-        """Sets the `self.dest` attribute in `namespace` to the parsed value of `value`.
-        
-        If `value` parses to a boolean True value then the attribute value is 'download'.
-        If `value` parses to a boolean False value then the attribute value is ``None``.
-        Otherwise the attribute value is the value of `value`.
-            
-        Args:
-            parser (str): Argument parser object this group belongs to.
-            namespace (object): Namespace to receive parsed value via setattr.
-            value (str): Value parsed from the command line.
-        """
-        try:
-            value_as_bool = util.parse_bool(value, additional_true=['download', 'download-tr6', 'nightly'])
-        except TypeError:
-            if not util.is_url(value):
-                value = os.path.abspath(os.path.expanduser(value))
-                if not (os.path.isdir(value) or util.path_accessible(value)):
-                    raise argparse.ArgumentError(self, "Keyword, valid path, or URL required: %s" % value)
-        else:
-            value = value.lower() if value_as_bool else None
-        setattr(namespace, self.dest, value)
-
 
 class ParseBooleanAction(argparse.Action):
     """Argument parser action for boolean values.
@@ -575,7 +506,7 @@ def get_parser_from_model(model, use_defaults=True, prog=None, usage=None, descr
     """
     parser = get_parser(prog, usage, description, epilog)
     groups = {}
-    for attr, props in model.attributes.iteritems():
+    for attr, props in model.attributes.items():
         try:
             options = dict(props['argparse'])
         except KeyError:

@@ -1,36 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2015, ParaTools, Inc.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# (1) Redistributions of source code must retain the above copyright notice,
-#     this list of conditions and the following disclaimer.
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-#     this list of conditions and the following disclaimer in the documentation
-#     and/or other materials provided with the distribution.
-# (3) Neither the name of ParaTools, Inc. nor the names of its contributors may
-#     be used to endorse or promote products derived from this software without
-#     specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-"""TAU Commander error handling.
-
-Only error base classes should be defined here.  
-Error classes should be defined in their appropriate modules.
-"""
-
 import os
 import sys
 import traceback
@@ -150,6 +117,26 @@ class UniqueAttributeError(ModelError):
             unique (dict): Dictionary of unique attributes in the data model.  
         """
         super(UniqueAttributeError, self).__init__(model, "A record with one of '%s' already exists" % unique)
+
+class ImmutableRecordError(ConfigurationError):
+    """Indicates that a data record cannot be modified."""
+
+class IncompatibleRecordError(ConfigurationError):
+    """Indicates that a pair of data records are incompatible."""
+
+
+class ProfileSelectionError(ConfigurationError):
+    """Indicates an error while selecting a profile."""
+
+    def __init__(self, value, *hints):
+        from e4s_cl.cli.commands.profile.create import COMMAND as profile_create_cmd
+        from e4s_cl.cli.commands.profile.select import COMMAND as profile_select_cmd
+        from e4s_cl.cli.commands.profile.list import COMMAND as profile_list_cmd
+        if not hints:
+            hints = ("Use `%s` to create a new profile configuration." % profile_create_cmd,
+                     "Use `%s <profile_name>` to select a profile configuration." % profile_select_cmd,
+                     "Use `%s` to see available profile configurations." % profile_list_cmd)
+        super(ProfileSelectionError, self).__init__(value, *hints)
 
 def excepthook(etype, value, tb):
     """Exception handler for any uncaught exception (except SystemExit).

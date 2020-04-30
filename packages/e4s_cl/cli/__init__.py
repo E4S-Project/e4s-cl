@@ -1,45 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2015, ParaTools, Inc.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# (1) Redistributions of source code must retain the above copyright notice,
-#     this list of conditions and the following disclaimer.
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-#     this list of conditions and the following disclaimer in the documentation
-#     and/or other materials provided with the distribution.
-# (3) Neither the name of ParaTools, Inc. nor the names of its contributors may
-#     be used to endorse or promote products derived from this software without
-#     specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-"""TAU Commander command line interface (CLI).
-
-The TAU Commander CLI is composed of a single top-level command that invokes
-subcommands, much like `git`_.  For example, the command line 
-``tau project create my_new_project`` invokes the `create` subcommand of the
-`project` subcommand with the arguments `my_new_project`. 
-
-Every package in :py:mod:`e4s_cl.cli.commands` is a TAU Commander subcommand. Modules
-in the package are that subcommand's subcommands.  This can be nested as deep as
-you like.  Subcommand modules must have a COMMAND member which is an instance of
-a subclass of :any:`AbstractCommand`.
-
-.. _git: https://git-scm.com/
-"""
-
 import os
 import sys
 from types import ModuleType
@@ -309,12 +267,14 @@ def execute_command(cmd, cmd_args=None, parent_module=None):
     """
     if cmd_args is None:
         cmd_args = []
-    main = find_command(cmd).main
-    return main(cmd_args)
 
     if parent_module:
         parent = _command_as_list(parent_module)[1:]
         cmd = parent + cmd
+
+    main = find_command(cmd).main
+    return main(cmd_args)
+    
     if len(cmd) <= 1:
         # We finally give up
         LOGGER.debug("Unknown command %r has no parent module: giving up.", cmd)

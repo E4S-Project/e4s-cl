@@ -1,32 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2015, ParaTools, Inc.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# (1) Redistributions of source code must retain the above copyright notice,
-#     this list of conditions and the following disclaimer.
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-#     this list of conditions and the following disclaimer in the documentation
-#     and/or other materials provided with the distribution.
-# (3) Neither the name of ParaTools, Inc. nor the names of its contributors may
-#     be used to endorse or promote products derived from this software without
-#     specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-"""TODO: FIXME: Docs"""
-
 from e4s_cl import logger
 from e4s_cl.error import InternalError, UniqueAttributeError, ModelError
 
@@ -185,7 +156,7 @@ class Controller(object):
             return foreign.controller(self.storage).one(value)
 
     def _check_unique(self, data, match_any=True):
-        unique = {attr: data[attr] for attr, props in self.model.attributes.iteritems() if 'unique' in props}
+        unique = {attr: data[attr] for attr, props in self.model.attributes.items() if 'unique' in props}
         if unique and self.storage.contains(unique, match_any=match_any, table_name=self.model.name):
             raise UniqueAttributeError(self.model, unique)
     
@@ -205,7 +176,7 @@ class Controller(object):
         self._check_unique(data)
         with self.storage as database:
             record = database.insert(data, table_name=self.model.name)
-            for attr, foreign in self.model.associations.iteritems():
+            for attr, foreign in self.model.associations.items():
                 if 'model' or 'collection' in self.model.attributes[attr]:
                     affected = record.get(attr, None)
                     if affected:
@@ -241,9 +212,9 @@ class Controller(object):
             database.update(data, keys, table_name=self.model.name)
             changes = {}
             for model in old_records:
-                changes[model.eid] = {attr: (model.get(attr), new_value) for attr, new_value in data.iteritems()
+                changes[model.eid] = {attr: (model.get(attr), new_value) for attr, new_value in data.items()
                                       if not (attr in model and model.get(attr) == new_value)}
-                for attr, foreign in self.model.associations.iteritems():
+                for attr, foreign in self.model.associations.items():
                     try:
                         # 'collection' attribute is iterable
                         new_foreign_keys = set(data[attr])
@@ -298,7 +269,7 @@ class Controller(object):
             changes = {}
             for model in old_records:
                 changes[model.eid] = {attr: (model.get(attr), None) for attr in fields if attr in model}
-                for attr, foreign in self.model.associations.iteritems():
+                for attr, foreign in self.model.associations.items():
                     if attr in fields:
                         foreign_cls, via = foreign
                         old_foreign_keys = model.get(attr, None)
@@ -329,7 +300,7 @@ class Controller(object):
             removed_data = []
             changing = self.search(keys)
             for model in changing:
-                for attr, foreign in model.associations.iteritems():
+                for attr, foreign in model.associations.items():
                     foreign_model, via = foreign
                     affected_keys = model.get(attr, None)
                     if affected_keys:
@@ -401,7 +372,7 @@ class Controller(object):
             data = all_data.setdefault(record.model_name, {})
             if record.eid not in data:
                 data[record.eid] = record.data
-                for attr, foreign in record.associations.iteritems():
+                for attr, foreign in record.associations.items():
                     for foreign_record in foreign[0].search(eids=record[attr]):
                         export_record(foreign_record, root)
         all_data = {}

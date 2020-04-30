@@ -1,41 +1,9 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2015, ParaTools, Inc.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# (1) Redistributions of source code must retain the above copyright notice,
-#     this list of conditions and the following disclaimer.
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-#     this list of conditions and the following disclaimer in the documentation
-#     and/or other materials provided with the distribution.
-# (3) Neither the name of ParaTools, Inc. nor the names of its contributors may
-#     be used to endorse or promote products derived from this software without
-#     specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-"""A command line data `view`.
-
-See http://en.wikipedia.org/wiki/Model-view-controller
-"""
-
 from texttable import Texttable
 from e4s_cl import EXIT_SUCCESS
 from e4s_cl import logger, util, cli
-from e4s_cl.error import UniqueAttributeError, InternalError, ModelError, ProjectSelectionError
+from e4s_cl.error import UniqueAttributeError, InternalError, ModelError, ProfileSelectionError
 from e4s_cl.cf.storage import StorageError
-from e4s_cl.cf.storage.levels import SYSTEM_STORAGE, USER_STORAGE, PROJECT_STORAGE
+from e4s_cl.cf.storage.levels import SYSTEM_STORAGE, USER_STORAGE, PROFILE_STORAGE
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 
@@ -122,15 +90,15 @@ class CreateCommand(AbstractCliView):
             ctrl.create(data)
         except UniqueAttributeError:
             self.parser.error("A %s with %s='%s' already exists" % (self.model_name, key_attr, key))
-        if ctrl.storage is PROJECT_STORAGE:
-            from taucmdr.cli.commands.project.edit import COMMAND as project_edit_cmd
+        if ctrl.storage is PROFILE_STORAGE:
+            from taucmdr.cli.commands.profile.edit import COMMAND as profile_edit_cmd
             try:
-                proj = Project.selected()
-            except ProjectSelectionError:
-                self.logger.info("Created a new %s '%s'. Use `%s` to add the new %s to a project.", 
-                                 self.model_name, key, project_edit_cmd, self.model_name)
+                proj = Profile.selected()
+            except ProfileSelectionError:
+                self.logger.info("Created a new %s '%s'. Use `%s` to add the new %s to a profile.",
+                                 self.model_name, key, profile_edit_cmd, self.model_name)
             else:
-                project_edit_cmd.main([proj['name'], '--add', key])
+                profile_edit_cmd.main([proj['name'], '--add', key])
         else:
             self.logger.info("Created a new %s-level %s: '%s'.", ctrl.storage.name, self.model_name, key)
         return EXIT_SUCCESS
@@ -320,8 +288,7 @@ class ListCommand(AbstractCliView):
             raise InternalError("Attribute has no type: %s, %s" % (attrs, val))
         description = attrs.get('description', 'No description')
         description = description[0].upper() + description[1:] + "."
-        flags = ', '.join(flag for flag in attrs.get('argparse', {'flags': ('N/A',)})['flags'])
-        return [key, val, flags, description]
+        return [key, val, description]
 
     def long_format(self, records):
         """Format records in long format.
@@ -336,13 +303,13 @@ class ListCommand(AbstractCliView):
                                              'storage_path': records[0].storage}, 'cyan')
         retval = [title]
         for record in records:
-            rows = [['Attribute', 'Value', 'Command Flag', 'Description']]
+            rows = [['Attribute', 'Value', 'Description']]
             populated = record.populate()
-            for key, val in sorted(populated.iteritems()):
+            for key, val in sorted(populated.items()):
                 if key != self.model.key_attribute:
                     rows.append(self._format_long_item(key, val))
             table = Texttable(logger.LINE_WIDTH)
-            table.set_cols_align(['r', 'c', 'l', 'l'])
+            table.set_cols_align(['r', 'c', 'l'])
             table.set_deco(Texttable.HEADER | Texttable.VLINES)
             table.add_rows(rows)
             retval.append(util.hline(populated[self.model.key_attribute], 'cyan'))
@@ -383,37 +350,31 @@ class ListCommand(AbstractCliView):
         """Shows record data via `print`.
         
         Args:
-            storage_levels (list): Storage levels to query, e.g. ['user', 'project']
+            storage_levels (list): Storage levels to query, e.g. ['user', 'profile']
             keys (list): Keys to match to :any:`self.key_attr`.
             style (str): Style in which to format records.
             
         Returns:
             int: :any:`EXIT_SUCCESS` if successful.
         """
-            
-        project_ctl = self.model.controller(PROJECT_STORAGE)
+        profile_ctl = self.model.controller(PROFILE_STORAGE)
         user_ctl = self.model.controller(USER_STORAGE)
         system_ctl = self.model.controller(SYSTEM_STORAGE)
-        
+
         system = SYSTEM_STORAGE.name in storage_levels
         user = USER_STORAGE.name in storage_levels
-        project = PROJECT_STORAGE.name in storage_levels or not (user or system)
 
         parts = []
         if system:
             parts.extend(self._format_records(system_ctl, style, keys))
         if user:
             parts.extend(self._format_records(user_ctl, style, keys))
-        if project:
-            parts.extend(self._format_records(project_ctl, style, keys))
         if style == 'dashboard':
             # Show record counts (not the records themselves) for other storage levels
             if not system:
                 parts.extend(self._count_records(system_ctl))
             if not user:
                 parts.extend(self._count_records(user_ctl))
-            if not project:
-                parts.extend(self._count_records(project_ctl))
         print("\n".join(parts))
         return EXIT_SUCCESS
         
@@ -421,7 +382,7 @@ class ListCommand(AbstractCliView):
         args = self._parse_args(argv)
         keys = getattr(args, 'keys', None)
         style = getattr(args, 'style', None) or self.default_style
-        storage_levels = arguments.parse_storage_flag(args)
+        storage_levels = [l.name for l in arguments.parse_storage_flag(args)]
         return self._list_records(storage_levels, keys, style)
     
     def _retrieve_records(self, ctrl, keys):
