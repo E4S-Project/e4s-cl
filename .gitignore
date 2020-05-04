@@ -57,18 +57,6 @@ system
 *.inst.*
 *.pdb
 
-# TAU profiles / traces
-profile.*
-tauprofile.xml
-*.slog2
-*.trc
-*.edf
-*.ppk
-*.zip
-*.tar.*
-*.tgz
-*.cubex
-
 # Misc
 *~
 .DS_Store
