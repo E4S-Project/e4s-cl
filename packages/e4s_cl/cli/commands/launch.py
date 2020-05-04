@@ -39,11 +39,12 @@ def _argument_path_comma_list(string):
 def _parameters(arguments):
     """Generate compound parameters by merging profile and cli arguments
     The profile's parameters have less priority than the ones specified on
-    the command line."""
+    the command line.
+    If no profile is given, try to load the selected one."""
     if type(arguments) == Namespace:
         arguments = vars(arguments)
 
-    parameters = dict(arguments.get('profile', {}))
+    parameters = dict(arguments.get('profile', Profile.selected()))
 
     for attr in ['image', 'backend', 'libraries', 'files']:
         if arguments.get(attr, None):
@@ -74,7 +75,7 @@ class LaunchCommand(AbstractCommand):
         parser.add_argument('--profile',
                             type=_argument_profile,
                             help="Name of the profile to use",
-                            default={},
+                            default=arguments.SUPPRESS,
                             metavar='profile')
         parser.add_argument('--image',
                             type=_argument_path,
@@ -122,8 +123,11 @@ class LaunchCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
-        launcher, program = LaunchCommand.parse_launcher_cmd(args.cmd)
 
+        if not args.cmd:
+            self.parser.error("No command given")
+
+        launcher, program = LaunchCommand.parse_launcher_cmd(args.cmd)
         execute_command = _format_execute(_parameters(args))
 
         LOGGER.debug(" ".join(launcher + execute_command + program))
