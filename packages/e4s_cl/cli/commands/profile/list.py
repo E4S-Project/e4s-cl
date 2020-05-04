@@ -12,17 +12,7 @@ class ProfileListCommand(ListCommand):
             return lambda x: len(x.get(attr, []))
 
         def _selected(attr):
-            def is_equal(x):
-                try:
-                    selected = Profile.controller().selected().get(attr, None)
-                    if selected and x.get(attr, None) == selected:
-                        return '*'
-                except:
-                    pass
-
-                return ' '
-
-            return is_equal
+            return lambda x: '*' if Profile.selected().get(attr) == x[attr] else ' '
 
         dashboard_columns = [
                 {'header': 'Selected', 'function': _selected('name')},
@@ -49,7 +39,6 @@ class ProfileListCommand(ListCommand):
         levels = arguments.parse_storage_flag(args)
         keys = getattr(args, 'keys', [])
         single = (len(keys) == 1 and len(levels) == 1)
-
 
         if single:
             prof_name = keys[0]

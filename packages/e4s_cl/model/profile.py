@@ -90,4 +90,7 @@ class Profile(Model):
 
     @classmethod
     def selected(cls, storage=USER_STORAGE):
-        return cls.__controller__(cls, storage).selected()
+        try:
+            return cls.__controller__(cls, storage).selected()
+        except ProfileSelectionError:
+            return {}
