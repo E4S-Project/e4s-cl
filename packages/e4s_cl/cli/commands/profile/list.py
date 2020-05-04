@@ -11,12 +11,26 @@ class ProfileListCommand(ListCommand):
         def _count(attr):
             return lambda x: len(x.get(attr, []))
 
+        def _selected(attr):
+            def is_equal(x):
+                try:
+                    selected = Profile.controller().selected().get(attr, None)
+                    if selected and x.get(attr, None) == selected:
+                        return '*'
+                except:
+                    pass
+
+                return ' '
+
+            return is_equal
+
         dashboard_columns = [
+                {'header': 'Selected', 'function': _selected('name')},
                 {'header': 'Name', 'value': 'name', 'align': 'r'},
                 {'header': 'Backend', 'value': 'backend', 'align': 'r'},
                 {'header': 'Image', 'value': 'image', 'align': 'r'},
-                {'header': 'Libraries', 'function': _name_list('libraries')},
-                {'header': 'Files', 'function': _name_list('files')}
+                {'header': 'Libraries', 'function': _count('libraries')},
+                {'header': 'Files', 'function': _count('files')}
                 ]
 
         super(ProfileListCommand, self).__init__(Profile, __name__, dashboard_columns=dashboard_columns)
@@ -36,29 +50,23 @@ class ProfileListCommand(ListCommand):
         keys = getattr(args, 'keys', [])
         single = (len(keys) == 1 and len(levels) == 1)
 
-        retval = super(ProfileListCommand, self).main(argv)
 
-        """if single:
-            proj_name = keys[0]
-            self.title_fmt = "Profile Configuration (%(storage_path)s)"
-            experiment_list_cmd.title_fmt = "Experiments in profile '%s'" % proj_name
+        if single:
+            prof_name = keys[0]
+            self.title_fmt = "{} Configuration (%(storage_path)s)".format(prof_name)
+            # Remove the selected field if listing a single profile
+            self.dashboard_columns = self.dashboard_columns[1:]
+
+        retval = super(ProfileListCommand, self).main(argv)
 
         if single:
             storage = levels[0]
             ctrl = Profile.controller(storage)
-            proj = ctrl.one({'name': keys[0]})
-            for cmd, prop in ((target_list_cmd, 'targets'),
-                              (application_list_cmd, 'applications'),
-                              (measurement_list_cmd, 'measurements'),
-                              (experiment_list_cmd, 'experiments')):
-                primary_key = proj.attributes[prop]['collection'].key_attribute
-                records = proj.populate(prop)
-                if records:
-                    cmd.main([record[primary_key] for record in records] + style_args)
-                else:
-                    label = util.color_text('%s: No %s' % (proj['name'], prop), color='red', attrs=['bold'])
-                    print("%s.  Use `%s` to view available %s.\n" % (label, cmd, prop))
-        """
+            prof = ctrl.one({'name': keys[0]})
+            for attr in ['libraries', 'files']:
+                print("{} bound in profile:".format(attr.capitalize()))
+                print("\n{}\n".format("\n".join(prof.get(attr, []))))
+
         return retval
 
 COMMAND = ProfileListCommand()
