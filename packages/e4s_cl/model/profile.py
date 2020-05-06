@@ -81,9 +81,6 @@ class Profile(Model):
     __attributes__ = attributes
     __controller__ = ProfileController
 
-    def on_update(self, changes):
-        raise InternalError("Method not implemented")
-
     @classmethod
     def controller(cls, storage=USER_STORAGE):
         return cls.__controller__(cls, storage)
