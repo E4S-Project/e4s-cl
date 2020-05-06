@@ -1,7 +1,6 @@
 from e4s_cl import SYSTEM_PREFIX, USER_PREFIX
 from e4s_cl.cf.storage import StorageError
 from e4s_cl.cf.storage.local_file import LocalFileStorage
-from e4s_cl.cf.storage.profile import ProfileStorage
 
 SYSTEM_STORAGE = LocalFileStorage('system', SYSTEM_PREFIX)
 """System-level data storage."""

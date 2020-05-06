@@ -30,25 +30,21 @@
 Handles system manipulation and status tasks, e.g. subprocess management or file creation.
 """
 
-import re
 import os
+import re
 import sys
 import time
 import atexit
 import subprocess
 import errno
 import shutil
-import urllib
-import urllib.parse
 import pkgutil
 import tarfile
-import gzip
 import tempfile
 import hashlib
 import pathlib
 from collections import deque
 from contextlib import contextmanager
-from zipimport import zipimporter
 from zipfile import ZipFile
 from termcolor import termcolor
 from e4s_cl import logger
@@ -144,8 +140,8 @@ def rmtree(path, ignore_errors=False, onerror=None, attempts=5):
         attempts (int): Number of times to repeat shutil.rmtree before giving up.
     """
     if not os.path.exists(path):
-        return
-    for i in xrange(attempts-1):
+        return None
+    for i in range(attempts-1):
         try:
             return shutil.rmtree(path)
         except Exception as err:        # pylint: disable=broad-except
@@ -277,21 +273,21 @@ def path_accessible(path, mode='r'):
         if 'w' in mode:
             modebits |= os.W_OK | os.X_OK
         return os.access(path, modebits)
+
+    handle = None
+    try:
+        handle = open(path, mode)
+    except IOError as err:
+        if err.errno == errno.EACCES:
+            return False
+        # Some other error, not permissions
+        raise
     else:
-        handle = None
-        try:
-            handle = open(path, mode)
-        except IOError as err:
-            if err.errno == errno.EACCES:
-                return False
-            # Some other error, not permissions
-            raise
-        else:
-            return True
-        finally:
-            if handle:
-                handle.close()
-        return False
+        return True
+    finally:
+        if handle:
+            handle.close()
+    return False
 
 @contextmanager
 def _null_context(label):
@@ -322,14 +318,14 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
 
-    LOGGER.debug("Creating subprocess: cmd={0}".format(' '.join(cmd)))
+    LOGGER.debug("Creating subprocess: %s", ' '.join(cmd))
     out = (subprocess.PIPE if redirect_stdout else sys.stdout)
     proc = subprocess.Popen(cmd,
-                env=subproc_env,
-                stdout=out,
-                stderr=subprocess.PIPE,
-                close_fds=False,
-                universal_newlines=True)
+                            env=subproc_env,
+                            stdout=out,
+                            stderr=subprocess.PIPE,
+                            close_fds=False,
+                            universal_newlines=True)
 
     output, errors = proc.communicate()
     retval = proc.returncode
@@ -511,23 +507,10 @@ def parse_bool(value, additional_true=None, additional_false=None):
         value = value.lower()
         if value in true_values:
             return True
-        elif value in false_values:
+        if value in false_values:
             return False
-        else:
-            raise TypeError
+        raise TypeError
     return bool(value)
-
-
-def is_url(url):
-    """Check if `url` is a URL.
-    
-    Args:
-        url (str): String to check
-        
-    Returns:
-        bool: True if `url` is a URL, False otherwise.
-    """
-    return bool(len(parse.urlparse(url).scheme))
 
 
 def camelcase(name):
@@ -574,8 +557,7 @@ def color_text(text, *args, **kwargs):
     """
     if sys.stdout.isatty():
         return termcolor.colored(text, *args, **kwargs)
-    else:
-        return text
+    return text
 
 
 def uncolor_text(text):
@@ -635,7 +617,7 @@ def _zipimporter_iter_modules(archive, path):
 
 
 def _iter_modules(paths, prefix):
-    # pylint: disable=no-member,redefined-variable-type
+    # pylint: disable=no-member
     yielded = {}
     for importer, name, ispkg in pkgutil.iter_modules(path=paths, prefix=prefix):
         if name not in yielded:

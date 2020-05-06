@@ -12,7 +12,7 @@ else:
         pass
 
 
-class Controller(object):
+class Controller():
     """The "C" in `MVC`_.
 
     Attributes:
@@ -130,9 +130,9 @@ class Controller(object):
         if attribute:
             _heavy_debug("Populating %s(%s)[%s]", model.name, model.eid, attribute)
             return self._populate_attribute(model, attribute, defaults)
-        else:
-            _heavy_debug("Populating %s(%s)", model.name, model.eid)
-            return {attr: self._populate_attribute(model, attr, defaults) for attr in model}
+
+        _heavy_debug("Populating %s(%s)", model.name, model.eid)
+        return {attr: self._populate_attribute(model, attr, defaults) for attr in model}
 
     def _populate_attribute(self, model, attr, defaults):
         try:

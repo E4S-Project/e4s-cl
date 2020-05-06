@@ -6,6 +6,7 @@ from e4s_cl.cf.storage import StorageError
 from e4s_cl.cf.storage.levels import SYSTEM_STORAGE, USER_STORAGE, PROFILE_STORAGE
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
+from e4s_cl.model.profile import Profile
 
 
 class AbstractCliView(AbstractCommand):
@@ -27,7 +28,11 @@ class AbstractCliView(AbstractCommand):
         if not summary_fmt:
             summary_fmt = "Create and manage %(model_name)s configurations."
         self.include_storage_flag = include_storage_flag
-        super(AbstractCliView, self).__init__(module_name, format_fields=format_fields, summary_fmt=summary_fmt, help_page_fmt=help_page_fmt, group=group)
+        super(AbstractCliView, self).__init__(module_name, 
+                                              format_fields=format_fields, 
+                                              summary_fmt=summary_fmt, 
+                                              help_page_fmt=help_page_fmt, 
+                                              group=group)
 
 
 class RootCommand(AbstractCliView):
@@ -91,7 +96,7 @@ class CreateCommand(AbstractCliView):
         except UniqueAttributeError:
             self.parser.error("A %s with %s='%s' already exists" % (self.model_name, key_attr, key))
         if ctrl.storage is PROFILE_STORAGE:
-            from taucmdr.cli.commands.profile.edit import COMMAND as profile_edit_cmd
+            from e4s_cl.cli.commands.profile.edit import COMMAND as profile_edit_cmd
             try:
                 proj = Profile.selected()
             except ProfileSelectionError:
@@ -357,7 +362,6 @@ class ListCommand(AbstractCliView):
         Returns:
             int: :any:`EXIT_SUCCESS` if successful.
         """
-        profile_ctl = self.model.controller(PROFILE_STORAGE)
         user_ctl = self.model.controller(USER_STORAGE)
         system_ctl = self.model.controller(SYSTEM_STORAGE)
 
@@ -449,12 +453,11 @@ class ListCommand(AbstractCliView):
         if count == 1:
             return ["There is 1 %(level)s %(model_name)s."
                     " Type `%(command)s -%(level_flag)s %(level)s` to list it." % fields] 
-        elif count > 1:
+        if count > 1:
             return ["There are %(count)d %(level)s %(model_name)ss."
                     " Type `%(command)s -%(level_flag)s %(level)s` to list them." % fields] 
-        else:
-            #return ["There are no %(level)s %(model_name)ss." % fields]
-            return [] 
+        #return ["There are no %(level)s %(model_name)ss." % fields]
+        return [] 
 
 
 class CopyCommand(CreateCommand):
@@ -463,57 +466,6 @@ class CopyCommand(CreateCommand):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt', "Copy and modify %(model_name)s configurations.")
         super(CopyCommand, self).__init__(*args, **kwargs)
-        
-    def _construct_parser(self):
-        key_attr = self.model.key_attribute
-        usage = ("%s <%s_%s> <copy_%s> [arguments]" % (self.command, self.model_name, key_attr, key_attr))       
-        parser = arguments.get_parser_from_model(self.model,
-                                                 use_defaults=False,
-                                                 prog=self.command,
-                                                 usage=usage,
-                                                 description=self.summary)
-        group = parser.add_argument_group('%s arguments' % self.model_name)
-        group.add_argument('copy_%s' % key_attr,
-                           help="new %s configuration's %s" % (self.model_name, key_attr),
-                           metavar='<copy_%s>' % key_attr,
-                           default=arguments.SUPPRESS)
-        if self.include_storage_flag:
-            arguments.add_storage_flag(parser, "copy", self.model_name)
-        return parser
-
-    def _copy_record(self, store, updates, key):
-        ctrl = self.model.controller(store)
-        key_attr = self.model.key_attribute
-        matching = ctrl.search({key_attr: key})
-        if not matching:
-            self.parser.error("No %s-level %s with %s='%s'." % (ctrl.storage.name, self.model_name, key_attr, key))
-        elif len(matching) > 1:
-            raise InternalError("More than one %s-level %s with %s='%s' exists!" % 
-                                (ctrl.storage.name, self.model_name, key_attr, key))
-        else:
-            found = matching[0]
-        data = dict(found)
-        data.update(updates)
-        return self._create_record(store, data)
-
-    def main(self, argv):
-        args = self._parse_args(argv)
-        store = arguments.parse_storage_flag(args)[0]
-        data = {attr: getattr(args, attr) for attr in self.model.attributes if hasattr(args, attr)}
-        key_attr = self.model.key_attribute
-        try:
-            data[key_attr] = getattr(args, 'copy_%s' % key_attr)
-        except AttributeError:
-            pass
-        key = getattr(args, key_attr)
-        return self._copy_record(store, data, key)
-
-class SampleCommand(AbstractCliView):
-    """Test subcommand of command line views."""
-    
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('summary_fmt', "Copy and modify %(model_name)s configurations.")
-        super(SampleCommand, self).__init__(*args, **kwargs)
         
     def _construct_parser(self):
         key_attr = self.model.key_attribute

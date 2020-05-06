@@ -71,7 +71,7 @@ class ModelMeta(type):
         
     @property
     def key_attribute(cls):
-        # pylint: disable=attribute-defined-outside-init
+        # pylint: disable=no-value-for-parameter
         try:
             return cls._key_attribute
         except AttributeError:
@@ -597,6 +597,6 @@ class Model(StorageRecord, metaclass=ModelMeta):
 
     @classmethod
     def filter_arguments(cls, args):
-        from taucmdr.cli.arguments import ArgumentsNamespace
+        from e4s_cl.cli.arguments import ArgumentsNamespace
         filtered = dict(item for item in vars(args).items() if item[0] in cls.attributes)
         return ArgumentsNamespace(**filtered)

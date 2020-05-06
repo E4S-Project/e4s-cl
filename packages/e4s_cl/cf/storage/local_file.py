@@ -1,7 +1,7 @@
 import os
 import json
-import tinydb
 import tempfile
+import tinydb
 from tinydb import operations
 from tinydb.middlewares import CachingMiddleware
 from e4s_cl import logger, util
@@ -44,8 +44,7 @@ class _JsonFileStorage(tinydb.JSONStorage):
     def write(self, *args, **kwargs):
         if self.readonly:
             raise ConfigurationError("Cannot write to '%s'" % self.path, "Check that you have `write` access.")
-        else:
-            super(_JsonFileStorage, self).write(*args, **kwargs)
+        super(_JsonFileStorage, self).write(*args, **kwargs)
 
 
 class LocalFileStorage(AbstractStorage):
@@ -193,8 +192,7 @@ class LocalFileStorage(AbstractStorage):
         self.connect_database()
         if table_name is None:
             return self._database
-        else:
-            return self._database.table(table_name)
+        return self._database.table(table_name)
     
     @staticmethod
     def _query(keys, match_any):

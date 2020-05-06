@@ -85,10 +85,10 @@ def _get_commands(package_name):
     def lookup(cmd, dct):
         if not cmd:
             return dct
-        elif len(cmd) == 1:
+        if len(cmd) == 1:
             return dct[cmd[0]]
-        else:
-            return lookup(cmd[1:], dct[cmd[0]])
+            
+        return lookup(cmd[1:], dct[cmd[0]])
 
     def walking_import(module, cmd, dct):
         car, cdr = cmd[0], cmd[1:]
@@ -123,8 +123,8 @@ def command_from_module_name(module_name):
     """
     if module_name == '__main__':
         return os.path.basename(E4S_CL_SCRIPT)
-    else:
-        return ' '.join(_command_as_list(module_name))
+
+    return ' '.join(_command_as_list(module_name))
 
 
 def commands_description(package_name=COMMANDS_PACKAGE_NAME):
@@ -198,9 +198,9 @@ def _resolve(cmd, c, d):
         matches = [i for i in d.items() if i[0].startswith(car)]
     if len(matches) == 1:
         return [matches[0][0]] + _resolve(cmd, cdr, matches[0][1])
-    elif len(matches) == 0:
+    if len(matches) == 0:
         raise UnknownCommandError(' '.join(cmd))
-    elif len(matches) > 1:
+    if len(matches) > 1:
         raise AmbiguousCommandError(' '.join(cmd), [m[0] for m in matches])
     
 def find_command(cmd):

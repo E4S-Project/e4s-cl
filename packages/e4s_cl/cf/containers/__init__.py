@@ -14,6 +14,7 @@ SUPPORTED_MIMES = {}
 
 class Container():
     """Abstract class to complete depending on the container tech."""
+    # pylint: disable=unused-argument
     def __new__(cls, backend=None, image=None):
         if backend:
             module_name = "{}.{}".format(__name__, backend)
