@@ -27,9 +27,9 @@
 #
 """TODO: FIXME: Docs
 
-TAU Commander core software architecture.
+E4S Commander core software architecture.
 
-TAU Commander follows the `Model-View-Controller (MVC)`_ architectural pattern. 
+E4S Commander follows the `Model-View-Controller (MVC)`_ architectural pattern. 
 Packages in :py:mod:`taucmdr.model` define models and controllers.  The `model` module 
 declares the model attributes as a dictionary named `ATTRIBUTES` in the form::
 

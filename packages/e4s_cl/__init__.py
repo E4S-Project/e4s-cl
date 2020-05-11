@@ -2,10 +2,10 @@ import os
 import sys
 
 __version__ = "0.0.0"
-"""str: TAU Commander Version"""
+"""str: E4S Container Launcher Version"""
 
-TAUCMDR_VERSION = __version__
-"""str: TAU Commander Version"""
+E4S_CL_VERSION = __version__
+"""str: E4S Container Launcher Version"""
 
 EXIT_FAILURE = -100
 """int: Process exit code indicating unrecoverable failure."""
@@ -19,11 +19,8 @@ EXIT_SUCCESS = 0
 HELP_CONTACT = '<support@paratools.com>'
 """str: E-mail address users should contact for help."""
 
-TAUCMDR_URL = 'www.taucommander.com'
-"""str: URL of the TAU Commander project."""
-
 REQUIRED_PYTHON_VERSION = (3, 6)
-"""tuple: Required Python version for TAU Comamnder.
+"""tuple: Required Python version for E4S Comamnder.
 
 A tuple of at least (MAJOR, MINOR) directly comparible to :any:`sys.version_info`
 """
@@ -33,45 +30,44 @@ if sys.version_info[0:2] != REQUIRED_PYTHON_VERSION:
     EXPECTED = '.'.join([str(x) for x in REQUIRED_PYTHON_VERSION])
     sys.stderr.write("""%s
 %s
-%s
 Your Python version is %s but Python %s is required.
 Please install the required Python version or contact %s for support.
-""" % (TAUCMDR_URL, sys.executable, sys.version, VERSION, EXPECTED, HELP_CONTACT))
+""" % (sys.executable, sys.version, VERSION, EXPECTED, HELP_CONTACT))
     sys.exit(EXIT_FAILURE)
 
-TAUCMDR_HOME = os.path.realpath(os.path.abspath(os.environ.get('__TAUCMDR_HOME__', 
+E4S_CL_HOME = os.path.realpath(os.path.abspath(os.environ.get('__E4S_CL_HOME__',
                                                                os.path.join(os.path.dirname(__file__), '..', '..'))))
-"""str: Absolute path to the top-level TAU Commander directory.
+"""str: Absolute path to the top-level E4S Container Launcher directory.
 
 This directory contains at least `bin`, `docs`, and `packages` directories and is the root
 for system-level package installation paths. **Do not** change it once it is set.
 """
 
 E4S_CL_SCRIPT = os.environ.get('__E4S_CL_SCRIPT__', sys.argv[0])
-"""str: Script that launched TAU Commander.
+"""str: Script that launched E4S Container Launcher.
 
 Mainly used for help messages. **Do not** change it once it is set.
 """
 
-SYSTEM_PREFIX = os.path.realpath(os.path.abspath(os.environ.get('__TAUCMDR_SYSTEM_PREFIX__', 
-                                                                os.path.join(TAUCMDR_HOME, 'system'))))
-"""str: System-level TAU Commander files."""
+SYSTEM_PREFIX = os.path.realpath(os.path.abspath(os.environ.get('__E4S_CL_SYSTEM_PREFIX__',
+                                                                os.path.join(E4S_CL_HOME, 'system'))))
+"""str: System-level E4S Container Launcher files."""
 
-USER_PREFIX = os.path.realpath(os.path.abspath(os.environ.get('__TAUCMDR_USER_PREFIX__', 
+USER_PREFIX = os.path.realpath(os.path.abspath(os.environ.get('__E4S_CL_USER_PREFIX__',
                                                               os.path.join(os.path.expanduser('~'), 
                                                                            '.local', 'e4s_cl'))))
-"""str: User-level TAU Commander files."""
+"""str: User-level E4S Container Launcher files."""
 
 PROFILE_DIR = USER_PREFIX
-"""str: Name of the project-level directory containing TAU Commander project files."""
+"""str: Name of the project-level directory containing E4S Container Launcher project files."""
 
 def version_banner():
-    """Return a human readable text banner describing the TAU Commander installation."""
+    """Return a human readable text banner describing the E4S Container Launcher installation."""
     import platform
     import socket
     from datetime import datetime
     import e4s_cl.logger
-    fmt = ("TAU Commander [ %(url)s ]\n"
+    fmt = ("E4S Container Launcher\n"
            "\n"
            "Prefix         : %(prefix)s\n"
            "Version        : %(version)s\n"
@@ -85,9 +81,8 @@ def version_banner():
            "Python Version : %(pyversion)s\n"
            "Python Impl.   : %(pyimpl)s\n"
            "PYTHONPATH     : %(pythonpath)s\n")
-    data = {"url": TAUCMDR_URL,
-            "prefix": TAUCMDR_HOME,
-            "version": TAUCMDR_VERSION,
+    data = {"prefix": E4S_CL_HOME,
+            "version": E4S_CL_VERSION,
             "timestamp": str(datetime.now()),
             "hostname": socket.gethostname(),
             "platform": platform.platform(),

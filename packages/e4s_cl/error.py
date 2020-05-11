@@ -9,7 +9,7 @@ LOGGER = logger.get_logger(__name__)
 
 
 class Error(Exception):
-    """Base class for all errors in TAU Commander.
+    """Base class for all errors in E4S Container Launcher.
     
     Attributes:
         value: Some value attached to the error, typically a string but could be anything with a __str__ method.
@@ -24,7 +24,7 @@ class Error(Exception):
                    "%(value)s\n"
                    "\n"
                    "%(backtrace)s\n"
-                   "This is a bug in TAU Commander.\n"
+                   "This is a bug in E4S Container Launcher.\n"
                    "Please send '%(logfile)s' to %(contact)s for assistance.")
     
     def __init__(self, value, *hints):
@@ -59,14 +59,14 @@ class Error(Exception):
         return EXIT_FAILURE
 
 class InternalError(Error):
-    """Indicates that an internal error has occurred, i.e. a bug in TAU.
+    """Indicates that an internal error has occurred, i.e. a bug.
     
     These are bad and really shouldn't happen.
     """
     show_backtrace = True
 
 class ConfigurationError(Error):
-    """Indicates that TAU Commander cannot succeed with the given parameters.
+    """Indicates that E4S Container Launcher cannot succeed with the given parameters.
     
     This is most commonly caused by user error, e.g the user specifies measurement
     settings that are incompatible with the application.
@@ -74,7 +74,7 @@ class ConfigurationError(Error):
     message_fmt = ("%(value)s\n"
                    "\n"
                    "%(hints)s\n"
-                   "TAU cannot proceed with the given inputs.\n" 
+                   "Cannot proceed with the given inputs.\n"
                    "Please check the configuration for errors or contact %(contact)s for assistance.")
 
     def __init__(self, value, *hints):

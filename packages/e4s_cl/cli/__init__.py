@@ -23,7 +23,7 @@ _COMMANDS = {SCRIPT_COMMAND: {}}
 
 class UnknownCommandError(ConfigurationError):
     """Indicates that a specified command is unknown."""
-    message_fmt = ("%(value)r is not a valid TAU command.\n"
+    message_fmt = ("%(value)r is not a valid command.\n"
                    "\n"
                    "%(hints)s")
 
@@ -223,7 +223,7 @@ def find_command(cmd):
     try:
         return _get_commands(root)['__module__'].COMMAND
     except KeyError:
-        LOGGER.debug('%r not recognized as a TAU command', cmd)
+        LOGGER.debug('%r not recognized as a command', cmd)
         resolved = _resolve(cmd, cmd, _COMMANDS[SCRIPT_COMMAND])
         LOGGER.debug('Resolved ambiguous command %r to %r', cmd, resolved)
         return find_command(resolved)

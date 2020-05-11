@@ -26,7 +26,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 """
-TAU Storage Containers.
+E4S Storage Containers.
 
 A storage container provides a record database, a persistent filesystem, and a key/value store.
 The database is accessed via member methods like :any:`insert`, :any:`search`, etc.

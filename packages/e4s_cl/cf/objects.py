@@ -25,60 +25,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-"""TAU Common Framework (CF) common objects."""
-
-
-class TrackedInstance(object):
-    """Base class for classes that need to keep track of their instances.
-    
-    Each subclass tracks of its own instances separately.  Unliked :any:`KeyedRecordCreator`
-    there is no restriction on the value of the class instance attributes.
-    
-    Example:
-    ::
-
-        class Foo(TrackedInstance):
-            def __init__(self, x):
-                self.x = x
-                
-        class Bar(Foo):
-            def __init__(self, x, y):
-                super(Bar,self).__init__(x)
-                self.y = y
-                
-        fish = Foo('haddock')
-        chips = Foo('potatoes')
-        fries = Foo('potatoes')
-        drink = Bar('water', 'sugar')
-        
-        for inst in Foo.all():
-            print inst.x
-            
-        >>> haddock
-        >>> potatoes
-        >>> potatoes
-        
-        for inst in Bar.all():
-            print inst.x
-        
-        >>> water
-    """
-    
-    def __new__(cls, *args, **kwargs):
-        """Ensure that __instances__ is set and track new instances."""
-        instance = object.__new__(cls, *args, **kwargs)
-        if "__instances__" not in cls.__dict__:
-            cls.__instances__ = set()
-        cls.__instances__.add(instance)
-        return instance
-
-    @classmethod
-    def all(cls):
-        """Iterate over class instances."""
-        for instance in cls.__instances__:
-            yield instance
-
-
+"""E4S Common Framework (CF) common objects."""
 
 class KeyedRecordCreator(type):
     """Metaclass to create a new :any:`KeyedRecord` instance.
