@@ -293,6 +293,8 @@ def path_accessible(path, mode='r'):
 def _null_context(label):
     yield
 
+DRY_RUN = False
+
 def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
     """Create a subprocess.
 
@@ -317,6 +319,10 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
             else:
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
+
+    if DRY_RUN:
+        print(' '.join(cmd))
+        return 0, ""
 
     LOGGER.debug("Creating subprocess: %s", ' '.join(cmd))
     out = (subprocess.PIPE if redirect_stdout else sys.stdout)

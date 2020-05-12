@@ -17,6 +17,7 @@ from e4s_cl.model.profile import Profile
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
+
 def _argument_profile(string):
     """Argument type callback.
     Asserts the entered string matches a defined profile."""
@@ -26,31 +27,35 @@ def _argument_profile(string):
         raise ArgumentTypeError("Profile {} does not exist".format(string))
     return profile
 
+
 def _argument_path(string):
     """Argument type callback.
     Asserts that the string corresponds to an existing path."""
     return Path(string.strip()).as_posix()
+
 
 def _argument_path_comma_list(string):
     """Argument type callback.
     Asserts that the string corresponds to a list of existing paths."""
     return [_argument_path(data) for data in string.split(',')]
 
-def _parameters(arguments):
+
+def _parameters(args):
     """Generate compound parameters by merging profile and cli arguments
     The profile's parameters have less priority than the ones specified on
     the command line.
     If no profile is given, try to load the selected one."""
-    if type(arguments) == Namespace:
-        arguments = vars(arguments)
+    if isinstance(args, Namespace):
+        args = vars(args)
 
-    parameters = dict(arguments.get('profile', Profile.selected()))
+    parameters = dict(args.get('profile', Profile.selected()))
 
     for attr in ['image', 'backend', 'libraries', 'files']:
-        if arguments.get(attr, None):
-            parameters.update({attr: arguments[attr]})
+        if args.get(attr, None):
+            parameters.update({attr: args[attr]})
 
     return parameters
+
 
 def _format_execute(parameters):
     from e4s_cl.cli.commands.execute import COMMAND as execute_cmd
@@ -62,16 +67,27 @@ def _format_execute(parameters):
 
     for attr in ['libraries', 'files']:
         if parameters.get(attr, None):
-            execute_command += ["--{}".format(attr), ",".join(parameters[attr])]
+            execute_command += [
+                "--{}".format(attr), ",".join(parameters[attr])
+            ]
 
     return execute_command
 
+
 class LaunchCommand(AbstractCommand):
     """``launch`` subcommand."""
-
     def _construct_parser(self):
         usage = "%s [arguments] [launcher] [launcher_arguments] [--] <command> [command_arguments]" % self.command
-        parser = arguments.get_parser(prog=self.command, usage=usage, description=self.summary)
+        parser = arguments.get_parser(prog=self.command,
+                                      usage=usage,
+                                      description=self.summary)
+        parser.add_argument(
+            '-d',
+            '--dry-run',
+            help="Do nothing, print out what would be done instead",
+            default=False,
+            dest='dry_run',
+            action="store_true")
         parser.add_argument('--profile',
                             type=_argument_profile,
                             help="Name of the profile to use",
@@ -107,16 +123,16 @@ class LaunchCommand(AbstractCommand):
             
         Returns:
             tuple: (Launcher command, possibly empty list of application commands).
-        """ 
+        """
         launcher_cmd = []
         if cmd[0] in LAUNCHERS:
             launcher_cmd, cmd = parse_cli(cmd)
         else:
-            # If '--' appears in the command then everything before it is a launcher + args 
-            # and everything after is the application + args 
+            # If '--' appears in the command then everything before it is a launcher + args
+            # and everything after is the application + args
             if '--' in cmd:
                 idx = cmd.index('--')
-                launcher_cmd, cmd = cmd[:idx], cmd[idx+1:]
+                launcher_cmd, cmd = cmd[:idx], cmd[idx + 1:]
 
         # No launcher command, just an application command
         return launcher_cmd, cmd
@@ -130,8 +146,13 @@ class LaunchCommand(AbstractCommand):
         launcher, program = LaunchCommand.parse_launcher_cmd(args.cmd)
         execute_command = _format_execute(_parameters(args))
 
+        if args.dry_run:
+            util.DRY_RUN = True
+
         LOGGER.debug(" ".join(launcher + execute_command + program))
         util.create_subprocess_exp(launcher + execute_command + program)
+
         return EXIT_SUCCESS
-    
+
+
 COMMAND = LaunchCommand(__name__, summary_fmt="Launch a process")
