@@ -45,7 +45,9 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.6',
 ]
 
+import os
 import setuptools
+from setuptools.command.install import install
 
 setuptools.setup(
     name=NAME,
@@ -58,4 +60,5 @@ setuptools.setup(
     classifiers=CLASSIFIERS,
     packages=setuptools.find_packages("packages"),
     package_dir={"": "packages"},
+    install_requires=['termcolor', 'texttable'],
 )
