@@ -58,7 +58,7 @@ setuptools.setup(
     license=LICENSE,
     keywords=KEYWORDS,
     classifiers=CLASSIFIERS,
-    scripts=['scripts/e4s-cl'],
+    scripts=['scripts/e4s'],
     packages=setuptools.find_packages("packages"),
     package_dir={"": "packages"},
     install_requires=['termcolor', 'texttable'],
