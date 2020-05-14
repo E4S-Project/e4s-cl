@@ -46,7 +46,7 @@ import pathlib
 from collections import deque
 from contextlib import contextmanager
 from zipfile import ZipFile
-from termcolor import termcolor
+import termcolor
 from e4s_cl import logger
 from e4s_cl.error import InternalError
 
@@ -54,8 +54,9 @@ LOGGER = logger.get_logger(__name__)
 
 # Suppress debugging messages in optimized code
 if __debug__:
-    _heavy_debug = LOGGER.debug   # pylint: disable=invalid-name
+    _heavy_debug = LOGGER.debug  # pylint: disable=invalid-name
 else:
+
     def _heavy_debug(*args, **kwargs):
         # pylint: disable=unused-argument
         pass
@@ -77,8 +78,11 @@ def _cleanup_dtemp():
             if not any(path in paths for paths in _DTEMP_ERROR_STACK):
                 rmtree(path, ignore_errors=True)
     if _DTEMP_ERROR_STACK:
-        LOGGER.warning('The following temporary directories were not deleted due to build errors: %s.\n',
-                       ', '.join(_DTEMP_ERROR_STACK))
+        LOGGER.warning(
+            'The following temporary directories were not deleted due to build errors: %s.\n',
+            ', '.join(_DTEMP_ERROR_STACK))
+
+
 atexit.register(_cleanup_dtemp)
 
 
@@ -98,11 +102,13 @@ def calculate_uid(parts):
     LOGGER.debug("UID: (%s): %s", digest, parts)
     return digest[:8]
 
+
 def mkdtemp(*args, **kwargs):
     """Like tempfile.mkdtemp but directory will be recursively deleted when program exits."""
     path = tempfile.mkdtemp(*args, **kwargs)
     _DTEMP_STACK.append(path)
     return path
+
 
 def mkdirp(*args):
     """Creates a directory and all its parents.
@@ -123,8 +129,10 @@ def mkdirp(*args):
                 if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
                     raise
 
+
 def add_error_stack(path):
     _DTEMP_ERROR_STACK.append(path)
+
 
 def rmtree(path, ignore_errors=False, onerror=None, attempts=5):
     """Wrapper around shutil.rmtree to work around stale or slow NFS directories.
@@ -141,12 +149,12 @@ def rmtree(path, ignore_errors=False, onerror=None, attempts=5):
     """
     if not os.path.exists(path):
         return None
-    for i in range(attempts-1):
+    for i in range(attempts - 1):
         try:
             return shutil.rmtree(path)
-        except Exception as err:        # pylint: disable=broad-except
+        except Exception as err:  # pylint: disable=broad-except
             LOGGER.warning("Unexpected error: %s", err)
-            time.sleep(i+1)
+            time.sleep(i + 1)
     shutil.rmtree(path, ignore_errors, onerror)
 
 
@@ -156,12 +164,15 @@ def umask(new_mask):
     
     Args:
         new_mask: The argument to :any:`os.umask`.
-    """ 
+    """
     old_mask = os.umask(new_mask)
     yield
     os.umask(old_mask)
 
+
 _WHICH_CACHE = {}
+
+
 def which(program, use_cached=True):
     """Returns the full path to a program command.
 
@@ -184,7 +195,8 @@ def which(program, use_cached=True):
             return _WHICH_CACHE[program]
         except KeyError:
             pass
-    _is_exec = lambda fpath: os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+    _is_exec = lambda fpath: os.path.isfile(fpath) and os.access(
+        fpath, os.X_OK)
     fpath, _ = os.path.split(program)
     if fpath:
         abs_program = os.path.abspath(program)
@@ -203,6 +215,7 @@ def which(program, use_cached=True):
     _heavy_debug("which(%s): command not found", program)
     _WHICH_CACHE[program] = None
     return None
+
 
 def archive_toplevel(archive):
     """Returns the name of the top-level directory in an archive.
@@ -248,6 +261,7 @@ def archive_toplevel(archive):
         LOGGER.debug("Top-level directory in '%s' is '%s'", archive, topdir)
         return topdir
 
+
 def path_accessible(path, mode='r'):
     """Check if a file or directory exists and is accessable.
     
@@ -289,11 +303,14 @@ def path_accessible(path, mode='r'):
             handle.close()
     return False
 
+
 @contextmanager
 def _null_context(label):
     yield
 
+
 DRY_RUN = False
+
 
 def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
     """Create a subprocess.
@@ -349,7 +366,14 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
 
     return retval, output
 
-def create_subprocess(cmd, cwd=None, env=None, stdout=True, log=True, error_buf=50, record_output=False):
+
+def create_subprocess(cmd,
+                      cwd=None,
+                      env=None,
+                      stdout=True,
+                      log=True,
+                      error_buf=50,
+                      record_output=False):
     """Create a subprocess.
     
     See :any:`subprocess.Popen`.
@@ -369,7 +393,7 @@ def create_subprocess(cmd, cwd=None, env=None, stdout=True, log=True, error_buf=
         int: Subprocess return code.
     """
     subproc_env = dict(os.environ)
-    if env: 
+    if env:
         for key, val in env.items():
             if val is None:
                 subproc_env.pop(key, None)
@@ -585,17 +609,18 @@ def walk_packages(path, prefix):
     :any:`pkgutil.walk_packages` silently fails to list modules and packages when
     they are in a zip file.  This implementation works around this.
     """
-    def seen(path, dct={}):     # pylint: disable=dangerous-default-value
+    def seen(path, dct={}):  # pylint: disable=dangerous-default-value
         if path in dct:
             return True
         dct[path] = True
+
     for importer, name, ispkg in _iter_modules(path, prefix):
         yield importer, name, ispkg
         if ispkg:
             __import__(name)
             path = getattr(sys.modules[name], '__path__', None) or []
             path = [p for p in path if not seen(p)]
-            for item in walk_packages(path, name+'.'):
+            for item in walk_packages(path, name + '.'):
                 yield item
 
 
@@ -604,7 +629,7 @@ def _zipimporter_iter_modules(archive, path):
     libdir, _, pkgpath = path.partition(archive + os.sep)
     with ZipFile(os.path.join(libdir, archive)) as zipfile:
         namelist = zipfile.namelist()
-    
+
     def iter_modules(prefix):
         for fname in namelist:
             fname, ext = os.path.splitext(fname)
@@ -619,13 +644,15 @@ def _zipimporter_iter_modules(archive, path):
                     yield prefix + pkgname, True
                 else:
                     yield prefix + modname, False
+
     return iter_modules
 
 
 def _iter_modules(paths, prefix):
     # pylint: disable=no-member
     yielded = {}
-    for importer, name, ispkg in pkgutil.iter_modules(path=paths, prefix=prefix):
+    for importer, name, ispkg in pkgutil.iter_modules(path=paths,
+                                                      prefix=prefix):
         if name not in yielded:
             yielded[name] = True
             yield importer, name, ispkg
@@ -635,11 +662,14 @@ def get_binary_linkage(cmd):
     ldd = which('ldd')
     if not ldd:
         return None
-    proc = subprocess.Popen([ldd, cmd], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen([ldd, cmd],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
     stdout, _ = proc.communicate()
     if proc.returncode:
         return 'static' if stdout else None
     return 'dynamic'
+
 
 def _parse_line(line):
     """
@@ -676,7 +706,12 @@ def _parse_line(line):
                 # No path
                 return {}
 
-        return {soname: {'path': dep_path.as_posix() if dep_path else None, 'found': found}}
+        return {
+            soname: {
+                'path': dep_path.as_posix() if dep_path else None,
+                'found': found
+            }
+        }
 
     else:
         if len(parts) != 2:
@@ -687,6 +722,7 @@ def _parse_line(line):
         # In this case, no soname was available
         return {}
 
+
 def _ldd_output_parser(cmd_out):
     """
     Parse the command line output.
@@ -695,10 +731,13 @@ def _ldd_output_parser(cmd_out):
     """
     dependencies = {}  # type: Dict
 
-    for line in [line.strip() for line in cmd_out.split('\n') if line.strip() != '']:
+    for line in [
+            line.strip() for line in cmd_out.split('\n') if line.strip() != ''
+    ]:
         dependencies.update(_parse_line(line=line))
 
     return dependencies
+
 
 def list_dependencies(path, env=None):
     """
@@ -712,9 +751,8 @@ def list_dependencies(path, env=None):
 
     # Check if the file is present on the filesystem
     if not path.exists():
-        raise InternalError(
-            "Failed to ldd external library {}: File does not" 
-            "exist".format(path))
+        raise InternalError("Failed to ldd external library {}: File does not"
+                            "exist".format(path))
 
     # Add it as a dependency
     deps = {path.name: {"path": path.as_posix(), "found": True}}

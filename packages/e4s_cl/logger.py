@@ -48,17 +48,19 @@ import string
 import logging
 from logging import handlers
 from datetime import datetime
-from termcolor import termcolor
+import termcolor
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
+
 
 def _prune_ansi(line):
     pattern = re.compile('\x1b[^m]+m')
     match = pattern.search(line)
     while match:
         index = line.find(match.group(0))
-        line = line[:index] + line[index+len(match.group(0)):]
+        line = line[:index] + line[index + len(match.group(0)):]
         match = pattern.search(line)
     return line
+
 
 def get_terminal_size():
     """Discover the size of the user's terminal.
@@ -79,7 +81,8 @@ def get_terminal_size():
             if not dims:
                 # for window's python in cygwin's xterm
                 dims = _get_term_size_tput()
-        if current_os == 'Linux' or current_os == 'Darwin' or current_os.startswith('CYGWIN'):
+        if current_os == 'Linux' or current_os == 'Darwin' or current_os.startswith(
+                'CYGWIN'):
             dims = _get_term_size_posix()
         if not dims:
             dims = default_width, default_height
@@ -106,11 +109,12 @@ def _get_term_size_windows():
         handle = windll.kernel32.GetStdHandle(-12)
         csbi = create_string_buffer(22)
         res = windll.kernel32.GetConsoleScreenBufferInfo(handle, csbi)
-    except:     # pylint: disable=bare-except  
+    except:  # pylint: disable=bare-except
         return None
     if res:
         import struct
-        (_, _, _, _, _, left, top, right, bottom, _, _) = struct.unpack("hhhhHhhhhhh", csbi.raw)
+        (_, _, _, _, _, left, top, right, bottom, _,
+         _) = struct.unpack("hhhhHhhhhhh", csbi.raw)
         sizex = right - left + 1
         sizey = bottom - top + 1
         return sizex, sizey
@@ -129,14 +133,18 @@ def _get_term_size_tput():
     """
     try:
         import subprocess
-        proc = subprocess.Popen(["tput", "cols"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(["tput", "cols"],
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
         output = proc.communicate(input=None)
         cols = int(output[0])
-        proc = subprocess.Popen(["tput", "lines"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(["tput", "lines"],
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
         output = proc.communicate(input=None)
         rows = int(output[0])
         return (cols, rows)
-    except:     # pylint: disable=bare-except 
+    except:  # pylint: disable=bare-except
         return None
 
 
@@ -147,6 +155,7 @@ def _get_term_size_posix():
         tuple: (width, height) tuple giving the dimensions of the user's terminal window in characters,
                or None if the size could not be determined.
     """
+
     # This function follows a POSIX naming scheme, not Python's.
     # pylint: disable=invalid-name
     # Sometimes Pylint thinks termios doesn't exist or doesn't have certain members even when it does.
@@ -156,17 +165,19 @@ def _get_term_size_posix():
             import fcntl
             import termios
             import struct
-            dims = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
-        except:     # pylint: disable=bare-except 
+            dims = struct.unpack('hh',
+                                 fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+        except:  # pylint: disable=bare-except
             return None
         return dims
+
     dims = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
     if not dims:
         try:
             fd = os.open(os.ctermid(), os.O_RDONLY)
             dims = ioctl_GWINSZ(fd)
             os.close(fd)
-        except:     # pylint: disable=bare-except 
+        except:  # pylint: disable=bare-except
             pass
     if not dims:
         return None
@@ -200,39 +211,44 @@ class LogFormatter(logging.Formatter, object):
     """
     # Allow invalid function names to define member functions named after logging levels.
     # pylint: disable=invalid-name
-    
+
     _printable_chars = set(string.printable)
-    
+
     def __init__(self, line_width, printable_only=False, allow_colors=True):
         super(LogFormatter, self).__init__()
         self.printable_only = printable_only
         self.allow_colors = allow_colors
         self.line_width = line_width
         self.line_marker = COLORED_LINE_MARKER if allow_colors else LINE_MARKER
-        self._text_wrapper = textwrap.TextWrapper(width=self.line_width+len(self.line_marker),
-                                                  initial_indent=self.line_marker,
-                                                  subsequent_indent=self.line_marker + '    ',
-                                                  break_long_words=False,
-                                                  break_on_hyphens=False,
-                                                  drop_whitespace=False)
+        self._text_wrapper = textwrap.TextWrapper(
+            width=self.line_width + len(self.line_marker),
+            initial_indent=self.line_marker,
+            subsequent_indent=self.line_marker + '    ',
+            break_long_words=False,
+            break_on_hyphens=False,
+            drop_whitespace=False)
+
     def CRITICAL(self, record):
         return self._msgbox(record, 'X')
-        
+
     def ERROR(self, record):
         return self._msgbox(record, '!')
-    
+
     def WARNING(self, record):
         return self._msgbox(record, '*')
-    
+
     def INFO(self, record):
         return '\n'.join(self._textwrap_message(record))
-    
+
     def DEBUG(self, record):
         message = record.getMessage()
-        if self.printable_only and (not set(message).issubset(self._printable_chars)):
+        if self.printable_only and (not set(message).issubset(
+                self._printable_chars)):
             message = "<<UNPRINTABLE>>"
         if __debug__:
-            marker = self._colored("[%s %s:%s]" % (record.levelname, record.name, record.lineno), 'yellow')
+            marker = self._colored(
+                "[%s %s:%s]" % (record.levelname, record.name, record.lineno),
+                'yellow')
         else:
             marker = "[%s]" % record.levelname
         return '%s %s' % (marker, message)
@@ -252,7 +268,8 @@ class LogFormatter(logging.Formatter, object):
         try:
             return getattr(self, record.levelname)(record)
         except AttributeError:
-            raise RuntimeError('Unknown record level (name: %s)' % record.levelname)
+            raise RuntimeError('Unknown record level (name: %s)' %
+                               record.levelname)
 
     def _colored(self, text, *color_args):
         """Insert ANSII color formatting via `termcolor`_.
@@ -295,7 +312,10 @@ class LogFormatter(logging.Formatter, object):
     def _msgbox(self, record, marker):
         width = self.line_width
         hline = self._colored(marker * width, 'red')
-        parts = list(self._textwrap([hline, '', self._colored(record.levelname, 'cyan'), '']))
+        parts = list(
+            self._textwrap(
+                [hline, '',
+                 self._colored(record.levelname, 'cyan'), '']))
         parts.extend(self._textwrap_message(record))
         if parts[-1] != self.line_marker:
             parts.append(self.line_marker)
@@ -304,7 +324,8 @@ class LogFormatter(logging.Formatter, object):
 
     def _textwrap_message(self, record):
         for line in record.getMessage().split('\n'):
-            if self.printable_only and not set(line).issubset(self._printable_chars):
+            if self.printable_only and not set(line).issubset(
+                    self._printable_chars):
                 line = self._prune_ansi(line)
                 line = "".join([c for c in line if c in self._printable_chars])
             if line:
@@ -347,7 +368,8 @@ def set_log_level(level):
     global LOG_LEVEL
     LOG_LEVEL = level.upper()
     _STDOUT_HANDLER.setLevel(LOG_LEVEL)
-    
+
+
 LOG_LEVEL = 'INFO'
 """str: The global logging level for stdout loggers and software packages.
 
@@ -357,7 +379,8 @@ Don't change directly. May be changed via :any:`set_log_level`.
 LOG_FILE = os.path.join(USER_PREFIX, 'debug_log')
 """str: Absolute path to a log file to receive all debugging output."""
 
-LINE_MARKER = os.environ.get('E4S_LINE_MARKER', "[{} on {}] ".format(os.getpid(), socket.gethostname()))
+LINE_MARKER = os.environ.get(
+    'E4S_LINE_MARKER', "[{} on {}] ".format(os.getpid(), socket.gethostname()))
 """str: Marker for each line of output."""
 
 COLORED_LINE_MARKER = termcolor.colored(LINE_MARKER, 'red')
@@ -382,31 +405,39 @@ if not _ROOT_LOGGER.handlers:
         if not (exc.errno == errno.EEXIST and os.path.isdir(_LOG_FILE_PREFIX)):
             raise
     _STDOUT_HANDLER = logging.StreamHandler(sys.stdout)
-    _STDOUT_HANDLER.setFormatter(LogFormatter(line_width=LINE_WIDTH, printable_only=False))
+    _STDOUT_HANDLER.setFormatter(
+        LogFormatter(line_width=LINE_WIDTH, printable_only=False))
     _STDOUT_HANDLER.setLevel(LOG_LEVEL)
     _ROOT_LOGGER.addHandler(_STDOUT_HANDLER)
-    _FILE_HANDLER = handlers.TimedRotatingFileHandler(LOG_FILE, when='D', interval=1, backupCount=3)
-    _FILE_HANDLER.setFormatter(LogFormatter(line_width=120, allow_colors=False))
+    _FILE_HANDLER = handlers.TimedRotatingFileHandler(LOG_FILE,
+                                                      when='D',
+                                                      interval=1,
+                                                      backupCount=3)
+    _FILE_HANDLER.setFormatter(LogFormatter(line_width=120,
+                                            allow_colors=False))
     _FILE_HANDLER.setLevel(logging.DEBUG)
     _ROOT_LOGGER.addHandler(_FILE_HANDLER)
     # pylint: disable=logging-not-lazy
-    _ROOT_LOGGER.debug(("\n%(bar)s\n"
-                        "E4S CONTAINER LAUNCHER LOGGING INITIALIZED\n"
-                        "\n"
-                        "Timestamp         : %(timestamp)s\n"
-                        "Hostname          : %(hostname)s\n"
-                        "Platform          : %(platform)s\n"
-                        "Version           : %(version)s\n"
-                        "Python Version    : %(pyversion)s\n"
-                        "Working Directory : %(cwd)s\n"
-                        "Terminal Size     : %(termsize)s\n"
-                        "Frozen            : %(frozen)s\n"
-                        "%(bar)s\n") % {'bar': '#' * LINE_WIDTH,
-                                        'timestamp': str(datetime.now()),
-                                        'hostname': socket.gethostname(),
-                                        'platform': platform.platform(),
-                                        'version': E4S_CL_VERSION,
-                                        'pyversion': platform.python_version(),
-                                        'cwd': os.getcwd(),
-                                        'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
-                                        'frozen': getattr(sys, 'frozen', False)})
+    _ROOT_LOGGER.debug(
+        ("\n%(bar)s\n"
+         "E4S CONTAINER LAUNCHER LOGGING INITIALIZED\n"
+         "\n"
+         "Timestamp         : %(timestamp)s\n"
+         "Hostname          : %(hostname)s\n"
+         "Platform          : %(platform)s\n"
+         "Version           : %(version)s\n"
+         "Python Version    : %(pyversion)s\n"
+         "Working Directory : %(cwd)s\n"
+         "Terminal Size     : %(termsize)s\n"
+         "Frozen            : %(frozen)s\n"
+         "%(bar)s\n") % {
+             'bar': '#' * LINE_WIDTH,
+             'timestamp': str(datetime.now()),
+             'hostname': socket.gethostname(),
+             'platform': platform.platform(),
+             'version': E4S_CL_VERSION,
+             'pyversion': platform.python_version(),
+             'cwd': os.getcwd(),
+             'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
+             'frozen': getattr(sys, 'frozen', False)
+         })
