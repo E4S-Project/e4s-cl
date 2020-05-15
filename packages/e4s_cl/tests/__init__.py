@@ -106,6 +106,7 @@ class TestCase(unittest.TestCase):
         # pylint: disable=protected-access
         cls._orig_stream = logger._STDOUT_HANDLER.stream
         logger._STDOUT_HANDLER.stream = sys.stdout
+        cls.resetStorage()
 
     @classmethod
     def tearDownClass(cls):
@@ -169,6 +170,11 @@ class TestCase(unittest.TestCase):
         retval, stdout, stderr = self.exec_command(cmd, argv)
         self.assertNotEqual(retval, return_value)
         return stdout, stderr
+
+    @classmethod
+    def resetStorage(cls):
+        USER_STORAGE.purge(table_name="Profile")
+        SYSTEM_STORAGE.purge(table_name="Profile")
 
 
 class TestRunner(unittest.TextTestRunner):
