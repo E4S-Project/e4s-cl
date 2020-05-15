@@ -19,15 +19,16 @@ EXIT_SUCCESS = 0
 HELP_CONTACT = '<support@paratools.com>'
 """str: E-mail address users should contact for help."""
 
-REQUIRED_PYTHON_VERSION = (3, 6)
+MIN_PYTHON_VERSION = (3, 6)
 """tuple: Required Python version for E4S Comamnder.
 
 A tuple of at least (MAJOR, MINOR) directly comparible to :any:`sys.version_info`
 """
 
-if sys.version_info[0:2] != REQUIRED_PYTHON_VERSION:
+if sys.version_info[0] < MIN_PYTHON_VERSION[0] or sys.version_info[
+        1] < MIN_PYTHON_VERSION[1]:
     VERSION = '.'.join([str(x) for x in sys.version_info[0:3]])
-    EXPECTED = '.'.join([str(x) for x in REQUIRED_PYTHON_VERSION])
+    EXPECTED = '.'.join([str(x) for x in MIN_PYTHON_VERSION])
     sys.stderr.write("""%s
 %s
 Your Python version is %s but Python %s is required.
@@ -35,8 +36,10 @@ Please install the required Python version or contact %s for support.
 """ % (sys.executable, sys.version, VERSION, EXPECTED, HELP_CONTACT))
     sys.exit(EXIT_FAILURE)
 
-E4S_CL_HOME = os.path.realpath(os.path.abspath(os.environ.get('__E4S_CL_HOME__',
-                                                               os.path.join(os.path.dirname(__file__), '..', '..'))))
+E4S_CL_HOME = os.path.realpath(
+    os.path.abspath(
+        os.environ.get('__E4S_CL_HOME__',
+                       os.path.join(os.path.dirname(__file__), '..', '..'))))
 """str: Absolute path to the top-level E4S Container Launcher directory.
 
 This directory contains at least `bin`, `docs`, and `packages` directories and is the root
@@ -49,17 +52,22 @@ E4S_CL_SCRIPT = os.environ.get('__E4S_CL_SCRIPT__', sys.argv[0])
 Mainly used for help messages. **Do not** change it once it is set.
 """
 
-SYSTEM_PREFIX = os.path.realpath(os.path.abspath(os.environ.get('__E4S_CL_SYSTEM_PREFIX__',
-                                                                os.path.join(E4S_CL_HOME, 'system'))))
+SYSTEM_PREFIX = os.path.realpath(
+    os.path.abspath(
+        os.environ.get('__E4S_CL_SYSTEM_PREFIX__',
+                       os.path.join(E4S_CL_HOME, 'system'))))
 """str: System-level E4S Container Launcher files."""
 
-USER_PREFIX = os.path.realpath(os.path.abspath(os.environ.get('__E4S_CL_USER_PREFIX__',
-                                                              os.path.join(os.path.expanduser('~'), 
-                                                                           '.local', 'e4s_cl'))))
+USER_PREFIX = os.path.realpath(
+    os.path.abspath(
+        os.environ.get(
+            '__E4S_CL_USER_PREFIX__',
+            os.path.join(os.path.expanduser('~'), '.local', 'e4s_cl'))))
 """str: User-level E4S Container Launcher files."""
 
 PROFILE_DIR = USER_PREFIX
 """str: Name of the project-level directory containing E4S Container Launcher project files."""
+
 
 def version_banner():
     """Return a human readable text banner describing the E4S Container Launcher installation."""
@@ -81,16 +89,18 @@ def version_banner():
            "Python Version : %(pyversion)s\n"
            "Python Impl.   : %(pyimpl)s\n"
            "PYTHONPATH     : %(pythonpath)s\n")
-    data = {"prefix": E4S_CL_HOME,
-            "version": E4S_CL_VERSION,
-            "timestamp": str(datetime.now()),
-            "hostname": socket.gethostname(),
-            "platform": platform.platform(),
-            "cwd": os.getcwd(),
-            "termsize": 'x'.join([str(dim) for dim in e4s_cl.logger.TERM_SIZE]),
-            "frozen": getattr(sys, 'frozen', False),
-            "python": sys.executable,
-            "pyversion": platform.python_version(),
-            "pyimpl": platform.python_implementation(),
-            "pythonpath": os.pathsep.join(sys.path)}
+    data = {
+        "prefix": E4S_CL_HOME,
+        "version": E4S_CL_VERSION,
+        "timestamp": str(datetime.now()),
+        "hostname": socket.gethostname(),
+        "platform": platform.platform(),
+        "cwd": os.getcwd(),
+        "termsize": 'x'.join([str(dim) for dim in e4s_cl.logger.TERM_SIZE]),
+        "frozen": getattr(sys, 'frozen', False),
+        "python": sys.executable,
+        "pyversion": platform.python_version(),
+        "pyimpl": platform.python_implementation(),
+        "pythonpath": os.pathsep.join(sys.path)
+    }
     return fmt % data
