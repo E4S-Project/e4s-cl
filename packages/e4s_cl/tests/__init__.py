@@ -106,6 +106,8 @@ class TestCase(unittest.TestCase):
         # pylint: disable=protected-access
         cls._orig_stream = logger._STDOUT_HANDLER.stream
         logger._STDOUT_HANDLER.stream = sys.stdout
+
+        # Make sure the storage is clean before any test is performed
         cls.resetStorage()
 
     @classmethod
@@ -153,8 +155,8 @@ class TestCase(unittest.TestCase):
                 retval = err.code
             stdout_value = stdout.getvalue()
             stderr_value = stderr.getvalue()
-            orig_stdout.write(stdout_value)
-            orig_stderr.write(stderr_value)
+            # orig_stdout.write(stdout_value)
+            # orig_stderr.write(stderr_value)
             return retval, stdout_value, stderr_value
         finally:
             sys.stdout = orig_stdout
