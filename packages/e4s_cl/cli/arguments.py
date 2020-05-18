@@ -183,11 +183,6 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
                 # Argument is already in this parser.
                 pass
 
-    def exit(self, status=0, message=None):
-        if status and message:
-            logger.slave_error(message)
-        exit(status)
-
 
 class HelpFormatter(argparse.RawDescriptionHelpFormatter):
     """Custom help string formatter for argument parser.

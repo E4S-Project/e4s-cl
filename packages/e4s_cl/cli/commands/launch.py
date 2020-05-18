@@ -71,7 +71,7 @@ def _format_execute(parameters):
                 "--{}".format(attr), ",".join(parameters[attr])
             ]
 
-    return execute_command
+    return execute_command + ['--slave']
 
 
 class LaunchCommand(AbstractCommand):

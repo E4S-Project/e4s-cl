@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
-from e4s_cl import logger, util
+from e4s_cl import logger, util, variables
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf import containers
@@ -90,6 +90,13 @@ class ExecuteCommand(AbstractCommand):
             dest='dry_run',
             action="store_true")
 
+        parser.add_argument('-s',
+                            '--slave',
+                            help="Format error message for machine parsing",
+                            default=False,
+                            dest='slave',
+                            action="store_true")
+
         parser.add_argument("--backend",
                             choices=containers.BACKENDS,
                             type=_existing_backend,
@@ -126,6 +133,8 @@ class ExecuteCommand(AbstractCommand):
         args = self._parse_args(argv)
         container = containers.Container(backend=args.backend,
                                          image=args.image)
+        if args.slave:
+            variables.STATUS = variables.SLAVE
 
         if args.libraries:
             compute_libs(args.libraries, container)

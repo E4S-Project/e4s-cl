@@ -1,0 +1,4 @@
+MASTER = True
+SLAVE = False
+
+STATUS = MASTER

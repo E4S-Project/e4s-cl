@@ -358,7 +358,11 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
         LOGGER.debug(output)
 
     for line in errors.split('\n'):
-        logger.slave_error(line) if line else None
+        if line:
+            if retval:
+                LOGGER.error(line)
+            else:
+                LOGGER.warn(line)
 
     LOGGER.debug("%s returned %d", cmd, retval)
 

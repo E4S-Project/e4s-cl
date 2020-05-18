@@ -49,7 +49,15 @@ import logging
 from logging import handlers
 from datetime import datetime
 import termcolor
-from e4s_cl import USER_PREFIX, E4S_CL_VERSION
+from e4s_cl import USER_PREFIX, E4S_CL_VERSION, variables
+
+IDENTIFIER = "e4s-cl-"
+
+
+def slave_error(level, message):
+    if isinstance(message, str):
+        return "{}{} {} {} {}".format(IDENTIFIER, level, os.getpid(),
+                                      socket.gethostname(), message.strip())
 
 
 def _prune_ansi(line):
@@ -232,10 +240,14 @@ class LogFormatter(logging.Formatter, object):
         return self._msgbox(record, 'X')
 
     def ERROR(self, record):
-        return self._msgbox(record, '!')
+        if variables.STATUS == variables.MASTER:
+            return self._msgbox(record, '!')
+        return slave_error('error', record.msg)
 
     def WARNING(self, record):
-        return self._msgbox(record, '*')
+        if variables.STATUS == variables.MASTER:
+            return self._msgbox(record, '*')
+        return slave_error('warning', record.msg)
 
     def INFO(self, record):
         return '\n'.join(self._textwrap_message(record))
@@ -379,8 +391,7 @@ Don't change directly. May be changed via :any:`set_log_level`.
 LOG_FILE = os.path.join(USER_PREFIX, 'debug_log')
 """str: Absolute path to a log file to receive all debugging output."""
 
-LINE_MARKER = os.environ.get(
-    'E4S_LINE_MARKER', "[{} on {}] ".format(os.getpid(), socket.gethostname()))
+LINE_MARKER = os.environ.get('E4S_LINE_MARKER', 'e4s')
 """str: Marker for each line of output."""
 
 COLORED_LINE_MARKER = termcolor.colored(LINE_MARKER, 'red')
@@ -443,7 +454,11 @@ if not _ROOT_LOGGER.handlers:
          })
 
 
-def slave_error(message):
-    if isinstance(message, str):
-        sys.stderr.write("{} {} {}\n".format(os.getpid(), socket.gethostname(),
-                                             message.strip()))
+def master_error(message):
+    components = message.split(" ")
+    if len(components) > 3 and components[0] == IDENTIFIER:
+        with open("/tmp/e4s_cl/{}-{}.log".format(components[2], components[1]),
+                  'a') as log_file:
+            log_file.append(' '.join(components[3:]))
+    else:
+        sys.stderr.write(message)
