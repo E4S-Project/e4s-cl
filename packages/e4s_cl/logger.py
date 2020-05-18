@@ -441,3 +441,9 @@ if not _ROOT_LOGGER.handlers:
              'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
              'frozen': getattr(sys, 'frozen', False)
          })
+
+
+def slave_error(message):
+    if isinstance(message, str):
+        sys.stderr.write("{} {} {}\n".format(os.getpid(), socket.gethostname(),
+                                             message.strip()))

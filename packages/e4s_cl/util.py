@@ -35,6 +35,7 @@ import re
 import sys
 import time
 import atexit
+import socket
 import subprocess
 import errno
 import shutil
@@ -356,11 +357,8 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
     if redirect_stdout:
         LOGGER.debug(output)
 
-    if errors:
-        if retval != 0:
-            LOGGER.error(errors)
-        else:
-            LOGGER.warning(errors)
+    for line in errors.split('\n'):
+        logger.slave_error(line) if line else None
 
     LOGGER.debug("%s returned %d", cmd, retval)
 
