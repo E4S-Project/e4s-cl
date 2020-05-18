@@ -61,6 +61,9 @@ def _format_execute(parameters):
     from e4s_cl.cli.commands.execute import COMMAND as execute_cmd
     execute_command = str(execute_cmd).split()
 
+    # Insert a top-level e4s option between the script name and the subcommand
+    execute_command = [execute_command[0]] + ['--slave'] + execute_command[1:]
+
     for attr in ['image', 'backend']:
         if parameters.get(attr, None):
             execute_command += ["--{}".format(attr), parameters[attr]]
@@ -71,7 +74,7 @@ def _format_execute(parameters):
                 "--{}".format(attr), ",".join(parameters[attr])
             ]
 
-    return execute_command + ['--slave']
+    return execute_command
 
 
 class LaunchCommand(AbstractCommand):
@@ -81,13 +84,6 @@ class LaunchCommand(AbstractCommand):
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
-        parser.add_argument(
-            '-d',
-            '--dry-run',
-            help="Do nothing, print out what would be done instead",
-            default=False,
-            dest='dry_run',
-            action="store_true")
         parser.add_argument('--profile',
                             type=_argument_profile,
                             help="Name of the profile to use",
@@ -145,9 +141,6 @@ class LaunchCommand(AbstractCommand):
 
         launcher, program = LaunchCommand.parse_launcher_cmd(args.cmd)
         execute_command = _format_execute(_parameters(args))
-
-        if args.dry_run:
-            variables.DRY_RUN = True
 
         LOGGER.debug(" ".join(launcher + execute_command + program))
         util.create_subprocess_exp(launcher + execute_command + program)

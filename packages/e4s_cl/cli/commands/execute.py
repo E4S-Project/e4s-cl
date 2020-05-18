@@ -82,21 +82,6 @@ class ExecuteCommand(AbstractCommand):
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
-        parser.add_argument(
-            '-d',
-            '--dry-run',
-            help="Do nothing, print out what would be done instead",
-            default=False,
-            dest='dry_run',
-            action="store_true")
-
-        parser.add_argument('-s',
-                            '--slave',
-                            help="Format error message for machine parsing",
-                            default=False,
-                            dest='slave',
-                            action="store_true")
-
         parser.add_argument("--backend",
                             choices=containers.BACKENDS,
                             type=_existing_backend,
@@ -133,8 +118,6 @@ class ExecuteCommand(AbstractCommand):
         args = self._parse_args(argv)
         container = containers.Container(backend=args.backend,
                                          image=args.image)
-        if args.slave:
-            variables.STATUS = variables.SLAVE
 
         if args.libraries:
             compute_libs(args.libraries, container)
@@ -143,9 +126,6 @@ class ExecuteCommand(AbstractCommand):
         if args.files:
             for path in args.files:
                 container.bind_file(path, dest=path, options='ro')
-
-        if args.dry_run:
-            variables.DRY_RUN = True
 
         container.run(args.cmd, redirect_stdout=False)
 
