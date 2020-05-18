@@ -2,3 +2,5 @@ MASTER = True
 SLAVE = False
 
 STATUS = MASTER
+
+DRY_RUN = False

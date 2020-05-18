@@ -145,7 +145,7 @@ class ExecuteCommand(AbstractCommand):
                 container.bind_file(path, dest=path, options='ro')
 
         if args.dry_run:
-            util.DRY_RUN = True
+            variables.DRY_RUN = True
 
         container.run(args.cmd, redirect_stdout=False)
 

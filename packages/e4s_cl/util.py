@@ -48,7 +48,7 @@ from collections import deque
 from contextlib import contextmanager
 from zipfile import ZipFile
 import termcolor
-from e4s_cl import logger
+from e4s_cl import logger, variables
 from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
@@ -310,9 +310,6 @@ def _null_context(label):
     yield
 
 
-DRY_RUN = False
-
-
 def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
     """Create a subprocess.
 
@@ -338,7 +335,7 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
 
-    if DRY_RUN:
+    if variables.DRY_RUN:
         print(' '.join(cmd))
         return 0, ""
 
