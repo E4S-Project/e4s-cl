@@ -61,5 +61,5 @@ setuptools.setup(
     scripts=['scripts/e4s'],
     packages=setuptools.find_packages("packages"),
     package_dir={"": "packages"},
-    install_requires=['termcolor', 'texttable'],
+    install_requires=['termcolor>=1.1.0', 'texttable>=1.6.2'],
 )
