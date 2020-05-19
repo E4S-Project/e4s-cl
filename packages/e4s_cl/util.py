@@ -355,7 +355,9 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
         LOGGER.debug(output)
 
     for line in errors.split('\n'):
-        if line:
+        if variables.STATUS == variables.MASTER:
+            logger.handle_error(line) if line else None
+        elif line:
             if retval:
                 LOGGER.error(line)
             else:

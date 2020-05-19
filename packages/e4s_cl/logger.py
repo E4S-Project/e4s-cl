@@ -51,13 +51,30 @@ from datetime import datetime
 import termcolor
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION, variables
 
-IDENTIFIER = "e4s-cl-"
+IDENTIFIER = "e4s-cl-slave-message"
+SLAVE_LOGGER = logging.getLogger("Child Processes")
 
 
-def slave_error(level, message):
-    if isinstance(message, str):
-        return "{}{} {} {} {}".format(IDENTIFIER, level, os.getpid(),
-                                      socket.gethostname(), message.strip())
+def slave_error(record):
+    return "{} {} {} {} {} {}".format(IDENTIFIER, record.levelname.lower(),
+                                      os.getpid(), socket.gethostname(),
+                                      record.created,
+                                      record.getMessage().strip())
+
+
+def handle_error(string):
+    elements = string.split(' ')
+
+    if elements[0] != IDENTIFIER:
+        SLAVE_LOGGER.warn(string)
+        return
+
+    if elements[1] in ["error", "critical"]:
+        SLAVE_LOGGER.error("{} on {}: {}".format(elements[2], elements[3],
+                                                 ' '.join(elements[5:])))
+
+    with open("{}.{}.log".format(elements[3], elements[2]), 'a') as proc_log:
+        proc_log.write(' '.join(elements[4:]) + '\n')
 
 
 def _prune_ansi(line):
@@ -212,7 +229,7 @@ def hierachical(function):
     def wrapper(obj, record):
         if variables.STATUS == variables.MASTER:
             return function(obj, record)
-        return slave_error(record.levelname.lower(), record.msg)
+        return slave_error(record)
 
     return wrapper
 
@@ -451,13 +468,3 @@ if not _ROOT_LOGGER.handlers:
              'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
              'frozen': getattr(sys, 'frozen', False)
          })
-
-
-def master_error(message):
-    components = message.split(" ")
-    if len(components) > 3 and components[0] == IDENTIFIER:
-        with open("/tmp/e4s_cl/{}-{}.log".format(components[2], components[1]),
-                  'a') as log_file:
-            log_file.append(' '.join(components[3:]))
-    else:
-        sys.stderr.write(message)
