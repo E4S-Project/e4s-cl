@@ -208,6 +208,15 @@ def _get_term_size_env():
         return None
 
 
+def hierachical(function):
+    def wrapper(obj, record):
+        if variables.STATUS == variables.MASTER:
+            return function(obj, record)
+        return slave_error(record.levelname.lower(), record.msg)
+
+    return wrapper
+
+
 class LogFormatter(logging.Formatter, object):
     """Custom log message formatter.
     
@@ -234,34 +243,31 @@ class LogFormatter(logging.Formatter, object):
                                                   break_on_hyphens=False,
                                                   drop_whitespace=False)
 
+    @hierachical
     def CRITICAL(self, record):
-        if variables.STATUS == variables.SLAVE:
-            return slave_error(record.levelname.lower(), record.msg)
-        header = self._colored('[Critical] ', 'red', None, ['blod'])
+        header = self._colored('[Critical] ', 'red', None, ['bold'])
         return '\n'.join(
             [header + line for line in self._textwrap_message(record)])
 
+    @hierachical
     def ERROR(self, record):
-        if variables.STATUS == variables.SLAVE:
-            return slave_error(record.levelname.lower(), record.msg)
         header = self._colored('[Error] ', 'red', None, ['bold'])
         return '\n'.join(
             [header + line for line in self._textwrap_message(record)])
 
+    @hierachical
     def WARNING(self, record):
-        if variables.STATUS == variables.SLAVE:
-            return slave_error(record.levelname.lower(), record.msg)
         header = self._colored('[Warning] ', 'yellow', None, ['bold'])
         return '\n'.join(
             [header + line for line in self._textwrap_message(record)])
 
+    @hierachical
     def INFO(self, record):
-        if variables.STATUS == variables.SLAVE:
-            return slave_error(record.levelname.lower(), record.msg)
         header = self._colored('[Info] ', 'white', None, ['bold'])
         return '\n'.join(
             [header + line for line in self._textwrap_message(record)])
 
+    @hierachical
     def DEBUG(self, record):
         message = record.getMessage()
         if self.printable_only and (not set(message).issubset(
