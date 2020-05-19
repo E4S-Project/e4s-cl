@@ -415,7 +415,7 @@ if not _ROOT_LOGGER.handlers:
     except OSError as exc:
         if not (exc.errno == errno.EEXIST and os.path.isdir(_LOG_FILE_PREFIX)):
             raise
-    _STDOUT_HANDLER = logging.StreamHandler(sys.stdout)
+    _STDOUT_HANDLER = logging.StreamHandler(sys.stderr)
     _STDOUT_HANDLER.setFormatter(
         LogFormatter(line_width=LINE_WIDTH, printable_only=False))
     _STDOUT_HANDLER.setLevel(LOG_LEVEL)

@@ -5,6 +5,7 @@ import re
 import copy
 import argparse
 import textwrap
+from gettext import gettext as _, ngettext
 from operator import attrgetter
 from e4s_cl import logger, util
 from e4s_cl.cli import USAGE_FORMAT
@@ -30,6 +31,8 @@ STORAGE_LEVEL_FLAG = "@"
 """Command line flag that indicates storage level."""
 
 _DEFAULT_STORAGE_LEVEL = ORDERED_LEVELS[0].name
+
+LOGGER = logger.get_logger(__name__)
 
 
 class MutableArgumentGroup(argparse._ArgumentGroup):
@@ -61,6 +64,25 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
 
     def __getitem__(self, option_string):
         return self._option_string_actions[option_string]
+
+    def exit(self, status=0, message=None):
+        if status and message:
+            LOGGER.error(message)
+        exit(status)
+
+    def error(self, message):
+        """From the sources of python 3.8:
+        error(message: string)
+
+        Prints a usage message incorporating the message to stderr and
+        exits.
+
+        If you override this in a subclass, it should not return -- it
+        should either exit or raise an exception.
+        """
+        LOGGER.error(self.format_usage())
+        args = {'prog': self.prog, 'message': message}
+        self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
 
     def add_argument_group(self, *args, **kwargs):
         """Returns an argument group.
