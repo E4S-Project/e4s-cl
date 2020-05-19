@@ -148,15 +148,13 @@ class TestCase(unittest.TestCase):
         try:
             sys.stdout = stdout
             sys.stderr = stderr
-            logger._STDOUT_HANDLER.stream = stdout
+            logger._STDOUT_HANDLER.stream = stderr
             try:
                 retval = cmd.main(argv)
             except SystemExit as err:
                 retval = err.code
             stdout_value = stdout.getvalue()
             stderr_value = stderr.getvalue()
-            # orig_stdout.write(stdout_value)
-            # orig_stderr.write(stderr_value)
             return retval, stdout_value, stderr_value
         finally:
             sys.stdout = orig_stdout
