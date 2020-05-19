@@ -228,29 +228,39 @@ class LogFormatter(logging.Formatter, object):
         self.allow_colors = allow_colors
         self.line_width = line_width
         self.line_marker = COLORED_LINE_MARKER if allow_colors else LINE_MARKER
-        self._text_wrapper = textwrap.TextWrapper(
-            width=self.line_width + len(self.line_marker),
-            initial_indent=self.line_marker,
-            subsequent_indent=self.line_marker + '    ',
-            break_long_words=False,
-            break_on_hyphens=False,
-            drop_whitespace=False)
+        self._text_wrapper = textwrap.TextWrapper(width=self.line_width +
+                                                  len(self.line_marker) + 1,
+                                                  break_long_words=False,
+                                                  break_on_hyphens=False,
+                                                  drop_whitespace=False)
 
     def CRITICAL(self, record):
-        return self._msgbox(record, 'X')
+        if variables.STATUS == variables.SLAVE:
+            return slave_error(record.levelname.lower(), record.msg)
+        header = self._colored('[Critical] ', 'red', None, ['blod'])
+        return '\n'.join(
+            [header + line for line in self._textwrap_message(record)])
 
     def ERROR(self, record):
-        if variables.STATUS == variables.MASTER:
-            return self._msgbox(record, '!')
-        return slave_error('error', record.msg)
+        if variables.STATUS == variables.SLAVE:
+            return slave_error(record.levelname.lower(), record.msg)
+        header = self._colored('[Error] ', 'red', None, ['bold'])
+        return '\n'.join(
+            [header + line for line in self._textwrap_message(record)])
 
     def WARNING(self, record):
-        if variables.STATUS == variables.MASTER:
-            return self._msgbox(record, '*')
-        return slave_error('warning', record.msg)
+        if variables.STATUS == variables.SLAVE:
+            return slave_error(record.levelname.lower(), record.msg)
+        header = self._colored('[Warning] ', 'yellow', None, ['bold'])
+        return '\n'.join(
+            [header + line for line in self._textwrap_message(record)])
 
     def INFO(self, record):
-        return '\n'.join(self._textwrap_message(record))
+        if variables.STATUS == variables.SLAVE:
+            return slave_error(record.levelname.lower(), record.msg)
+        header = self._colored('[Info] ', 'white', None, ['bold'])
+        return '\n'.join(
+            [header + line for line in self._textwrap_message(record)])
 
     def DEBUG(self, record):
         message = record.getMessage()
@@ -321,19 +331,6 @@ class LogFormatter(logging.Formatter, object):
         else:
             return text
 
-    def _msgbox(self, record, marker):
-        width = self.line_width
-        hline = self._colored(marker * width, 'red')
-        parts = list(
-            self._textwrap(
-                [hline, '',
-                 self._colored(record.levelname, 'cyan'), '']))
-        parts.extend(self._textwrap_message(record))
-        if parts[-1] != self.line_marker:
-            parts.append(self.line_marker)
-        parts.extend(self._textwrap([hline]))
-        return '\n'.join(parts)
-
     def _textwrap_message(self, record):
         for line in record.getMessage().split('\n'):
             if self.printable_only and not set(line).issubset(
@@ -342,15 +339,11 @@ class LogFormatter(logging.Formatter, object):
                 line = "".join([c for c in line if c in self._printable_chars])
             if line:
                 yield self._text_wrapper.fill(line)
-            else:
-                yield self.line_marker
 
     def _textwrap(self, lines):
         for line in lines:
             if line:
                 yield self._text_wrapper.fill(line)
-            else:
-                yield self.line_marker
 
 
 def get_logger(name):
