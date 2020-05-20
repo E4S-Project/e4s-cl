@@ -65,50 +65,8 @@ else:
 
 _PY_SUFFEXES = ('.py', '.pyo', '.pyc')
 
-_DTEMP_STACK = []
-
-_DTEMP_ERROR_STACK = []
-
 # Don't make this a raw string!  \033 is unicode for '\x1b'.
 _COLOR_CONTROL_RE = re.compile('\033\\[([0-9]|3[0-8]|4[0-8])m')
-
-
-def _cleanup_dtemp():
-    if _DTEMP_STACK:
-        for path in _DTEMP_STACK:
-            if not any(path in paths for paths in _DTEMP_ERROR_STACK):
-                rmtree(path, ignore_errors=True)
-    if _DTEMP_ERROR_STACK:
-        LOGGER.warning(
-            'The following temporary directories were not deleted due to build errors: %s.\n',
-            ', '.join(_DTEMP_ERROR_STACK))
-
-
-atexit.register(_cleanup_dtemp)
-
-
-def calculate_uid(parts):
-    """Create a new unique identifier.
-
-    Args:
-        parts (list): **Ordered** list of strings to include in the UID calcuation.
-
-    Returns:
-        str: A string of hexidecimal digits uniquely calculated from `parts`.
-    """
-    uid = hashlib.sha1()
-    for part in parts:
-        uid.update(part)
-    digest = uid.hexdigest()
-    LOGGER.debug("UID: (%s): %s", digest, parts)
-    return digest[:8]
-
-
-def mkdtemp(*args, **kwargs):
-    """Like tempfile.mkdtemp but directory will be recursively deleted when program exits."""
-    path = tempfile.mkdtemp(*args, **kwargs)
-    _DTEMP_STACK.append(path)
-    return path
 
 
 def mkdirp(*args):
@@ -129,46 +87,6 @@ def mkdirp(*args):
                 # Only raise if another process didn't already create the directory
                 if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
                     raise
-
-
-def add_error_stack(path):
-    _DTEMP_ERROR_STACK.append(path)
-
-
-def rmtree(path, ignore_errors=False, onerror=None, attempts=5):
-    """Wrapper around shutil.rmtree to work around stale or slow NFS directories.
-
-    Tries repeatedly to recursively remove `path` and sleeps between attempts.
-
-    Args:
-        path (str): A directory but not a symbolic link to a directory.
-        ignore_errors (bool): If True then errors resulting from failed removals will be ignored.
-                              If False or omitted, such errors are handled by calling a handler 
-                              specified by `onerror` or, if that is omitted, they raise an exception.
-        onerror: Callable that accepts three parameters: function, path, and excinfo.  See :any:shutil.rmtree.
-        attempts (int): Number of times to repeat shutil.rmtree before giving up.
-    """
-    if not os.path.exists(path):
-        return None
-    for i in range(attempts - 1):
-        try:
-            return shutil.rmtree(path)
-        except Exception as err:  # pylint: disable=broad-except
-            LOGGER.warning("Unexpected error: %s", err)
-            time.sleep(i + 1)
-    shutil.rmtree(path, ignore_errors, onerror)
-
-
-@contextmanager
-def umask(new_mask):
-    """Context manager to temporarily set the process umask.
-    
-    Args:
-        new_mask: The argument to :any:`os.umask`.
-    """
-    old_mask = os.umask(new_mask)
-    yield
-    os.umask(old_mask)
 
 
 _WHICH_CACHE = {}
@@ -218,53 +136,8 @@ def which(program, use_cached=True):
     return None
 
 
-def archive_toplevel(archive):
-    """Returns the name of the top-level directory in an archive.
-    
-    Assumes that the archive file is rooted in a single top-level directory::
-        foo
-            /bar
-            /baz
-    
-    The top-level directory here is "foo"
-    This routine will return stupid results for archives with multiple top-level elements.
-    
-    Args:
-        archive (str): Path to archive file.
-        
-    Raises:
-        IOError: `archive` could not be read.
-        
-    Returns:
-        str: Directory name.
-    """
-    _heavy_debug("Determining top-level directory name in '%s'", archive)
-    try:
-        fin = tarfile.open(archive)
-    except tarfile.ReadError:
-        raise IOError
-    else:
-        if fin.firstmember.isdir():
-            topdir = fin.firstmember.name
-        else:
-            dirs = [d.name for d in fin.getmembers() if d.isdir()]
-            if dirs:
-                topdir = min(dirs, key=len)
-            else:
-                dirs = set()
-                names = [d.name for d in fin.getmembers() if d.isfile()]
-                for name in names:
-                    dirname, basename = os.path.split(name)
-                    while dirname:
-                        dirname, basename = os.path.split(dirname)
-                    dirs.add(basename)
-                topdir = min(dirs, key=len)
-        LOGGER.debug("Top-level directory in '%s' is '%s'", archive, topdir)
-        return topdir
-
-
 def path_accessible(path, mode='r'):
-    """Check if a file or directory exists and is accessable.
+    """Check if a file or directory exists and is accessible.
     
     Files are checked by attempting to open them with the given mode.
     Directories are checked by testing their access bits only, which may fail for 
@@ -303,11 +176,6 @@ def path_accessible(path, mode='r'):
         if handle:
             handle.close()
     return False
-
-
-@contextmanager
-def _null_context(label):
-    yield
 
 
 def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
@@ -490,25 +358,6 @@ def page_output(output_string):
         print(output_string)
 
 
-def human_size(num, suffix='B'):
-    """Converts a byte count to human readable units.
-    
-    Args:
-        num (int): Number to convert.
-        suffix (str): Unit suffix, e.g. 'B' for bytes.
-        
-    Returns: 
-        str: `num` as a human readable string. 
-    """
-    if not num:
-        num = 0
-    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
-        if abs(num) < 1024.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
-        num /= 1024.0
-    return "%.1f%s%s" % (num, 'Yi', suffix)
-
-
 def parse_bool(value, additional_true=None, additional_false=None):
     """Parses a value to a boolean value.
     
@@ -542,18 +391,6 @@ def parse_bool(value, additional_true=None, additional_false=None):
             return False
         raise TypeError
     return bool(value)
-
-
-def camelcase(name):
-    """Converts a string to CamelCase.
-    
-    Args:
-        name (str): String to convert.
-        
-    Returns:
-        str: `name` in CamelCase.
-    """
-    return ''.join(x.capitalize() for x in name.split('_'))
 
 
 def hline(title, *args, **kwargs):
@@ -625,30 +462,6 @@ def walk_packages(path, prefix):
                 yield item
 
 
-def _zipimporter_iter_modules(archive, path):
-    """The missing zipimporter.iter_modules method."""
-    libdir, _, pkgpath = path.partition(archive + os.sep)
-    with ZipFile(os.path.join(libdir, archive)) as zipfile:
-        namelist = zipfile.namelist()
-
-    def iter_modules(prefix):
-        for fname in namelist:
-            fname, ext = os.path.splitext(fname)
-            if ext in _PY_SUFFEXES:
-                extrapath, _, modname = fname.partition(pkgpath + os.sep)
-                if extrapath or modname == '__init__':
-                    continue
-                pkgname, modname = os.path.split(modname)
-                if pkgname:
-                    if os.sep in pkgname:
-                        continue
-                    yield prefix + pkgname, True
-                else:
-                    yield prefix + modname, False
-
-    return iter_modules
-
-
 def _iter_modules(paths, prefix):
     # pylint: disable=no-member
     yielded = {}
@@ -657,19 +470,6 @@ def _iter_modules(paths, prefix):
         if name not in yielded:
             yielded[name] = True
             yield importer, name, ispkg
-
-
-def get_binary_linkage(cmd):
-    ldd = which('ldd')
-    if not ldd:
-        return None
-    proc = subprocess.Popen([ldd, cmd],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-    stdout, _ = proc.communicate()
-    if proc.returncode:
-        return 'static' if stdout else None
-    return 'dynamic'
 
 
 def _parse_line(line):
