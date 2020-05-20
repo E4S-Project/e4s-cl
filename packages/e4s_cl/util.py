@@ -33,23 +33,14 @@ Handles system manipulation and status tasks, e.g. subprocess management or file
 import os
 import re
 import sys
-import time
-import atexit
-import socket
 import subprocess
 import errno
-import shutil
 import pkgutil
-import tarfile
-import tempfile
-import hashlib
 import pathlib
 from collections import deque
-from contextlib import contextmanager
-from zipfile import ZipFile
-import termcolor
 from e4s_cl import logger, variables
 from e4s_cl.error import InternalError
+import termcolor
 
 LOGGER = logger.get_logger(__name__)
 
@@ -223,13 +214,13 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
         LOGGER.debug(output)
 
     for line in errors.split('\n'):
-        if variables.STATUS == variables.MASTER:
-            logger.handle_error(line) if line else None
+        if variables.STATUS == variables.MASTER and line:
+            logger.handle_error(line)
         elif line:
             if retval:
                 LOGGER.error(line)
             else:
-                LOGGER.warn(line)
+                LOGGER.warning(line)
 
     LOGGER.debug("%s returned %d", cmd, retval)
 
@@ -514,14 +505,13 @@ def _parse_line(line):
             }
         }
 
-    else:
-        if len(parts) != 2:
-            raise InternalError(
-                "Expected 2 parts in the line but found {}: {}".format(
-                    len(parts), line))
+    if len(parts) != 2:
+        raise InternalError(
+            "Expected 2 parts in the line but found {}: {}".format(
+                len(parts), line))
 
-        # In this case, no soname was available
-        return {}
+    # In this case, no soname was available
+    return {}
 
 
 def _ldd_output_parser(cmd_out):

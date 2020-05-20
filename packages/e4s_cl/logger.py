@@ -48,8 +48,8 @@ import string
 import logging
 from logging import handlers
 from datetime import datetime
-import termcolor
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION, variables
+import termcolor
 
 IDENTIFIER = "e4s-cl-slave-message"
 SLAVE_LOGGER = logging.getLogger("Child Processes")
@@ -62,16 +62,16 @@ def slave_error(record):
                                       record.getMessage().strip())
 
 
-def handle_error(string):
-    elements = string.split(' ')
+def handle_error(message):
+    elements = message.split(' ')
 
     if elements[0] != IDENTIFIER:
-        SLAVE_LOGGER.warn(string)
+        SLAVE_LOGGER.warning(message)
         return
 
     if elements[1] in ["error", "critical"]:
-        SLAVE_LOGGER.error("{} on {}: {}".format(elements[2], elements[3],
-                                                 ' '.join(elements[5:])))
+        SLAVE_LOGGER.error("%d on %s: %s", int(elements[2]), elements[3],
+                           ' '.join(elements[5:]))
 
     with open("{}.{}.log".format(elements[3], elements[2]), 'a') as proc_log:
         proc_log.write(' '.join(elements[4:]) + '\n')
@@ -143,8 +143,7 @@ def _get_term_size_windows():
         sizex = right - left + 1
         sizey = bottom - top + 1
         return sizex, sizey
-    else:
-        return None
+    return None
 
 
 def _get_term_size_tput():
@@ -234,7 +233,7 @@ def hierachical(function):
     return wrapper
 
 
-class LogFormatter(logging.Formatter, object):
+class LogFormatter(logging.Formatter):
     """Custom log message formatter.
     
     Controls message formatting for all levels.
@@ -351,14 +350,13 @@ class LogFormatter(logging.Formatter, object):
         """
         if self.allow_colors and color_args:
             return termcolor.colored(text, *color_args)
-        else:
-            return text
+        return text
 
     def _textwrap_message(self, record):
         for line in record.getMessage().split('\n'):
             if self.printable_only and not set(line).issubset(
                     self._printable_chars):
-                line = self._prune_ansi(line)
+                line = _prune_ansi(line)
                 line = "".join([c for c in line if c in self._printable_chars])
             if line:
                 yield self._text_wrapper.fill(line)
