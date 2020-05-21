@@ -1,6 +1,8 @@
+import texttable
 from e4s_cl.cli import arguments
 from e4s_cl.cli.cli_view import ListCommand
 from e4s_cl.model.profile import Profile
+
 
 class ProfileListCommand(ListCommand):
     def __init__(self):
@@ -8,18 +10,36 @@ class ProfileListCommand(ListCommand):
             return lambda x: len(x.get(attr, []))
 
         def _selected(attr):
-            return lambda x: '*' if Profile.selected().get(attr) == x[attr] else ' '
+            return lambda x: '*' if Profile.selected().get(attr) == x[
+                attr] else ' '
 
-        dashboard_columns = [
-            {'header': 'Selected', 'function': _selected('name')},
-            {'header': 'Name', 'value': 'name', 'align': 'r'},
-            {'header': 'Backend', 'value': 'backend', 'align': 'r'},
-            {'header': 'Image', 'value': 'image', 'align': 'r'},
-            {'header': 'Libraries', 'function': _count('libraries')},
-            {'header': 'Files', 'function': _count('files')}
-            ]
+        dashboard_columns = [{
+            'header': 'Selected',
+            'function': _selected('name')
+        }, {
+            'header': 'Name',
+            'value': 'name',
+            'align': 'r'
+        }, {
+            'header': 'Backend',
+            'value': 'backend',
+            'align': 'r'
+        }, {
+            'header': 'Image',
+            'value': 'image',
+            'align': 'r'
+        }, {
+            'header': 'Libraries',
+            'function': _count('libraries')
+        }, {
+            'header': 'Files',
+            'function': _count('files')
+        }]
 
-        super(ProfileListCommand, self).__init__(Profile, __name__, dashboard_columns=dashboard_columns)
+        super(ProfileListCommand,
+              self).__init__(Profile,
+                             __name__,
+                             dashboard_columns=dashboard_columns)
 
     def main(self, argv):
         """Command program entry point.
@@ -37,7 +57,8 @@ class ProfileListCommand(ListCommand):
 
         if single:
             prof_name = keys[0]
-            self.title_fmt = "{} Configuration (%(storage_path)s)".format(prof_name)
+            self.title_fmt = "{} Configuration (%(storage_path)s)".format(
+                prof_name)
             # Remove the selected field if listing a single profile
             self.dashboard_columns = self.dashboard_columns[1:]
 
@@ -48,9 +69,13 @@ class ProfileListCommand(ListCommand):
             ctrl = Profile.controller(storage)
             prof = ctrl.one({'name': keys[0]})
             for attr in ['libraries', 'files']:
-                print("{} bound in profile:".format(attr.capitalize()))
-                print("\n{}\n".format("\n".join(prof.get(attr, []))))
+                table = texttable.Texttable()
+                table.add_rows([[attr.capitalize()]] +
+                               [[lib] for lib in prof.get(attr, [])])
+                print(table.draw())
+                print()
 
         return retval
+
 
 COMMAND = ProfileListCommand()
