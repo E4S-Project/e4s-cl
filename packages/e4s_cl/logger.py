@@ -40,6 +40,7 @@ a rotating debug file in the user's E4S CL directory, typically "~/.local/e4s_cl
 import os
 import re
 import sys
+import time
 import errno
 import textwrap
 import socket
@@ -74,7 +75,8 @@ def handle_error(message):
                            ' '.join(elements[5:]))
 
     with open("{}.{}.log".format(elements[3], elements[2]), 'a') as proc_log:
-        proc_log.write(' '.join(elements[4:]) + '\n')
+        proc_log.write('[' + time.ctime(float(elements[4])) + '] ' +
+                       ' '.join(elements[5:]) + '\n')
 
 
 def _prune_ansi(line):
