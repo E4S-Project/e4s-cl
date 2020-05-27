@@ -2,7 +2,7 @@ RM = rm -f
 MV = mv -f
 MKDIR = mkdir -p
 
-VERSION = $(shell cat VERSION 2>/dev/null || ./.version.sh || echo "0.0.0")
+VERSION = $(shell cat VERSION 2>/dev/null || ./.version.sh 2>/dev/null || echo "0.0.0")
 
 # Get build system locations from configuration file or command line
 ifneq ("$(wildcard setup.cfg)","")

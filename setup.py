@@ -47,19 +47,38 @@ CLASSIFIERS = [
 
 import os
 import setuptools
-from setuptools.command.install import install
+from setuptools.command.install import install as InstallCommand
 
-setuptools.setup(
-    name=NAME,
-    version=VERSION,
-    author=AUTHOR,
-    author_email=AUTHOR_EMAIL,
-    description=DESCRIPTION,
-    license=LICENSE,
-    keywords=KEYWORDS,
-    classifiers=CLASSIFIERS,
-    scripts=['scripts/e4s'],
-    packages=setuptools.find_packages("packages"),
-    package_dir={"": "packages"},
-    install_requires=['termcolor>=1.1.0', 'texttable>=1.6.2'],
-)
+
+class Install(InstallCommand):
+    """Customize the install command with new lib, script, and data installation locations."""
+    def initialize_options(self):
+        InstallCommand.initialize_options(self)
+
+    def finalize_options(self):
+        # Distuilts defines attributes in the initialize_options() method
+        # pylint: disable=attribute-defined-outside-init
+        InstallCommand.finalize_options(self)
+        self.install_scripts = os.path.join(self.prefix, 'bin')
+        self.install_lib = os.path.join(self.prefix, 'packages')
+        self.install_data = os.path.join(self.prefix)
+        self.record = os.path.join(self.prefix, 'install.log')
+        self.optimize = 1
+
+    def run(self):
+        InstallCommand.run(self)
+
+
+setuptools.setup(name=NAME,
+                 version=VERSION,
+                 author=AUTHOR,
+                 author_email=AUTHOR_EMAIL,
+                 description=DESCRIPTION,
+                 license=LICENSE,
+                 keywords=KEYWORDS,
+                 classifiers=CLASSIFIERS,
+                 scripts=['scripts/e4s'],
+                 packages=setuptools.find_packages("packages"),
+                 package_dir={"": "packages"},
+                 install_requires=['termcolor>=1.1.0', 'texttable>=1.6.2'],
+                 cmdclass={'install': Install})
