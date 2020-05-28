@@ -114,5 +114,5 @@ $(CONDA_SRC):
 		echo "* ERROR: Unable to download $(CONDA_URL)." ; \
 		false)
 
-test: python_check
+test: build
 	$(PYTHON) -m tox tox.ini
