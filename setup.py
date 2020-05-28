@@ -80,5 +80,4 @@ setuptools.setup(name=NAME,
                  scripts=['scripts/e4s'],
                  packages=setuptools.find_packages("packages"),
                  package_dir={"": "packages"},
-                 install_requires=['tox>=3.15'],
                  cmdclass={'install': Install})
