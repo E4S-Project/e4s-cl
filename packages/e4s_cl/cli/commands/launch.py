@@ -62,7 +62,7 @@ def _format_execute(parameters):
     execute_command = str(execute_cmd).split()
 
     # Insert a top-level e4s option between the script name and the subcommand
-    execute_command = [execute_command[0]] + ['--slave'] + execute_command[1:]
+    execute_command = [E4S_CL_SCRIPT, '--slave'] + execute_command[1:]
 
     for attr in ['image', 'backend']:
         if parameters.get(attr, None):

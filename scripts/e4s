@@ -10,7 +10,6 @@ if __name__ == '__main__':
 
     here = os.path.realpath(os.path.dirname(__file__))
     os.environ['__E4S_CL_HOME__'] = os.path.join(here, '..')
-    os.environ['__E4S_CL_SCRIPT__'] = os.path.basename(__file__)
     packages = os.path.join(here, '..', 'packages')
     sys.path.insert(0, packages)
 
