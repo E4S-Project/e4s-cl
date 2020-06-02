@@ -96,7 +96,7 @@ build: python_check
 	$(PYTHON) setup.py build
 
 install: build
-	$(PYTHON) setup.py install --prefix $(INSTALLDIR)
+	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
 
 python_check: $(PYTHON_EXE)
 	@$(PYTHON) -c "import sys; import setuptools;" || (echo "ERROR: setuptools is required." && false)
@@ -113,6 +113,9 @@ $(CONDA_SRC):
 		(rm -f "$(CONDA_SRC)" ; \
 		echo "* ERROR: Unable to download $(CONDA_URL)." ; \
 		false)
+
+clean:
+	rm -fr build/
 
 test: build
 	$(PYTHON) -m tox tox.ini
