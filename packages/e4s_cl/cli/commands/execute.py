@@ -51,6 +51,8 @@ def _argument_path_comma_list(string):
 def compute_libs(lib_list, container):
     """Necessary library computation.
 
+    lib_list is a list of Path objects
+
     This method will first determine what libraries are available 
     inside the container, then list the dependencies of the requested imports.
     All of the necessary dependencies that are not present in the container
@@ -61,17 +63,24 @@ def compute_libs(lib_list, container):
     ]
     selected = {}
 
-    for path in lib_list:
-        container.add_ld_preload("{}/{}".format(HOST_LIBS_DIR, path.name))
-        dependencies = util.list_dependencies(path)
+    for lib_path in lib_list:
+        # Use a ldd parser to grab all the dependencies of
+        # the requested library
+        dependencies = util.list_dependencies(lib_path)
         for dependency, data in dependencies.items():
+            # Add it only if it is not present in the container
             if dependency not in present_in_container and data['path']:
                 selected.update({dependency: data['path']})
 
-    for path in selected.values():
-        container.bind_file(path,
+        # For the entrypoint, the requested library, add it no matter what
+        # (to override the internal version) then add it to LD_PRELOAD
+        selected.update({lib_path.name: lib_path.as_posix()})
+        container.add_ld_preload("{}/{}".format(HOST_LIBS_DIR, lib_path.name))
+
+    for local_path in selected.values():
+        container.bind_file(local_path,
                             dest="{}/{}".format(HOST_LIBS_DIR,
-                                                Path(path).name),
+                                                Path(local_path).name),
                             options='ro')
 
 
