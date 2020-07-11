@@ -46,7 +46,7 @@ This directory contains at least `bin`, `docs`, and `packages` directories and i
 for system-level package installation paths. **Do not** change it once it is set.
 """
 
-E4S_CL_SCRIPT = os.environ.get('__E4S_CL_SCRIPT__', sys.argv[0] or 'e4s')
+E4S_CL_SCRIPT = os.environ.get('__E4S_CL_SCRIPT__', sys.argv[0] or 'e4s-cl')
 """str: Script that launched E4S Container Launcher.
 
 Mainly used for help messages. **Do not** change it once it is set.
