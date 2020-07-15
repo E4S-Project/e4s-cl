@@ -38,7 +38,8 @@ import errno
 import pkgutil
 import pathlib
 from collections import deque
-from e4s_cl import logger, variables
+from e4s_cl import logger
+from e4s_cl.variables import is_master, is_dry_run
 from e4s_cl.error import InternalError
 import termcolor
 
@@ -194,7 +195,7 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
 
-    if variables.DRY_RUN:
+    if is_dry_run():
         print(' '.join(cmd))
         return 0, ""
 
@@ -214,7 +215,9 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
         LOGGER.debug(output)
 
     for line in errors.split('\n'):
-        if variables.STATUS == variables.MASTER and line:
+        # If this is a master process, prettify the output; if not,
+        # format it for the master process to understand
+        if is_master() and line:
             logger.handle_error(line)
         elif line:
             if retval:
