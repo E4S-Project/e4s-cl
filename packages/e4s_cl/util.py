@@ -596,11 +596,12 @@ def interpret_launcher(cmd):
 
 
 def opened_files(command):
-    proc = subprocess.Popen(["strace", "-e", "open,openat", *command],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.PIPE,
-                            close_fds=False,
-                            universal_newlines=True)
+    proc = subprocess.Popen(
+        ["strace", "-s", "8192", "-e", "open,openat", *command],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        close_fds=False,
+        universal_newlines=True)
 
     _, err = proc.communicate()
 
