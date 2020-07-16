@@ -567,3 +567,50 @@ def list_dependencies(path, env=None):
     deps.update(_ldd_output_parser(cmd_out=out))
 
     return deps
+
+
+from e4s_cl.cf.launchers import LAUNCHERS, parse_cli
+
+
+def interpret_launcher(cmd):
+    """Parses a command line to split the launcher command and application commands.
+
+       Args:
+           cmd (list[str]): Command line.
+
+       Returns:
+           tuple: (Launcher command, possibly empty list of application commands).
+       """
+    launcher_cmd = []
+    if pathlib.Path(cmd[0]).name in LAUNCHERS:
+        launcher_cmd, cmd = parse_cli(cmd)
+    else:
+        # If '--' appears in the command then everything before it is a launcher + args
+        # and everything after is the application + args
+        if '--' in cmd:
+            idx = cmd.index('--')
+            launcher_cmd, cmd = cmd[:idx], cmd[idx + 1:]
+
+    # No launcher command, just an application command
+    return launcher_cmd, cmd
+
+
+def opened_files(command):
+    proc = subprocess.Popen(["strace", "-e", "open,openat", *command],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.PIPE,
+                            close_fds=False,
+                            universal_newlines=True)
+
+    _, err = proc.communicate()
+
+    syscalls = err.split('\n')
+    files = []
+
+    for syscall in syscalls:
+        if re.match(".*ENOENT.*", syscall) or not re.match('open.*', syscall):
+            continue
+
+        files.append(re.match(".*\"(.*)\".*", syscall).group(1))
+
+    return files

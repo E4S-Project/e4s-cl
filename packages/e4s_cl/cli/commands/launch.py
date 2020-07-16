@@ -7,7 +7,6 @@ launcher detection, profile loading, and subprocess creation.
 import os
 from pathlib import Path
 from argparse import ArgumentTypeError, Namespace
-from e4s_cl.cf.launchers import LAUNCHERS, parse_cli
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util, variables
 from e4s_cl.cli import arguments
@@ -110,36 +109,13 @@ class LaunchCommand(AbstractCommand):
                             nargs=arguments.REMAINDER)
         return parser
 
-    @classmethod
-    def parse_launcher_cmd(cls, cmd):
-        """Parses a command line to split the launcher command and application commands.
-        
-        Args:
-            cmd (list): Command line.
-            
-        Returns:
-            tuple: (Launcher command, possibly empty list of application commands).
-        """
-        launcher_cmd = []
-        if cmd[0] in LAUNCHERS:
-            launcher_cmd, cmd = parse_cli(cmd)
-        else:
-            # If '--' appears in the command then everything before it is a launcher + args
-            # and everything after is the application + args
-            if '--' in cmd:
-                idx = cmd.index('--')
-                launcher_cmd, cmd = cmd[:idx], cmd[idx + 1:]
-
-        # No launcher command, just an application command
-        return launcher_cmd, cmd
-
     def main(self, argv):
         args = self._parse_args(argv)
 
         if not args.cmd:
             self.parser.error("No command given")
 
-        launcher, program = LaunchCommand.parse_launcher_cmd(args.cmd)
+        launcher, program = util.interpret_launcher(args.cmd)
         execute_command = _format_execute(_parameters(args))
 
         LOGGER.debug(" ".join(launcher + execute_command + program))
