@@ -49,7 +49,8 @@ import string
 import logging
 from logging import handlers
 from datetime import datetime
-from e4s_cl import USER_PREFIX, E4S_CL_VERSION, variables
+from e4s_cl import USER_PREFIX, E4S_CL_VERSION
+from e4s_cl.variables import is_master
 import termcolor
 
 IDENTIFIER = "e4s-cl-slave-message"
@@ -228,7 +229,7 @@ def _get_term_size_env():
 
 def hierachical(function):
     def wrapper(obj, record):
-        if variables.STATUS == variables.MASTER:
+        if is_master():
             return function(obj, record)
         return slave_error(record)
 
@@ -254,9 +255,7 @@ class LogFormatter(logging.Formatter):
         self.printable_only = printable_only
         self.allow_colors = allow_colors
         self.line_width = line_width
-        self.line_marker = COLORED_LINE_MARKER if allow_colors else LINE_MARKER
-        self._text_wrapper = textwrap.TextWrapper(width=self.line_width +
-                                                  len(self.line_marker) + 1,
+        self._text_wrapper = textwrap.TextWrapper(width=self.line_width,
                                                   break_long_words=False,
                                                   break_on_hyphens=False,
                                                   drop_whitespace=False)
@@ -264,26 +263,22 @@ class LogFormatter(logging.Formatter):
     @hierachical
     def CRITICAL(self, record):
         header = self._colored('[Critical] ', 'red', None, ['bold'])
-        return '\n'.join(
-            [header + line for line in self._textwrap_message(record)])
+        return self._format_message(record, header=header)
 
     @hierachical
     def ERROR(self, record):
         header = self._colored('[Error] ', 'red', None, ['bold'])
-        return '\n'.join(
-            [header + line for line in self._textwrap_message(record)])
+        return self._format_message(record, header=header)
 
     @hierachical
     def WARNING(self, record):
         header = self._colored('[Warning] ', 'yellow', None, ['bold'])
-        return '\n'.join(
-            [header + line for line in self._textwrap_message(record)])
+        return self._format_message(record, header=header)
 
     @hierachical
     def INFO(self, record):
         header = self._colored('[Info] ', 'white', None, ['bold'])
-        return '\n'.join(
-            [header + line for line in self._textwrap_message(record)])
+        return self._format_message(record, header=header)
 
     @hierachical
     def DEBUG(self, record):
@@ -354,19 +349,15 @@ class LogFormatter(logging.Formatter):
             return termcolor.colored(text, *color_args)
         return text
 
-    def _textwrap_message(self, record):
-        for line in record.getMessage().split('\n'):
-            if self.printable_only and not set(line).issubset(
-                    self._printable_chars):
-                line = _prune_ansi(line)
-                line = "".join([c for c in line if c in self._printable_chars])
-            if line:
-                yield self._text_wrapper.fill(line)
+    def _format_message(self, record, header=''):
+        # Length of the header, pruned from invisible escape characters
+        header_length = len(_prune_ansi(header))
 
-    def _textwrap(self, lines):
-        for line in lines:
-            if line:
-                yield self._text_wrapper.fill(line)
+        lines = "\n".join(
+            textwrap.wrap(record.getMessage(),
+                          width=(self.line_width - header_length)))
+
+        return textwrap.indent(lines, header)
 
 
 def get_logger(name):
@@ -407,15 +398,10 @@ Don't change directly. May be changed via :any:`set_log_level`.
 LOG_FILE = os.path.join(USER_PREFIX, 'debug_log')
 """str: Absolute path to a log file to receive all debugging output."""
 
-LINE_MARKER = os.environ.get('E4S_LINE_MARKER', 'e4s')
-"""str: Marker for each line of output."""
-
-COLORED_LINE_MARKER = termcolor.colored(LINE_MARKER, 'red')
-
 TERM_SIZE = get_terminal_size()
 """tuple: (width, height) tuple of detected terminal dimensions in characters."""
 
-LINE_WIDTH = TERM_SIZE[0] - len(LINE_MARKER)
+LINE_WIDTH = TERM_SIZE[0]
 """Width of a line on the terminal.
 
 Uses system specific methods to determine console line width.  If the line
