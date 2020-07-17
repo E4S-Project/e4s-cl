@@ -651,6 +651,59 @@ class DumpCommand(AbstractCliView):
         return EXIT_SUCCESS
 
 
+class ShowCommand(AbstractCliView):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('summary_fmt',
+                          "Show %(model_name)s configuration data.")
+        super(ShowCommand, self).__init__(*args, **kwargs)
+        self._format_fields = {
+            'command': self.command,
+            'model_name': self.model_name,
+            'key_attr': self.model.key_attribute
+        }
+
+    def _construct_parser(self):
+        usage = ("%(command)s [arguments] <%(model_name)s_%(key_attr)s>" %
+                 self._format_fields)
+        parser = arguments.get_parser_from_model(self.model,
+                                                 use_defaults=False,
+                                                 prog=self.command,
+                                                 usage=usage,
+                                                 description=self.summary)
+        return parser
+
+    def main(self, argv):
+        args = self._parse_args(argv)
+        levels = arguments.parse_storage_flag(args)
+        fmt = vars(args)
+
+        matches = Profile.controller().match(Profile.key_attribute,
+                                             regex=("^%s.*" % args.name))
+        if len(matches) != 1:
+            self.parser.error(
+                "Pattern %(name)s does not identify an existing profile" % fmt)
+
+        fields = Profile.controller().one(
+            {Profile.key_attribute: matches[0]['name']})
+        self.detail(fields)
+
+        return EXIT_SUCCESS
+
+    def detail(self, fields):
+        separator = ''.join(['-' for _ in range(80)])
+        parts = [separator]
+
+        for attr, value in fields.items():
+            if not value:
+                continue
+            if type(value) == list:
+                value = "\n".join(value)
+            parts.append("=== %s: %s" % (attr, value))
+
+        parts.append(separator)
+        print("\n".join(parts))
+
+
 class CopyCommand(CreateCommand):
     """Base class for the `copy` subcommand of command line views."""
     def __init__(self, *args, **kwargs):
