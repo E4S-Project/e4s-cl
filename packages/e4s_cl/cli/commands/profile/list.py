@@ -51,29 +51,8 @@ class ProfileListCommand(ListCommand):
             int: Process return code: non-zero if a problem occurred, 0 otherwise
         """
         args = self._parse_args(argv)
-        levels = arguments.parse_storage_flag(args)
-        keys = getattr(args, 'keys', [])
-        single = (len(keys) == 1 and len(levels) == 1)
-
-        if single:
-            prof_name = keys[0]
-            self.title_fmt = "{} Configuration (%(storage_path)s)".format(
-                prof_name)
-            # Remove the selected field if listing a single profile
-            self.dashboard_columns = self.dashboard_columns[1:]
 
         retval = super(ProfileListCommand, self).main(argv)
-
-        if single:
-            storage = levels[0]
-            ctrl = Profile.controller(storage)
-            prof = ctrl.one({'name': keys[0]})
-            for attr in ['libraries', 'files']:
-                table = texttable.Texttable()
-                table.add_rows([[attr.capitalize()]] +
-                               [[lib] for lib in prof.get(attr, [])])
-                print(table.draw())
-                print()
 
         return retval
 

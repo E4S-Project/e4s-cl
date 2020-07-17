@@ -478,17 +478,18 @@ class ListCommand(AbstractCliView):
             records = ctrl.all()
         else:
             key_attr = self.model.key_attribute
-            if len(keys) == 1:
-                records = ctrl.search({key_attr: keys[0]})
-                if not records:
-                    self.parser.error("No %s with %s='%s'" %
-                                      (self.model_name, key_attr, keys[0]))
-            else:
-                records = ctrl.search([{key_attr: key} for key in keys])
-                for i, record in enumerate(records):
-                    if not record:
-                        self.parser.error("No %s with %s='%s'" %
-                                          (self.model_name, key_attr, keys[i]))
+            matches = [
+                ctrl.match(key_attr, regex=("^%s.*" % key)) for key in keys
+            ]
+
+            for i, record in enumerate(matches):
+                if not record:
+                    self.parser.error("No %s with %s matching '%s'" %
+                                      (self.model_name, key_attr, keys[i]))
+
+            records = list(
+                set([record for sublist in matches for record in sublist]))
+
         return records
 
     def _format_records(self, ctrl, style, keys=None):
