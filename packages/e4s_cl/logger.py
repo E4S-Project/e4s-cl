@@ -47,6 +47,7 @@ import socket
 import platform
 import string
 import logging
+import json
 from logging import handlers
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
@@ -58,26 +59,32 @@ SLAVE_LOGGER = logging.getLogger("Child Processes")
 
 
 def slave_error(record):
-    return "{} {} {} {} {} {}".format(IDENTIFIER, record.levelname.lower(),
-                                      os.getpid(), socket.gethostname(),
-                                      record.created,
-                                      record.getMessage().strip())
+    template = {
+        'level': record.levelname.lower(),
+        'process': os.getpid(),
+        'host': socket.gethostname(),
+        'date': record.created,
+        'message': record.getMessage().strip()
+    }
+    return json.dumps(template)
 
 
-def handle_error(message):
-    elements = message.split(' ')
-
-    if elements[0] != IDENTIFIER:
-        SLAVE_LOGGER.warning(message)
+def handle_error(line):
+    try:
+        data = json.loads(line)
+    except ValueError:
+        # Its not json, does not come from a slave
+        SLAVE_LOGGER.warning(line)
         return
 
-    if elements[1] in ["error", "critical"]:
-        SLAVE_LOGGER.error("%d on %s: %s", int(elements[2]), elements[3],
-                           ' '.join(elements[5:]))
+    if data.get('level') in ["error", "critical"]:
+        SLAVE_LOGGER.error("%d on %s: %s", data.get('process'),
+                           data.get('host'), data.get('message'))
 
-    with open("{}.{}.log".format(elements[3], elements[2]), 'a') as proc_log:
-        proc_log.write('[' + time.ctime(float(elements[4])) + '] ' +
-                       ' '.join(elements[5:]) + '\n')
+    with open("{}.{}.log".format(data.get('host'), data.get('process')),
+              'a') as proc_log:
+        proc_log.write('[' + time.ctime(float(data.get('date'))) + '] ' +
+                       ' '.join(data.get('message')) + '\n')
 
 
 def _prune_ansi(line):

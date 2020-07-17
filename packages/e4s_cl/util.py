@@ -220,10 +220,7 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
         if is_master() and line:
             logger.handle_error(line)
         elif line:
-            if retval:
-                LOGGER.error(line)
-            else:
-                LOGGER.warning(line)
+            LOGGER.error(line) if retval else LOGGER.warning(line)
 
     LOGGER.debug("%s returned %d", cmd, retval)
 
