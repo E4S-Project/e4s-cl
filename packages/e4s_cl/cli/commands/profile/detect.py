@@ -13,16 +13,15 @@ def separate_files(file_list):
     libraries = []
     files = []
 
-    for file_path in file_list:
-        path = pathlib.Path(file_path)
+    for path in file_list:
         if path.name == 'ld.so.cache':
             continue
 
         if re.match(".*\.so.*", path.name):
-            libraries.append(file_path)
+            libraries.append(path)
             continue
 
-        files.append(file_path)
+        files.append(path)
 
     return libraries, files
 
@@ -60,7 +59,7 @@ class ProfileDetectCommand(AbstractCliView):
                 launcher + [E4S_CL_SCRIPT, "--slave", "profile", "detect"] +
                 program,
                 redirect_stdout=True)
-            files = list(filter(None, set(out.split('\n'))))
+            files = [pathlib.Path(path) for path in set(out.split('\n'))]
         else:
             # No launcher, analyse the command
             files = opened_files(args.cmd)
@@ -69,13 +68,12 @@ class ProfileDetectCommand(AbstractCliView):
         # must be processed, or this is a slave process, where we just print it all on stdout
         # in a format the master will understand
         if not is_master():
-            print("\n".join(files))
+            print("\n".join([path.as_posix() for path in files]))
             return
 
-        files = list(filter(None, files))
         libs, files = separate_files(files)
-        print("\n".join(["Libraries:"] + libs))
-        print("\n".join(["Files:"] + files))
+        print("\n".join(["Libraries:"] + [lib.name for lib in libs]))
+        print("\n".join(["Files:"] + [f.as_posix() for f in files]))
 
         if args.output:
             data = {'name': args.output, 'libraries': libs, 'files': files}

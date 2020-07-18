@@ -593,22 +593,38 @@ def interpret_launcher(cmd):
 
 
 def opened_files(command):
-    proc = subprocess.Popen(
-        ["strace", "-s", "8192", "-e", "open,openat", *command],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        close_fds=False,
-        universal_newlines=True)
+    """
+    command: list[str] command to launch and list opened files from
 
-    _, err = proc.communicate()
-
-    syscalls = err.split('\n')
+    returns: list[pathlib.Path] files opened
+    """
     files = []
 
-    for syscall in syscalls:
-        if re.match(".*ENOENT.*", syscall) or not re.match('open.*', syscall):
-            continue
+    # Splitting the output to avoid mixing errors and trace
+    output = "/tmp/process.%s.trace" % os.getpid()
+    wrapped = "%(strace)s -o %(output)s -s 8192 -e open,openat %(command)s" % {
+        'strace': 'strace',
+        'command': " ".join(command),
+        'output': output
+    }
 
-        files.append(re.match(".*\"(.*)\".*", syscall).group(1))
+    returncode, _ = create_subprocess_exp(wrapped.split(' '),
+                                          redirect_stdout=True)
 
+    if returncode:
+        LOGGER.error("Failure: Process returned error code %s" % returncode)
+    else:
+        with open(output, 'r') as trace:
+            syscalls = trace.read().split('\n')
+
+        for syscall in syscalls:
+            if re.match(".*ENOENT.*",
+                        syscall) or not re.match('open.*', syscall):
+                continue
+
+            name = re.match(".*\"(.*)\".*", syscall).group(1)
+            if pathlib.Path(name).exists():
+                files.append(pathlib.Path(name))
+
+    os.unlink(output)
     return files
