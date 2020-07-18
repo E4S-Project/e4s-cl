@@ -360,11 +360,14 @@ class LogFormatter(logging.Formatter):
         # Length of the header, pruned from invisible escape characters
         header_length = len(_prune_ansi(header))
 
-        lines = "\n".join(
-            textwrap.wrap(record.getMessage(),
-                          width=(self.line_width - header_length)))
+        output = []
 
-        return textwrap.indent(lines, header)
+        for line in record.getMessage().split('\n'):
+            output += textwrap.wrap(line,
+                                    width=(self.line_width -
+                                           header_length)) if line else ['']
+
+        return textwrap.indent("\n".join(output), header, lambda line: True)
 
 
 def get_logger(name):
