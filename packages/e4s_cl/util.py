@@ -630,3 +630,21 @@ def opened_files(command):
 
     os.unlink(output)
     return returncode, files
+
+
+# Dict with the host libraries, with sonames as keys, and paths as values
+HOST_LIBRARIES = {}
+
+
+def host_libraries():
+    if HOST_LIBRARIES:
+        return HOST_LIBRARIES
+
+    _, output = create_subprocess_exp(['ldconfig', '-p'], redirect_stdout=True)
+
+    for row in output.strip().split('\n')[1:]:
+        # Expecting format "libname.so.y (lib,arch) => /path/libname.so.y"
+        components = row.strip().split(' ')
+        HOST_LIBRARIES[components[0]] = components[-1]
+
+    return HOST_LIBRARIES

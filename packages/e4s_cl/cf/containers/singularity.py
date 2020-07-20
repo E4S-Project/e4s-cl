@@ -1,5 +1,5 @@
 from e4s_cl import logger
-from e4s_cl.util import which, create_subprocess_exp
+from e4s_cl.util import host_libraries, which, create_subprocess_exp
 from e4s_cl.cf.containers import Container
 
 LOGGER = logger.get_logger(__name__)
@@ -36,10 +36,7 @@ class SingularityContainer(Container):
         return which('singularity') is not None
 
     def _has_nvidia(self):
-        _, output = create_subprocess_exp(['ldconfig', '-p'],
-                                          redirect_stdout=True)
-
-        if not 'nvidia' in output:
+        if not 'nvidia' in " ".join(host_libraries().keys()):
             LOGGER.warning("Disabling Nvidia support: no libraries found")
             return False
         return True
