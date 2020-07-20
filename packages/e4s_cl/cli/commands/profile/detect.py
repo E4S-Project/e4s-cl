@@ -12,21 +12,35 @@ from e4s_cl.cli.cli_view import AbstractCliView
 LOGGER = logger.get_logger(__name__)
 
 
-def separate_files(file_list):
-    libraries = []
-    files = []
+def filter_files(path_list):
+    sonames, paths = [], []
 
-    for path in file_list:
+    for path in path_list:
+        # Discard the linker cache
         if path.name == 'ld.so.cache':
             continue
 
+        # Process libraries
         if re.match(".*\.so.*", path.name):
-            libraries.append(path)
+            if path.name in host_libraries().keys():
+                # The library is in the cache, it can be found using a soname
+                sonames.append(path.name)
+            else:
+                # Not standard, it must be imported with a full path
+                paths.append(path.as_posix())
             continue
 
-        files.append(path)
+        # Process files
+        blacklist = ["/tmp", "/sys", "/proc"]
+        filtered = False
+        for expr in blacklist:
+            if not filtered and re.match("^%s.*" % expr, path.as_posix()):
+                filtered = True
 
-    return libraries, files
+        if not filtered:
+            paths.append(path.as_posix())
+
+    return sonames, paths
 
 
 class ProfileDetectCommand(AbstractCliView):
@@ -80,9 +94,9 @@ class ProfileDetectCommand(AbstractCliView):
             print(json.dumps([path.as_posix() for path in files]))
             return
 
-        libs, files = separate_files(files)
-        print("\n".join(["Libraries:"] + [lib.name for lib in libs]))
-        print("\n".join(["Files:"] + [f.as_posix() for f in files]))
+        libs, files = filter_files(files)
+        print("\n".join(["Libraries:"] + [lib for lib in libs]))
+        print("\n".join(["Files:"] + [f for f in files]))
 
         if args.output:
             data = {'name': args.output, 'libraries': libs, 'files': files}
