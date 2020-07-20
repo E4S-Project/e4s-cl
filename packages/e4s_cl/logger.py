@@ -83,8 +83,11 @@ def handle_error(line):
 
     with open("{}.{}.log".format(data.get('host'), data.get('process')),
               'a') as proc_log:
-        proc_log.write('[' + time.ctime(float(data.get('date'))) + '] ' +
-                       ' '.join(data.get('message')) + '\n')
+        proc_log.write(
+            '[%(date)s] %(message)s\n' % {
+                'date': time.ctime(float(data.get('date'))),
+                'message': data.get('message')
+            })
 
 
 def _prune_ansi(line):
