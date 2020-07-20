@@ -1,12 +1,15 @@
+import json
 import pathlib
 import os, re
-from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
+from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
 from e4s_cl.variables import is_master
 from e4s_cl.util import which, opened_files, interpret_launcher, create_subprocess_exp
 from e4s_cl.error import UniqueAttributeError
 from e4s_cl.cli import arguments
 from e4s_cl.model.profile import Profile
 from e4s_cl.cli.cli_view import AbstractCliView
+
+LOGGER = logger.get_logger(__name__)
 
 
 def separate_files(file_list):
@@ -55,20 +58,26 @@ class ProfileDetectCommand(AbstractCliView):
 
         if launcher:
             # If a launcher is present, create subprocesses and aggregate the results
-            retval, out = create_subprocess_exp(
+            returncode, json_data = create_subprocess_exp(
                 launcher + [E4S_CL_SCRIPT, "--slave", "profile", "detect"] +
                 program,
                 redirect_stdout=True)
-            files = [pathlib.Path(path) for path in set(out.split('\n'))]
+            if not returncode:
+                files = [pathlib.Path(path) for path in json.loads(json_data)]
         else:
             # No launcher, analyse the command
-            files = opened_files(args.cmd)
+            returncode, files = opened_files(args.cmd)
+
+        if returncode:
+            if is_master():
+                LOGGER.error("Failed to determine necessary libraries.")
+            return EXIT_FAILURE
 
         # There are two cases: this is a master process, in which case the output
         # must be processed, or this is a slave process, where we just print it all on stdout
         # in a format the master will understand
         if not is_master():
-            print("\n".join([path.as_posix() for path in files]))
+            print(json.dumps([path.as_posix() for path in files]))
             return
 
         libs, files = separate_files(files)

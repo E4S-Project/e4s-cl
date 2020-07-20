@@ -596,7 +596,9 @@ def opened_files(command):
     """
     command: list[str] command to launch and list opened files from
 
-    returns: list[pathlib.Path] files opened
+    returns:
+    returncode  int                 return value of the command
+    files       list[pathlib.Path]  list of accessed files
     """
     files = []
 
@@ -627,4 +629,4 @@ def opened_files(command):
                 files.append(pathlib.Path(name))
 
     os.unlink(output)
-    return files
+    return returncode, files
