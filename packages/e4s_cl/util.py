@@ -642,8 +642,10 @@ def opened_files(command):
                 continue
 
             name = re.match(".*\"(.*)\".*", syscall).group(1)
-            if pathlib.Path(name).exists():
-                files.append(pathlib.Path(name))
+            path_obj = pathlib.Path(name)
+            if path_obj.exists() and \
+                    path_obj.as_posix() not in [path.as_posix() for path in files]:
+                files.append(path_obj)
 
     os.unlink(output)
     return returncode, files
