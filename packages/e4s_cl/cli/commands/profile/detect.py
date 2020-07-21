@@ -3,7 +3,7 @@ import pathlib
 import os, re
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
 from e4s_cl.variables import is_master
-from e4s_cl.util import which, opened_files, interpret_launcher, create_subprocess_exp
+from e4s_cl.util import which, opened_files, interpret_launcher, create_subprocess_exp, ldd, host_libraries
 from e4s_cl.error import UniqueAttributeError
 from e4s_cl.cli import arguments
 from e4s_cl.model.profile import Profile
@@ -12,8 +12,8 @@ from e4s_cl.cli.cli_view import AbstractCliView
 LOGGER = logger.get_logger(__name__)
 
 
-def filter_files(path_list):
-    sonames, paths = [], []
+def filter_files(path_list, ldd_requirements={}):
+    libraries, paths = [], []
 
     for path in path_list:
         # Discard the linker cache
@@ -24,7 +24,11 @@ def filter_files(path_list):
         if re.match(".*\.so.*", path.name):
             if path.name in host_libraries().keys():
                 # The library is in the cache, it can be found using a soname
-                sonames.append(path.name)
+                libraries.append(path.as_posix())
+            elif path.name in ldd_requirements.keys() \
+                and ldd_requirements[path.name].get('found'):
+                # The library is not in the cache, but still found by the linker
+                libraries.append(path.as_posix())
             else:
                 # Not standard, it must be imported with a full path
                 paths.append(path.as_posix())
@@ -40,7 +44,7 @@ def filter_files(path_list):
         if not filtered:
             paths.append(path.as_posix())
 
-    return sonames, paths
+    return libraries, paths
 
 
 class ProfileDetectCommand(AbstractCliView):
@@ -69,6 +73,7 @@ class ProfileDetectCommand(AbstractCliView):
             return
 
         launcher, program = interpret_launcher(args.cmd)
+        ldd_requirements = {}
 
         if launcher:
             # If a launcher is present, create subprocesses and aggregate the results
@@ -81,6 +86,9 @@ class ProfileDetectCommand(AbstractCliView):
         else:
             # No launcher, analyse the command
             returncode, files = opened_files(args.cmd)
+            base_command = which(args.cmd[0])
+            if base_command:
+                ldd_requirements = ldd(base_command)
 
         if returncode:
             if is_master():
@@ -94,7 +102,7 @@ class ProfileDetectCommand(AbstractCliView):
             print(json.dumps([path.as_posix() for path in files]))
             return
 
-        libs, files = filter_files(files)
+        libs, files = filter_files(files, ldd_requirements)
         print("\n".join(["Libraries:"] + [lib for lib in libs]))
         print("\n".join(["Files:"] + [f for f in files]))
 
@@ -106,6 +114,7 @@ class ProfileDetectCommand(AbstractCliView):
                 self.parser.error("A profile named '%s' already exists." %
                                   args.output)
 
+        ldd('/home/jskutnik/Projects/MPItest/hello')
         return EXIT_SUCCESS
 
 

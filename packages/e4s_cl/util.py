@@ -566,6 +566,23 @@ def list_dependencies(path, env=None):
     return deps
 
 
+def ldd(binary):
+    command = "%(ldd)s %(binary)s" % {
+        'ldd': which('ldd'),
+        'binary': pathlib.Path(binary).as_posix()
+    }
+
+    returncode, output = create_subprocess_exp(command.split(),
+                                               redirect_stdout=True)
+    libraries = {}  # type: Dict
+    rows = filter(lambda x: x, [line.strip() for line in output.split('\n')])
+
+    for line in rows:
+        libraries.update(_parse_line(line=line))
+
+    return libraries
+
+
 from e4s_cl.cf.launchers import LAUNCHERS, parse_cli
 
 
