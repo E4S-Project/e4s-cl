@@ -514,58 +514,6 @@ def _parse_line(line):
     return {}
 
 
-def _ldd_output_parser(cmd_out):
-    """
-    Parse the command line output.
-    :param cmd_out: command line output
-    :return: Dictionnary of dependencies
-    """
-    dependencies = {}  # type: Dict
-
-    for line in [
-            line.strip() for line in cmd_out.split('\n') if line.strip() != ''
-    ]:
-        dependencies.update(_parse_line(line=line))
-
-    return dependencies
-
-
-def list_dependencies(path, env=None):
-    """
-    Retrieve a list of dependencies of the given binary.
-    :param path: pathlib.Path: path to a file
-    :param env: dict[str, str]: the environment to use
-    If ``env`` is None, currently active env will be used.
-    Otherwise specified env is used.
-    :return: list of dependencies
-    """
-
-    # Check if the file is present on the filesystem
-    if not path.exists():
-        raise InternalError("Failed to ldd external library {}: File does not"
-                            "exist".format(path))
-
-    # Add it as a dependency
-    deps = {path.name: {"path": path.as_posix(), "found": True}}
-
-    proc = subprocess.Popen(["ldd", path.as_posix()],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            universal_newlines=True,
-                            env=env)
-
-    out, err = proc.communicate()
-
-    if proc.returncode != 0:
-        raise InternalError(
-            "Failed to ldd external libraries of {} with code {}:\nout:\n{}\n\n"
-            "err:\n{}".format(path, proc.returncode, out, err))
-
-    deps.update(_ldd_output_parser(cmd_out=out))
-
-    return deps
-
-
 def ldd(binary):
     command = "%(ldd)s %(binary)s" % {
         'ldd': which('ldd'),

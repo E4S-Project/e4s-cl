@@ -114,7 +114,6 @@ class ProfileDetectCommand(AbstractCliView):
                 self.parser.error("A profile named '%s' already exists." %
                                   args.output)
 
-        ldd('/home/jskutnik/Projects/MPItest/hello')
         return EXIT_SUCCESS
 
 

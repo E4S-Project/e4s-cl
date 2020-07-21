@@ -66,7 +66,7 @@ def compute_libs(lib_list, container):
     for lib_path in lib_list:
         # Use a ldd parser to grab all the dependencies of
         # the requested library
-        dependencies = util.list_dependencies(lib_path)
+        dependencies = util.ldd(lib_path)
         for dependency, data in dependencies.items():
             # Add it only if it is not present in the container
             if dependency not in present_in_container and data['path']:
