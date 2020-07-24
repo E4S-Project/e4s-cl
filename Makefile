@@ -67,7 +67,7 @@ else
 endif
 
 CONDA_VERSION = latest
-CONDA_REPO = https://repo.continuum.io/miniconda
+CONDA_REPO = https://repo.anaconda.com/miniconda
 CONDA_PKG = Miniconda3-$(CONDA_VERSION)-$(CONDA_OS)-$(CONDA_ARCH).sh
 CONDA_URL = $(CONDA_REPO)/$(CONDA_PKG)
 CONDA_SRC = system/src/$(CONDA_PKG)
