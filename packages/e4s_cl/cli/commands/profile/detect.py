@@ -16,6 +16,9 @@ def filter_files(path_list, ldd_requirements={}):
     libraries, paths = [], []
 
     for path in path_list:
+        if not path.exists() or path.is_dir():
+            continue
+
         # Discard the linker cache
         if path.name == 'ld.so.cache':
             continue
@@ -35,7 +38,7 @@ def filter_files(path_list, ldd_requirements={}):
             continue
 
         # Process files
-        blacklist = ["/tmp", "/sys", "/proc"]
+        blacklist = ["/tmp", "/sys", "/proc", "/dev"]
         filtered = False
         for expr in blacklist:
             if not filtered and re.match("^%s.*" % expr, path.as_posix()):

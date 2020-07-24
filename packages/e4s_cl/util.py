@@ -43,6 +43,11 @@ from e4s_cl.variables import is_master, is_dry_run
 from e4s_cl.error import InternalError
 import termcolor
 
+from ptrace.debugger import (PtraceDebugger, ProcessExit, ProcessSignal,
+                             NewProcessEvent, ProcessExecution, child)
+from ptrace.func_call import FunctionCallOptions
+from ptrace.tools import locateProgram
+
 LOGGER = logger.get_logger(__name__)
 
 # Suppress debugging messages in optimized code
@@ -522,6 +527,10 @@ def ldd(binary):
 
     returncode, output = create_subprocess_exp(command.split(),
                                                redirect_stdout=True)
+
+    if returncode:
+        return []
+
     libraries = {}  # type: Dict
     rows = filter(lambda x: x, [line.strip() for line in output.split('\n')])
 
@@ -558,45 +567,53 @@ def interpret_launcher(cmd):
 
 
 def opened_files(command):
-    """
-    command: list[str] command to launch and list opened files from
-
-    returns:
-    returncode  int                 return value of the command
-    files       list[pathlib.Path]  list of accessed files
-    """
     files = []
+    debugger = PtraceDebugger()
+    command[0] = locateProgram(command[0])
+    pid = child.createChild(command, no_stdout=False)
+    process = debugger.addProcess(pid, is_attached=True)
 
-    # Splitting the output to avoid mixing errors and trace
-    output = "/tmp/process.%s.trace" % os.getpid()
-    wrapped = "%(strace)s -o %(output)s -s 8192 -e open,openat %(command)s" % {
-        'strace': 'strace',
-        'command': " ".join(command),
-        'output': output
-    }
+    returncode = 0
 
-    returncode, _ = create_subprocess_exp(wrapped.split(' '),
-                                          redirect_stdout=True)
+    def list_syscalls():
+        # Access the returncode above - Python 3 only
+        nonlocal returncode
+        process.syscall()
 
-    if returncode:
-        LOGGER.error("Failure: Process returned error code %s" % returncode)
-    else:
-        with open(output, 'r') as trace:
-            syscalls = trace.read().split('\n')
-
-        for syscall in syscalls:
-            if re.match(".*ENOENT.*",
-                        syscall) or not re.match('open.*', syscall):
+        while debugger:
+            # Wait until next syscall enter
+            try:
+                event = debugger.waitSyscall()
+            except ProcessExit as event:
+                returncode = event.exitcode
+                continue
+            except ProcessSignal as event:
+                event.process.syscall(event.signum)
+                continue
+            except NewProcessEvent as event:
+                continue
+            except ProcessExecution as event:
+                print(event)
                 continue
 
-            name = re.match(".*\"(.*)\".*", syscall).group(1)
-            path_obj = pathlib.Path(name)
-            if path_obj.exists() and \
-                    path_obj.as_posix() not in [path.as_posix() for path in files]:
-                files.append(path_obj)
+            # Process syscall enter or exit
+            syscall = event.process.syscall_state.event(FunctionCallOptions())
+            if syscall and (syscall.result is not None):
+                yield syscall
 
-    os.unlink(output)
-    return returncode, files
+            # Break at next syscall
+            event.process.syscall()
+
+    for syscall in list_syscalls():
+        if syscall.result < 0:
+            continue
+        if syscall.name == "open":
+            files.append(syscall.arguments[0].getText())
+        if syscall.name == "openat":
+            files.append(syscall.arguments[1].getText())
+
+    paths = set([name.strip("'") for name in files])
+    return returncode, [pathlib.Path(p) for p in paths]
 
 
 # Dict with the host libraries, with sonames as keys, and paths as values
