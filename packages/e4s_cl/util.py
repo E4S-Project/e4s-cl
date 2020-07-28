@@ -571,7 +571,10 @@ def opened_files(command):
     debugger = PtraceDebugger()
     command[0] = locateProgram(command[0])
     pid = child.createChild(command, no_stdout=False)
+    bkpLevel = LOGGER.level
+    logger.set_log_level('WARNING')
     process = debugger.addProcess(pid, is_attached=True)
+    LOGGER.setLevel(bkpLevel)
 
     returncode = 0
 
