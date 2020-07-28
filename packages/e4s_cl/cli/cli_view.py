@@ -687,8 +687,9 @@ class ShowCommand(AbstractCliView):
             name = args.name
         else:
             fmt['matchesLen'] = len(matches)
-            self.parser.error("Pattern %(name)s does not identify a unique \
-                        existing profile: %(matchesLen)s profiles match" % fmt)
+            self.parser.error(
+                "Pattern '%(name)s' does not identify a unique existing profile: %(matchesLen)s profiles match"
+                % fmt)
 
         fields = Profile.controller().one({Profile.key_attribute: name})
         self.detail(fields)

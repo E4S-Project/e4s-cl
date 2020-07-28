@@ -364,11 +364,16 @@ class LogFormatter(logging.Formatter):
         header_length = len(_prune_ansi(header))
 
         output = []
+        text = record.getMessage().split("\n")
 
-        for line in record.getMessage().split('\n'):
+        while len(text) > 1 and not text[-1]:
+            text.pop()
+
+        for line in text:
             output += textwrap.wrap(line,
-                                    width=(self.line_width -
-                                           header_length)) if line else ['']
+                                    width=(self.line_width - header_length))
+            if not line:
+                output += ['']
 
         return textwrap.indent("\n".join(output), header, lambda line: True)
 
