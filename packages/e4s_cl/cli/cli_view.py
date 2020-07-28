@@ -680,12 +680,17 @@ class ShowCommand(AbstractCliView):
 
         matches = Profile.controller().match(Profile.key_attribute,
                                              regex=("^%s.*" % args.name))
-        if len(matches) != 1:
-            self.parser.error(
-                "Pattern %(name)s does not identify an existing profile" % fmt)
 
-        fields = Profile.controller().one(
-            {Profile.key_attribute: matches[0]['name']})
+        if len(matches) == 1:
+            name = matches[0]['name']
+        elif args.name in [match['name'] for match in matches]:
+            name = args.name
+        else:
+            fmt['matchesLen'] = len(matches)
+            self.parser.error("Pattern %(name)s does not identify a unique \
+                        existing profile: %(matchesLen)s profiles match" % fmt)
+
+        fields = Profile.controller().one({Profile.key_attribute: name})
         self.detail(fields)
 
         return EXIT_SUCCESS
