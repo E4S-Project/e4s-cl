@@ -5,26 +5,37 @@ Creating an instance of ``Container`` will return a specific class to
 the required backend."""
 
 import sys
-from os import environ
-from e4s_cl import util
+from importlib import import_module
+from pathlib import Path
+from e4s_cl.util import walk_packages, which
 from e4s_cl.error import InternalError
 
-BACKENDS = []
-SUPPORTED_MIMES = {}
+EXECUTABLES = {}
+MIMES = {}
+
 
 class Container():
     """Abstract class to complete depending on the container tech."""
-    # pylint: disable=unused-argument
-    def __new__(cls, backend=None, image=None):
-        if backend:
-            module_name = "{}.{}".format(__name__, backend)
-            module = sys.modules.get(module_name)
-            if not module:
-                raise InternalError("Backend {} not found" .format(module_name))
-            return object.__new__(module.CLASS)
-        raise InternalError("No backend provided")
 
-    def __init__(self, backend=None, image=None):
+    # pylint: disable=unused-argument
+    def __new__(cls, image=None, executable=None):
+        module_name = EXECUTABLES.get(Path(executable).name)
+        module = sys.modules.get(module_name)
+
+        if not module_name or not module:
+            raise InternalError("Backend {} not found".format(module_name))
+
+        return object.__new__(module.CLASS)
+
+    def __init__(self, image=None, executable=None):
+        # Module's known executables
+        # sys.modules[self.__module__].EXECUTABLES
+
+        self.executable = which(executable)
+
+        if not self.executable or (not Path(self.executable).exists()):
+            raise InternalError("Executable %s not found" % executable)
+
         self.image = image
         self.bound = []
         self.env = {}
@@ -46,11 +57,13 @@ class Container():
     def run(self, command, redirect_stdout=False):
         raise InternalError("Not implemented")
 
-for _, existing_backend, _ in util.walk_packages(__path__, prefix=__name__ + "."):
-    __import__(existing_backend)
-    backend_module = sys.modules[existing_backend]
-    if not ('AVAILABLE' in dir(backend_module) and backend_module.AVAILABLE):
-        # The module is incomplete or unavailable
-        continue
 
-    BACKENDS.append(existing_backend.split('.')[-1])
+for _, module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
+    import_module(module_name)
+    module = sys.modules[module_name]
+
+    for executable in module.EXECUTABLES:
+        EXECUTABLES.update({executable: module_name})
+
+    for mimetype in module.MIMES:
+        MIMES.update({mimetype: module_name})

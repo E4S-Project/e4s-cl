@@ -1,8 +1,11 @@
 from e4s_cl import logger
-from e4s_cl.util import host_libraries, which, create_subprocess_exp
+from e4s_cl.util import host_libraries, create_subprocess_exp
 from e4s_cl.cf.containers import Container
 
 LOGGER = logger.get_logger(__name__)
+
+EXECUTABLES = ['singularity']
+MIMES = ['simg', 'sif']
 
 
 class SingularityContainer(Container):
@@ -14,7 +17,7 @@ class SingularityContainer(Container):
             {'SINGULARITYENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
         self.format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
-        container_cmd = [which('singularity'), 'exec'
+        container_cmd = [self.executable, 'exec'
                          ] + nvidia_flag + [self.image.as_posix()] + command
         _, output = create_subprocess_exp(container_cmd,
                                           env=self.env,
@@ -31,10 +34,6 @@ class SingularityContainer(Container):
         new_key = "SINGULARITYENV_{}".format(key)
         self.env.update({new_key: value})
 
-    @staticmethod
-    def is_available():
-        return which('singularity') is not None
-
     def _has_nvidia(self):
         if not 'nvidia' in " ".join(host_libraries().keys()):
             LOGGER.warning("Disabling Nvidia support: no libraries found")
@@ -42,6 +41,4 @@ class SingularityContainer(Container):
         return True
 
 
-MIMES = ['simg']
-AVAILABLE = SingularityContainer.is_available()
 CLASS = SingularityContainer

@@ -5,29 +5,19 @@ file import calculations, and execution of a program passed as an
 argument.
 """
 
-import os
 from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
-from e4s_cl import logger, util, variables
+from e4s_cl import logger
+from e4s_cl.util import ldd
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
-from e4s_cl.cf import containers
+from e4s_cl.cf.containers import Container
 
 LOGGER = logger.get_logger(__name__)
-_SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
+_SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
 
 HOST_LIBS_DIR = Path('/hostlibs/').as_posix()
-
-
-def _existing_backend(string):
-    """Argument type callback.
-    Asserts that the selected backend is available."""
-    if not string in containers.BACKENDS:
-        raise ArgumentTypeError(
-            "Backend {} is not available on this machine".format(string))
-
-    return string
 
 
 def _argument_path(string):
@@ -66,7 +56,7 @@ def compute_libs(lib_list, container):
     for lib_path in lib_list:
         # Use a ldd parser to grab all the dependencies of
         # the requested library
-        dependencies = util.ldd(lib_path)
+        dependencies = ldd(lib_path)
         for dependency, data in dependencies.items():
             # Add it only if it is not present in the container
             if dependency not in present_in_container and data['path']:
@@ -92,12 +82,11 @@ class ExecuteCommand(AbstractCommand):
                                       usage=usage,
                                       description=self.summary)
         parser.add_argument("--backend",
-                            choices=containers.BACKENDS,
-                            type=_existing_backend,
+                            type=str,
                             dest='backend',
                             required=True,
-                            help="Specify the container backend",
-                            metavar='Available')
+                            help="Specify the container executable",
+                            metavar='executable')
 
         parser.add_argument('--image',
                             type=_argument_path,
@@ -125,8 +114,7 @@ class ExecuteCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
-        container = containers.Container(backend=args.backend,
-                                         image=args.image)
+        container = Container(executable=args.backend, image=args.image)
 
         if args.libraries:
             compute_libs(args.libraries, container)
