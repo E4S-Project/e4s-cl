@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+"""
+This script mimics the behaviour of an MPI launcher, to allow testing
+on arbitrary systems
+"""
+
+import sys
+from argparse import ArgumentParser, REMAINDER
+from subprocess import Popen
+
+
+def create_parser():
+    parser = ArgumentParser()
+    parser.add_argument('-n',
+                        type=int,
+                        dest='processes',
+                        required=True,
+                        help="Number of processes")
+    parser.add_argument('cmd',
+                        type=str,
+                        help="Executable command, e.g. './a.out'",
+                        metavar='command',
+                        nargs=REMAINDER)
+    return parser
+
+
+def main():
+    parser = create_parser()
+    args = parser.parse_args()
+
+    if not args.cmd:
+        parser.error("A command is required")
+
+    procs = [Popen(args.cmd) for _ in range(args.processes)]
+
+    map(lambda p: p.wait(), procs)
+
+
+if __name__ == '__main__':
+    main()
