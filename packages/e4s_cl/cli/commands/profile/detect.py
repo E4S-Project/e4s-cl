@@ -1,4 +1,5 @@
 import json
+from json import JSONDecodeError
 import pathlib
 import os, re
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
@@ -84,8 +85,19 @@ class ProfileDetectCommand(AbstractCliView):
                 launcher + [E4S_CL_SCRIPT, "--slave", "profile", "detect"] +
                 program,
                 redirect_stdout=True)
+
             if not returncode:
-                files = [pathlib.Path(path) for path in json.loads(json_data)]
+                paths = []
+
+                for line in json_data.split('\n'):
+                    try:
+                        paths.append(json.loads(line))
+                    except JSONDecodeError:
+                        pass
+
+                files = [item for sublist in paths for item in sublist]
+                files = [pathlib.Path(p) for p in set(files)]
+
         else:
             # No launcher, analyse the command
             returncode, files = opened_files(args.cmd)
