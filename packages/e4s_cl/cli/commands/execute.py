@@ -12,7 +12,7 @@ from e4s_cl import logger
 from e4s_cl.util import ldd
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
-from e4s_cl.cf.containers import Container
+from e4s_cl.cf.containers import Container, BackendNotAvailableError
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -114,7 +114,10 @@ class ExecuteCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
-        container = Container(executable=args.backend, image=args.image)
+        try:
+            container = Container(executable=args.backend, image=args.image)
+        except BackendNotAvailableError as e:
+            self.parser.error("Executable %s not available" % args.backend)
 
         if args.libraries:
             compute_libs(args.libraries, container)

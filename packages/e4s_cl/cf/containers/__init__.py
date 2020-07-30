@@ -14,6 +14,10 @@ EXECUTABLES = {}
 MIMES = {}
 
 
+class BackendNotAvailableError(InternalError):
+    pass
+
+
 class Container():
     """Abstract class to complete depending on the container tech."""
 
@@ -23,7 +27,8 @@ class Container():
         module = sys.modules.get(module_name)
 
         if not module_name or not module:
-            raise InternalError("Backend {} not found".format(module_name))
+            raise BackendNotAvailableError(
+                "Backend {} not found".format(module_name))
 
         return object.__new__(module.CLASS)
 
@@ -34,7 +39,8 @@ class Container():
         self.executable = which(executable)
 
         if not self.executable or (not Path(self.executable).exists()):
-            raise InternalError("Executable %s not found" % executable)
+            raise BackendNotAvailableError("Executable %s not found" %
+                                           executable)
 
         self.image = image
         self.bound = []
