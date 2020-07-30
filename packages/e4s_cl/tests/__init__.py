@@ -141,24 +141,22 @@ class TestCase(unittest.TestCase):
             tuple: (retval, stdout, stderr) results of running the command.
         """
         # pylint: disable=protected-access
-        stdout = StringIO()
-        stderr = StringIO()
-        orig_stdout = sys.stdout
-        orig_stderr = sys.stderr
+        stdout = tempfile.TemporaryFile(mode='w+', buffering=1)
+        stderr = tempfile.TemporaryFile(mode='w+', buffering=1)
+        orig_stdout, orig_stderr = sys.stdout, sys.stderr
         try:
-            sys.stdout = stdout
-            sys.stderr = stderr
+            sys.stdout, sys.stderr = stdout, stderr
             logger._STDOUT_HANDLER.stream = stderr
             try:
                 retval = cmd.main(argv)
             except SystemExit as err:
                 retval = err.code
-            stdout_value = stdout.getvalue()
-            stderr_value = stderr.getvalue()
+            stdout.seek(0), stderr.seek(0)
+            stdout_value, stderr_value = stdout.read(), stderr.read()
             return retval, stdout_value, stderr_value
         finally:
-            sys.stdout = orig_stdout
-            sys.stderr = orig_stderr
+            sys.stdout, sys.stderr = orig_stdout, orig_stderr
+            stdout.close(), stderr.close()
             logger._STDOUT_HANDLER.stream = orig_stdout
 
     def assertCommandReturnValue(self, return_value, cmd, argv):
