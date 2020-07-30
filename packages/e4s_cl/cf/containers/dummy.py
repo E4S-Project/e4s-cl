@@ -7,7 +7,7 @@ MIMES = ['e4s_cl_test']
 
 class DummyContainer(Container):
     def run(self, command, redirect_stdout=False):
-        container_cmd = "%(executable)s %(command)s" % {
+        container_cmd = "%(executable)s -c %(command)s" % {
             'executable': '/bin/bash',
             'command': ' '.join(command)
         }
