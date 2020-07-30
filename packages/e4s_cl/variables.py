@@ -12,3 +12,8 @@ def is_master():
 
 def is_dry_run():
     return DRY_RUN
+
+
+def set_dry_run(value):
+    global DRY_RUN
+    DRY_RUN = value
