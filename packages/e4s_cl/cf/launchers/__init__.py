@@ -2,13 +2,17 @@
 Entry point for supported program launchers"""
 
 import sys
+import re
 from pathlib import Path
 from importlib import import_module
 from os import environ
+from e4s_cl import logger
 from e4s_cl.util import walk_packages
 from e4s_cl.error import InternalError
 
 LAUNCHERS = {}
+
+LOGGER = logger.get_logger(__name__)
 
 
 class Parser(object):
@@ -29,11 +33,18 @@ class Parser(object):
         position += 1
 
         while known and position < len(command):
-            if command[position] not in self.arguments.keys():
+            flag = command[position]
+
+            if flag in self.arguments.keys():
+                to_skip = self.arguments[command[position]]
+
+            # Catch generic --flag=value
+            elif re.match('^--[\-A-Za-z]+=.*$', flag):
+                to_skip = 0
+
+            else:
                 known = False
                 break
-
-            to_skip = self.arguments[command[position]]
 
             for index in range(0, to_skip + 1):
                 launcher.append(command[position + index])
