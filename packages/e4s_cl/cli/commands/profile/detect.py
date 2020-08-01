@@ -4,7 +4,7 @@ import pathlib
 import os, re
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
 from e4s_cl.variables import is_master
-from e4s_cl.util import which, opened_files, interpret_launcher, create_subprocess_exp, ldd, host_libraries
+from e4s_cl.util import which, opened_files, interpret_launcher, create_subprocess_exp, ldd, host_libraries, flatten
 from e4s_cl.error import UniqueAttributeError
 from e4s_cl.cli import arguments
 from e4s_cl.model.profile import Profile
@@ -87,23 +87,26 @@ class ProfileDetectCommand(AbstractCliView):
                 redirect_stdout=True)
 
             if not returncode:
-                paths = []
+                file_paths, library_paths = [], []
 
                 for line in json_data.split('\n'):
                     try:
-                        paths.append(json.loads(line))
+                        data = json.loads(line)
+                        file_paths.append(data['files'])
+                        library_paths.append(data['libraries'])
                     except JSONDecodeError:
                         pass
 
-                files = [item for sublist in paths for item in sublist]
-                files = [pathlib.Path(p) for p in set(files)]
+                files = list(set(flatten(file_paths)))
+                libs = list(set(flatten(library_paths)))
 
         else:
             # No launcher, analyse the command
-            returncode, files = opened_files(args.cmd)
+            returncode, accessed_files = opened_files(args.cmd)
             base_command = which(args.cmd[0])
             if base_command:
                 ldd_requirements = ldd(base_command)
+            libs, files = filter_files(accessed_files, ldd_requirements)
 
         if returncode:
             if is_master():
@@ -114,10 +117,12 @@ class ProfileDetectCommand(AbstractCliView):
         # must be processed, or this is a slave process, where we just print it all on stdout
         # in a format the master will understand
         if not is_master():
-            print(json.dumps([path.as_posix() for path in files]))
+            print(json.dumps({
+                'files': files,
+                'libraries': libs,
+            }))
             return
 
-        libs, files = filter_files(files, ldd_requirements)
         print("\n".join(["Libraries:"] + [lib for lib in libs]))
         print("\n".join(["Files:"] + [f for f in files]))
 
