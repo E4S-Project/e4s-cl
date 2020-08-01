@@ -635,3 +635,7 @@ def host_libraries():
         HOST_LIBRARIES[components[0]] = components[-1]
 
     return HOST_LIBRARIES
+
+
+def flatten(nested_list):
+    return [item for sublist in nested_list for item in sublist]

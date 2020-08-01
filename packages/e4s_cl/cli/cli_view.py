@@ -487,8 +487,7 @@ class ListCommand(AbstractCliView):
                     self.parser.error("No %s with %s matching '%s'" %
                                       (self.model_name, key_attr, keys[i]))
 
-            records = list(
-                set([record for sublist in matches for record in sublist]))
+            records = list(set(flatten(matches)))
 
         return records
 
