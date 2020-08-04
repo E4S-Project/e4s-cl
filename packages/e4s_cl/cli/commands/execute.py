@@ -10,6 +10,7 @@ from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger
 from e4s_cl.util import ldd
+from e4s_cl.variables import is_debug
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.containers import Container, BackendNotAvailableError
@@ -126,6 +127,9 @@ class ExecuteCommand(AbstractCommand):
         if args.files:
             for path in args.files:
                 container.bind_file(path, dest=path, options='ro')
+
+        if is_debug():
+            container.bind_env_var('LD_DEBUG', 'files')
 
         container.run(args.cmd, redirect_stdout=False)
 

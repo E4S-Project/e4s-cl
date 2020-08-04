@@ -8,7 +8,8 @@ import os
 from pathlib import Path
 from argparse import ArgumentTypeError, Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
-from e4s_cl import logger, util, variables
+from e4s_cl import logger, util
+from e4s_cl.variables import is_debug
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.model.profile import Profile
@@ -62,6 +63,10 @@ def _format_execute(parameters):
 
     # Insert a top-level e4s option between the script name and the subcommand
     execute_command = [E4S_CL_SCRIPT, '--slave'] + execute_command[1:]
+
+    if is_debug():
+        execute_command = [execute_command[0]] + ['--debug'
+                                                  ] + execute_command[1:]
 
     for attr in ['image', 'backend']:
         if parameters.get(attr, None):

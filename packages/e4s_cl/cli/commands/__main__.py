@@ -2,7 +2,7 @@ import os
 import sys
 import e4s_cl
 from e4s_cl import cli, logger, util, E4S_CL_VERSION, E4S_CL_SCRIPT
-from e4s_cl.variables import SlaveAction, DryRunAction
+from e4s_cl.variables import SlaveAction, DryRunAction, DebugAction
 from e4s_cl.cli import UnknownCommandError, arguments
 from e4s_cl.cli.command import AbstractCommand
 
@@ -71,11 +71,15 @@ class MainCommand(AbstractCommand):
             help="Do nothing, print out what would be done instead",
             action=DryRunAction)
 
-        parser.add_argument('-s',
-                            '--slave',
+        parser.add_argument('--slave',
                             nargs=0,
                             help="Format error message for machine parsing",
                             action=SlaveAction)
+
+        parser.add_argument('--debug',
+                            nargs=0,
+                            help="Toggle debug mode",
+                            action=DebugAction)
         return parser
 
     def main(self, argv):
