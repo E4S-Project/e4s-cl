@@ -1,7 +1,8 @@
 import os
 import sys
 import e4s_cl
-from e4s_cl import cli, logger, util, E4S_CL_VERSION, E4S_CL_SCRIPT, variables
+from e4s_cl import cli, logger, util, E4S_CL_VERSION, E4S_CL_SCRIPT
+from e4s_cl.variables import SlaveAction, DryRunAction
 from e4s_cl.cli import UnknownCommandError, arguments
 from e4s_cl.cli.command import AbstractCommand
 
@@ -66,17 +67,15 @@ class MainCommand(AbstractCommand):
         parser.add_argument(
             '-d',
             '--dry-run',
+            nargs=0,
             help="Do nothing, print out what would be done instead",
-            default=False,
-            dest='dry_run',
-            action="store_true")
+            action=DryRunAction)
 
         parser.add_argument('-s',
                             '--slave',
+                            nargs=0,
                             help="Format error message for machine parsing",
-                            default=False,
-                            dest='slave',
-                            action="store_true")
+                            action=SlaveAction)
         return parser
 
     def main(self, argv):
@@ -91,11 +90,6 @@ class MainCommand(AbstractCommand):
         args = self._parse_args(argv)
         cmd = args.command
         cmd_args = args.options
-
-        if args.slave:
-            variables.STATUS = variables.SLAVE
-        if args.dry_run:
-            variables.DRY_RUN = True
 
         log_level = getattr(args, 'verbose',
                             getattr(args, 'quiet', logger.LOG_LEVEL))
