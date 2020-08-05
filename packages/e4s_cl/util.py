@@ -570,7 +570,7 @@ def opened_files(command):
     files = []
     debugger = PtraceDebugger()
     command[0] = locateProgram(command[0])
-    pid = child.createChild(command, no_stdout=False)
+    pid = child.createChild(command, no_stdout=False, close_fds=False)
     bkpLevel = LOGGER.level
     logger.set_log_level('WARNING')
     process = debugger.addProcess(pid, is_attached=True)
