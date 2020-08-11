@@ -57,6 +57,9 @@ import termcolor
 IDENTIFIER = "e4s-cl-slave-message"
 SLAVE_LOGGER = logging.getLogger("Child Processes")
 
+STDOUT_COLOR = os.isatty(sys.stdout.fileno())
+STDERR_COLOR = os.isatty(sys.stderr.fileno())
+
 
 def slave_error(record):
     template = {
@@ -91,13 +94,7 @@ def handle_error(line):
 
 
 def _prune_ansi(line):
-    pattern = re.compile('\x1b[^m]+m')
-    match = pattern.search(line)
-    while match:
-        index = line.find(match.group(0))
-        line = line[:index] + line[index + len(match.group(0)):]
-        match = pattern.search(line)
-    return line
+    return re.sub(re.compile('\x1b[^m]+m'), '', line)
 
 
 def get_terminal_size():
@@ -246,6 +243,26 @@ def hierachical(function):
     return wrapper
 
 
+def on_stdout(function):
+    def wrapper(obj, record):
+        text = function(obj, record)
+        if STDOUT_COLOR:
+            return text
+        return _prune_ansi(text)
+
+    return wrapper
+
+
+def on_stderr(function):
+    def wrapper(obj, record):
+        text = function(obj, record)
+        if STDERR_COLOR:
+            return text
+        return _prune_ansi(text)
+
+    return wrapper
+
+
 class LogFormatter(logging.Formatter):
     """Custom log message formatter.
     
@@ -271,26 +288,31 @@ class LogFormatter(logging.Formatter):
                                                   drop_whitespace=False)
 
     @hierachical
+    @on_stderr
     def CRITICAL(self, record):
         header = self._colored('[Critical] ', 'red', None, ['bold'])
         return self._format_message(record, header=header)
 
     @hierachical
+    @on_stderr
     def ERROR(self, record):
         header = self._colored('[Error] ', 'red', None, ['bold'])
         return self._format_message(record, header=header)
 
     @hierachical
+    @on_stderr
     def WARNING(self, record):
         header = self._colored('[Warning] ', 'yellow', None, ['bold'])
         return self._format_message(record, header=header)
 
     @hierachical
+    @on_stdout
     def INFO(self, record):
         header = self._colored('[Info] ', 'white', None, ['bold'])
         return self._format_message(record, header=header)
 
     @hierachical
+    @on_stderr
     def DEBUG(self, record):
         message = record.getMessage()
         if self.printable_only and (not set(message).issubset(
