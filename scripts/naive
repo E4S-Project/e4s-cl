@@ -32,9 +32,12 @@ def main():
         parser.error("A command is required")
 
     procs = [Popen(args.cmd) for _ in range(args.processes)]
+    returncodes = set([p.wait() for p in procs])
 
-    map(lambda p: p.wait(), procs)
+    if 0 not in returncodes or len(returncodes > 1):
+        return 1
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

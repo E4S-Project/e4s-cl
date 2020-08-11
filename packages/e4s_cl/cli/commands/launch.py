@@ -124,9 +124,10 @@ class LaunchCommand(AbstractCommand):
         execute_command = _format_execute(_parameters(args))
 
         LOGGER.debug(" ".join(launcher + execute_command + program))
-        util.create_subprocess_exp(launcher + execute_command + program)
+        retval, _ = util.create_subprocess_exp(launcher + execute_command +
+                                               program)
 
-        return EXIT_SUCCESS
+        return retval
 
 
 COMMAND = LaunchCommand(__name__, summary_fmt="Launch a process")
