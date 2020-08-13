@@ -90,12 +90,14 @@ else
 endif
 PYTHON = $(PYTHON_EXE) $(PYTHON_FLAGS)
 
+completion:
+
 build: python_check
 	$(PYTHON) -m pip install -U -r requirements.txt
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
 	$(PYTHON) setup.py build
 
-install: build
+install: build completion
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
 
 python_check: $(PYTHON_EXE)
@@ -113,6 +115,9 @@ $(CONDA_SRC):
 		(rm -f "$(CONDA_SRC)" ; \
 		echo "* ERROR: Unable to download $(CONDA_URL)." ; \
 		false)
+
+completion:
+	tail -n +2 scripts/e4s-cl-completion.bash >> $(HOME)/.bash_completion
 
 clean:
 	rm -fr build/
