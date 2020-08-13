@@ -487,7 +487,7 @@ class ListCommand(AbstractCliView):
                     self.parser.error("No %s with %s matching '%s'" %
                                       (self.model_name, key_attr, keys[i]))
 
-            records = list(set(flatten(matches)))
+            records = list(set(util.flatten(matches)))
 
         return records
 
