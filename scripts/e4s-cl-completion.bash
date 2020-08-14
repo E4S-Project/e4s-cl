@@ -1,7 +1,7 @@
 #!/bin/bash
 
 complete_profile() {
-    if [ -z "$(which e4s-cl)" ]; then
+    if [ -z "$(which e4s-cl 2>/dev/null)" ]; then
         return 
     fi
 
