@@ -90,8 +90,6 @@ else
 endif
 PYTHON = $(PYTHON_EXE) $(PYTHON_FLAGS)
 
-completion:
-
 build: python_check
 	$(PYTHON) -m pip install -U -r requirements.txt
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
@@ -118,6 +116,7 @@ $(CONDA_SRC):
 
 completion:
 	tail -n +2 scripts/e4s-cl-completion.bash >> $(HOME)/.bash_completion
+	grep -q bash_completion $(HOME)/.bashrc || echo "source ~/.bash_completion" >> $(HOME)/.bashrc
 
 clean:
 	rm -fr build/

@@ -1,6 +1,10 @@
 #!/bin/bash
 
 complete_profile() {
+    if [ -z "$(which e4s-cl)" ]; then
+        return 
+    fi
+
     if [ "${COMP_WORDS[1]}" != "profile" ]; then
         return
     fi
