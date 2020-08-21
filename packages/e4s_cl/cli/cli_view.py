@@ -58,6 +58,7 @@ class RootCommand(AbstractCliView):
                                       epilog='\n'.join(epilog))
         parser.add_argument('subcommand',
                             help="See 'subcommands' below",
+                            choices=cli.commands_next(self.module_name),
                             metavar='<subcommand>')
         parser.add_argument('options',
                             help="Arguments to be passed to <subcommand>",
