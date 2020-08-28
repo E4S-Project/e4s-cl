@@ -95,7 +95,7 @@ build: python_check
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
 	$(PYTHON) setup.py build
 
-install: build completion
+install: build
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
 
 python_check: $(PYTHON_EXE)
