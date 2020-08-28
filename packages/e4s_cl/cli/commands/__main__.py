@@ -42,6 +42,7 @@ class MainCommand(AbstractCommand):
                                       epilog=epilog)
         parser.add_argument('command',
                             help="See subcommand descriptions below",
+                            choices=cli.commands_next(),
                             metavar='<subcommand>')
         parser.add_argument('options',
                             help="Options to be passed to <subcommand>",
@@ -73,7 +74,7 @@ class MainCommand(AbstractCommand):
 
         parser.add_argument('--slave',
                             nargs=0,
-                            help="Format error message for machine parsing",
+                            help=arguments.SUPPRESS,
                             action=SlaveAction)
 
         parser.add_argument('--debug',

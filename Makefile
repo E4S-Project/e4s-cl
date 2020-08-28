@@ -114,6 +114,11 @@ $(CONDA_SRC):
 		echo "* ERROR: Unable to download $(CONDA_URL)." ; \
 		false)
 
+completion:
+	mkdir -p $(HOME)/.bash_completion.d
+	cp scripts/e4s-cl-completion.bash $(HOME)/.bash_completion.d
+	grep -q bash_completion $(HOME)/.bashrc || echo "source ~/.bash_completion.d/*" >> $(HOME)/.bashrc
+
 clean:
 	rm -fr build/
 

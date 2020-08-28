@@ -9,6 +9,7 @@ from gettext import gettext as _, ngettext
 from operator import attrgetter
 from e4s_cl import logger, util
 from e4s_cl.cli import USAGE_FORMAT
+from e4s_cl.util import flatten
 from e4s_cl.error import InternalError
 from e4s_cl.cf.storage.levels import ORDERED_LEVELS, STORAGE_LEVELS
 
@@ -136,6 +137,19 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
                        key=attrgetter('option_strings')))
             formatter.end_section()
         formatter.add_text(self.epilog)
+        return formatter.format_help()
+
+    def _format_help_path(self):
+        """Format completion list"""
+        formatter = self._get_formatter()
+        for action_group in self._sorted_groups():
+            title = ' '.join(x[0].upper() + x[1:]
+                             for x in action_group.title.split())
+            formatter.start_section(title)
+            formatter.add_arguments(
+                sorted(action_group._group_actions,
+                       key=attrgetter('option_strings')))
+            formatter.end_section()
         return formatter.format_help()
 
     def format_help(self):
@@ -479,6 +493,36 @@ class MarkdownHelpFormatter(HelpFormatter):
         for subaction in self._iter_indented_subactions(action):
             parts.append(self._format_action(subaction))
         return self._join_parts(parts)
+
+
+class PathHelpFormatter(HelpFormatter):
+    """Formatter for generating a list of possible completion targets
+    """
+    class _Section(object):
+        def __init__(self, formatter, parent, heading=None):
+            self.formatter = formatter
+            self.parent = parent
+            self.heading = heading
+            self.items = []
+
+        def format_help(self):
+            return flatten([func(*args) for func, args in self.items])
+
+    def add_text(self, text):
+        pass
+
+    def add_usage(self, usage, actions, groups, prefix=None):
+        pass
+
+    def format_help(self):
+        help = self._root_section.format_help()
+        return " ".join(help) + "\n"
+
+    def _format_action(self, action):
+        # collect the pieces of the action help
+        parts = (action.choices or [])
+
+        return parts
 
 
 class ParseBooleanAction(argparse.Action):
