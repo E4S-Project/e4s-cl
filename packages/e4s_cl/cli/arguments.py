@@ -520,10 +520,7 @@ class PathHelpFormatter(HelpFormatter):
 
     def _format_action(self, action):
         # collect the pieces of the action help
-        parts = action.option_strings
-
-        if action.choices:
-            parts.extend(action.choices)
+        parts = (action.choices or [])
 
         return parts
 
