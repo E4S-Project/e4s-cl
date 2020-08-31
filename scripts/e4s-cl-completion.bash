@@ -11,9 +11,17 @@ complete_profile() {
 
     # Complete profile names in special cases
     # <e4s-cl> profile <subcommand> PROFILE
-    if [ "${COMP_WORDS[1]}" = "profile" -a "${#COMP_WORDS[@]}" = "4" ]; then
-        COMPREPLY=($(compgen -W "$(e4s-cl profile list -s)" "${COMP_WORDS[3]}"))
-        return
+    if [ "${COMP_WORDS[1]}" = "profile" ]; then
+        subaction="${COMP_WORDS[2]}"
+
+        if [ "$subaction" = "create" -o "$subaction" = "detect" ]; then
+            return
+        fi
+
+        if [ "$subaction" = "delete" -o "${#COMP_WORDS[@]}" = "4" ]; then
+            COMPREPLY=($(compgen -W "$(e4s-cl profile list -s)" "${COMP_WORDS[-1]}"))
+            return
+        fi
     fi
 
     # Get the minimal command line and invoke -h on it
