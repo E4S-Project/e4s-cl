@@ -7,7 +7,7 @@ argument.
 
 from pathlib import Path
 from argparse import ArgumentTypeError
-from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
+from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
 from e4s_cl import logger
 from e4s_cl.util import ldd
 from e4s_cl.variables import is_debug
@@ -68,11 +68,7 @@ def compute_libs(lib_list, container):
         selected.update({lib_path.name: lib_path.as_posix()})
         container.add_ld_preload("{}/{}".format(HOST_LIBS_DIR, lib_path.name))
 
-    for local_path in selected.values():
-        container.bind_file(local_path,
-                            dest="{}/{}".format(HOST_LIBS_DIR,
-                                                Path(local_path).name),
-                            options='ro')
+    return selected.values()
 
 
 class ExecuteCommand(AbstractCommand):
@@ -115,13 +111,21 @@ class ExecuteCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
+
         try:
             container = Container(executable=args.backend, image=args.image)
         except BackendNotAvailableError as e:
             self.parser.error("Executable %s not available" % args.backend)
+            return EXIT_FAILURE
 
         if args.libraries:
-            compute_libs(args.libraries, container)
+            libraries = compute_libs(args.libraries, container)
+            for local_path in libraries:
+                container.bind_file(local_path,
+                                    dest="{}/{}".format(
+                                        HOST_LIBS_DIR,
+                                        Path(local_path).name),
+                                    options='ro')
             container.add_ld_library_path(HOST_LIBS_DIR)
 
         if args.files:
