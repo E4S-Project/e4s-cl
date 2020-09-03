@@ -5,6 +5,7 @@ file import calculations, and execution of a program passed as an
 argument.
 """
 
+import json
 from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
@@ -58,6 +59,7 @@ def compute_libs(lib_list, container):
         # Use a ldd parser to grab all the dependencies of
         # the requested library
         dependencies = ldd(lib_path)
+        dependencies.update({lib_path.name: {'path': lib_path.as_posix()}})
         for dependency, data in dependencies.items():
             # Add it only if it is not present in the container
             if dependency not in present_in_container and data['path']:
@@ -65,8 +67,8 @@ def compute_libs(lib_list, container):
 
         # For the entrypoint, the requested library, add it no matter what
         # (to override the internal version) then add it to LD_PRELOAD
-        selected.update({lib_path.name: lib_path.as_posix()})
-        container.add_ld_preload("{}/{}".format(HOST_LIBS_DIR, lib_path.name))
+        #selected.update({lib_path.name: lib_path.as_posix()})
+        #container.add_ld_preload("{}/{}".format(HOST_LIBS_DIR, lib_path.name))
 
     return selected.values()
 
