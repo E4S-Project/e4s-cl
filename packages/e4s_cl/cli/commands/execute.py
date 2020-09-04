@@ -39,37 +39,46 @@ def _argument_path_comma_list(string):
     return [_argument_path(data) for data in string.split(',')]
 
 
-def select_libraries(lib_list, container):
-    """Necessary library computation.
-
-    lib_list is a list of Path objects
-
-    This method will first determine what libraries are available 
-    inside the container, then list the dependencies of the requested imports.
-    All of the necessary dependencies that are not present in the container
-    will get bound."""
-    output = container.run(['ldconfig', '-p'], redirect_stdout=True)
-    present_in_container = [
-        line.strip().split(' ')[0] for line in output.split('\n')[1:]
-    ]
+def filter_libraries(library_paths, blacklist=[]):
     selected = {}
 
-    for lib_path in lib_list:
+    for path in library_paths:
         # Use a ldd parser to grab all the dependencies of
         # the requested library
         # format:
         #   { name(str): path(str) }
-        dependencies = ldd(lib_path)
+        dependencies = ldd(path)
 
         # Add the library itself as a potential import
-        dependencies.update({lib_path.name: {'path': lib_path.as_posix()}})
+        dependencies.update({path.name: {'path': path.as_posix()}})
 
-        for dependency, data in dependencies.items():
+        for soname, info in dependencies.items():
             # Add if not present in the container but present on the host
-            if (dependency not in present_in_container) and data.get('path'):
-                selected.update({dependency: data.get('path')})
+            if (soname not in blacklist) and info.get('path'):
+                selected.update({soname: info.get('path')})
 
     return selected.values()
+
+
+def select_libraries(library_paths, container):
+    """Necessary library computation.
+
+    library_paths is a list of pathlib.Path objects
+
+    This method will first determine what libraries are available 
+    inside the container, then determine which library import protocol
+    needs to be used.
+    """
+
+    # Compute the list of sonames available in the container
+    output = container.run(['ldconfig', '-p'], redirect_stdout=True)
+    present_in_container = [
+        line.strip().split(' ')[0] for line in output.split('\n')[1:]
+    ]
+
+    method = filter_libraries
+
+    return method(library_paths, blacklist=present_in_container)
 
 
 class ExecuteCommand(AbstractCommand):
