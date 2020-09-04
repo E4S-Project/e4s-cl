@@ -5,7 +5,6 @@ file import calculations, and execution of a program passed as an
 argument.
 """
 
-import json
 from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
@@ -40,7 +39,7 @@ def _argument_path_comma_list(string):
     return [_argument_path(data) for data in string.split(',')]
 
 
-def compute_libs(lib_list, container):
+def select_libraries(lib_list, container):
     """Necessary library computation.
 
     lib_list is a list of Path objects
@@ -58,17 +57,17 @@ def compute_libs(lib_list, container):
     for lib_path in lib_list:
         # Use a ldd parser to grab all the dependencies of
         # the requested library
+        # format:
+        #   { name(str): path(str) }
         dependencies = ldd(lib_path)
-        dependencies.update({lib_path.name: {'path': lib_path.as_posix()}})
-        for dependency, data in dependencies.items():
-            # Add it only if it is not present in the container
-            if dependency not in present_in_container and data['path']:
-                selected.update({dependency: data['path']})
 
-        # For the entrypoint, the requested library, add it no matter what
-        # (to override the internal version) then add it to LD_PRELOAD
-        #selected.update({lib_path.name: lib_path.as_posix()})
-        #container.add_ld_preload("{}/{}".format(HOST_LIBS_DIR, lib_path.name))
+        # Add the library itself as a potential import
+        dependencies.update({lib_path.name: {'path': lib_path.as_posix()}})
+
+        for dependency, data in dependencies.items():
+            # Add if not present in the container but present on the host
+            if (dependency not in present_in_container) and data.get('path'):
+                selected.update({dependency: data.get('path')})
 
     return selected.values()
 
@@ -121,8 +120,7 @@ class ExecuteCommand(AbstractCommand):
             return EXIT_FAILURE
 
         if args.libraries:
-            libraries = compute_libs(args.libraries, container)
-            for local_path in libraries:
+            for local_path in select_libraries(args.libraries, container):
                 container.bind_file(local_path,
                                     dest="{}/{}".format(
                                         HOST_LIBS_DIR,
