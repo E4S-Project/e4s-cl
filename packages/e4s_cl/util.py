@@ -624,6 +624,8 @@ HOST_LIBRARIES = {}
 
 
 def host_libraries():
+    global HOST_LIBRARIES
+
     if HOST_LIBRARIES:
         return HOST_LIBRARIES
 
@@ -639,3 +641,37 @@ def host_libraries():
 
 def flatten(nested_list):
     return [item for sublist in nested_list for item in sublist]
+
+
+def extract_libc(text):
+    #Extract libc version sumber from the output of ldd --version
+    # We could have used the libc but locating it would require some
+    # container gymnastic, so accessing ldd seemed cleaner.
+
+    # The first line of output is usually:
+    # > ldd (<noise with numbers>) x.y
+    version_string = text.split('\n')[0].split()[-1]
+
+    return tuple([int(val) for val in re.findall('\d+', version_string)])
+
+
+HOST_LIBC = None
+
+
+def libc_version():
+    global HOST_LIBC
+
+    if HOST_LIBC:
+        return HOST_LIBC
+
+    executable = which('ldd')
+    ret, out = create_subprocess_exp([executable, '--version'],
+                                     redirect_stdout=True)
+    if ret:
+        LOGGER.error("Could not determine the libc version")
+        HOST_LIBC = (0, 0)
+
+    else:
+        HOST_LIBC = extract_libc(out)
+
+    return HOST_LIBC
