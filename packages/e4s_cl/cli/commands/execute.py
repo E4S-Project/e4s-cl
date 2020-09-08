@@ -9,7 +9,7 @@ from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
 from e4s_cl import logger
-from e4s_cl.util import ldd
+from e4s_cl.util import ldd, libc_version, extract_libc
 from e4s_cl.variables import is_debug
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -39,7 +39,11 @@ def _argument_path_comma_list(string):
     return [_argument_path(data) for data in string.split(',')]
 
 
-def filter_libraries(library_paths, blacklist=[]):
+def filter_libraries(library_paths, container):
+    # Compute the list of sonames available in the container
+    output = container.run(['ldconfig', '-p'], redirect_stdout=True)
+    blacklist = [line.strip().split(' ')[0] for line in output.split('\n')[1:]]
+
     selected = {}
 
     for path in library_paths:
@@ -60,25 +64,49 @@ def filter_libraries(library_paths, blacklist=[]):
     return selected.values()
 
 
+def overlay_libraries(library_paths, container):
+    selected = {}
+
+    for path in library_paths:
+        # Use a ldd parser to grab all the dependencies of
+        # the requested library
+        # format:
+        #   { name(str): path(str) }
+        dependencies = ldd(path)
+
+        # Add the library itself as a potential import
+        dependencies.update({path.name: {'path': path.as_posix()}})
+
+        for soname, info in dependencies.items():
+            selected.update({soname: info.get('path')})
+
+    return selected.values()
+
+
+def compare_versions(host_ver, container_ver):
+    for host, container in zip(host_ver, container_ver):
+        if host > container:
+            return True
+        elif container > host:
+            return False
+    return True
+
+
 def select_libraries(library_paths, container):
     """Necessary library computation.
 
     library_paths is a list of pathlib.Path objects
 
-    This method will first determine what libraries are available 
-    inside the container, then determine which library import protocol
-    needs to be used.
     """
 
-    # Compute the list of sonames available in the container
-    output = container.run(['ldconfig', '-p'], redirect_stdout=True)
-    present_in_container = [
-        line.strip().split(' ')[0] for line in output.split('\n')[1:]
-    ]
+    methods = {True: overlay_libraries, False: filter_libraries}
 
-    method = filter_libraries
+    host_precendence = compare_versions(
+        libc_version(),
+        extract_libc(container.run(['ldd', '--version'],
+                                   redirect_stdout=True)))
 
-    return method(library_paths, blacklist=present_in_container)
+    return methods[host_precendence](library_paths, container)
 
 
 class ExecuteCommand(AbstractCommand):
