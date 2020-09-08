@@ -515,6 +515,9 @@ def _parse_line(line):
             "Expected 2 parts in the line but found {}: {}".format(
                 len(parts), line))
 
+    if 'ld' in line:
+        return {'linker': {'path': parts[0], 'found': True}}
+
     # In this case, no soname was available
     return {}
 
