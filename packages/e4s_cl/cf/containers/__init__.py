@@ -92,10 +92,12 @@ class Container():
         self.env.update({key: value})
 
     def add_ld_preload(self, path):
-        self.ld_preload.append(path)
+        if path not in self.ld_preload:
+            self.ld_preload.append(path)
 
     def add_ld_library_path(self, path):
-        self.ld_lib_path.append(path)
+        if path not in self.ld_lib_path:
+            self.ld_lib_path.append(path)
 
     def run(self, command, redirect_stdout=False):
         raise InternalError("Not implemented")
