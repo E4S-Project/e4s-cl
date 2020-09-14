@@ -79,11 +79,14 @@ class Container():
             raise BackendNotAvailableError("Executable %s not found" %
                                            executable)
 
+        # Container image file on the host
         self.image = image
-        self.bound = []
-        self.env = {}
-        self.ld_preload = []
-        self.ld_lib_path = []
+
+        # User-set parameters
+        self.bound = []  # Files to bind (host_path, guest_path, options)
+        self.env = {}  # Environment
+        self.ld_preload = []  # Files to put in LD_PRELOAD
+        self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
 
     def bind_file(self, path, dest=None, options=None):
         self.bound.append((path, dest, options))
@@ -100,7 +103,22 @@ class Container():
             self.ld_lib_path.append(path)
 
     def run(self, command, redirect_stdout=False):
-        raise InternalError("Not implemented")
+        """
+        run a command in a container.
+
+        command         list[str]   the command line to execute
+        redirect_stdout bool        if true, return the output as a string;
+                                    if false, it ends up on stdout
+
+        This method must be implemented in the container module.
+        It should take into account the parameters set in the object:
+        - The environment variables self.env;
+        - The LD_PRELOAD self.ld_preload;
+        - The LD_LIBRARY_PATH self.ld_lib_path
+        and set them to be available in the created container.
+        """
+        raise InternalError("run not implemented for container %s" %
+                            self.__class__.__name__)
 
 
 for _, module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
