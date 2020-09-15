@@ -136,7 +136,7 @@ class Container():
             return self._libc_ver
 
         self._libc_ver = extract_libc(
-            container.run(['ldd', '--version'], redirect_stdout=True))
+            self.run(['ldd', '--version'], redirect_stdout=True))
 
         return self._libc_ver
 
@@ -174,6 +174,7 @@ class Container():
 
         This method must be implemented in the container module.
         It should take into account the parameters set in the object:
+        - The bound files in self.bound;
         - The environment variables self.env;
         - The LD_PRELOAD self.ld_preload;
         - The LD_LIBRARY_PATH self.ld_lib_path
