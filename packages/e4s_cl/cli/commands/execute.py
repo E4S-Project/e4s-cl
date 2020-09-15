@@ -134,10 +134,7 @@ def select_libraries(library_paths, container):
 
     methods = {True: overlay_libraries, False: filter_libraries}
 
-    host_precendence = compare_versions(
-        libc_version(),
-        extract_libc(container.run(['ldd', '--version'],
-                                   redirect_stdout=True)))
+    host_precendence = compare_versions(libc_version(), container.libc_version)
 
     if is_debug():
         LOGGER.info("Host libc %s guest libc" %

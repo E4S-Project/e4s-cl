@@ -9,7 +9,7 @@ import json
 from importlib import import_module
 from pathlib import Path
 from e4s_cl import logger, variables
-from e4s_cl.util import walk_packages, which
+from e4s_cl.util import walk_packages, which, extract_libc
 from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
@@ -89,6 +89,7 @@ class Container():
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
 
         # Container analysis attributes
+        self._libc_ver = None
         self._embarked_libraries = {}
 
     def bind_file(self, path, dest=None, options=None):
@@ -123,6 +124,19 @@ class Container():
             self._embarked_libraries.update({line[0]: line[-1]})
 
         return self._embarked_libraries
+
+    @property
+    def libc_version(self):
+        """
+        Returns the libc version from inside the container
+        """
+        if self._libc_ver:
+            return self._libc_ver
+
+        self._libc_ver = extract_libc(
+            container.run(['ldd', '--version'], redirect_stdout=True))
+
+        return self._libc_ver
 
     def run(self, command, redirect_stdout=False):
         """
