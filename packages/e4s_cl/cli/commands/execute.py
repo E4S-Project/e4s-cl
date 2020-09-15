@@ -40,6 +40,15 @@ def _argument_path_comma_list(string):
 
 
 def filter_libraries(library_paths, container):
+    """ Library filter
+
+    library_paths: list[pathlib.Path]
+    container: e4s_cl.cf.containers.Container
+
+    This method selects all the libraries not present in the container,
+    as they would trigger symbol issues when used with the container's
+    linker.
+    """
     # Compute the list of sonames available in the container
     selected = {}
 
@@ -64,6 +73,14 @@ def filter_libraries(library_paths, container):
 
 
 def overlay_libraries(library_paths, container):
+    """ Library overlay
+
+    library_paths: list[pathlib.Path]
+    container: e4s_cl.cf.containers.Container
+
+    This method selects all the libraries defined in the list, along with
+    with the host's (implicitly newer) linker.
+    """
     selected = {}
 
     for path in library_paths:
@@ -76,27 +93,44 @@ def overlay_libraries(library_paths, container):
         # Add the library itself as a potential import
         dependencies.update({path.name: {'path': path.as_posix()}})
 
+        dependencies.pop('linker')
+
         for soname, info in dependencies.items():
             selected.update({soname: info.get('path')})
 
     return selected.values()
 
 
-def compare_versions(host_ver, container_ver):
-    for host, container in zip(host_ver, container_ver):
-        if host > container:
-            return True
-        elif container > host:
-            return False
-    return True
-
-
 def select_libraries(library_paths, container):
-    """Necessary library computation.
+    """ Select the libraries to make available in the future container
 
-    library_paths is a list of pathlib.Path objects
+    library_paths: list[pathlib.Path]
 
+    This method checks the libc versions compatibilities and returns a
+    list of libraries safe to bind dependending on that check.
+
+    If the container's linker is more recent than the hosts, it must be used.
+    libc.so's version must equals the linker's. Some libraries must be bound,
+    some must not as they exist in the container, tied to its linker.
+     => filter_libraries
+
+    However, if the host linker is newer, the host libc is newer, and libraries
+    fail if used with the older libc of the container. We must then bind it,
+    but binding libc implies binding the linker too, as both need to match.
+    In the process, we bind all the necessary libraries.
+     => overlay_libraries
+
+    Why not overlay in both cases you ask ? As we run container-compiled
+    binaries, they expect a minimal version of libc. It is fine to run with
+    a newer libc, but very hazardous to run with an older one.
     """
+    def compare_versions(host_ver, container_ver):
+        for host, container in zip(host_ver, container_ver):
+            if host > container:
+                return True
+            elif container > host:
+                return False
+        return True
 
     methods = {True: overlay_libraries, False: filter_libraries}
 
@@ -104,6 +138,10 @@ def select_libraries(library_paths, container):
         libc_version(),
         extract_libc(container.run(['ldd', '--version'],
                                    redirect_stdout=True)))
+
+    if is_debug():
+        LOGGER.info("Host libc %s guest libc" %
+                    ('>=' if host_precendence else '<'))
 
     return methods[host_precendence](library_paths, container)
 
