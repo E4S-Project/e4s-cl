@@ -41,9 +41,6 @@ def _argument_path_comma_list(string):
 
 def filter_libraries(library_paths, container):
     # Compute the list of sonames available in the container
-    output = container.run(['ldconfig', '-p'], redirect_stdout=True)
-    blacklist = [line.strip().split(' ')[0] for line in output.split('\n')[1:]]
-
     selected = {}
 
     for path in library_paths:
@@ -56,9 +53,11 @@ def filter_libraries(library_paths, container):
         # Add the library itself as a potential import
         dependencies.update({path.name: {'path': path.as_posix()}})
 
+        dependencies.pop('linker')
+
         for soname, info in dependencies.items():
             # Add if not present in the container but present on the host
-            if (soname not in blacklist) and info.get('path'):
+            if (soname not in container.libraries.keys()) and info.get('path'):
                 selected.update({soname: info.get('path')})
 
     return selected.values()

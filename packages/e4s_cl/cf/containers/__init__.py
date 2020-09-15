@@ -88,6 +88,9 @@ class Container():
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
 
+        # Container analysis attributes
+        self._embarked_libraries = {}
+
     def bind_file(self, path, dest=None, options=None):
         self.bound.append((path, dest, options))
 
@@ -101,6 +104,25 @@ class Container():
     def add_ld_library_path(self, path):
         if path not in self.ld_lib_path:
             self.ld_lib_path.append(path)
+
+    @property
+    def libraries(self):
+        """
+        Returns a dictionnary of all libraries in the container's ld
+        cache with the format {soname: path}
+        """
+        if self._embarked_libraries:
+            return self._embarked_libraries
+
+        ld_cache = self.run(['ldconfig', '-p'], redirect_stdout=True)
+        lines = ld_cache.split('\n')[1:]
+        for line in filter(lambda x: x, lines):
+            # line sample:
+            # \t\tlibGL.so.1 (libc6,x86-64) => /usr/lib/libGL.so.1
+            line = line.strip().split()
+            self._embarked_libraries.update({line[0]: line[-1]})
+
+        return self._embarked_libraries
 
     def run(self, command, redirect_stdout=False):
         """
