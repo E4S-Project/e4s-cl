@@ -4,6 +4,7 @@ Defines an abstract class to simplify the use of container technology.
 Creating an instance of ``Container`` will return a specific class to
 the required backend."""
 
+import re
 import sys
 import json
 from importlib import import_module
@@ -91,6 +92,7 @@ class Container():
         # Container analysis attributes
         self._libc_ver = None
         self._embarked_libraries = {}
+        self._linkers = []
 
     def bind_file(self, path, dest=None, options=None):
         self.bound.append((path, dest, options))
@@ -137,6 +139,30 @@ class Container():
             container.run(['ldd', '--version'], redirect_stdout=True))
 
         return self._libc_ver
+
+    @property
+    def linkers(self):
+        """
+        Returns a list of all the actual linkers in the image
+
+        Begins by grabbing all the linker references in the linker cache,
+        then calls a `readlink -f` on it to get the actual file.
+        """
+        if self._linkers:
+            return self._linkers
+
+        cache = filter(lambda x: re.match('^ld.*', x), self.libraries.keys())
+
+        symbolic_links = [self.libraries[linker] for linker in cache]
+
+        targets = [
+            self.run(['readlink', '-f', path], redirect_stdout=True)
+            for path in symbolic_links
+        ]
+
+        self._linkers = [f.strip() for f in filter(lambda x: x, targets)]
+
+        return self._linkers
 
     def run(self, command, redirect_stdout=False):
         """
