@@ -529,7 +529,7 @@ def ldd(binary):
                                                redirect_stdout=True)
 
     if returncode:
-        return []
+        return {}
 
     libraries = {}  # type: Dict
     rows = filter(lambda x: x, [line.strip() for line in output.split('\n')])
