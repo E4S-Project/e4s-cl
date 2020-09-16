@@ -5,6 +5,7 @@ file import calculations, and execution of a program passed as an
 argument.
 """
 
+import os
 from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
@@ -82,6 +83,7 @@ def overlay_libraries(library_paths, container):
     with the host's (implicitly newer) linker.
     """
     selected = {}
+    linkers = []
 
     for path in library_paths:
         # Use a ldd parser to grab all the dependencies of
@@ -93,10 +95,22 @@ def overlay_libraries(library_paths, container):
         # Add the library itself as a potential import
         dependencies.update({path.name: {'path': path.as_posix()}})
 
-        dependencies.pop('linker')
+        linkers.append(dependencies.pop('linker')['path'])
 
         for soname, info in dependencies.items():
             selected.update({soname: info.get('path')})
+
+    host_linkers = [os.path.realpath(linker) for linker in set(linkers)]
+
+    if len(host_linkers) != 1:
+        raise InternalError(
+            "Mutliple or no linkers detected. This is not supported.")
+
+    for linker in container.linkers:
+        if is_debug():
+            LOGGER.info("Overwriting linker: %s => %s", host_linkers[0],
+                        linker)
+        container.bind_file(host_linkers[0], dest=linker, options='ro')
 
     return selected.values()
 
