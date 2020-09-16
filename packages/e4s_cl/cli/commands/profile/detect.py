@@ -16,6 +16,14 @@ LOGGER = logger.get_logger(__name__)
 def filter_files(path_list, ldd_requirements={}):
     libraries, paths = [], []
 
+    # As in `man ld.so`
+    default_linker_paths = [
+        pathlib.Path('/lib'),
+        pathlib.Path('/lib64'),
+        pathlib.Path('/usr/lib'),
+        pathlib.Path('/usr/lib64')
+    ]
+
     for path in path_list:
         if not path.exists() or path.is_dir():
             continue
@@ -33,13 +41,16 @@ def filter_files(path_list, ldd_requirements={}):
                 and ldd_requirements[path.name].get('found'):
                 # The library is not in the cache, but still found by the linker
                 libraries.append(path.as_posix())
+            elif path.parent in default_linker_paths:
+                # If not in the cache, but still found by the linker
+                libraries.append(path.as_posix())
             else:
                 # Not standard, it must be imported with a full path
                 paths.append(path.as_posix())
             continue
 
         # Process files
-        blacklist = ["/tmp", "/sys", "/proc", "/dev"]
+        blacklist = ["/tmp", "/sys", "/proc", "/dev", "/run"]
         filtered = False
         for expr in blacklist:
             if not filtered and re.match("^%s.*" % expr, path.as_posix()):
