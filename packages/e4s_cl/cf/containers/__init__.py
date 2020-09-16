@@ -27,8 +27,14 @@ class BackendNotAvailableError(InternalError):
 
 
 def dump(func):
+    """
+    If verbose, output a description of the container about to be run before
+    launching it.
+
+    This needs to be a decorator as it is wraps the run() method implemented
+    in every backend module.
+    """
     def wrapper(*args, **kwargs):
-        # Why isn't it args[0] ?! Python works in mysterious ways
         self = func.__self__
 
         LOGGER.debug(str(self))
