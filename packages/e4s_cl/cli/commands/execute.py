@@ -95,17 +95,22 @@ def overlay_libraries(library_paths, container):
         # Add the library itself as a potential import
         dependencies.update({path.name: {'path': path.as_posix()}})
 
+        # Don't bind the linker as a library
         linkers.append(dependencies.pop('linker')['path'])
 
         for soname, info in dependencies.items():
             selected.update({soname: info.get('path')})
 
-    host_linkers = [os.path.realpath(linker) for linker in set(linkers)]
+    # Resolve linkers actual paths. This now contains paths to all the linkers
+    # required to load the entire dependency tree.
+    host_linkers = set([os.path.realpath(linker) for linker in set(linkers)])
 
+    # TODO figure out what to do when multiple linkers are required
     if len(host_linkers) != 1:
         raise InternalError(
             "Mutliple or no linkers detected. This is not supported.")
 
+    # Override every linker on the container
     for linker in container.linkers:
         if is_debug():
             LOGGER.info("Overwriting linker: %s => %s", host_linkers[0],
