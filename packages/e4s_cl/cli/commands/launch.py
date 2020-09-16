@@ -64,9 +64,8 @@ def _format_execute(parameters):
     # Insert a top-level e4s option between the script name and the subcommand
     execute_command = [E4S_CL_SCRIPT, '--slave'] + execute_command[1:]
 
-    if is_debug():
-        execute_command = [execute_command[0]] + ['--debug'
-                                                  ] + execute_command[1:]
+    if logger.debug_mode():
+        execute_command = [execute_command[0], '-v'] + execute_command[1:]
 
     for attr in ['image', 'backend']:
         if parameters.get(attr, None):

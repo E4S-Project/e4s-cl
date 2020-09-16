@@ -429,6 +429,10 @@ def set_log_level(level):
     _STDOUT_HANDLER.setLevel(LOG_LEVEL)
 
 
+def debug_mode():
+    return LOG_LEVEL == 'DEBUG'
+
+
 LOG_LEVEL = 'INFO'
 """str: The global logging level for stdout loggers and software packages.
 
