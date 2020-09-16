@@ -31,14 +31,14 @@ def dump(func):
         # Why isn't it args[0] ?! Python works in mysterious ways
         self = func.__self__
 
-        LOGGER.info("Running %s object:", self.__class__.__name__)
-        LOGGER.info("- image: %s", self.image)
-        LOGGER.info("- bound: %s",
-                    json.dumps([str(path) for path in self.bound], indent=2))
-        LOGGER.info("- env: %s", json.dumps(self.env, indent=2))
-        LOGGER.info("- LD_PRELOAD: %s", json.dumps(self.ld_preload, indent=2))
-        LOGGER.info("- LD_LIBRARY_PATH: %s",
-                    json.dumps(self.ld_lib_path, indent=2))
+        LOGGER.debug("Running %s object:", self.__class__.__name__)
+        LOGGER.debug("- image: %s", self.image)
+        LOGGER.debug("- bound: %s",
+                     json.dumps([str(path) for path in self.bound], indent=2))
+        LOGGER.debug("- env: %s", json.dumps(self.env, indent=2))
+        LOGGER.debug("- LD_PRELOAD: %s", json.dumps(self.ld_preload, indent=2))
+        LOGGER.debug("- LD_LIBRARY_PATH: %s",
+                     json.dumps(self.ld_lib_path, indent=2))
 
         return func(*args, **kwargs)
 
@@ -65,7 +65,7 @@ class Container():
         driver = object.__new__(module.CLASS)
 
         # If in debugging mode, print out the config before running
-        if variables.is_debug():
+        if logger.debug_mode():
             driver.run = dump(driver.run)
 
         return driver

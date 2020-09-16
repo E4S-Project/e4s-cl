@@ -9,7 +9,6 @@ from pathlib import Path
 from argparse import ArgumentTypeError, Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
-from e4s_cl.variables import is_debug
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.model.profile import Profile

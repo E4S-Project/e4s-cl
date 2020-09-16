@@ -9,9 +9,6 @@ STATUS = MASTER
 # Dry run mode, print subprocesses instead of running them
 DRY_RUN = False
 
-# Debug mode, print debug info
-DEBUG = False
-
 
 def is_master():
     return STATUS == MASTER
@@ -31,15 +28,6 @@ def set_dry_run(value):
     DRY_RUN = value
 
 
-def is_debug():
-    return DEBUG
-
-
-def set_debug(value):
-    global DEBUG
-    DEBUG = value
-
-
 class SlaveAction(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         set_master(False)
@@ -48,8 +36,3 @@ class SlaveAction(Action):
 class DryRunAction(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         set_dry_run(True)
-
-
-class DebugAction(Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        set_debug(True)

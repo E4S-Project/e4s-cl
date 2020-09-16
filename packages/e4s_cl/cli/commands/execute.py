@@ -11,7 +11,6 @@ from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
 from e4s_cl import logger
 from e4s_cl.util import ldd, libc_version, extract_libc
-from e4s_cl.variables import is_debug
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.containers import Container, BackendNotAvailableError
@@ -113,9 +112,7 @@ def overlay_libraries(library_paths, container):
 
     # Override every linker on the container
     for linker in container.linkers:
-        if is_debug():
-            LOGGER.info("Overwriting linker: %s => %s", host_linkers[0],
-                        linker)
+        LOGGER.debug("Overwriting linker: %s => %s", host_linkers[0], linker)
         container.bind_file(host_linkers[0], dest=linker, options='ro')
 
     return selected.values()
@@ -156,9 +153,9 @@ def select_libraries(library_paths, container):
 
     host_precendence = compare_versions(libc_version(), container.libc_version)
 
-    if is_debug():
-        LOGGER.info("Host libc %s guest libc" %
-                    ('>=' if host_precendence else '<'))
+    LOGGER.debug("Host libc: %s / Guest libc: %s" %
+                 ('.'.join([str(no) for no in libc_version()]), '.'.join(
+                     [str(no) for no in container.libc_version])))
 
     return methods[host_precendence](library_paths, container)
 
@@ -223,7 +220,7 @@ class ExecuteCommand(AbstractCommand):
             for path in args.files:
                 container.bind_file(path, dest=path, options='ro')
 
-        if is_debug():
+        if logger.debug_mode():
             container.bind_env_var('LD_DEBUG', 'files')
 
         container.run(args.cmd, redirect_stdout=False)
