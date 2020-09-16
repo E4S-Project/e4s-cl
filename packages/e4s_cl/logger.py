@@ -318,12 +318,16 @@ class LogFormatter(logging.Formatter):
         if self.printable_only and (not set(message).issubset(
                 self._printable_chars)):
             message = "<<UNPRINTABLE>>"
+
         if __debug__:
             marker = self._colored(
-                "[%s %s:%s]" % (record.levelname, record.name, record.lineno),
+                "[%s %s:%s]" %
+                (record.levelname.title(), record.name, record.lineno),
                 'yellow')
         else:
-            marker = "[%s]" % record.levelname
+            marker = self._colored("[%s]" % record.levelname.title(), 'cyan',
+                                   None, ['bold'])
+
         return '%s %s' % (marker, message)
 
     def format(self, record):
