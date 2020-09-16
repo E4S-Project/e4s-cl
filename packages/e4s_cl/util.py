@@ -647,13 +647,21 @@ def flatten(nested_list):
 
 
 def extract_libc(text):
-    #Extract libc version sumber from the output of ldd --version
+    # Extract libc version sumber from the output of ldd --version
     # We could have used the libc but locating it would require some
     # container gymnastic, so accessing ldd seemed cleaner.
 
     # The first line of output is usually:
     # > ldd (<noise with numbers>) x.y
-    version_string = text.split('\n')[0].split()[-1]
+    if not text:
+        LOGGER.error("Failed to determine host libc version")
+        return (0, 0, 0)
+
+    try:
+        version_string = text.split('\n')[0].split()[-1]
+    except IndexError:
+        LOGGER.error("Failed to determine host libc version")
+        return (0, 0, 0)
 
     return tuple([int(val) for val in re.findall('\d+', version_string)])
 
