@@ -39,6 +39,45 @@ def _argument_path_comma_list(string):
     return [_argument_path(data) for data in string.split(',')]
 
 
+def import_library(shared_object_path, container):
+    """
+    End import method
+
+    This method binds the shared object it got as an argument, along with all
+    the symbolic links that may exist and point to the same file.
+
+    Given the directory:
+    lrwxrwxrwx. 1 root root   16 May 13  2019 libmpi.so -> libmpi.so.12.1.1
+    lrwxrwxrwx. 1 root root   16 May 13  2019 libmpi.so.12 -> libmpi.so.12.1.1
+    -rwxr-xr-x. 1 root root 2.7M May 13  2019 libmpi.so.12.1.1
+
+    If any of those 3 files were to be passed as an argument, all would be
+    selected to be bound.
+
+    This is because depending on the linker at compile-time some binaries
+    require more or less precise versions of the same file (eg. libmpi.so for
+    some and libmpi.so.12 for others). Binding all the references ensures the
+    library is found down the line.
+    """
+
+    if not isinstance(shared_object_path, Path):
+        shared_object_path = Path(shared_object_path)
+
+    libname = shared_object_path.name.split('.')
+    library_file = os.path.realpath(shared_object_path)
+    cleared = []
+
+    if not libname:
+        LOGGER.error("Invalid name: %s", shared_object_path.as_posix())
+
+    for file in list(shared_object_path.parent.glob("%s.so*" % libname[0])):
+        if os.path.realpath(file) == library_file:
+            cleared.append(file)
+
+    for file in cleared:
+        container.bind_file(file, Path(HOST_LIBS_DIR, file.name), options='ro')
+
+
 def filter_libraries(library_paths, container):
     """ Library filter
 
@@ -209,11 +248,7 @@ class ExecuteCommand(AbstractCommand):
 
         if args.libraries:
             for local_path in select_libraries(args.libraries, container):
-                container.bind_file(local_path,
-                                    dest="{}/{}".format(
-                                        HOST_LIBS_DIR,
-                                        Path(local_path).name),
-                                    options='ro')
+                import_library(local_path, container)
             container.add_ld_library_path(HOST_LIBS_DIR)
 
         if args.files:
