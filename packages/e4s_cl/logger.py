@@ -439,14 +439,17 @@ if not _ROOT_LOGGER.handlers:
         LogFormatter(line_width=LINE_WIDTH, printable_only=False))
     _STDOUT_HANDLER.setLevel(LOG_LEVEL)
     _ROOT_LOGGER.addHandler(_STDOUT_HANDLER)
-    _FILE_HANDLER = handlers.TimedRotatingFileHandler(LOG_FILE,
-                                                      when='D',
-                                                      interval=1,
-                                                      backupCount=3)
-    _FILE_HANDLER.setFormatter(LogFormatter(line_width=120,
-                                            allow_colors=False))
-    _FILE_HANDLER.setLevel(logging.DEBUG)
-    _ROOT_LOGGER.addHandler(_FILE_HANDLER)
+    try:
+        _FILE_HANDLER = handlers.TimedRotatingFileHandler(LOG_FILE,
+                                                          when='D',
+                                                          interval=1,
+                                                          backupCount=3)
+        _FILE_HANDLER.setFormatter(
+            LogFormatter(line_width=120, allow_colors=False))
+        _FILE_HANDLER.setLevel(logging.DEBUG)
+        _ROOT_LOGGER.addHandler(_FILE_HANDLER)
+    except OSError as err:
+        _ROOT_LOGGER.debug("Failed to open file logger: %s", err.strerror)
     # pylint: disable=logging-not-lazy
     _ROOT_LOGGER.debug(
         ("\n%(bar)s\n"
