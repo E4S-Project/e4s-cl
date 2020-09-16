@@ -31,14 +31,7 @@ def dump(func):
         # Why isn't it args[0] ?! Python works in mysterious ways
         self = func.__self__
 
-        LOGGER.debug("Running %s object:", self.__class__.__name__)
-        LOGGER.debug("- image: %s", self.image)
-        LOGGER.debug("- bound: %s",
-                     json.dumps([str(path) for path in self.bound], indent=2))
-        LOGGER.debug("- env: %s", json.dumps(self.env, indent=2))
-        LOGGER.debug("- LD_PRELOAD: %s", json.dumps(self.ld_preload, indent=2))
-        LOGGER.debug("- LD_LIBRARY_PATH: %s",
-                     json.dumps(self.ld_lib_path, indent=2))
+        LOGGER.debug(str(self))
 
         return func(*args, **kwargs)
 
@@ -67,6 +60,7 @@ class Container():
         # If in debugging mode, print out the config before running
         if logger.debug_mode():
             driver.run = dump(driver.run)
+        driver.__str__ = dump(driver.__str__)
 
         return driver
 
@@ -182,6 +176,25 @@ class Container():
         """
         raise InternalError("run not implemented for container %s" %
                             self.__class__.__name__)
+
+    def __str__(self):
+        out = []
+        out.append("%s object:" % self.__class__.__name__)
+        if self.image:
+            out.append("- image: %s" % self.image)
+        if self.bound:
+            out.append("- bound: %s" %
+                       json.dumps([str(path)
+                                   for path in self.bound], indent=2))
+        if self.env:
+            out.append("- env: %s" % json.dumps(self.env, indent=2))
+        if self.ld_preload:
+            out.append("- LD_PRELOAD: %s" %
+                       json.dumps(self.ld_preload, indent=2))
+        if self.ld_lib_path:
+            out.append("- LD_LIBRARY_PATH: %s" %
+                       json.dumps(self.ld_lib_path, indent=2))
+        return '\n'.join(out)
 
 
 for _, module_name, _ in walk_packages(__path__, prefix=__name__ + "."):

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from argparse import ArgumentTypeError, Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
-from e4s_cl import logger, util
+from e4s_cl import logger, util, variables
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.model.profile import Profile
@@ -121,7 +121,11 @@ class LaunchCommand(AbstractCommand):
         launcher, program = util.interpret_launcher(args.cmd)
         execute_command = _format_execute(_parameters(args))
 
-        LOGGER.debug(" ".join(launcher + execute_command + program))
+        if variables.is_dry_run():
+            LOGGER.info("Running %s",
+                        ' '.join(launcher + execute_command + program))
+            return EXIT_SUCCESS
+
         retval, _ = util.create_subprocess_exp(launcher + execute_command +
                                                program)
 

@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
-from e4s_cl import logger
+from e4s_cl import logger, variables
 from e4s_cl.util import ldd, libc_version, extract_libc
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -223,8 +223,11 @@ class ExecuteCommand(AbstractCommand):
         if logger.debug_mode():
             container.bind_env_var('LD_DEBUG', 'files')
 
-        container.run(args.cmd, redirect_stdout=False)
+        if variables.is_dry_run():
+            LOGGER.info("Running %s in container %s", args.cmd, container)
+            return EXIT_SUCCESS
 
+        container.run(args.cmd, redirect_stdout=False)
         return EXIT_SUCCESS
 
 

@@ -39,7 +39,7 @@ import pkgutil
 import pathlib
 from collections import deque
 from e4s_cl import logger
-from e4s_cl.variables import is_master, is_dry_run
+from e4s_cl.variables import is_master
 from e4s_cl.error import InternalError
 import termcolor
 
@@ -200,11 +200,8 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
 
-    if is_dry_run():
-        print(' '.join(cmd))
-        return 0, ""
-
     LOGGER.debug("Creating subprocess: %s", ' '.join(cmd))
+
     out = (subprocess.PIPE if redirect_stdout else sys.stdout)
     proc = subprocess.Popen(cmd,
                             env=subproc_env,
@@ -217,7 +214,7 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
     retval = proc.returncode
 
     if redirect_stdout:
-        LOGGER.debug(output)
+        LOGGER.debug(output.strip())
 
     for line in errors.split('\n'):
         # If this is a master process, prettify the output; if not,
