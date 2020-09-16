@@ -111,11 +111,6 @@ def get_terminal_size():
     dims = _get_term_size_env()
     if not dims:
         current_os = platform.system()
-        if current_os == 'Windows':
-            dims = _get_term_size_windows()
-            if not dims:
-                # for window's python in cygwin's xterm
-                dims = _get_term_size_tput()
         if current_os == 'Linux' or current_os == 'Darwin' or current_os.startswith(
                 'CYGWIN'):
             dims = _get_term_size_posix()
@@ -128,32 +123,6 @@ def get_terminal_size():
     width = dims[0] if dims[0] >= 10 else default_width
     height = dims[1] if dims[1] >= 1 else default_height
     return width, height
-
-
-def _get_term_size_windows():
-    """Discover the size of the user's terminal on Microsoft Windows.
-    
-    Returns:
-        tuple: (width, height) tuple giving the dimensions of the user's terminal window in characters,
-               or None if the size could not be determined.
-    """
-    res = None
-    try:
-        from ctypes import windll, create_string_buffer
-        # stdin handle is -10, stdout -11, stderr -12
-        handle = windll.kernel32.GetStdHandle(-12)
-        csbi = create_string_buffer(22)
-        res = windll.kernel32.GetConsoleScreenBufferInfo(handle, csbi)
-    except:  # pylint: disable=bare-except
-        return None
-    if res:
-        import struct
-        (_, _, _, _, _, left, top, right, bottom, _,
-         _) = struct.unpack("hhhhHhhhhhh", csbi.raw)
-        sizex = right - left + 1
-        sizey = bottom - top + 1
-        return sizex, sizey
-    return None
 
 
 def _get_term_size_tput():
