@@ -17,11 +17,18 @@ def filter_files(path_list, ldd_requirements={}):
     libraries, paths = [], []
 
     # As in `man ld.so`
-    default_linker_paths = [
+    linker_default_paths = [
         pathlib.Path('/lib'),
         pathlib.Path('/lib64'),
         pathlib.Path('/usr/lib'),
         pathlib.Path('/usr/lib64')
+    ]
+
+    # Cut a:b:c in a Path list if set
+    linker_env_paths = [
+        pathlib.Path(dir)
+        for dir in filter(lambda x: x,
+                          os.environ.get('LD_LIBRARY_PATH', '').split(':'))
     ]
 
     for path in path_list:
@@ -32,7 +39,7 @@ def filter_files(path_list, ldd_requirements={}):
         if path.name == 'ld.so.cache':
             continue
 
-        # Process libraries
+        # Process shared objects
         if re.match(".*\.so.*", path.name):
             if path.name in host_libraries().keys():
                 # The library is in the cache, it can be found using a soname
@@ -41,11 +48,11 @@ def filter_files(path_list, ldd_requirements={}):
                 and ldd_requirements[path.name].get('found'):
                 # The library is not in the cache, but still found by the linker
                 libraries.append(path.as_posix())
-            elif path.parent in default_linker_paths:
+            elif path.parent in linker_default_paths + linker_env_paths:
                 # If not in the cache, but still found by the linker
                 libraries.append(path.as_posix())
             else:
-                # Not standard, it must be imported with a full path
+                # Not standard, it is a library BUT must be imported with a full path
                 paths.append(path.as_posix())
             continue
 
