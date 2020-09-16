@@ -103,7 +103,8 @@ def overlay_libraries(library_paths, container):
 
     # Resolve linkers actual paths. This now contains paths to all the linkers
     # required to load the entire dependency tree.
-    host_linkers = set([os.path.realpath(linker) for linker in set(linkers)])
+    host_linkers = list(
+        set([os.path.realpath(linker) for linker in set(linkers)]))
 
     # TODO figure out what to do when multiple linkers are required
     if len(host_linkers) != 1:
