@@ -580,10 +580,10 @@ def opened_files(command):
 
     # Debugger.addProcess also uses logging, setting the level to warning
     # mutes info messages
-    bkpLevel = LOGGER.level
+    bkpLevel = logger.LOG_LEVEL
     logger.set_log_level('WARNING')
     process = debugger.addProcess(pid, is_attached=True)
-    LOGGER.setLevel(bkpLevel)
+    logger.set_log_level(bkpLevel)
 
     returncode = 0
 

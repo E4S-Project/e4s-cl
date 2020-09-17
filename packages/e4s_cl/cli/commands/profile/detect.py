@@ -44,16 +44,20 @@ def filter_files(path_list, ldd_requirements={}):
             if path.name in host_libraries().keys():
                 # The library is in the cache, it can be found using a soname
                 libraries.append(path.as_posix())
+                LOGGER.debug("File %s is a library (cache)", path.name)
             elif path.name in ldd_requirements.keys() \
                 and ldd_requirements[path.name].get('found'):
                 # The library is not in the cache, but still found by the linker
                 libraries.append(path.as_posix())
+                LOGGER.debug("File %s is a library (found)", path.name)
             elif path.parent in linker_default_paths + linker_env_paths:
                 # If not in the cache, but still found by the linker
                 libraries.append(path.as_posix())
+                LOGGER.debug("File %s is a library (default)", path.name)
             else:
                 # Not standard, it is a library BUT must be imported with a full path
                 paths.append(path.as_posix())
+                LOGGER.debug("File %s is a library (non-standard)", path.name)
             continue
 
         # Process files
@@ -65,6 +69,8 @@ def filter_files(path_list, ldd_requirements={}):
 
         if not filtered:
             paths.append(path.as_posix())
+            LOGGER.debug("File %s is a regular file (non-blacklisted)",
+                         path.name)
 
     return libraries, paths
 
