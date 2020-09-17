@@ -520,15 +520,15 @@ def _parse_line(line):
 
 
 def ldd(binary):
-    command = "%(ldd)s %(binary)s" % {
-        'ldd': which('ldd'),
-        'binary': pathlib.Path(binary).as_posix()
-    }
+    binary = pathlib.Path(binary).as_posix()
+
+    command = "%(ldd)s %(binary)s" % {'ldd': which('ldd'), 'binary': binary}
 
     returncode, output = create_subprocess_exp(command.split(),
                                                redirect_stdout=True)
 
     if returncode:
+        LOGGER.debug("Failed to determine %s's dynamic dependencies", binary)
         return {}
 
     libraries = {}  # type: Dict
@@ -570,7 +570,16 @@ def opened_files(command):
     files = []
     debugger = PtraceDebugger()
     command[0] = locateProgram(command[0])
-    pid = child.createChild(command, no_stdout=False, close_fds=False)
+
+    try:
+        pid = child.createChild(command, no_stdout=False, close_fds=False)
+    except child.ChildError as err:
+        LOGGER.error("Failed to list opened files of %s: %s", command[0],
+                     str(err))
+        return -1, []
+
+    # Debugger.addProcess also uses logging, setting the level to warning
+    # mutes info messages
     bkpLevel = LOGGER.level
     logger.set_log_level('WARNING')
     process = debugger.addProcess(pid, is_attached=True)
