@@ -63,7 +63,7 @@ def import_library(shared_object_path, container):
     if not isinstance(shared_object_path, Path):
         shared_object_path = Path(shared_object_path)
 
-    libname = shared_object_path.name.split('.')
+    libname = shared_object_path.name.split('.so')
     library_file = os.path.realpath(shared_object_path)
     cleared = []
 
