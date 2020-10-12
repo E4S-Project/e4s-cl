@@ -553,14 +553,14 @@ def interpret_launcher(cmd):
            tuple: (Launcher command, possibly empty list of application commands).
        """
     launcher_cmd = []
-    if pathlib.Path(cmd[0]).name in LAUNCHERS:
+
+    # If '--' appears in the command then everything before it is a launcher + args
+    # and everything after is the application + args
+    if '--' in cmd:
+        idx = cmd.index('--')
+        launcher_cmd, cmd = cmd[:idx], cmd[idx + 1:]
+    elif pathlib.Path(cmd[0]).name in LAUNCHERS:
         launcher_cmd, cmd = parse_cli(cmd)
-    else:
-        # If '--' appears in the command then everything before it is a launcher + args
-        # and everything after is the application + args
-        if '--' in cmd:
-            idx = cmd.index('--')
-            launcher_cmd, cmd = cmd[:idx], cmd[idx + 1:]
 
     # No launcher command, just an application command
     return launcher_cmd, cmd
