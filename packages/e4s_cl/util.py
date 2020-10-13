@@ -562,6 +562,11 @@ def interpret_launcher(cmd):
     elif pathlib.Path(cmd[0]).name in LAUNCHERS:
         launcher_cmd, cmd = parse_cli(cmd)
 
+    env_args = os.environ.get('E4SCL_LAUNCHER_ARGS')
+
+    if launcher_cmd and env_args:
+        launcher_cmd += env_args.split(' ')
+
     # No launcher command, just an application command
     return launcher_cmd, cmd
 

@@ -121,16 +121,13 @@ class LaunchCommand(AbstractCommand):
         launcher, program = util.interpret_launcher(args.cmd)
         execute_command = _format_execute(_parameters(args))
 
-        env_args = os.environ.get('E4SCL_LAUNCHER_ARGS', '')
-
         if variables.is_dry_run():
-            LOGGER.info(
-                "Running %s",
-                ' '.join(launcher + [env_args] + execute_command + program))
+            LOGGER.info("Running %s",
+                        ' '.join(launcher + execute_command + program))
             return EXIT_SUCCESS
 
-        retval, _ = util.create_subprocess_exp(launcher + [env_args] +
-                                               execute_command + program)
+        retval, _ = util.create_subprocess_exp(launcher + execute_command +
+                                               program)
 
         return retval
 
