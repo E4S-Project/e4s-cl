@@ -697,3 +697,10 @@ def libc_version():
         HOST_LIBC = extract_libc(out)
 
     return HOST_LIBC
+
+
+def posix_path_arg(string):
+    """
+    Argument type callback.
+    Returns a posix-compliant path."""
+    return pathlib.Path(string.strip()).as_posix()
