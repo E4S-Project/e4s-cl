@@ -1,3 +1,4 @@
+from pathlib import Path
 from e4s_cl import EXIT_SUCCESS
 from e4s_cl.util import posix_path_arg
 from e4s_cl.cli import arguments
@@ -63,10 +64,13 @@ class ProfileEditCommand(EditCommand):
         for arg, attr in [('add_files', 'files'),
                           ('add_libraries', 'libraries')]:
             names = getattr(args, arg, [])
-            for file_name in names:
+            for file_name in [Path(n).as_posix() for n in names]:
                 if file_name and file_name not in prof.get(attr, []):
                     added.add(file_name)
                     prof[attr] = prof.get(attr, []) + [file_name]
+                else:
+                    LOGGER.error("File %s already in profile's %s", file_name,
+                                 attr)
 
         return added
 
@@ -75,10 +79,13 @@ class ProfileEditCommand(EditCommand):
         for arg, attr in [('remove_files', 'files'),
                           ('remove_libraries', 'libraries')]:
             names = getattr(args, arg, [])
-            for file_name in names:
+            for file_name in [Path(n).as_posix() for n in names]:
                 if file_name and file_name in prof.get(attr, []):
                     removed.add(file_name)
                     prof[attr].remove(file_name)
+                else:
+                    LOGGER.error("File %s not in profile's %s", file_name,
+                                 attr)
 
         return removed
 
