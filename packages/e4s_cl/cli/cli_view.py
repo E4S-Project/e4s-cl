@@ -111,19 +111,6 @@ class CreateCommand(AbstractCliView):
         except UniqueAttributeError:
             self.parser.error("A %s with %s='%s' already exists" %
                               (self.model_name, key_attr, key))
-        if ctrl.storage is PROFILE_STORAGE:
-            from e4s_cl.cli.commands.profile.edit import COMMAND as profile_edit_cmd
-            try:
-                proj = Profile.selected()
-            except ProfileSelectionError:
-                self.logger.info(
-                    "Created a new %s '%s'. Use `%s` to add the new %s to a profile.",
-                    self.model_name, key, profile_edit_cmd, self.model_name)
-            else:
-                profile_edit_cmd.main([proj['name'], '--add', key])
-        else:
-            self.logger.info("Created a new %s-level %s: '%s'.",
-                             ctrl.storage.name, self.model_name, key)
         return EXIT_SUCCESS
 
     def main(self, argv):

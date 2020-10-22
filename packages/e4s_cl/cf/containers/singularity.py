@@ -25,8 +25,17 @@ class SingularityContainer(Container):
         return output
 
     def format_bound(self):
-        file_list = ["{}:{}:{}".format(*request) for request in self.bound]
+        file_list = []
+
+        for request in self.bound:
+            if request[1]:
+                file_list.append("%s:%s:%s" % request)
+            else:
+                file_list.append("%s:%s:%s" %
+                                 (request[0], request[0], request[2]))
+
         files = ','.join(file_list)
+
         if files:
             self.env.update({"SINGULARITY_BIND": files})
 

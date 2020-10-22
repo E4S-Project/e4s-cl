@@ -697,3 +697,44 @@ def libc_version():
         HOST_LIBC = extract_libc(out)
 
     return HOST_LIBC
+
+
+def posix_path_arg(string):
+    """
+    Argument type callback.
+    Returns a posix-compliant path."""
+    return pathlib.Path(string.strip()).as_posix()
+
+
+def contains(p1, p2):
+    """
+    Returns p2 is in the tree of which p1 is the root
+    pathlib's < operator compares alphabetically, so here we are
+    """
+    index = len(p1.parts)
+    return p1.parts[:index] == p2.parts[:index]
+
+
+def unrelative(string):
+    """
+    Returns a list of all the directories mentionned by a relative path
+    """
+    path = pathlib.Path(string)
+    visited = set()
+    deps = set()
+
+    visited.add(path.resolve())
+    for i in range(0, len(path.parts)):
+        if path.parts[i] == '..':
+            visited.add(pathlib.Path(*path.parts[:i]).resolve())
+
+    for element in visited:
+        contained = False
+        for path in visited:
+            if path != element and contains(path, element):
+                contained = True
+
+        if not contained:
+            deps.add(element)
+
+    return [p.as_posix() for p in deps]

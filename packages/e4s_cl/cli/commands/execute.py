@@ -253,7 +253,7 @@ class ExecuteCommand(AbstractCommand):
 
         if args.files:
             for path in args.files:
-                container.bind_file(path, dest=path, options='ro')
+                container.bind_file(path, options='ro')
 
         if logger.debug_mode():
             container.bind_env_var('LD_DEBUG', 'files')

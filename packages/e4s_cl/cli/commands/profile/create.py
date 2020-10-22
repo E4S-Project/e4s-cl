@@ -1,15 +1,19 @@
 from e4s_cl import EXIT_SUCCESS
+from e4s_cl.util import posix_path_arg
 from e4s_cl.error import UniqueAttributeError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.cli_view import CreateCommand
 from e4s_cl.model.profile import Profile
 
+
 class ProfileCreateCommand(CreateCommand):
     """``profile create`` subcommand."""
-
     def _construct_parser(self):
         usage = "%s <profile_name>" % self.command
-        parser = arguments.get_parser_from_model(self.model, prog=self.command, usage=usage, description=self.summary)
+        parser = arguments.get_parser_from_model(self.model,
+                                                 prog=self.command,
+                                                 usage=usage,
+                                                 description=self.summary)
         parser.add_argument('impl_libraries',
                             help="Library configurations in this profile",
                             metavar='[libraries]',
@@ -19,12 +23,14 @@ class ProfileCreateCommand(CreateCommand):
                             help="Library configurations in this profile",
                             metavar='l',
                             nargs='+',
+                            type=posix_path_arg,
                             default=arguments.SUPPRESS,
                             dest='libraries')
         parser.add_argument('--files',
                             help="Files configurations in this profile",
                             metavar='f',
                             nargs='+',
+                            type=posix_path_arg,
                             default=arguments.SUPPRESS,
                             dest='files')
         parser.add_argument('--backend',
@@ -39,17 +45,21 @@ class ProfileCreateCommand(CreateCommand):
                             dest='image')
         return parser
 
-
     def main(self, argv):
         args = self._parse_args(argv)
 
-        data = {attr: getattr(args, attr) for attr in self.model.attributes if hasattr(args, attr)}
+        data = {
+            attr: getattr(args, attr)
+            for attr in self.model.attributes if hasattr(args, attr)
+        }
         try:
             self.model.controller().create(data)
         except UniqueAttributeError:
-            self.parser.error("A profile named '%s' already exists." % args.name)
+            self.parser.error("A profile named '%s' already exists." %
+                              args.name)
 
         self.logger.info("Created a new profile named '%s'.", args.name)
         return EXIT_SUCCESS
+
 
 COMMAND = ProfileCreateCommand(Profile, __name__)

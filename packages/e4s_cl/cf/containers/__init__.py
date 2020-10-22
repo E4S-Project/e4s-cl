@@ -10,7 +10,7 @@ import json
 from importlib import import_module
 from pathlib import Path
 from e4s_cl import logger, variables
-from e4s_cl.util import walk_packages, which, extract_libc
+from e4s_cl.util import walk_packages, which, extract_libc, unrelative
 from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
@@ -95,7 +95,17 @@ class Container():
         self._linkers = []
 
     def bind_file(self, path, dest=None, options=None):
-        self.bound.append((path, dest, options))
+        # If there is no destination, handle files with relative paths.
+        # For instance on summit, some files are required as
+        # /jsm_pmix/container/../lib/../bin/file
+        # Although only /jsm_pmix/bin/file is required, not
+        # having jsm_pmix/container && lib makes it error out
+        # unrelative returns a list of all the paths required for such a file
+        if not dest:
+            for path in unrelative(path):
+                self.bound.append((path, None, options))
+        else:
+            self.bound.append((path, dest, options))
 
     def bind_env_var(self, key, value):
         self.env.update({key: value})

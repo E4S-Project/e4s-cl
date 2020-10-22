@@ -1,4 +1,6 @@
+from pathlib import Path
 from e4s_cl import EXIT_SUCCESS
+from e4s_cl.util import posix_path_arg
 from e4s_cl.cli import arguments
 from e4s_cl.logger import get_logger
 from e4s_cl.cli.cli_view import EditCommand
@@ -6,9 +8,9 @@ from e4s_cl.model.profile import Profile
 
 LOGGER = get_logger(__name__)
 
+
 class ProfileEditCommand(EditCommand):
     """``profile edit`` subcommand."""
-
     def _construct_parser(self):
         usage = "%s <profile_name> [arguments]" % self.command
         parser = arguments.get_parser_from_model(self.model,
@@ -35,43 +37,55 @@ class ProfileEditCommand(EditCommand):
                             help="Add files to the profile",
                             metavar='<file>',
                             nargs='+',
+                            type=posix_path_arg,
                             default=arguments.SUPPRESS)
         parser.add_argument('--remove-files',
                             help="Remove files from the profile",
                             metavar='<file>',
                             nargs='+',
+                            type=posix_path_arg,
                             default=arguments.SUPPRESS)
         parser.add_argument('--add-libraries',
                             help="Add libraries to the profile",
                             metavar='<library>',
                             nargs='+',
+                            type=posix_path_arg,
                             default=arguments.SUPPRESS)
         parser.add_argument('--remove-libraries',
                             help="Remove libraries from the profile",
                             metavar='<library>',
                             nargs='+',
+                            type=posix_path_arg,
                             default=arguments.SUPPRESS)
         return parser
 
     def _parse_add_args(self, args, prof):
         added = set()
-        for arg, attr in [('add_files', 'files'), ('add_libraries', 'libraries')]:
+        for arg, attr in [('add_files', 'files'),
+                          ('add_libraries', 'libraries')]:
             names = getattr(args, arg, [])
-            for file_name in names:
+            for file_name in [Path(n).as_posix() for n in names]:
                 if file_name and file_name not in prof.get(attr, []):
                     added.add(file_name)
                     prof[attr] = prof.get(attr, []) + [file_name]
+                else:
+                    LOGGER.error("File %s already in profile's %s", file_name,
+                                 attr)
 
         return added
 
     def _parse_remove_args(self, args, prof):
         removed = set()
-        for arg, attr in [('remove_files', 'files'), ('remove_libraries', 'libraries')]:
+        for arg, attr in [('remove_files', 'files'),
+                          ('remove_libraries', 'libraries')]:
             names = getattr(args, arg, [])
-            for file_name in names:
+            for file_name in [Path(n).as_posix() for n in names]:
                 if file_name and file_name in prof.get(attr, []):
                     removed.add(file_name)
                     prof[attr].remove(file_name)
+                else:
+                    LOGGER.error("File %s not in profile's %s", file_name,
+                                 attr)
 
         return removed
 
@@ -84,8 +98,9 @@ class ProfileEditCommand(EditCommand):
         profile_name = args.name
         profile = prof_ctrl.one({'name': profile_name})
         if not profile:
-            self.parser.error("'%s' is not a profile name. Type `%s` to see valid names." %
-                              (profile_name, profile_list.command))
+            self.parser.error(
+                "'%s' is not a profile name. Type `%s` to see valid names." %
+                (profile_name, profile_list.command))
 
         updates = dict(profile)
         updates['name'] = getattr(args, 'new_name', profile.get('name'))
@@ -97,11 +112,12 @@ class ProfileEditCommand(EditCommand):
 
         prof_ctrl.update(updates, {'name': profile_name})
         for data in added:
-            self.logger.info("Added %s to profile configuration '%s'.",
-                             data, profile_name)
+            self.logger.info("Added %s to profile configuration '%s'.", data,
+                             profile_name)
         for data in removed:
             self.logger.info("Removed %s from profile configuration '%s'.",
                              data, profile_name)
         return EXIT_SUCCESS
+
 
 COMMAND = ProfileEditCommand(Profile, __name__)
