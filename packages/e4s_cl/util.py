@@ -699,13 +699,6 @@ def libc_version():
     return HOST_LIBC
 
 
-def posix_path_arg(string):
-    """
-    Argument type callback.
-    Returns a posix-compliant path."""
-    return pathlib.Path(string.strip()).as_posix()
-
-
 def contains(p1, p2):
     """
     Returns p2 is in the tree of which p1 is the root

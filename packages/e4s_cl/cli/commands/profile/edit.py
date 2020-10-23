@@ -1,6 +1,5 @@
 from pathlib import Path
 from e4s_cl import EXIT_SUCCESS
-from e4s_cl.util import posix_path_arg
 from e4s_cl.cli import arguments
 from e4s_cl.logger import get_logger
 from e4s_cl.cli.cli_view import EditCommand
@@ -37,25 +36,25 @@ class ProfileEditCommand(EditCommand):
                             help="Add files to the profile",
                             metavar='<file>',
                             nargs='+',
-                            type=posix_path_arg,
+                            type=arguments.posix_path,
                             default=arguments.SUPPRESS)
         parser.add_argument('--remove-files',
                             help="Remove files from the profile",
                             metavar='<file>',
                             nargs='+',
-                            type=posix_path_arg,
+                            type=arguments.posix_path,
                             default=arguments.SUPPRESS)
         parser.add_argument('--add-libraries',
                             help="Add libraries to the profile",
                             metavar='<library>',
                             nargs='+',
-                            type=posix_path_arg,
+                            type=arguments.posix_path,
                             default=arguments.SUPPRESS)
         parser.add_argument('--remove-libraries',
                             help="Remove libraries from the profile",
                             metavar='<library>',
                             nargs='+',
-                            type=posix_path_arg,
+                            type=arguments.posix_path,
                             default=arguments.SUPPRESS)
         return parser
 

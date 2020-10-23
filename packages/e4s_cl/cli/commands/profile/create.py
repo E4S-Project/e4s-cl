@@ -1,5 +1,4 @@
 from e4s_cl import EXIT_SUCCESS
-from e4s_cl.util import posix_path_arg
 from e4s_cl.error import UniqueAttributeError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.cli_view import CreateCommand
@@ -23,14 +22,14 @@ class ProfileCreateCommand(CreateCommand):
                             help="Library configurations in this profile",
                             metavar='l',
                             nargs='+',
-                            type=posix_path_arg,
+                            type=arguments.posix_path,
                             default=arguments.SUPPRESS,
                             dest='libraries')
         parser.add_argument('--files',
                             help="Files configurations in this profile",
                             metavar='f',
                             nargs='+',
-                            type=posix_path_arg,
+                            type=arguments.posix_path,
                             default=arguments.SUPPRESS,
                             dest='files')
         parser.add_argument('--backend',

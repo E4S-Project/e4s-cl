@@ -5,6 +5,7 @@ import re
 import copy
 import argparse
 import textwrap
+import pathlib
 from gettext import gettext as _, ngettext
 from operator import attrgetter
 from e4s_cl import logger, util
@@ -716,3 +717,32 @@ def parse_storage_flag(args):
     except AttributeError:
         names = [_DEFAULT_STORAGE_LEVEL]
     return [STORAGE_LEVELS[name] for name in names]
+
+
+def posix_path(string):
+    """
+    Argument type callback.
+    Returns a posix-compliant path."""
+    return pathlib.Path(string.strip()).as_posix()
+
+
+def posix_path_list(string):
+    """Argument type callback.
+    Asserts that the string corresponds to a list of existing paths."""
+    return [posix_path(data) for data in string.split(',')]
+
+
+def defined_object(model, field):
+    """Argument type callback.
+    Asserts that the string corresponds to an existing object."""
+    def wrapper(string):
+        _object = model.controller().one({field: string})
+
+        if not _object:
+            raise argparse.ArgumentTypeError("%s %s does not exist" %
+                                             (model.name, string))
+        return _object
+
+    wrapper.__name__ = __name__ + model.name
+
+    return wrapper

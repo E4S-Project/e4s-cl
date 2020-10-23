@@ -6,7 +6,7 @@ launcher detection, profile loading, and subprocess creation.
 
 import os
 from pathlib import Path
-from argparse import ArgumentTypeError, Namespace
+from argparse import Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util, variables
 from e4s_cl.cli import arguments
@@ -15,28 +15,6 @@ from e4s_cl.model.profile import Profile
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
-
-
-def _argument_profile(string):
-    """Argument type callback.
-    Asserts the entered string matches a defined profile."""
-    profile = Profile.controller().one({'name': string})
-
-    if not profile:
-        raise ArgumentTypeError("Profile {} does not exist".format(string))
-    return profile
-
-
-def _argument_path(string):
-    """Argument type callback.
-    Asserts that the string corresponds to an existing path."""
-    return Path(string.strip()).as_posix()
-
-
-def _argument_path_comma_list(string):
-    """Argument type callback.
-    Asserts that the string corresponds to a list of existing paths."""
-    return [_argument_path(data) for data in string.split(',')]
 
 
 def _parameters(args):
@@ -87,20 +65,20 @@ class LaunchCommand(AbstractCommand):
                                       usage=usage,
                                       description=self.summary)
         parser.add_argument('--profile',
-                            type=_argument_profile,
+                            type=arguments.defined_object(Profile, 'name'),
                             help="Name of the profile to use",
                             default=arguments.SUPPRESS,
                             metavar='profile')
         parser.add_argument('--image',
-                            type=_argument_path,
+                            type=arguments.posix_path,
                             help="Container image to use",
                             metavar='image')
         parser.add_argument('--files',
-                            type=_argument_path_comma_list,
+                            type=arguments.posix_path_list,
                             help="Files to bind, comma-separated",
                             metavar='files')
         parser.add_argument('--libraries',
-                            type=_argument_path_comma_list,
+                            type=arguments.posix_path_list,
                             help="Libraries to bind, comma-separated",
                             metavar='libraries')
         parser.add_argument('--backend',
