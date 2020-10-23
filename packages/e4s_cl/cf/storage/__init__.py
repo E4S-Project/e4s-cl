@@ -1,30 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2015, ParaTools, Inc.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# (1) Redistributions of source code must retain the above copyright notice,
-#     this list of conditions and the following disclaimer.
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-#     this list of conditions and the following disclaimer in the documentation
-#     and/or other materials provided with the distribution.
-# (3) Neither the name of ParaTools, Inc. nor the names of its contributors may
-#     be used to endorse or promote products derived from this software without
-#     specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
 """
 E4S Storage Containers.
 
@@ -34,7 +7,6 @@ The filesystem is accessed via its filesystem prefix (e.g. ``/usr/local/packages
 The key/value store is accessed via the `[]` operator, i.e. treat the storage object like a dictionary.
 """
 
-
 from abc import ABCMeta, abstractmethod
 from e4s_cl.error import Error
 
@@ -42,8 +14,7 @@ from e4s_cl.error import Error
 class StorageError(Error):
     """Indicates a failure in the storage system."""
 
-    message_fmt = ("%(value)s\n"
-                   "%(hints)s\n")
+    message_fmt = ("%(value)s\n" "%(hints)s\n")
 
 
 class StorageRecord(dict):
@@ -80,39 +51,39 @@ class AbstractStorage(object):
     """
 
     __metaclass__ = ABCMeta
-    
+
     Record = StorageRecord
 
     def __init__(self, name):
         self.name = name
-        
+
     def __str__(self):
         return self.name
 
     @abstractmethod
     def __len__(self):
         """Return the number of items in the key/value store."""
-    
-    @abstractmethod    
+
+    @abstractmethod
     def __getitem__(self, key):
         """Retrieve a value from the key/value store."""
-    
+
     @abstractmethod
     def __setitem__(self, key, value):
         """Store a value in the key/value store."""
-        
+
     @abstractmethod
     def __delitem__(self, key):
         """Remove a value from the key/value store."""
-        
+
     @abstractmethod
     def __contains__(self, key):
         """Returns True if ``key`` maps to a value is in the key/value store."""
-        
+
     @abstractmethod
     def __iter__(self):
         """Iterate over keys in the key/value store."""
-    
+
     @abstractmethod
     def iterkeys(self):
         """Iterate over keys in the key/value store."""
@@ -124,7 +95,7 @@ class AbstractStorage(object):
     @abstractmethod
     def iteritems(self):
         """Iterate over items in the key/value store."""
-    
+
     @abstractmethod
     def connect_filesystem(self, *args, **kwargs):
         """Prepares the store filesystem for reading and writing."""
@@ -159,7 +130,7 @@ class AbstractStorage(object):
     @abstractmethod
     def __exit__(self, ex_type, value, traceback):
         """Finalizes the database transaction."""
-        
+
     @abstractmethod
     def table(self, table_name):
         """Return a handle to a table.
@@ -184,7 +155,7 @@ class AbstractStorage(object):
             int: Number of records in the table.
         """
 
-    @abstractmethod    
+    @abstractmethod
     def get(self, keys, table_name=None, match_any=False):
         """Find a single record.
         
@@ -310,7 +281,7 @@ class AbstractStorage(object):
             ValueError: ``bool(keys) == False`` or invaild value for `keys`.
         """
 
-    @abstractmethod      
+    @abstractmethod
     def unset(self, fields, keys, table_name=None, match_any=False):
         """Update records by unsetting fields.
         
@@ -333,7 +304,7 @@ class AbstractStorage(object):
             ValueError: ``bool(keys) == False`` or invaild value for `keys`.
         """
 
-    @abstractmethod        
+    @abstractmethod
     def remove(self, keys, table_name=None, match_any=False):
         """Delete records.
         
@@ -359,5 +330,3 @@ class AbstractStorage(object):
         Args:
             table_name (str): Name of the table to operate on.  See :any:`AbstractStorage.table`.
         """
-
-
