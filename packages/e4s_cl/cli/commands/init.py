@@ -7,6 +7,7 @@ Collection os scripts to setup a default profile and populate it
 import os
 import tempfile
 import subprocess
+import pathlib
 from argparse import ArgumentTypeError, Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
@@ -19,15 +20,12 @@ LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
-def compile_sample():
+def compile_sample(compiler):
     std_in = tempfile.TemporaryFile('w+')
     std_in.write(program)
     std_in.seek(0)
 
-    mpicc = util.which('mpicc')
-    LOGGER.debug("Compiling with %s" % mpicc)
-
-    command = "%s -o sample -lm -x c -" % mpicc
+    command = "%s -o sample -lm -x c -" % compiler
     subprocess.Popen(command.split(), stdin=std_in)
 
 
@@ -52,7 +50,19 @@ class InitCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        compile_sample()
+        compiler = None
+        launcher = None
+
+        if 'mpi' in dir(args):
+            mpicc = pathlib.Path(args.mpi) / "bin" / "mpicc"
+            if mpicc.exists():
+                LOGGER.info("Found %s" % mpicc.as_posix())
+                compiler = mpicc.as_posix()
+        else:
+            compiler = util.which('mpicc')
+            launcher = util.which('mpirun')
+
+        compile_sample(compiler)
 
         return EXIT_SUCCESS
 

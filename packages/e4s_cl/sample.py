@@ -69,12 +69,6 @@ int main(int argc, char **argv) {
   MPI_Reduce(&local_sq_diff, &global_sq_diff, 1, MPI_FLOAT, MPI_SUM, 0,
              MPI_COMM_WORLD);
 
-  // The standard deviation is the square root of the mean of the squared
-  // differences.
-  if (world_rank == 0) {
-    float stddev = sqrt(global_sq_diff / (num_elements_per_proc * world_size));
-  }
-
   // Clean up
   free(rand_nums);
 
