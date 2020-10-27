@@ -5,6 +5,7 @@ Collection os scripts to setup a default profile and populate it
 """
 
 import os
+import json
 import tempfile
 import subprocess
 import pathlib
@@ -41,10 +42,13 @@ class InitCommand(AbstractCommand):
                             help="Path to the mpi library to use",
                             default=arguments.SUPPRESS,
                             metavar='mpi')
-        parser.add_argument('image',
-                            help="Container image to use",
-                            metavar='image',
-                            nargs=arguments.REMAINDER)
+
+        parser.add_argument('--image',
+                            help="Container image to use by default",
+                            metavar='i',
+                            default=arguments.SUPPRESS,
+                            dest='image')
+
         return parser
 
     def main(self, argv):
@@ -63,6 +67,18 @@ class InitCommand(AbstractCommand):
             launcher = util.which('mpirun')
 
         compile_sample(compiler)
+
+        data = {}
+
+        profile_hash = "default-%s" % util.hash256(json.dumps(data))
+
+        profile = Profile.controller().one({"name": profile_hash})
+
+        if not profile:
+            data["name"] = profile_hash
+            profile = Profile.controller().create(data)
+
+        Profile.controller().select(profile)
 
         return EXIT_SUCCESS
 

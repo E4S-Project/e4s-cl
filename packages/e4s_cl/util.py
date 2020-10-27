@@ -37,6 +37,7 @@ import subprocess
 import errno
 import pkgutil
 import pathlib
+import hashlib
 from collections import deque
 from e4s_cl import logger
 from e4s_cl.variables import is_master
@@ -731,3 +732,9 @@ def unrelative(string):
             deps.add(element)
 
     return [p.as_posix() for p in deps]
+
+
+def hash256(string):
+    grinder = hashlib.sha256()
+    grinder.update(string.encode())
+    return grinder.hexdigest()
