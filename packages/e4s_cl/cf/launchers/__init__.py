@@ -13,7 +13,7 @@ from e4s_cl.error import InternalError
 LOGGER = logger.get_logger(__name__)
 
 
-class Parser(object):
+class Parser:
     """
     Default parser.
 
@@ -55,7 +55,7 @@ class Parser(object):
                 to_skip = self.arguments[flag]
 
             # Catch generic --flag=value
-            elif re.match('^--[\-A-Za-z]+=.*$', flag):
+            elif re.match(r'^--[\-A-Za-z]+=.*$', flag):
                 to_skip = 0
 
             else:
@@ -72,10 +72,10 @@ class Parser(object):
 
 LAUNCHERS = {}
 
-for _, module_name, _ in walk_packages(path=__path__, prefix=__name__ + '.'):
-    import_module(name=module_name)
-    for script_name in sys.modules[module_name].SCRIPT_NAMES:
-        LAUNCHERS.update({script_name: module_name})
+for _, _module_name, _ in walk_packages(path=__path__, prefix=__name__ + '.'):
+    import_module(name=_module_name)
+    for script_name in sys.modules[_module_name].SCRIPT_NAMES:
+        LAUNCHERS.update({script_name: _module_name})
 
 
 def parse_cli(cmd):

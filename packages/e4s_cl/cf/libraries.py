@@ -1,3 +1,7 @@
+"""
+Helpers linked to library manipulation
+"""
+
 import re
 import pathlib
 from e4s_cl import logger
@@ -135,6 +139,11 @@ HOST_LIBC = None
 
 
 def libc_version():
+    """
+    Get the version number of the libc available on the host
+    Caches the result
+    """
+
     global HOST_LIBC
 
     if HOST_LIBC:
@@ -145,7 +154,7 @@ def libc_version():
                                      redirect_stdout=True)
     if ret:
         LOGGER.error("Could not determine the libc version")
-        HOST_LIBC = (0, 0)
+        HOST_LIBC = (0, 0, 0)
 
     else:
         HOST_LIBC = extract_libc(out)
