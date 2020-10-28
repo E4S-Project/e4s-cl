@@ -8,7 +8,9 @@ import os
 import re
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
 from e4s_cl.variables import is_master
-from e4s_cl.util import which, opened_files, interpret_launcher, create_subprocess_exp, ldd, host_libraries, flatten
+from e4s_cl.util import which, opened_files, create_subprocess_exp, flatten
+from e4s_cl.cf.libraries import host_libraries, ldd
+from e4s_cl.cf.launchers import interpret
 from e4s_cl.error import UniqueAttributeError
 from e4s_cl.cli import arguments
 from e4s_cl.model.profile import Profile
@@ -107,7 +109,7 @@ class ProfileDetectCommand(AbstractCliView):
         if not args.cmd:
             return EXIT_FAILURE
 
-        launcher, program = interpret_launcher(args.cmd)
+        launcher, program = interpret(args.cmd)
         ldd_requirements = {}
 
         if launcher:

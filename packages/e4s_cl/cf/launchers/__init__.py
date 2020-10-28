@@ -10,8 +10,6 @@ from e4s_cl import logger
 from e4s_cl.util import walk_packages
 from e4s_cl.error import InternalError
 
-LAUNCHERS = {}
-
 LOGGER = logger.get_logger(__name__)
 
 
@@ -72,6 +70,14 @@ class Parser(object):
         return launcher, command[position:]
 
 
+LAUNCHERS = {}
+
+for _, module_name, _ in walk_packages(path=__path__, prefix=__name__ + '.'):
+    import_module(name=module_name)
+    for script_name in sys.modules[module_name].SCRIPT_NAMES:
+        LAUNCHERS.update({script_name: module_name})
+
+
 def parse_cli(cmd):
     """
     Determine if the launcher is supported
@@ -86,7 +92,29 @@ def parse_cli(cmd):
     raise NotImplementedError("Launcher %s is not supported" % script)
 
 
-for _, module_name, _ in walk_packages(path=__path__, prefix=__name__ + '.'):
-    import_module(name=module_name)
-    for script_name in sys.modules[module_name].SCRIPT_NAMES:
-        LAUNCHERS.update({script_name: module_name})
+def interpret(cmd):
+    """Parses a command line to split the launcher command and application commands.
+
+       Args:
+           cmd (list[str]): Command line.
+
+       Returns:
+           tuple: (Launcher command, possibly empty list of application commands).
+       """
+    launcher_cmd = []
+
+    # If '--' appears in the command then everything before it is a launcher + args
+    # and everything after is the application + args
+    if '--' in cmd:
+        idx = cmd.index('--')
+        launcher_cmd, cmd = cmd[:idx], cmd[idx + 1:]
+    elif Path(cmd[0]).name in LAUNCHERS:
+        launcher_cmd, cmd = parse_cli(cmd)
+
+    env_args = environ.get('E4SCL_LAUNCHER_ARGS')
+
+    if launcher_cmd and env_args:
+        launcher_cmd += env_args.split(' ')
+
+    # No launcher command, just an application command
+    return launcher_cmd, cmd

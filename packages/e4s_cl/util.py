@@ -470,37 +470,6 @@ def _iter_modules(paths, prefix):
             yield importer, name, ispkg
 
 
-from e4s_cl.cf.launchers import LAUNCHERS, parse_cli
-
-
-def interpret_launcher(cmd):
-    """Parses a command line to split the launcher command and application commands.
-
-       Args:
-           cmd (list[str]): Command line.
-
-       Returns:
-           tuple: (Launcher command, possibly empty list of application commands).
-       """
-    launcher_cmd = []
-
-    # If '--' appears in the command then everything before it is a launcher + args
-    # and everything after is the application + args
-    if '--' in cmd:
-        idx = cmd.index('--')
-        launcher_cmd, cmd = cmd[:idx], cmd[idx + 1:]
-    elif pathlib.Path(cmd[0]).name in LAUNCHERS:
-        launcher_cmd, cmd = parse_cli(cmd)
-
-    env_args = os.environ.get('E4SCL_LAUNCHER_ARGS')
-
-    if launcher_cmd and env_args:
-        launcher_cmd += env_args.split(' ')
-
-    # No launcher command, just an application command
-    return launcher_cmd, cmd
-
-
 def opened_files(command):
     """
     Use python-ptrace to list open syscalls from the command.
@@ -606,6 +575,9 @@ def unrelative(string):
 
 
 def hash256(string):
+    """
+    Create a hash from a string
+    """
     grinder = hashlib.sha256()
     grinder.update(string.encode())
     return grinder.hexdigest()

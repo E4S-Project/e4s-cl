@@ -7,9 +7,11 @@ launcher detection, profile loading, and subprocess creation.
 import os
 from argparse import Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
-from e4s_cl import logger, util, variables
+from e4s_cl import logger, variables
 from e4s_cl.cli import arguments
+from e4s_cl.util import create_subprocess_exp
 from e4s_cl.cli.command import AbstractCommand
+from e4s_cl.cf.launchers import interpret
 from e4s_cl.model.profile import Profile
 
 LOGGER = logger.get_logger(__name__)
@@ -95,7 +97,7 @@ class LaunchCommand(AbstractCommand):
         if not args.cmd:
             self.parser.error("No command given")
 
-        launcher, program = util.interpret_launcher(args.cmd)
+        launcher, program = interpret(args.cmd)
         execute_command = _format_execute(_parameters(args))
 
         if variables.is_dry_run():
@@ -103,8 +105,7 @@ class LaunchCommand(AbstractCommand):
                         ' '.join(launcher + execute_command + program))
             return EXIT_SUCCESS
 
-        retval, _ = util.create_subprocess_exp(launcher + execute_command +
-                                               program)
+        retval, _ = create_subprocess_exp(launcher + execute_command + program)
 
         return retval
 
