@@ -13,7 +13,6 @@ class ProfileEditTest(tests.TestCase):
             'test01', '--image', 'no image', '--backend', 'bash', '--files',
             *self.files, '--libraries', *self.libraries
         ])
-        self.assertIn('Created a new profile named \'test01\'', stderr)
 
     def tearDown(self):
         self.resetStorage()
