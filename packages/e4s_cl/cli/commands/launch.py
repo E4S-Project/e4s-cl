@@ -5,7 +5,6 @@ launcher detection, profile loading, and subprocess creation.
 """
 
 import os
-from pathlib import Path
 from argparse import Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util, variables

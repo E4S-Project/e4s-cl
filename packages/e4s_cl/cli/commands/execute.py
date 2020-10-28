@@ -10,7 +10,8 @@ from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
 from e4s_cl import logger, variables
-from e4s_cl.util import ldd, libc_version, extract_libc
+from e4s_cl.util import ldd, libc_version
+from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.containers import Container, BackendNotAvailableError
@@ -141,8 +142,7 @@ def overlay_libraries(library_paths, container):
 
     # Resolve linkers actual paths. This now contains paths to all the linkers
     # required to load the entire dependency tree.
-    host_linkers = list(
-        set([os.path.realpath(linker) for linker in set(linkers)]))
+    host_linkers = list({os.path.realpath(linker) for linker in linkers})
 
     # TODO figure out what to do when multiple linkers are required
     if len(host_linkers) != 1:
@@ -184,17 +184,16 @@ def select_libraries(library_paths, container):
         for host, container in zip(host_ver, container_ver):
             if host > container:
                 return True
-            elif container > host:
-                return False
+            return False
         return True
 
     methods = {True: overlay_libraries, False: filter_libraries}
 
     host_precendence = compare_versions(libc_version(), container.libc_version)
 
-    LOGGER.debug("Host libc: %s / Guest libc: %s" %
-                 ('.'.join([str(no) for no in libc_version()]), '.'.join(
-                     [str(no) for no in container.libc_version])))
+    LOGGER.debug("Host libc: %s / Guest libc: %s",
+                 '.'.join([str(no) for no in libc_version()]),
+                 '.'.join([str(no) for no in container.libc_version]))
 
     return methods[host_precendence](library_paths, container)
 
@@ -242,7 +241,7 @@ class ExecuteCommand(AbstractCommand):
 
         try:
             container = Container(executable=args.backend, image=args.image)
-        except BackendNotAvailableError as e:
+        except BackendNotAvailableError:
             self.parser.error("Executable %s not available" % args.backend)
             return EXIT_FAILURE
 

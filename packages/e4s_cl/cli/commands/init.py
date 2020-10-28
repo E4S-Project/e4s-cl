@@ -9,7 +9,6 @@ import json
 import tempfile
 import subprocess
 import pathlib
-from argparse import ArgumentTypeError, Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
@@ -60,7 +59,7 @@ class InitCommand(AbstractCommand):
         if 'mpi' in dir(args):
             mpicc = pathlib.Path(args.mpi) / "bin" / "mpicc"
             if mpicc.exists():
-                LOGGER.info("Found %s" % mpicc.as_posix())
+                LOGGER.info("Found %s", mpicc.as_posix())
                 compiler = mpicc.as_posix()
         else:
             compiler = util.which('mpicc')

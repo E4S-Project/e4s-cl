@@ -1,3 +1,7 @@
+"""
+Entrypoint to the CLI
+"""
+
 import os
 import sys
 import e4s_cl
@@ -26,7 +30,6 @@ class MainCommand(AbstractCommand):
 
     def _construct_parser(self):
         usage = "%s [arguments] <subcommand> [options]" % self.command
-        _green = lambda x: "{:<35}".format(util.color_text(x, 'green'))
         epilog_parts = [
             "",
             cli.commands_description(), "",
@@ -101,7 +104,7 @@ class MainCommand(AbstractCommand):
         # Try to execute as a command
         try:
             return cli.execute_command([cmd], cmd_args)
-        except UnknownCommandError as error:
+        except UnknownCommandError:
             pass
 
         # Not sure what to do at this point, so advise the user and exit
