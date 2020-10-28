@@ -1,6 +1,6 @@
 import pathlib
 from e4s_cl import tests
-from e4s_cl.util import opened_files, which, ldd
+from e4s_cl.util import opened_files, which
 
 
 class UtilTest(tests.TestCase):
@@ -15,8 +15,3 @@ class UtilTest(tests.TestCase):
         self.assertTrue(executable.exists())
         self.assertTrue(executable.is_absolute())
         return executable.as_posix()
-
-    def test_ldd(self):
-        binary = self.test_which()
-        libraries = ldd(binary)
-        self.assertTrue(libraries)

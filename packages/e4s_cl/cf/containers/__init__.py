@@ -10,7 +10,8 @@ import json
 from importlib import import_module
 from pathlib import Path
 from e4s_cl import logger, variables
-from e4s_cl.util import walk_packages, which, extract_libc, unrelative
+from e4s_cl.util import walk_packages, which, unrelative
+from e4s_cl.cf.libraries import extract_libc
 from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)

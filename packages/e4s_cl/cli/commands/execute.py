@@ -10,7 +10,7 @@ from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
 from e4s_cl import logger, variables
-from e4s_cl.util import ldd, libc_version
+from e4s_cl.cf.libraries import ldd, libc_version
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
