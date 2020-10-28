@@ -223,7 +223,10 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
         if is_master() and line:
             logger.handle_error(line)
         elif line:
-            LOGGER.error(line) if retval else LOGGER.warning(line)
+            if retval:
+                LOGGER.error(line)
+            else:
+                LOGGER.warning(line)
 
     LOGGER.debug("%s returned %d", cmd, retval)
 
@@ -445,6 +448,7 @@ def walk_packages(path, prefix):
         if path in dct:
             return True
         dct[path] = True
+        return False
 
     for importer, name, ispkg in _iter_modules(path, prefix):
         yield importer, name, ispkg
@@ -521,6 +525,9 @@ def _parse_line(line):
 
 
 def ldd(binary):
+    """
+    Run ldd on the binary passed as an argument
+    """
     binary = pathlib.Path(binary).as_posix()
 
     command = "%(ldd)s %(binary)s" % {'ldd': which('ldd'), 'binary': binary}
@@ -573,6 +580,9 @@ def interpret_launcher(cmd):
 
 
 def opened_files(command):
+    """
+    Use python-ptrace to list open syscalls from the command.
+    """
     files = []
     debugger = PtraceDebugger()
     command[0] = locateProgram(command[0])
@@ -586,10 +596,10 @@ def opened_files(command):
 
     # Debugger.addProcess also uses logging, setting the level to warning
     # mutes info messages
-    bkpLevel = logger.LOG_LEVEL
+    bkp_level = logger.LOG_LEVEL
     logger.set_log_level('WARNING')
     process = debugger.addProcess(pid, is_attached=True)
-    logger.set_log_level(bkpLevel)
+    logger.set_log_level(bkp_level)
 
     returncode = 0
 
@@ -630,7 +640,7 @@ def opened_files(command):
         if syscall.name == "openat":
             files.append(syscall.arguments[1].getText())
 
-    paths = set([name.strip("'") for name in files])
+    paths = {name.strip("'") for name in files}
     return returncode, [pathlib.Path(p) for p in paths]
 
 
@@ -639,6 +649,10 @@ HOST_LIBRARIES = {}
 
 
 def host_libraries():
+    """
+    Output a dict containing all the libraries available on the host,
+    under the format {soname: path}
+    """
     global HOST_LIBRARIES
 
     if HOST_LIBRARIES:
@@ -655,13 +669,16 @@ def host_libraries():
 
 
 def flatten(nested_list):
+    """Flatten a nested list."""
     return [item for sublist in nested_list for item in sublist]
 
 
 def extract_libc(text):
-    # Extract libc version sumber from the output of ldd --version
-    # We could have used the libc but locating it would require some
-    # container gymnastic, so accessing ldd seemed cleaner.
+    """
+    Extract libc version sumber from the output of ldd --version
+    We could have used the libc but locating it would require some
+    gymnastic, so accessing ldd seemed cleaner.
+    """
 
     # The first line of output is usually:
     # > ldd (<noise with numbers>) x.y
@@ -675,7 +692,7 @@ def extract_libc(text):
         LOGGER.error("Failed to determine host libc version")
         return (0, 0, 0)
 
-    return tuple([int(val) for val in re.findall('\d+', version_string)])
+    return tuple([int(val) for val in re.findall(r'\d+', version_string)])
 
 
 HOST_LIBC = None
@@ -700,13 +717,13 @@ def libc_version():
     return HOST_LIBC
 
 
-def contains(p1, p2):
+def contains(path1, path2):
     """
-    Returns p2 is in the tree of which p1 is the root
+    Returns path2 is in the tree of which path1 is the root
     pathlib's < operator compares alphabetically, so here we are
     """
-    index = len(p1.parts)
-    return p1.parts[:index] == p2.parts[:index]
+    index = len(path1.parts)
+    return path1.parts[:index] == path2.parts[:index]
 
 
 def unrelative(string):
