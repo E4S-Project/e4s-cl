@@ -1,7 +1,11 @@
+"""
+Launch an executable and catch syscalls to determine a list of files. Output it to a profile if asked to.
+"""
+
 import json
-from json import JSONDecodeError
 import pathlib
-import os, re
+import os
+import re
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
 from e4s_cl.variables import is_master
 from e4s_cl.util import which, opened_files, interpret_launcher, create_subprocess_exp, ldd, host_libraries, flatten
@@ -13,7 +17,10 @@ from e4s_cl.cli.cli_view import AbstractCliView
 LOGGER = logger.get_logger(__name__)
 
 
-def filter_files(path_list, ldd_requirements={}):
+def filter_files(path_list, ldd_requirements):
+    """
+    Filter a list of files from syscalls into categories
+    """
     libraries, paths = [], []
 
     # As in `man ld.so`
@@ -40,7 +47,7 @@ def filter_files(path_list, ldd_requirements={}):
             continue
 
         # Process shared objects
-        if re.match(".*\.so.*", path.name):
+        if re.match(r".*\.so.*", path.name):
             if path.name in host_libraries().keys():
                 # The library is in the cache, it can be found using a soname
                 libraries.append(path.as_posix())
@@ -98,7 +105,7 @@ class ProfileDetectCommand(AbstractCliView):
         args = self._parse_args(argv)
 
         if not args.cmd:
-            return
+            return EXIT_FAILURE
 
         launcher, program = interpret_launcher(args.cmd)
         ldd_requirements = {}
@@ -118,7 +125,7 @@ class ProfileDetectCommand(AbstractCliView):
                         data = json.loads(line)
                         file_paths.append(data['files'])
                         library_paths.append(data['libraries'])
-                    except JSONDecodeError:
+                    except json.JSONDecodeError:
                         pass
 
                 files = list(set(flatten(file_paths)))
@@ -145,10 +152,10 @@ class ProfileDetectCommand(AbstractCliView):
                 'files': files,
                 'libraries': libs,
             }))
-            return
+            return EXIT_SUCCESS
 
-        print("\n".join(["Libraries:"] + [lib for lib in libs]))
-        print("\n".join(["Files:"] + [f for f in files]))
+        print("\n".join(["Libraries:"] + libs))
+        print("\n".join(["Files:"] + files))
 
         if args.output:
             data = {'name': args.output, 'libraries': libs, 'files': files}

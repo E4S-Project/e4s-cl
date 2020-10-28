@@ -1,10 +1,16 @@
-import texttable
-from e4s_cl.cli import arguments
+"""
+List the existing profiles in several formats
+"""
+
 from e4s_cl.cli.cli_view import ListCommand
 from e4s_cl.model.profile import Profile
 
 
 class ProfileListCommand(ListCommand):
+    """
+    Abstraction of the ListCommand to define profile specific fields to
+    show in the list.
+    """
     def __init__(self):
         def _count(attr):
             return lambda x: len(x.get(attr, []))
@@ -40,21 +46,6 @@ class ProfileListCommand(ListCommand):
               self).__init__(Profile,
                              __name__,
                              dashboard_columns=dashboard_columns)
-
-    def main(self, argv):
-        """Command program entry point.
-
-        Args:
-            argv (list): Command line arguments.
-
-        Returns:
-            int: Process return code: non-zero if a problem occurred, 0 otherwise
-        """
-        args = self._parse_args(argv)
-
-        retval = super(ProfileListCommand, self).main(argv)
-
-        return retval
 
 
 COMMAND = ProfileListCommand()

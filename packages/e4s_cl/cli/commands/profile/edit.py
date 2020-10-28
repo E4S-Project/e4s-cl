@@ -1,3 +1,7 @@
+"""
+Edit a profile's fields
+"""
+
 from pathlib import Path
 from e4s_cl import EXIT_SUCCESS
 from e4s_cl.cli import arguments
@@ -17,39 +21,46 @@ class ProfileEditCommand(EditCommand):
                                                  prog=self.command,
                                                  usage=usage,
                                                  description=self.summary)
+
         parser.add_argument('--new_name',
                             help="change the profile's name",
                             metavar='<new_name>',
                             dest='new_name',
                             default=arguments.SUPPRESS)
+
         parser.add_argument('--backend',
                             help="change the profile's container technology",
                             metavar='<backend>',
                             dest='backend',
                             default=arguments.SUPPRESS)
+
         parser.add_argument('--image',
                             help="change the profile's image",
                             metavar='<image>',
                             dest='image',
                             default=arguments.SUPPRESS)
+
         parser.add_argument('--add-files',
                             help="Add files to the profile",
                             metavar='<file>',
                             nargs='+',
                             type=arguments.posix_path,
                             default=arguments.SUPPRESS)
+
         parser.add_argument('--remove-files',
                             help="Remove files from the profile",
                             metavar='<file>',
                             nargs='+',
                             type=arguments.posix_path,
                             default=arguments.SUPPRESS)
+
         parser.add_argument('--add-libraries',
                             help="Add libraries to the profile",
                             metavar='<library>',
                             nargs='+',
                             type=arguments.posix_path,
                             default=arguments.SUPPRESS)
+
         parser.add_argument('--remove-libraries',
                             help="Remove libraries from the profile",
                             metavar='<library>',
