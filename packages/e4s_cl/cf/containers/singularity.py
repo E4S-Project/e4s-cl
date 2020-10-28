@@ -1,3 +1,7 @@
+"""
+Module introducing singularity support
+"""
+
 from e4s_cl import logger
 from e4s_cl.util import create_subprocess_exp
 from e4s_cl.cf.libraries import host_libraries
@@ -10,6 +14,9 @@ MIMES = ['simg', 'sif']
 
 
 class SingularityContainer(Container):
+    """
+    Class to use when formatting bound files for a singularity execution
+    """
     def run(self, command, redirect_stdout=False):
         self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
@@ -26,6 +33,9 @@ class SingularityContainer(Container):
         return output
 
     def format_bound(self):
+        """
+        Format a list of files to a compatible bind option of singularity
+        """
         file_list = []
 
         for request in self.bound:
@@ -45,7 +55,7 @@ class SingularityContainer(Container):
         self.env.update({new_key: value})
 
     def _has_nvidia(self):
-        if not 'nvidia' in " ".join(host_libraries().keys()):
+        if 'nvidia' not in " ".join(host_libraries().keys()):
             LOGGER.debug("Disabling Nvidia support: no libraries found")
             return False
         return True

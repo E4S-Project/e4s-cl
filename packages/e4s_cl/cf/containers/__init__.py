@@ -96,15 +96,17 @@ class Container():
         self._linkers = []
 
     def bind_file(self, path, dest=None, options=None):
-        # If there is no destination, handle files with relative paths.
-        # For instance on summit, some files are required as
-        # /jsm_pmix/container/../lib/../bin/file
-        # Although only /jsm_pmix/bin/file is required, not
-        # having jsm_pmix/container && lib makes it error out
-        # unrelative returns a list of all the paths required for such a file
+        """
+        If there is no destination, handle files with relative paths.
+        For instance on summit, some files are required as
+        /jsm_pmix/container/../lib/../bin/file
+        Although only /jsm_pmix/bin/file is required, not
+        having jsm_pmix/container && lib makes it error out
+        unrelative returns a list of all the paths required for such a file
+        """
         if not dest:
-            for path in unrelative(path):
-                self.bound.append((path, None, options))
+            for _path in unrelative(path):
+                self.bound.append((_path, None, options))
         else:
             self.bound.append((path, dest, options))
 
@@ -128,7 +130,12 @@ class Container():
         if self._embarked_libraries:
             return self._embarked_libraries
 
+        # Run a command in the container, in the container-specific
+        # implemented run method
+        # pylint: disable=assignment-from-no-return
         ld_cache = self.run(['ldconfig', '-p'], redirect_stdout=True)
+        # pylint: enable=assignment-from-no-return
+
         lines = ld_cache.split('\n')[1:]
         for line in filter(lambda x: x, lines):
             # line sample:
@@ -214,12 +221,12 @@ class Container():
         return '\n'.join(out)
 
 
-for _, module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
-    import_module(module_name)
-    module = sys.modules[module_name]
+for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
+    import_module(_module_name)
+    _module = sys.modules[_module_name]
 
-    for executable in module.EXECUTABLES:
-        EXECUTABLES.update({executable: module_name})
+    for _executable in _module.EXECUTABLES:
+        EXECUTABLES.update({_executable: _module_name})
 
-    for mimetype in module.MIMES:
-        MIMES.update({mimetype: module_name})
+    for mimetype in _module.MIMES:
+        MIMES.update({mimetype: _module_name})
