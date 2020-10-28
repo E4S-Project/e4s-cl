@@ -1,3 +1,7 @@
+"""
+Controller definition of the MVC architecture
+"""
+
 from e4s_cl import logger
 from e4s_cl.error import InternalError, UniqueAttributeError, ModelError
 
@@ -5,8 +9,9 @@ LOGGER = logger.get_logger(__name__)
 
 # Suppress debugging messages in optimized code
 if __debug__:
-    _heavy_debug = LOGGER.debug   # pylint: disable=invalid-name
+    _heavy_debug = LOGGER.debug  # pylint: disable=invalid-name
 else:
+
     def _heavy_debug(*args, **kwargs):
         # pylint: disable=unused-argument
         pass
@@ -21,17 +26,17 @@ class Controller():
     
     .. _MVC: https://en.wikipedia.org/wiki/Model-view-controller
     """
-    
+
     messages = {}
-    
+
     def __init__(self, model_cls, storage):
         self.model = model_cls
         self.storage = storage
-        
+
     @classmethod
     def push_to_topic(cls, topic, message):
         cls.messages.setdefault(topic, []).append(message)
-        
+
     @classmethod
     def pop_topic(cls, topic):
         return cls.messages.pop(topic, [])
@@ -54,8 +59,11 @@ class Controller():
         Returns:
             list: Models for all records or an empty lists if no records exist.
         """
-        return [self.model(record) for record in self.storage.search(table_name=self.model.name)]
-    
+        return [
+            self.model(record)
+            for record in self.storage.search(table_name=self.model.name)
+        ]
+
     def count(self):
         """Return the number of records.
         
@@ -63,7 +71,7 @@ class Controller():
             int: Effectively ``len(self.all())``
         """
         return self.storage.count(table_name=self.model.name)
-    
+
     def search(self, keys=None):
         """Return records that have all given keys.
         
@@ -73,7 +81,11 @@ class Controller():
         Returns:
             list: Models for records with the given keys or an empty lists if no records have all keys.
         """
-        return [self.model(record) for record in self.storage.search(keys=keys, table_name=self.model.name)]
+        return [
+            self.model(record)
+            for record in self.storage.search(keys=keys,
+                                              table_name=self.model.name)
+        ]
 
     def match(self, field, regex=None, test=None):
         """Return records that have a field matching a regular expression or test function.
@@ -86,8 +98,10 @@ class Controller():
         Returns:
             list: Models for records that have a matching field.
         """
-        return [self.model(record) 
-                for record in self.storage.match(field, table_name=self.model.name, regex=regex, test=test)]
+        return [
+            self.model(record) for record in self.storage.match(
+                field, table_name=self.model.name, regex=regex, test=test)
+        ]
 
     def exists(self, keys):
         """Check if a record exists.
@@ -128,11 +142,15 @@ class Controller():
             KeyError: `attribute` is undefined in the record. 
         """
         if attribute:
-            _heavy_debug("Populating %s(%s)[%s]", model.name, model.eid, attribute)
+            _heavy_debug("Populating %s(%s)[%s]", model.name, model.eid,
+                         attribute)
             return self._populate_attribute(model, attribute, defaults)
 
         _heavy_debug("Populating %s(%s)", model.name, model.eid)
-        return {attr: self._populate_attribute(model, attr, defaults) for attr in model}
+        return {
+            attr: self._populate_attribute(model, attr, defaults)
+            for attr in model
+        }
 
     def _populate_attribute(self, model, attr, defaults):
         try:
@@ -156,10 +174,15 @@ class Controller():
             return foreign.controller(self.storage).one(value)
 
     def _check_unique(self, data, match_any=True):
-        unique = {attr: data[attr] for attr, props in self.model.attributes.items() if 'unique' in props}
-        if unique and self.storage.contains(unique, match_any=match_any, table_name=self.model.name):
+        unique = {
+            attr: data[attr]
+            for attr, props in self.model.attributes.items()
+            if 'unique' in props
+        }
+        if unique and self.storage.contains(
+                unique, match_any=match_any, table_name=self.model.name):
             raise UniqueAttributeError(self.model, unique)
-    
+
     def create(self, data):
         """Atomically store a new record and update associations.
         
@@ -186,7 +209,7 @@ class Controller():
             model.check_compatibility(model)
             model.on_create()
             return model
-    
+
     def update(self, data, keys):
         """Change recorded data and update associations.
         
@@ -212,15 +235,18 @@ class Controller():
             database.update(data, keys, table_name=self.model.name)
             changes = {}
             for model in old_records:
-                changes[model.eid] = {attr: (model.get(attr), new_value) for attr, new_value in data.items()
-                                      if not (attr in model and model.get(attr) == new_value)}
+                changes[model.eid] = {
+                    attr: (model.get(attr), new_value)
+                    for attr, new_value in data.items()
+                    if not (attr in model and model.get(attr) == new_value)
+                }
                 for attr, foreign in self.model.associations.items():
                     try:
                         # 'collection' attribute is iterable
                         new_foreign_keys = set(data[attr])
                     except TypeError:
                         # 'model' attribute is not iterable, so make a tuple
-                        new_foreign_keys = set((data[attr],))
+                        new_foreign_keys = set((data[attr], ))
                     except KeyError:
                         continue
                     try:
@@ -228,7 +254,7 @@ class Controller():
                         old_foreign_keys = set(model[attr])
                     except TypeError:
                         # 'model' attribute is not iterable, so make a tuple
-                        old_foreign_keys = set((model[attr],))
+                        old_foreign_keys = set((model[attr], ))
                     except KeyError:
                         old_foreign_keys = set()
                     foreign_cls, via = foreign
@@ -268,13 +294,17 @@ class Controller():
             database.unset(fields, keys, table_name=self.model.name)
             changes = {}
             for model in old_records:
-                changes[model.eid] = {attr: (model.get(attr), None) for attr in fields if attr in model}
+                changes[model.eid] = {
+                    attr: (model.get(attr), None)
+                    for attr in fields if attr in model
+                }
                 for attr, foreign in self.model.associations.items():
                     if attr in fields:
                         foreign_cls, via = foreign
                         old_foreign_keys = model.get(attr, None)
                         if old_foreign_keys:
-                            self._disassociate(model, foreign_cls, old_foreign_keys, via)
+                            self._disassociate(model, foreign_cls,
+                                               old_foreign_keys, via)
             updated_records = self.search(keys)
             for model in updated_records:
                 model.check_compatibility(model)
@@ -304,21 +334,28 @@ class Controller():
                     foreign_model, via = foreign
                     affected_keys = model.get(attr, None)
                     if affected_keys:
-                        _heavy_debug("Deleting %s(%s) affects '%s' in %s(%s)", 
-                                     self.model.name, model.eid, via, foreign_model.name, affected_keys)
-                        self._disassociate(model, foreign_model, affected_keys, via)
+                        _heavy_debug("Deleting %s(%s) affects '%s' in %s(%s)",
+                                     self.model.name, model.eid, via,
+                                     foreign_model.name, affected_keys)
+                        self._disassociate(model, foreign_model, affected_keys,
+                                           via)
                 for foreign_model, via in model.references:
                     # pylint complains because `model` is changing on every iteration so we'll have
                     # a different lambda function `test` on each iteration.  This is exactly what
-                    # we want so we disble the warning. 
+                    # we want so we disble the warning.
                     # pylint: disable=cell-var-from-loop, undefined-loop-variable
-                    test = lambda x: model.eid in x if isinstance(x, list) else model.eid == x
-                    affected = database.match(via, test=test, table_name=foreign_model.name)
+                    test = lambda x: model.eid in x if isinstance(
+                        x, list) else model.eid == x
+                    affected = database.match(via,
+                                              test=test,
+                                              table_name=foreign_model.name)
                     affected_keys = [record.eid for record in affected]
                     if affected_keys:
-                        _heavy_debug("Deleting %s(%s) affects '%s' in %s(%s)", 
-                                     self.model.name, model.eid, via, foreign_model.name, affected_keys)
-                        self._disassociate(model, foreign_model, affected_keys, via)
+                        _heavy_debug("Deleting %s(%s) affects '%s' in %s(%s)",
+                                     self.model.name, model.eid, via,
+                                     foreign_model.name, affected_keys)
+                        self._disassociate(model, foreign_model, affected_keys,
+                                           via)
                 removed_data.append(dict(model))
             database.remove(keys, table_name=self.model.name)
             for model in changing:
@@ -330,7 +367,7 @@ class Controller():
         
         TODO: Docs
         """
-        
+
     @classmethod
     def export_records(cls, keys=None, eids=None):
         """Export data records.
@@ -375,11 +412,12 @@ class Controller():
                 for attr, foreign in record.associations.items():
                     for foreign_record in foreign[0].search(eids=record[attr]):
                         export_record(foreign_record, root)
+
         all_data = {}
         for record in cls.search(keys, eids):
             export_record(record, record)
         return all_data
-          
+
     def _associate(self, record, foreign_model, affected, via):
         """Associates a record with another record.
         
@@ -388,21 +426,26 @@ class Controller():
             foreign_model (Model): Foreign record's data model.
             affected (list): Identifiers for the records that will be updated to associate with `record`.
             via (str): The name of the associated foreign attribute.
-        """ 
-        _heavy_debug("Adding %s to '%s' in %s(eids=%s)", record.eid, via, foreign_model.name, affected)
+        """
+        _heavy_debug("Adding %s to '%s' in %s(eids=%s)", record.eid, via,
+                     foreign_model.name, affected)
         if not isinstance(affected, list):
             affected = [affected]
         with self.storage as database:
             for key in affected:
-                foreign_record = database.get(key, table_name=foreign_model.name)
+                foreign_record = database.get(key,
+                                              table_name=foreign_model.name)
                 if not foreign_record:
-                    raise ModelError(foreign_model, "No record with ID '%s'" % key)
+                    raise ModelError(foreign_model,
+                                     "No record with ID '%s'" % key)
                 if 'model' in foreign_model.attributes[via]:
                     updated = record.eid
                 elif 'collection' in foreign_model.attributes[via]:
                     updated = list(set(foreign_record[via] + [record.eid]))
                 else:
-                    raise InternalError("%s.%s has neither 'model' nor 'collection'" % (foreign_model.name, via))
+                    raise InternalError(
+                        "%s.%s has neither 'model' nor 'collection'" %
+                        (foreign_model.name, via))
                 foreign_model.controller(database).update({via: updated}, key)
 
     def _disassociate(self, record, foreign_model, affected, via):
@@ -413,25 +456,35 @@ class Controller():
             foreign_model (Model): Foreign record's data model.
             affected (list): Identifiers for the records that will be updated to disassociate from `record`.
             via (str): The name of the associated foreign attribute.
-        """ 
-        _heavy_debug("Removing %s from '%s' in %s(eids=%s)", record.eid, via, foreign_model.name, affected)
+        """
+        _heavy_debug("Removing %s from '%s' in %s(eids=%s)", record.eid, via,
+                     foreign_model.name, affected)
         if not isinstance(affected, list):
             affected = [affected]
         foreign_props = foreign_model.attributes[via]
         if 'model' in foreign_props:
             if 'required' in foreign_props:
-                _heavy_debug("Empty required attr '%s': deleting %s(keys=%s)", via, foreign_model.name, affected)
+                _heavy_debug("Empty required attr '%s': deleting %s(keys=%s)",
+                             via, foreign_model.name, affected)
                 foreign_model.controller(self.storage).delete(affected)
             else:
                 with self.storage as database:
-                    database.unset([via], affected, table_name=foreign_model.name)
+                    database.unset([via],
+                                   affected,
+                                   table_name=foreign_model.name)
         elif 'collection' in foreign_props:
             with self.storage as database:
                 for key in affected:
-                    foreign_record = database.get(key, table_name=foreign_model.name)
-                    updated = list(set(foreign_record[via]) - set([record.eid]))
+                    foreign_record = database.get(
+                        key, table_name=foreign_model.name)
+                    updated = list(
+                        set(foreign_record[via]) - set([record.eid]))
                     if 'required' in foreign_props and len(updated) == 0:
-                        _heavy_debug("Empty required attr '%s': deleting %s(key=%s)", via, foreign_model.name, key)
+                        _heavy_debug(
+                            "Empty required attr '%s': deleting %s(key=%s)",
+                            via, foreign_model.name, key)
                         foreign_model.controller(database).delete(key)
                     else:
-                        database.update({via: updated}, key, table_name=foreign_model.name)
+                        database.update({via: updated},
+                                        key,
+                                        table_name=foreign_model.name)

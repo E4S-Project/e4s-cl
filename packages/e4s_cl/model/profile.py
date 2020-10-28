@@ -1,7 +1,7 @@
-"""Profile data model.
+"""
+Profile data model.
 """
 
-import os
 import pathlib
 from e4s_cl import logger
 from e4s_cl.error import InternalError, ProfileSelectionError
@@ -44,7 +44,7 @@ def homogenize_files(data):
         return
 
     files = data.get('files', [])
-    data['files'] = list(set([pathlib.Path(f).as_posix() for f in files]))
+    data['files'] = list({pathlib.Path(f).as_posix() for f in files})
 
 
 class ProfileController(Controller):

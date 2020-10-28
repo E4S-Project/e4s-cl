@@ -36,8 +36,7 @@ LOGGER = logger.get_logger(__name__)
 
 
 class ModelMeta(type):
-    """Constructs model attributes, configures defaults, and establishes relationships.""" 
-
+    """Constructs model attributes, configures defaults, and establishes relationships."""
     def __new__(mcs, name, bases, dct):
         if dct['__module__'] != __name__:
             # Each Model subclass has its own relationships
@@ -48,10 +47,11 @@ class ModelMeta(type):
             # Model subclasses must define __attributes__ as a callable.
             # We make the callable a staticmethod to prevent method binding.
             try:
-                dct['__attributes__'] = staticmethod(dct['__attributes__']) 
-            except KeyError: 
-                raise InternalError("Model class %s does not define '__attributes__'" % name)
-            # Replace attributes with a callable property (defined below).  This is to guarantee 
+                dct['__attributes__'] = staticmethod(dct['__attributes__'])
+            except KeyError:
+                raise InternalError(
+                    "Model class %s does not define '__attributes__'" % name)
+            # Replace attributes with a callable property (defined below).  This is to guarantee
             # that model attributes won't be constructed until all Model subclasses have been constructed.
             dct['attributes'] = ModelMeta.attributes
             # Replace key_attribute with a callable property (defined below). This is to set
@@ -68,9 +68,12 @@ class ModelMeta(type):
             cls._attributes = cls.__attributes__()
             cls._construct_relationships()
             return cls._attributes
-        
+
     @property
     def key_attribute(cls):
+        """
+        Get the key attribute of a class
+        """
         # pylint: disable=no-value-for-parameter
         try:
             return cls._key_attribute
@@ -80,9 +83,11 @@ class ModelMeta(type):
                     cls._key_attribute = attr
                     break
             else:
-                raise ModelError(cls, "No attribute has the 'primary_key' property set to 'True'")
+                raise ModelError(
+                    cls,
+                    "No attribute has the 'primary_key' property set to 'True'"
+                )
             return cls._key_attribute
-
 
 
 class Model(StorageRecord, metaclass=ModelMeta):
@@ -97,16 +102,16 @@ class Model(StorageRecord, metaclass=ModelMeta):
         
     .. _MVC: https://en.wikipedia.org/wiki/Model-view-controller
     """
-    
+
     __controller__ = Controller
     __attributes__ = NotImplemented
-    
+
     name = None
     associations = {}
     references = set()
     attributes = {}
     key_attribute = None
-    
+
     def __init__(self, record):
         deprecated = [attr for attr in record if attr not in self.attributes]
         if deprecated:
@@ -114,16 +119,20 @@ class Model(StorageRecord, metaclass=ModelMeta):
                 title = "%s '%s'" % (self.name, record[self.key_attribute])
             except (KeyError, ModelError):
                 title = "%s" % self.name
-            LOGGER.debug("Ignorning deprecated attributes %s in %s", deprecated, title)
-        super(Model, self).__init__(record.storage, record.eid, 
-                                    (item for item in record.items() if item[0] not in deprecated))
+            LOGGER.debug("Ignorning deprecated attributes %s in %s",
+                         deprecated, title)
+        super(Model, self).__init__(
+            record.storage, record.eid,
+            (item for item in record.items() if item[0] not in deprecated))
         self._populated = None
-    
+
     def __setitem__(self, key, value):
-        raise InternalError("Use controller(storage).update() to alter records")
- 
+        raise InternalError(
+            "Use controller(storage).update() to alter records")
+
     def __delitem__(self, key):
-        raise InternalError("Use controller(storage).update() to alter records")
+        raise InternalError(
+            "Use controller(storage).update() to alter records")
 
     def get_or_default(self, key):
         """Returns the attribute's value or default value.
@@ -144,12 +153,12 @@ class Model(StorageRecord, metaclass=ModelMeta):
             return self.attributes[key]['default']
 
     def on_create(self):
-        """Callback to be invoked after a new data record is created.""" 
+        """Callback to be invoked after a new data record is created."""
 
-    def on_update(self, changes): 
+    def on_update(self, changes):
         """Callback to be invoked after a data record is updated."""
 
-    def on_delete(self): 
+    def on_delete(self):
         """Callback to be invoked before a data record is deleted."""
 
     def populate(self, attribute=None, defaults=False):
@@ -172,33 +181,45 @@ class Model(StorageRecord, metaclass=ModelMeta):
         if attribute:
             if self._populated is not None and not defaults:
                 return self._populated[attribute]
-            else:
-                return self.controller(self.storage).populate(self, attribute, defaults)
-        else:
-            if self._populated is None:
-                self._populated = self.controller(self.storage).populate(self, attribute, defaults)
-            return self._populated
-    
+            return self.controller(self.storage).populate(
+                self, attribute, defaults)
+
+        if self._populated is None:
+            self._populated = self.controller(self.storage).populate(
+                self, attribute, defaults)
+        return self._populated
+
     @classmethod
     def controller(cls, storage):
         return cls.__controller__(cls, storage)
-    
+
     @classmethod
     def _construct_relationships(cls):
         primary_key = None
         for attr, props in cls.attributes.items():
             model_attr_name = cls.name + "." + attr
             if 'collection' in props and 'via' not in props:
-                raise ModelError(cls, "%s: collection does not define 'via'" % model_attr_name)
-            if 'via' in props and not ('collection' in props or 'model' in props):
-                raise ModelError(cls, "%s: defines 'via' property but not 'model' or 'collection'" % model_attr_name)
+                raise ModelError(
+                    cls,
+                    "%s: collection does not define 'via'" % model_attr_name)
+            if 'via' in props and not ('collection' in props
+                                       or 'model' in props):
+                raise ModelError(
+                    cls,
+                    "%s: defines 'via' property but not 'model' or 'collection'"
+                    % model_attr_name)
             if not isinstance(props.get('unique', False), bool):
-                raise ModelError(cls, "%s: invalid value for 'unique'" % model_attr_name)
+                raise ModelError(
+                    cls, "%s: invalid value for 'unique'" % model_attr_name)
             if not isinstance(props.get('description', ''), str):
-                raise ModelError(cls, "%s: invalid value for 'description'" % model_attr_name)
+                raise ModelError(
+                    cls,
+                    "%s: invalid value for 'description'" % model_attr_name)
             if props.get('primary_key', False):
                 if primary_key is not None:
-                    raise ModelError(cls, "%s: primary key previously specified as %s" % (model_attr_name, primary_key))
+                    raise ModelError(
+                        cls, "%s: primary key previously specified as %s" %
+                        (model_attr_name, primary_key))
                 primary_key = attr
 
             via = props.get('via', None)
@@ -209,8 +230,10 @@ class Model(StorageRecord, metaclass=ModelMeta):
                 if not issubclass(foreign_cls, Model):
                     raise TypeError
             except TypeError:
-                raise ModelError(cls, "%s: Invalid foreign model controller: %r" % (model_attr_name, foreign_cls))
-            
+                raise ModelError(
+                    cls, "%s: Invalid foreign model controller: %r" %
+                    (model_attr_name, foreign_cls))
+
             forward = (foreign_cls, via)
             reverse = (cls, attr)
             if not via:
@@ -221,24 +244,30 @@ class Model(StorageRecord, metaclass=ModelMeta):
                 try:
                     via_props = foreign_cls.attributes[via]
                 except KeyError:
-                    raise ModelError(cls, "%s: 'via' references undefined attribute '%s'" % 
-                                     (model_attr_name, foreign_model_attr_name))
-                via_attr_model = via_props.get('model', via_props.get('collection', None))
+                    raise ModelError(
+                        cls, "%s: 'via' references undefined attribute '%s'" %
+                        (model_attr_name, foreign_model_attr_name))
+                via_attr_model = via_props.get(
+                    'model', via_props.get('collection', None))
                 if not via_attr_model:
-                    raise ModelError(cls, "%s: 'via' on non-model attribute '%s'" %
-                                     (model_attr_name, foreign_model_attr_name))
+                    raise ModelError(
+                        cls, "%s: 'via' on non-model attribute '%s'" %
+                        (model_attr_name, foreign_model_attr_name))
                 if via_attr_model is not cls:
-                    raise ModelError(cls, "Attribute '%s' referenced by 'via' in '%s' "
-                                     "does not define 'collection' or 'model' of type '%s'" %
-                                     (foreign_model_attr_name, attr, cls.name))
+                    raise ModelError(
+                        cls, "Attribute '%s' referenced by 'via' in '%s' "
+                        "does not define 'collection' or 'model' of type '%s'"
+                        % (foreign_model_attr_name, attr, cls.name))
                 try:
                     existing = cls.associations[attr]
                 except KeyError:
                     cls.associations[attr] = forward
                 else:
                     if existing != forward:
-                        raise ModelError(cls, "%s: conflicting associations: '%s' vs. '%s'" % 
-                                         (model_attr_name, existing, forward))
+                        raise ModelError(
+                            cls,
+                            "%s: conflicting associations: '%s' vs. '%s'" %
+                            (model_attr_name, existing, forward))
 
     @classmethod
     def validate(cls, data):
@@ -252,7 +281,7 @@ class Model(StorageRecord, metaclass=ModelMeta):
             
         Raises:
             ModelError: The given data doesn't fit the model.
-        """    
+        """
         if data is None:
             return None
         for key in data:
@@ -265,8 +294,9 @@ class Model(StorageRecord, metaclass=ModelMeta):
                 validated[attr] = data[attr]
             except KeyError:
                 if 'required' in props:
-                    if props['required']: 
-                        raise ModelError(cls, "'%s' is required but was not defined" % attr)
+                    if props['required']:
+                        raise ModelError(
+                            cls, "'%s' is required but was not defined" % attr)
                 elif 'default' in props:
                     validated[attr] = props['default']
             # Check collections
@@ -275,13 +305,17 @@ class Model(StorageRecord, metaclass=ModelMeta):
                 if not value:
                     value = []
                 elif not isinstance(value, list):
-                    raise ModelError(cls, "Value supplied for '%s' is not a list: %r" % (attr, value))
+                    raise ModelError(
+                        cls, "Value supplied for '%s' is not a list: %r" %
+                        (attr, value))
                 else:
                     for eid in value:
                         try:
                             int(eid)
                         except ValueError:
-                            raise ModelError(cls, "Invalid non-integer ID '%s' in '%s'" % (eid, attr))
+                            raise ModelError(
+                                cls, "Invalid non-integer ID '%s' in '%s'" %
+                                (eid, attr))
                 validated[attr] = value
             # Check model associations
             elif 'model' in props:
@@ -291,12 +325,19 @@ class Model(StorageRecord, metaclass=ModelMeta):
                         if int(value) != value:
                             raise ValueError
                     except ValueError:
-                        raise ModelError(cls, "Invalid non-integer ID '%s' in '%s'" % (value, attr))
+                        raise ModelError(
+                            cls, "Invalid non-integer ID '%s' in '%s'" %
+                            (value, attr))
                     validated[attr] = value
         return validated
-    
+
     @classmethod
-    def construct_condition(cls, args, attr_defined=None, attr_undefined=None, attr_eq=None, attr_ne=None):
+    def construct_condition(cls,
+                            args,
+                            attr_defined=None,
+                            attr_undefined=None,
+                            attr_eq=None,
+                            attr_ne=None):
         """Constructs a compatibility condition, see :any:`check_compatibility`.
         
         The returned condition is a callable that accepts four arguments:
@@ -330,36 +371,46 @@ class Model(StorageRecord, metaclass=ModelMeta):
         try:
             checked_value = args[1]
         except IndexError:
+
             def condition(lhs, lhs_attr, lhs_value, rhs):
                 if isinstance(rhs, cls):
                     if rhs_attr in rhs:
                         if attr_defined:
-                            attr_defined(lhs, lhs_attr, lhs_value, rhs, rhs_attr)
+                            attr_defined(lhs, lhs_attr, lhs_value, rhs,
+                                         rhs_attr)
                     else:
                         if attr_undefined:
-                            attr_undefined(lhs, lhs_attr, lhs_value, rhs, rhs_attr)
+                            attr_undefined(lhs, lhs_attr, lhs_value, rhs,
+                                           rhs_attr)
         else:
             if callable(checked_value):
+
                 def condition(lhs, lhs_attr, lhs_value, rhs):
-                    if isinstance(rhs, cls): 
+                    if isinstance(rhs, cls):
                         checked_value(lhs, lhs_attr, lhs_value, rhs, rhs_attr)
             else:
+
                 def condition(lhs, lhs_attr, lhs_value, rhs):
                     if isinstance(rhs, cls):
                         try:
                             rhs_value = rhs[rhs_attr]
                         except KeyError:
                             if attr_undefined:
-                                attr_undefined(lhs, lhs_attr, lhs_value, rhs, rhs_attr)
+                                attr_undefined(lhs, lhs_attr, lhs_value, rhs,
+                                               rhs_attr)
                         else:
                             if attr_eq:
                                 if rhs_value == checked_value:
-                                    attr_eq(lhs, lhs_attr, lhs_value, rhs, rhs_attr, checked_value)
+                                    attr_eq(lhs, lhs_attr, lhs_value, rhs,
+                                            rhs_attr, checked_value)
                             elif attr_ne:
                                 if rhs_value != checked_value:
-                                    attr_ne(lhs, lhs_attr, lhs_value, rhs, rhs_attr, checked_value)
+                                    attr_ne(lhs, lhs_attr, lhs_value, rhs,
+                                            rhs_attr, checked_value)
                             elif attr_defined:
-                                attr_defined(lhs, lhs_attr, lhs_value, rhs, rhs_attr)
+                                attr_defined(lhs, lhs_attr, lhs_value, rhs,
+                                             rhs_attr)
+
         return condition
 
     @classmethod
@@ -387,19 +438,26 @@ class Model(StorageRecord, metaclass=ModelMeta):
             The value of 'have_cheese' will be checked for correctness by 'cheese_callback'::
             
                 CheeseShop.require('have_cheese', cheese_callback)
-        """ 
+        """
         def attr_undefined(lhs, lhs_attr, lhs_value, rhs, rhs_attr):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
-            raise IncompatibleRecordError("%s = %s in %s requires %s be defined in %s but it is undefined" % 
-                                          (lhs_attr, lhs_value, lhs_name, rhs_attr, rhs_name))
+            raise IncompatibleRecordError(
+                "%s = %s in %s requires %s be defined in %s but it is undefined"
+                % (lhs_attr, lhs_value, lhs_name, rhs_attr, rhs_name))
+
         def attr_ne(lhs, lhs_attr, lhs_value, rhs, rhs_attr, checked_value):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
             rhs_value = rhs[rhs_attr]
-            raise IncompatibleRecordError("%s = %s in %s requires %s = %s in %s but it is %s" % 
-                                          (lhs_attr, lhs_value, lhs_name, rhs_attr, checked_value, rhs_name, rhs_value))
-        return cls.construct_condition(args, attr_undefined=attr_undefined, attr_ne=attr_ne)
+            raise IncompatibleRecordError(
+                "%s = %s in %s requires %s = %s in %s but it is %s" %
+                (lhs_attr, lhs_value, lhs_name, rhs_attr, checked_value,
+                 rhs_name, rhs_value))
+
+        return cls.construct_condition(args,
+                                       attr_undefined=attr_undefined,
+                                       attr_ne=attr_ne)
 
     @classmethod
     def encourage(cls, *args):
@@ -430,15 +488,22 @@ class Model(StorageRecord, metaclass=ModelMeta):
         def attr_undefined(lhs, lhs_attr, lhs_value, rhs, rhs_attr):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
-            LOGGER.warning("%s = %s in %s recommends %s be defined in %s but it is undefined",
-                           lhs_attr, lhs_value, lhs_name, rhs_attr, rhs_name)
+            LOGGER.warning(
+                "%s = %s in %s recommends %s be defined in %s but it is undefined",
+                lhs_attr, lhs_value, lhs_name, rhs_attr, rhs_name)
+
         def attr_ne(lhs, lhs_attr, lhs_value, rhs, rhs_attr, checked_value):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
             rhs_value = rhs[rhs_attr]
-            LOGGER.warning("%s = %s in %s recommends %s = %s in %s but it is %s",
-                           lhs_attr, lhs_value, lhs_name, rhs_attr, checked_value, rhs_name, rhs_value)
-        return cls.construct_condition(args, attr_undefined=attr_undefined, attr_ne=attr_ne)
+            LOGGER.warning(
+                "%s = %s in %s recommends %s = %s in %s but it is %s",
+                lhs_attr, lhs_value, lhs_name, rhs_attr, checked_value,
+                rhs_name, rhs_value)
+
+        return cls.construct_condition(args,
+                                       attr_undefined=attr_undefined,
+                                       attr_ne=attr_ne)
 
     @classmethod
     def discourage(cls, *args):
@@ -471,12 +536,17 @@ class Model(StorageRecord, metaclass=ModelMeta):
             rhs_name = rhs.name.lower()
             LOGGER.warning("%s = %s in %s recommends %s be undefined in %s",
                            lhs_attr, lhs_value, lhs_name, rhs_attr, rhs_name)
+
         def attr_eq(lhs, lhs_attr, lhs_value, rhs, rhs_attr, checked_value):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
             LOGGER.warning("%s = %s in %s recommends against %s = %s in %s",
-                           lhs_attr, lhs_value, lhs_name, rhs_attr, checked_value, rhs_name)
-        return cls.construct_condition(args, attr_defined=attr_defined, attr_eq=attr_eq)
+                           lhs_attr, lhs_value, lhs_name, rhs_attr,
+                           checked_value, rhs_name)
+
+        return cls.construct_condition(args,
+                                       attr_defined=attr_defined,
+                                       attr_eq=attr_eq)
 
     @classmethod
     def exclude(cls, *args):
@@ -507,14 +577,21 @@ class Model(StorageRecord, metaclass=ModelMeta):
         def attr_defined(lhs, lhs_attr, lhs_value, rhs, rhs_attr):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
-            raise IncompatibleRecordError("%s = %s in %s requires %s be undefined in %s" %
-                                          (lhs_attr, lhs_value, lhs_name, rhs_attr, rhs_name))
+            raise IncompatibleRecordError(
+                "%s = %s in %s requires %s be undefined in %s" %
+                (lhs_attr, lhs_value, lhs_name, rhs_attr, rhs_name))
+
         def attr_eq(lhs, lhs_attr, lhs_value, rhs, rhs_attr, checked_value):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
-            raise IncompatibleRecordError("%s = %s in %s is incompatible with %s = %s in %s" %
-                                          (lhs_attr, lhs_value, lhs_name, rhs_attr, checked_value, rhs_name))
-        return cls.construct_condition(args, attr_defined=attr_defined, attr_eq=attr_eq)        
+            raise IncompatibleRecordError(
+                "%s = %s in %s is incompatible with %s = %s in %s" %
+                (lhs_attr, lhs_value, lhs_name, rhs_attr, checked_value,
+                 rhs_name))
+
+        return cls.construct_condition(args,
+                                       attr_defined=attr_defined,
+                                       attr_eq=attr_eq)
 
     def check_compatibility(self, rhs):
         """Test this record for compatibility with another record.
@@ -580,7 +657,7 @@ class Model(StorageRecord, metaclass=ModelMeta):
             If ``bob['hungry'] == False`` or if the 'hungry' attribute were not set then all 
             the above expressions do nothing.
         """
-        as_tuple = lambda x: x if isinstance(x, tuple) else (x,)
+        as_tuple = lambda x: x if isinstance(x, tuple) else (x, )
         for attr, props in self.attributes.items():
             try:
                 compat = props['compat']
@@ -591,12 +668,14 @@ class Model(StorageRecord, metaclass=ModelMeta):
             except KeyError:
                 continue
             for value, conditions in compat.items():
-                if (callable(value) and value(attr_value)) or attr_value == value: 
+                if (callable(value)
+                        and value(attr_value)) or attr_value == value:
                     for condition in as_tuple(conditions):
                         condition(self, attr, attr_value, rhs)
 
     @classmethod
     def filter_arguments(cls, args):
         from e4s_cl.cli.arguments import ArgumentsNamespace
-        filtered = dict(item for item in vars(args).items() if item[0] in cls.attributes)
+        filtered = dict(item for item in vars(args).items()
+                        if item[0] in cls.attributes)
         return ArgumentsNamespace(**filtered)
