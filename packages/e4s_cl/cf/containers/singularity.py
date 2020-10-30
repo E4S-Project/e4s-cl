@@ -10,7 +10,7 @@ from e4s_cl.cf.containers import Container
 LOGGER = logger.get_logger(__name__)
 
 EXECUTABLES = ['singularity']
-MIMES = ['simg', 'sif']
+MIMES = ['.simg', '.sif']
 
 
 class SingularityContainer(Container):
