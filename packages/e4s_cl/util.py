@@ -557,6 +557,7 @@ def unrelative(string):
     visited = set()
     deps = set()
 
+    visited.add(path)
     visited.add(path.resolve())
     for i in range(0, len(path.parts)):
         if path.parts[i] == '..':
