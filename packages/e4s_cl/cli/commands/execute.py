@@ -180,22 +180,29 @@ def select_libraries(library_paths, container):
     binaries, they expect a minimal version of libc. It is fine to run with
     a newer libc, but very hazardous to run with an older one.
     """
+
+    HOST_NEWER = True
+    GUEST_NEWER = False
+    
     def compare_versions(host_ver, container_ver):
         for host, container in zip(host_ver, container_ver):
             if host > container:
-                return True
-            return False
-        return True
+                return HOST_NEWER
+            elif host < container:
+                return GUEST_NEWER
 
-    methods = {True: overlay_libraries, False: filter_libraries}
+        # By default, better to overlay
+        return HOST_NEWER
 
-    host_precendence = compare_versions(libc_version(), container.libc_version)
+    methods = {HOST_NEWER: overlay_libraries, GUEST_NEWER: filter_libraries}
 
-    LOGGER.debug("Host libc: %s / Guest libc: %s",
+    host_precedence = compare_versions(libc_version(), container.libc_version)
+
+    LOGGER.debug("Host libc: %s / Guest libc: %s, %s",
                  '.'.join([str(no) for no in libc_version()]),
-                 '.'.join([str(no) for no in container.libc_version]))
+                 '.'.join([str(no) for no in container.libc_version]), host_precedence)
 
-    return methods[host_precendence](library_paths, container)
+    return methods[host_precedence](library_paths, container)
 
 
 class ExecuteCommand(AbstractCommand):
