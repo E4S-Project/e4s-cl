@@ -19,8 +19,9 @@ LOGGER = logger.get_logger(__name__)
 # List of available modules, accessible by their "executable" or cli tool names
 EXECUTABLES = {}
 
-# Not used yet, can be used to identify backends by the image's suffix
-MIMES = {}
+# Used to identify backends by the image's suffix
+# list of tuples containing (suffix, backend_name)
+MIMES = []
 
 
 class BackendNotAvailableError(InternalError):
@@ -221,6 +222,18 @@ class Container():
         return '\n'.join(out)
 
 
+def guess_backend(path):
+    suffix = Path(path).suffix
+
+    matches = list(filter(lambda x: x[0] == suffix, MIMES))
+
+    # If we cannot associate a unique backend to a MIME
+    if len(matches) != 1:
+        return
+
+    return matches[0][1]
+
+
 for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
     import_module(_module_name)
     _module = sys.modules[_module_name]
@@ -229,4 +242,4 @@ for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
         EXECUTABLES.update({_executable: _module_name})
 
     for mimetype in _module.MIMES:
-        MIMES.update({mimetype: _module_name})
+        MIMES.append((mimetype, _module_name))
