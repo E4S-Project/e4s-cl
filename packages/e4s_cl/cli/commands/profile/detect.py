@@ -160,12 +160,25 @@ class ProfileDetectCommand(AbstractCliView):
         print("\n".join(["Files:"] + files))
 
         if args.output:
-            data = {'name': args.output, 'libraries': libs, 'files': files}
+            controller = Profile.controller()
+            identifier = {'name': args.output}
+            profile = controller.one(identifier)
+
+            if not profile:
+                try:
+                    profile = controller.create(identifier)
+                except Exception as e:  #TODO check what errors can be handled here
+                    LOGGER.debug(str(e))
+                    LOGGER.error("Profile creation failed.")
+                    return EXIT_FAILURE
+
+            data = {'libraries': libs, 'files': files}
             try:
-                Profile.controller().create(data)
-            except UniqueAttributeError:
-                self.parser.error("A profile named '%s' already exists." %
-                                  args.output)
+                controller.update(data, identifier)
+            except Exception as e:  # TODO same as above
+                LOGGER.debug(str(e))
+                LOGGER.error("Profile update failed.")
+                return EXIT_FAILURE
 
         return EXIT_SUCCESS
 
