@@ -242,4 +242,4 @@ for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
         EXECUTABLES.update({_executable: _module_name})
 
     for mimetype in _module.MIMES:
-        MIMES.append((mimetype, _module_name))
+        MIMES.append((mimetype, _module.NAME))

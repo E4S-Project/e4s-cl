@@ -5,6 +5,7 @@ Dummy backend used to run false containers using bash
 from e4s_cl.util import create_subprocess_exp
 from e4s_cl.cf.containers import Container
 
+NAME = 'dummy'
 EXECUTABLES = ['bash']
 MIMES = ['e4s_cl_test']
 
