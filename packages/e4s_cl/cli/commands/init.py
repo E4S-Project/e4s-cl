@@ -56,6 +56,12 @@ class InitCommand(AbstractCommand):
                             default=arguments.SUPPRESS,
                             dest='backend')
 
+        parser.add_argument('--launcher',
+                            help="Launcher required tot run the mpi program",
+                            metavar='launcher',
+                            default=arguments.SUPPRESS,
+                            dest='launcher')
+
         return parser
 
     def create_profile(self, args):
@@ -90,13 +96,16 @@ class InitCommand(AbstractCommand):
         if getattr(args, 'mpi', None):
             mpicc = pathlib.Path(args.mpi) / "bin" / "mpicc"
             if mpicc.exists():
-                LOGGER.info("Found %s", mpicc.as_posix())
                 compiler = mpicc.as_posix()
             mpirun = pathlib.Path(args.mpi) / "bin" / "mpirun"
             if mpirun.exists():
-                LOGGER.info("Found %s", mpirun.as_posix())
                 launcher = mpirun.as_posix()
 
+        if getattr(args, 'launcher', None):
+            launcher = util.which(args.launcher)
+
+        LOGGER.debug("Using MPI programs:\nCompiler: %s\nLauncher %s",
+                     compiler, launcher)
         compile_sample(compiler)
 
         arguments = [launcher, './sample']
