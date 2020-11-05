@@ -92,10 +92,11 @@ class ProfileDetectCommand(AbstractCliView):
                                       usage=usage,
                                       description=self.summary)
 
-        parser.add_argument('-o',
-                            '--output',
+        parser.add_argument('-p',
+                            '--profile',
                             help="Output profile",
-                            metavar='output')
+                            dest='profile_name',
+                            metavar='profile_name')
 
         parser.add_argument('cmd',
                             help="Executable command, e.g. './a.out'",
@@ -156,12 +157,10 @@ class ProfileDetectCommand(AbstractCliView):
             }))
             return EXIT_SUCCESS
 
-        print("\n".join(["Libraries:"] + libs))
-        print("\n".join(["Files:"] + files))
-
-        if args.output:
-            controller = Profile.controller()
-            identifier = {'name': args.output}
+        # Save the resuling list to a profile
+        controller = Profile.controller()
+        if args.profile_name:
+            identifier = {'name': args.profile_name}
             profile = controller.one(identifier)
 
             if not profile:
@@ -171,14 +170,23 @@ class ProfileDetectCommand(AbstractCliView):
                     LOGGER.debug(str(e))
                     LOGGER.error("Profile creation failed.")
                     return EXIT_FAILURE
+        else:
+            profile = controller.selected()
 
-            data = {'libraries': libs, 'files': files}
-            try:
-                controller.update(data, identifier)
-            except Exception as e:  # TODO same as above
-                LOGGER.debug(str(e))
-                LOGGER.error("Profile update failed.")
+            if not profile:
+                LOGGER.error(
+                    "No output profile selected or given as an argument.")
                 return EXIT_FAILURE
+
+            identifier = {'name': profile.get('name')}
+
+        data = {'libraries': libs, 'files': files}
+        try:
+            controller.update(data, identifier)
+        except Exception as e:  # TODO same as above
+            LOGGER.debug(str(e))
+            LOGGER.error("Profile update failed.")
+            return EXIT_FAILURE
 
         return EXIT_SUCCESS
 
