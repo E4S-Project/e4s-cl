@@ -15,6 +15,7 @@ from e4s_cl.cli import arguments
 from e4s_cl.cf.containers import guess_backend
 from e4s_cl.sample import program
 from e4s_cl.cli.command import AbstractCommand
+from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
 from e4s_cl.model.profile import Profile
 
 LOGGER = logger.get_logger(__name__)
@@ -83,19 +84,23 @@ class InitCommand(AbstractCommand):
 
         self.create_profile(args)
 
-        compiler = None
-        launcher = None
+        compiler = util.which('mpicc')
+        launcher = util.which('mpirun')
 
         if getattr(args, 'mpi', None):
             mpicc = pathlib.Path(args.mpi) / "bin" / "mpicc"
             if mpicc.exists():
                 LOGGER.info("Found %s", mpicc.as_posix())
                 compiler = mpicc.as_posix()
-        else:
-            compiler = util.which('mpicc')
-            launcher = util.which('mpirun')
+            mpirun = pathlib.Path(args.mpi) / "bin" / "mpirun"
+            if mpirun.exists():
+                LOGGER.info("Found %s", mpirun.as_posix())
+                launcher = mpirun.as_posix()
 
         compile_sample(compiler)
+
+        arguments = [launcher, './sample']
+        detect_command.main(arguments)
 
         return EXIT_SUCCESS
 
