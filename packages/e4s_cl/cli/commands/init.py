@@ -12,6 +12,7 @@ import pathlib
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
+from e4s_cl.cf.containers import guess_backend
 from e4s_cl.sample import program
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.model.profile import Profile
@@ -44,19 +45,48 @@ class InitCommand(AbstractCommand):
 
         parser.add_argument('--image',
                             help="Container image to use by default",
-                            metavar='i',
+                            metavar='path',
                             default=arguments.SUPPRESS,
                             dest='image')
 
+        parser.add_argument('--backend',
+                            help="Container backend to use by default",
+                            metavar='technology',
+                            default=arguments.SUPPRESS,
+                            dest='backend')
+
         return parser
+
+    def create_profile(self, args):
+        data = {}
+
+        if getattr(args, 'image', None):
+            data['image'] = args.image
+
+        if getattr(args, 'backend', None):
+            data['backend'] = args.backend
+        elif getattr(args, 'image', None) and guess_backend(args.image):
+            data['backend'] = guess_backend(args.image)
+
+        self.profile_hash = "default-%s" % util.hash256(json.dumps(data))
+
+        profile = Profile.controller().one({"name": self.profile_hash})
+
+        if not profile:
+            data["name"] = self.profile_hash
+            profile = Profile.controller().create(data)
+
+        Profile.controller().select(profile)
 
     def main(self, argv):
         args = self._parse_args(argv)
 
+        self.create_profile(args)
+
         compiler = None
         launcher = None
 
-        if 'mpi' in dir(args):
+        if getattr(args, 'mpi', None):
             mpicc = pathlib.Path(args.mpi) / "bin" / "mpicc"
             if mpicc.exists():
                 LOGGER.info("Found %s", mpicc.as_posix())
@@ -66,18 +96,6 @@ class InitCommand(AbstractCommand):
             launcher = util.which('mpirun')
 
         compile_sample(compiler)
-
-        data = {}
-
-        profile_hash = "default-%s" % util.hash256(json.dumps(data))
-
-        profile = Profile.controller().one({"name": profile_hash})
-
-        if not profile:
-            data["name"] = profile_hash
-            profile = Profile.controller().create(data)
-
-        Profile.controller().select(profile)
 
         return EXIT_SUCCESS
 
