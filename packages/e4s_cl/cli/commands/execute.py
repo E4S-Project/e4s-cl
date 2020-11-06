@@ -218,6 +218,11 @@ class ExecuteCommand(AbstractCommand):
                             help="Libraries to bind, comma-separated",
                             metavar='libraries')
 
+        parser.add_argument('--source',
+                            type=arguments.existing_posix_path,
+                            help="Script to source",
+                            metavar='libraries')
+
         parser.add_argument('cmd',
                             type=str,
                             help="Executable command, e.g. './a.out'",
@@ -251,7 +256,12 @@ class ExecuteCommand(AbstractCommand):
             LOGGER.info("Running %s in container %s", args.cmd, container)
             return EXIT_SUCCESS
 
-        container.run(args.cmd, redirect_stdout=False)
+        script = template.setUp(args.cmd, HOST_LIBS_DIR, args.source)
+
+        container.run([script], redirect_stdout=False)
+
+        template.tearDown(script)
+
         return EXIT_SUCCESS
 
 
