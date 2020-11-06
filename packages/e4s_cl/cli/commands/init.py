@@ -22,12 +22,12 @@ LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
-def compile_sample(compiler):
+def compile_sample(compiler, destination):
     std_in = tempfile.TemporaryFile('w+')
     std_in.write(program)
     std_in.seek(0)
 
-    command = "%s -o sample -lm -x c -" % compiler
+    command = "%s -o %s -lm -x c -" % (compiler, destination)
     subprocess.Popen(command.split(), stdin=std_in)
 
 
@@ -92,6 +92,8 @@ class InitCommand(AbstractCommand):
 
         compiler = util.which('mpicc')
         launcher = util.which('mpirun')
+        program = tempfile.NamedTemporaryFile('w+', delete=False)
+        program.close()
 
         if getattr(args, 'mpi', None):
             mpicc = pathlib.Path(args.mpi) / "bin" / "mpicc"
@@ -106,9 +108,9 @@ class InitCommand(AbstractCommand):
 
         LOGGER.debug("Using MPI programs:\nCompiler: %s\nLauncher %s",
                      compiler, launcher)
-        compile_sample(compiler)
+        compile_sample(compiler, program.name)
 
-        arguments = [launcher, './sample']
+        arguments = [launcher, program.name]
         detect_command.main(arguments)
 
         return EXIT_SUCCESS
