@@ -36,6 +36,10 @@ def attributes():
             'type': 'string',
             'description': 'libraries to bind',
         },
+        'source': {
+            'type': 'string',
+            'description': 'script to source',
+        },
     }
 
 
