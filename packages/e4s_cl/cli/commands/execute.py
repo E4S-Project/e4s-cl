@@ -8,36 +8,18 @@ argument.
 import os
 from pathlib import Path
 from argparse import ArgumentTypeError
-from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT
-from e4s_cl import logger, variables
-from e4s_cl.cf.libraries import ldd, libc_version
+from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
+from e4s_cl.cf import template
 from e4s_cl.cf.containers import Container, BackendNotAvailableError
+from e4s_cl.cf.libraries import ldd, libc_version
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
 
 HOST_LIBS_DIR = Path('/hostlibs/').as_posix()
-
-
-def _argument_path(string):
-    """Argument type callback.
-    Asserts that the string corresponds to an existing path."""
-    path = Path(string.strip())
-
-    if not path.exists():
-        raise ArgumentTypeError("File {} does not exist".format(
-            path.as_posix()))
-
-    return path
-
-
-def _argument_path_comma_list(string):
-    """Argument type callback.
-    Asserts that the string corresponds to a list of existing paths."""
-    return [_argument_path(data) for data in string.split(',')]
 
 
 def import_library(shared_object_path, container):
@@ -183,7 +165,7 @@ def select_libraries(library_paths, container):
 
     HOST_NEWER = True
     GUEST_NEWER = False
-    
+
     def compare_versions(host_ver, container_ver):
         for host, container in zip(host_ver, container_ver):
             if host > container:
@@ -200,7 +182,8 @@ def select_libraries(library_paths, container):
 
     LOGGER.debug("Host libc: %s / Guest libc: %s, %s",
                  '.'.join([str(no) for no in libc_version()]),
-                 '.'.join([str(no) for no in container.libc_version]), host_precedence)
+                 '.'.join([str(no)
+                           for no in container.libc_version]), host_precedence)
 
     return methods[host_precedence](library_paths, container)
 
@@ -220,18 +203,18 @@ class ExecuteCommand(AbstractCommand):
                             metavar='executable')
 
         parser.add_argument('--image',
-                            type=_argument_path,
+                            type=arguments.existing_posix_path,
                             required=True,
                             help="Container image to use",
                             metavar='image')
 
         parser.add_argument('--files',
-                            type=_argument_path_comma_list,
+                            type=arguments.existing_posix_path_list,
                             help="Files to bind, comma-separated",
                             metavar='files')
 
         parser.add_argument('--libraries',
-                            type=_argument_path_comma_list,
+                            type=arguments.existing_posix_path_list,
                             help="Libraries to bind, comma-separated",
                             metavar='libraries')
 
