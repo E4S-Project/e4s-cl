@@ -252,15 +252,18 @@ class ExecuteCommand(AbstractCommand):
         if logger.debug_mode():
             container.bind_env_var('LD_DEBUG', 'files')
 
+        script_name = template.setUp(args.cmd, HOST_LIBS_DIR, args.source)
+
+        command = [script_name]
+
         if variables.is_dry_run():
-            LOGGER.info("Running %s in container %s", args.cmd, container)
+            LOGGER.info("Running %s in container %s", command, container)
+            template.tearDown(script_name)
             return EXIT_SUCCESS
 
-        script = template.setUp(args.cmd, HOST_LIBS_DIR, args.source)
+        container.run(command, redirect_stdout=False)
 
-        container.run([script], redirect_stdout=False)
-
-        template.tearDown(script)
+        template.tearDown(script_name)
 
         return EXIT_SUCCESS
 

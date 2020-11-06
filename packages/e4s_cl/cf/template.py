@@ -1,5 +1,8 @@
 import os, stat
 import tempfile
+from e4s_cl import logger
+
+LOGGER = logger.get_logger(__name__)
 
 TEMPLATE = """#!/bin/bash -i
 # The shell need to be interactive for spack commands
@@ -13,6 +16,7 @@ export LD_LIBRARY_PATH=%s:$LD_LIBRARY_PATH
 
 %s
 """
+
 
 def setUp(command, libdir, setup=None):
     if setup:
@@ -29,7 +33,11 @@ def setUp(command, libdir, setup=None):
 
     os.chmod(script.name, 0o755)
 
+    LOGGER.debug("Running templated script:\n" + TEMPLATE, setup_line, libdir,
+                 command)
+
     return script.name
+
 
 def tearDown(file_name):
     if os.path.exists(file_name):
