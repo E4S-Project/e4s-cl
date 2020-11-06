@@ -739,7 +739,7 @@ def existing_posix_path(string):
     path = pathlib.Path(string.strip())
 
     if not path.exists():
-        raise ArgumentTypeError("File {} does not exist".format(
+        raise argparse.ArgumentTypeError("File {} does not exist".format(
             path.as_posix()))
 
     return path
