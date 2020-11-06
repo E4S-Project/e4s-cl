@@ -101,8 +101,7 @@ class LaunchCommand(AbstractCommand):
         execute_command = _format_execute(_parameters(args))
 
         if variables.is_dry_run():
-            LOGGER.info("Running %s",
-                        ' '.join(launcher + execute_command + program))
+            print(' '.join(launcher + execute_command + program))
             return EXIT_SUCCESS
 
         retval, _ = create_subprocess_exp(launcher + execute_command + program)
