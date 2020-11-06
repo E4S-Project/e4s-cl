@@ -1,8 +1,9 @@
 import os, stat
 import tempfile
 
-TEMPLATE = """#!/bin/bash -i # interactive for spack commands
-               # see https://github.com/spack/spack/issues/11098
+TEMPLATE = """#!/bin/bash -i
+# The shell need to be interactive for spack commands
+# see https://github.com/spack/spack/issues/11098
 
 %s
 
@@ -26,7 +27,7 @@ def setUp(command, libdir, setup=None):
     script.write(TEMPLATE % (setup_line, libdir, command))
     script.close()
 
-    os.chmod(script.name, stat.S_IXUSR)
+    os.chmod(script.name, 0o755)
 
     return script.name
 
