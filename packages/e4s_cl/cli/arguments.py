@@ -728,8 +728,27 @@ def posix_path(string):
 
 def posix_path_list(string):
     """Argument type callback.
-    Asserts that the string corresponds to a list of existing paths."""
+    Asserts that the string corresponds to a list of paths."""
     return [posix_path(data) for data in string.split(',')]
+
+
+def existing_posix_path(string):
+    """
+    Argument type callback.
+    Returns a posix-compliant path if it exists."""
+    path = pathlib.Path(string.strip())
+
+    if not path.exists():
+        raise argparse.ArgumentTypeError("File {} does not exist".format(
+            path.as_posix()))
+
+    return path
+
+
+def existing_posix_path_list(string):
+    """Argument type callback.
+    Asserts that the string corresponds to a list of existing paths."""
+    return [existing_posix_path(data) for data in string.split(',')]
 
 
 def defined_object(model, field):

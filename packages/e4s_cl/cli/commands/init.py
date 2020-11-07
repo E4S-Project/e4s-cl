@@ -40,9 +40,15 @@ class InitCommand(AbstractCommand):
                                       description=self.summary)
         parser.add_argument('--mpi',
                             type=arguments.posix_path,
-                            help="Path to the mpi library to use",
+                            help="Path of the MPI library to use",
                             default=arguments.SUPPRESS,
                             metavar='mpi')
+
+        parser.add_argument('--source',
+                            help="Script to source before execution",
+                            metavar='script',
+                            default=arguments.SUPPRESS,
+                            dest='source')
 
         parser.add_argument('--image',
                             help="Container image to use by default",
@@ -57,7 +63,7 @@ class InitCommand(AbstractCommand):
                             dest='backend')
 
         parser.add_argument('--launcher',
-                            help="Launcher required tot run the mpi program",
+                            help="Launcher required to run the MPI program",
                             metavar='launcher',
                             default=arguments.SUPPRESS,
                             dest='launcher')
@@ -74,6 +80,9 @@ class InitCommand(AbstractCommand):
             data['backend'] = args.backend
         elif getattr(args, 'image', None) and guess_backend(args.image):
             data['backend'] = guess_backend(args.image)
+
+        if getattr(args, 'source', None):
+            data['source'] = args.source
 
         self.profile_hash = "default-%s" % util.hash256(json.dumps(data))
 
