@@ -43,6 +43,12 @@ class ProfileCreateCommand(CreateCommand):
                             default=arguments.SUPPRESS,
                             dest='image')
 
+        parser.add_argument('--source',
+                            help="Script to source before running the program",
+                            metavar='script',
+                            default=arguments.SUPPRESS,
+                            dest='source')
+
         return parser
 
 

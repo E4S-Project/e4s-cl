@@ -40,6 +40,12 @@ class ProfileEditCommand(EditCommand):
                             dest='image',
                             default=arguments.SUPPRESS)
 
+        parser.add_argument('--source',
+                            help="change the profile's setup script",
+                            metavar='<script>',
+                            dest='source',
+                            default=arguments.SUPPRESS)
+
         parser.add_argument('--add-files',
                             help="Add files to the profile",
                             metavar='<file>',
@@ -116,6 +122,7 @@ class ProfileEditCommand(EditCommand):
         updates['name'] = getattr(args, 'new_name', profile.get('name'))
         updates['backend'] = getattr(args, 'backend', profile.get('backend'))
         updates['image'] = getattr(args, 'image', profile.get('image'))
+        updates['source'] = getattr(args, 'source', profile.get('source'))
 
         added = self._parse_add_args(args, updates)
         removed = self._parse_remove_args(args, updates)
