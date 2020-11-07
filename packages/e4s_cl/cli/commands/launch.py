@@ -45,7 +45,7 @@ def _format_execute(parameters):
     if logger.debug_mode():
         execute_command = [execute_command[0], '-v'] + execute_command[1:]
 
-    for attr in ['image', 'backend']:
+    for attr in ['image', 'backend', 'source']:
         if parameters.get(attr, None):
             execute_command += ["--{}".format(attr), parameters[attr]]
 
@@ -70,21 +70,31 @@ class LaunchCommand(AbstractCommand):
                             help="Name of the profile to use",
                             default=arguments.SUPPRESS,
                             metavar='profile')
+
         parser.add_argument('--image',
                             type=arguments.posix_path,
                             help="Container image to use",
                             metavar='image')
+
+        parser.add_argument('--source',
+                            type=arguments.posix_path,
+                            help="Script to source",
+                            metavar='source')
+
         parser.add_argument('--files',
                             type=arguments.posix_path_list,
                             help="Files to bind, comma-separated",
                             metavar='files')
+
         parser.add_argument('--libraries',
                             type=arguments.posix_path_list,
                             help="Libraries to bind, comma-separated",
                             metavar='libraries')
+
         parser.add_argument('--backend',
                             help="Container backend to use",
                             metavar='solution')
+
         parser.add_argument('cmd',
                             help="Executable command, e.g. './a.out'",
                             metavar='command',
@@ -100,11 +110,13 @@ class LaunchCommand(AbstractCommand):
         launcher, program = interpret(args.cmd)
         execute_command = _format_execute(_parameters(args))
 
+        full_command = launcher + execute_command + program
+
         if variables.is_dry_run():
-            print(' '.join(launcher + execute_command + program))
+            print(' '.join(full_command))
             return EXIT_SUCCESS
 
-        retval, _ = create_subprocess_exp(launcher + execute_command + program)
+        retval, _ = create_subprocess_exp(full_command)
 
         return retval
 
