@@ -41,7 +41,10 @@ def filter_files(path_list, ldd_requirements):
     ]
 
     for path in path_list:
-        if not path.exists() or path.is_dir():
+        try:
+            if not path.exists() or path.is_dir():
+                continue
+        except PermissionError:
             continue
 
         # Discard the linker cache
