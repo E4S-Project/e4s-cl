@@ -4,7 +4,6 @@ Cancel the selection of a profile
 
 from e4s_cl import EXIT_SUCCESS
 from e4s_cl.cli import arguments
-from e4s_cl.error import ProfileSelectionError
 from e4s_cl.model.profile import Profile
 from e4s_cl.cli.command import AbstractCommand
 
@@ -16,28 +15,22 @@ class ProfileUnselectCommand(AbstractCommand):
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
-        parser.add_argument('name',
-                            help="Profile name",
+        parser.add_argument('profile',
                             nargs='?',
-                            metavar='<profile_name>',
-                            default=None)
+                            type=arguments.defined_object(Profile, 'name'),
+                            help="Name of the profile to unselect",
+                            default=Profile.selected().get('name', arguments.UNSELECTED),
+                            metavar="profile_name")
         return parser
 
     def main(self, argv):
         args = self._parse_args(argv)
-        profile_ctrl = Profile.controller()
 
-        try:
-            selected = profile_ctrl.selected()
-        except ProfileSelectionError:
-            self.parser.error("No profile selected.")
-
-        if args.name:
-            if selected['name'] != args.name:
+        if args.profile.get('name') != Profile.selected().get('name'):
                 self.parser.error("Profile {} is not selected.".format(
-                    args.name))
+                    args.profile.get('name')))
 
-        profile_ctrl.unselect()
+        Profile.controller().unselect()
         return EXIT_SUCCESS
 
 
