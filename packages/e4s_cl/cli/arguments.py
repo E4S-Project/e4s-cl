@@ -29,6 +29,8 @@ SUPPRESS = argparse.SUPPRESS
 REMAINDER = argparse.REMAINDER
 """All the remaining command-line arguments are gathered into a list."""
 
+UNSELECTED = "==NOT_SELECTED=="
+
 STORAGE_LEVEL_FLAG = "@"
 """Command line flag that indicates storage level."""
 
@@ -755,6 +757,10 @@ def defined_object(model, field):
     """Argument type callback.
     Asserts that the string corresponds to an existing object."""
     def wrapper(string):
+        if string == UNSELECTED:
+            raise argparse.ArgumentTypeError("no %s selected nor specified" %
+                                             model.name)
+
         _object = model.controller().one({field: string})
 
         if not _object:
