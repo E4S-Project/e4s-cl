@@ -761,12 +761,18 @@ def defined_object(model, field):
             raise argparse.ArgumentTypeError("no %s selected nor specified" %
                                              model.name)
 
-        _object = model.controller().one({field: string})
+        _object = model.controller().match(field, regex=("^%s.*" % string))
 
-        if not _object:
-            raise argparse.ArgumentTypeError("%s %s does not exist" %
-                                             (model.name, string))
-        return _object
+        if len(_object) != 1:
+            raise argparse.ArgumentTypeError(
+                "Pattern '%(pattern)s' does not identify a single %(model)s: %(matches)s %(model)ss match"
+                % {
+                    "model": model.name.lower(),
+                    "pattern": string,
+                    "matches": len(_object)
+                })
+
+        return _object[0]
 
     wrapper.__name__ = __name__ + model.name
 
