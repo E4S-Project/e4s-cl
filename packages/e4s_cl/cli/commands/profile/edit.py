@@ -16,11 +16,10 @@ class ProfileEditCommand(EditCommand):
     """``profile edit`` subcommand."""
     def _construct_parser(self):
         usage = "%s <profile_name> [arguments]" % self.command
-        parser = arguments.get_parser_from_model(self.model,
-                                                 use_defaults=False,
-                                                 prog=self.command,
-                                                 usage=usage,
-                                                 description=self.summary)
+        parser = arguments.get_model_identifier(self.model,
+                                                prog=self.command,
+                                                usage=usage,
+                                                description=self.summary)
 
         parser.add_argument('--new_name',
                             help="change the profile's name",
@@ -106,34 +105,28 @@ class ProfileEditCommand(EditCommand):
         return removed
 
     def main(self, argv):
-        from e4s_cl.cli.commands.profile.list import COMMAND as profile_list
         args = self._parse_args(argv)
 
-        prof_ctrl = Profile.controller()
-
-        profile_name = args.name
-        profile = prof_ctrl.one({'name': profile_name})
-        if not profile:
-            self.parser.error(
-                "'%s' is not a profile name. Type `%s` to see valid names." %
-                (profile_name, profile_list.command))
+        profile = args.profile
+        profile_name = profile.get('name')
 
         updates = dict(profile)
-        updates['name'] = getattr(args, 'new_name', profile.get('name'))
+        updates['name'] = getattr(args, 'new_name', profile_name)
         updates['backend'] = getattr(args, 'backend', profile.get('backend'))
         updates['image'] = getattr(args, 'image', profile.get('image'))
         updates['source'] = getattr(args, 'source', profile.get('source'))
 
-        added = self._parse_add_args(args, updates)
-        removed = self._parse_remove_args(args, updates)
 
-        prof_ctrl.update(updates, {'name': profile_name})
-        for data in added:
+        for data in self._parse_add_args(args, updates):
             self.logger.info("Added %s to profile configuration '%s'.", data,
                              profile_name)
-        for data in removed:
+
+        for data in self._parse_remove_args(args, updates):
             self.logger.info("Removed %s from profile configuration '%s'.",
                              data, profile_name)
+
+        Profile.controller().update(updates, {'name': profile_name})
+
         return EXIT_SUCCESS
 
 
