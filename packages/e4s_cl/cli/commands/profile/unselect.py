@@ -12,23 +12,17 @@ class ProfileUnselectCommand(AbstractCommand):
     """``profile unselect`` subcommand."""
     def _construct_parser(self):
         usage = "%s" % self.command
-        parser = arguments.get_parser(prog=self.command,
-                                      usage=usage,
-                                      description=self.summary)
-        parser.add_argument('profile',
-                            nargs='?',
-                            type=arguments.defined_object(Profile, 'name'),
-                            help="Name of the profile to unselect",
-                            default=Profile.selected().get('name', arguments.UNSELECTED),
-                            metavar="profile_name")
+        parser = arguments.get_model_identifier(Profile,
+                                                prog=self.command,
+                                                usage=usage,
+                                                description=self.summary)
         return parser
 
     def main(self, argv):
-        args = self._parse_args(argv)
+        profile_name = self._parse_args(argv).profile.get('name')
 
-        if args.profile.get('name') != Profile.selected().get('name'):
-                self.parser.error("Profile {} is not selected.".format(
-                    args.profile.get('name')))
+        if profile_name != Profile.selected().get('name'):
+            self.parser.error("Profile %s is not selected." % profile_name)
 
         Profile.controller().unselect()
         return EXIT_SUCCESS
