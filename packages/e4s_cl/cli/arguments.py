@@ -789,18 +789,21 @@ def defined_object(model, field):
             raise argparse.ArgumentTypeError("no %s selected nor specified" %
                                              model.name)
 
-        _object = model.controller().match(field, regex=("^%s.*" % string))
+        objects = model.controller().match(field, regex=("^%s.*" % string))
+        exact_matches = list(filter(lambda x: x.get(field) == string, objects))
 
-        if len(_object) != 1:
+        if len(objects) != 1 and not len(exact_matches) == 1:
             raise argparse.ArgumentTypeError(
                 "Pattern '%(pattern)s' does not identify a single %(model)s: %(matches)s %(model)ss match"
                 % {
                     "model": model.name.lower(),
                     "pattern": string,
-                    "matches": len(_object)
+                    "matches": len(objects)
                 })
 
-        return _object[0]
+        if exact_matches:
+            return exact_matches[0]
+        return objects[0]
 
     wrapper.__name__ = __name__ + model.name
 
