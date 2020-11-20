@@ -684,6 +684,34 @@ def get_parser_from_model(model,
     return parser
 
 
+def get_model_identifier(model,
+                         prog=None,
+                         usage=None,
+                         description=None,
+                         epilog=None):
+    """
+    Get a parser identifying a model from its key_attribute. If nothing is 
+    specified, the model's selected() method is used as default.
+    """
+    parser = get_parser(prog, usage, description, epilog)
+
+    model_name = model.name
+    key_attr = model.key_attribute
+
+    _default = SUPPRESS
+    if 'selected' in dir(model):
+        _default = model.selected().get(key_attr, UNSELECTED)
+
+    parser.add_argument(model_name.lower(),
+                        nargs='?',
+                        type=defined_object(model, key_attr),
+                        help="",
+                        default=_default,
+                        metavar="%s_%s" % (model_name.lower(), key_attr))
+
+    return parser
+
+
 def add_storage_flag(parser,
                      action,
                      object_name,

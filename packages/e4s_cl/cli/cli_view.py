@@ -653,33 +653,14 @@ class ShowCommand(AbstractCliView):
     def _construct_parser(self):
         usage = ("%(command)s [arguments] <%(model_name)s_%(key_attr)s>" %
                  self._format_fields)
-        parser = arguments.get_parser_from_model(self.model,
-                                                 use_defaults=False,
-                                                 prog=self.command,
-                                                 usage=usage,
-                                                 description=self.summary)
+        parser = arguments.get_model_identifier(self.model,
+                                                prog=self.command,
+                                                usage=usage,
+                                                description=self.summary)
         return parser
 
     def main(self, argv):
-        args = self._parse_args(argv)
-        levels = arguments.parse_storage_flag(args)
-        fmt = vars(args)
-
-        matches = Profile.controller().match(Profile.key_attribute,
-                                             regex=("^%s.*" % args.name))
-
-        if len(matches) == 1:
-            name = matches[0]['name']
-        elif args.name in [match['name'] for match in matches]:
-            name = args.name
-        else:
-            fmt['matchesLen'] = len(matches)
-            self.parser.error(
-                "Pattern '%(name)s' does not identify a unique existing profile: %(matchesLen)s profiles match"
-                % fmt)
-
-        fields = Profile.controller().one({Profile.key_attribute: name})
-        self.detail(fields)
+        self.detail(self._parse_args(argv).profile)
 
         return EXIT_SUCCESS
 
