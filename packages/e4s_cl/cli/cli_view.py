@@ -690,8 +690,7 @@ class CopyCommand(CreateCommand):
         key_attr = self.model.key_attribute
         usage = ("%s <%s_%s> <copy_%s> [arguments]" %
                  (self.command, self.model_name, key_attr, key_attr))
-        parser = arguments.get_parser_from_model(self.model,
-                                                 use_defaults=False,
+        parser = arguments.get_model_identifier(self.model,
                                                  prog=self.command,
                                                  usage=usage,
                                                  description=self.summary)
@@ -726,6 +725,7 @@ class CopyCommand(CreateCommand):
     def main(self, argv):
         args = self._parse_args(argv)
         store = arguments.parse_storage_flag(args)[0]
+        _object = getattr(args, self.model.name.lower())
         data = {
             attr: getattr(args, attr)
             for attr in self.model.attributes if hasattr(args, attr)
@@ -735,5 +735,5 @@ class CopyCommand(CreateCommand):
             data[key_attr] = getattr(args, 'copy_%s' % key_attr)
         except AttributeError:
             pass
-        key = getattr(args, key_attr)
+        key = _object.get(key_attr)
         return self._copy_record(store, data, key)
