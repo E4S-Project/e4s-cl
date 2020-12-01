@@ -26,7 +26,7 @@ def _parameters(args):
     if isinstance(args, Namespace):
         args = vars(args)
 
-    parameters = dict(args.get('profile', Profile.selected()))
+    parameters = dict(args.get('profile', {}))
 
     for attr in ['image', 'backend', 'libraries', 'files']:
         if args.get(attr, None):
@@ -68,7 +68,7 @@ class LaunchCommand(AbstractCommand):
         parser.add_argument('--profile',
                             type=arguments.defined_object(Profile, 'name'),
                             help="Name of the profile to use",
-                            default=arguments.SUPPRESS,
+                            default=Profile.selected().get('name', arguments.SUPPRESS),
                             metavar='profile')
 
         parser.add_argument('--image',
