@@ -28,7 +28,7 @@ def compile_sample(compiler, destination):
     std_in.seek(0)
 
     command = "%s -o %s -lm -x c -" % (compiler, destination)
-    subprocess.Popen(command.split(), stdin=std_in)
+    subprocess.Popen(command.split(), stdin=std_in).wait()
 
 
 class InitCommand(AbstractCommand):
