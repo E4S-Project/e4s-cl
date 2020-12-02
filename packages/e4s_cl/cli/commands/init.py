@@ -70,8 +70,10 @@ class InitCommand(AbstractCommand):
 
         return parser
 
-    def create_profile(self, args):
+    def create_profile(self, args, metadata):
         data = {}
+
+        controller = Profile.controller()
 
         if getattr(args, 'image', None):
             data['image'] = args.image
@@ -84,20 +86,18 @@ class InitCommand(AbstractCommand):
         if getattr(args, 'source', None):
             data['source'] = args.source
 
-        self.profile_hash = "default-%s" % util.hash256(json.dumps(data))
+        self.profile_hash = "default-%s" % util.hash256(json.dumps(metadata))
 
-        profile = Profile.controller().one({"name": self.profile_hash})
+        if controller.one({"name": self.profile_hash}):
+            controller.delete({"name": self.profile_hash})
 
-        if not profile:
-            data["name"] = self.profile_hash
-            profile = Profile.controller().create(data)
+        data["name"] = self.profile_hash
+        profile = controller.create(data)
 
-        Profile.controller().select(profile)
+        controller.select(profile)
 
     def main(self, argv):
         args = self._parse_args(argv)
-
-        self.create_profile(args)
 
         compiler = util.which('mpicc')
         launcher = util.which('mpirun')
@@ -118,6 +118,8 @@ class InitCommand(AbstractCommand):
         LOGGER.debug("Using MPI programs:\nCompiler: %s\nLauncher %s",
                      compiler, launcher)
         compile_sample(compiler, program.name)
+
+        self.create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
         arguments = [launcher, program.name]
         detect_command.main(arguments)
