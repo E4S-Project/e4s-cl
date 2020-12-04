@@ -31,6 +31,16 @@ def compile_sample(compiler, destination):
     subprocess.Popen(command.split(), stdin=std_in).wait()
 
 
+def check_mpirun(executable):
+    proc = subprocess.Popen([executable, 'hostname'], stdout=subprocess.PIPE)
+    proc.wait()
+
+    hostnames = {hostname.strip() for hostname in proc.stdout.readlines()}
+
+    if len(hostnames) == 1:
+        LOGGER.warn("The target launcher %s uses a single host by default, which may tamper with the library discovery. Consider running `%s` using mpirun specifiying multiple hosts.", executable, str(detect_command))
+
+
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
     def _construct_parser(self):
@@ -117,6 +127,7 @@ class InitCommand(AbstractCommand):
 
         LOGGER.debug("Using MPI programs:\nCompiler: %s\nLauncher %s",
                      compiler, launcher)
+        check_mpirun(launcher)
         compile_sample(compiler, program.name)
 
         self.create_profile(args, {'compiler': compiler, 'launcher': launcher})
