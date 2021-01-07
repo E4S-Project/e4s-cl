@@ -16,7 +16,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'E4S Container launcher'
+project = 'E4S Container Launcher'
 copyright = '2021, Jean-Baptiste Skutnik'
 author = 'Jean-Baptiste Skutnik'
 

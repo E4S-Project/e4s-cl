@@ -11,6 +11,9 @@ E4S Container launcher's documentation
    :maxdepth: 2
    :caption: Contents:
 
+   usage/index
+   authors
+
 Indices and tables
 ==================
 
