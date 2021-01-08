@@ -1,24 +1,23 @@
 .. _launch:
 
-Launch command
-==============
+`launch` - Run MPI commands
+===========================
 
-Brief
------
+**e4s-cl launch** [ `OPTIONS` ] [ **--** ] < `MPI Command` >
 
 E4S Container Launcher is a accessory launcher to ensure host MPI libraries are used in containers.
 It wraps around a valid MPI launch command to work.
-The full accepted syntax is::
 
-    e4s-cl launch [OPTIONS] <launcher> [LAUNCHER OPTIONS] <command> [COMMAND OPTIONS]
-
-When a :ref:`profile<profiles>` is selected, options can be omitted as the profile's fields will be implicitly used.
+When a :ref:`profile<profile>` is selected, options can be omitted as the profile's fields will be implicitly used.
 Command line options have precedence over profiles' fields.
 
 Options
 -------
 
 The `launch` command accepts several options to tune the outcome of its execution:
+
+**--profile**
+        profile to use for the execution
 
 **--image**
         identifier for the image to use when launching the container
@@ -31,9 +30,6 @@ The `launch` command accepts several options to tune the outcome of its executio
 
 **--files**
         comma-separated list of files to make accessible in the container
-
-**--profile**
-        profile to use for the execution
 
 **--source**
         path of script to source before execution
