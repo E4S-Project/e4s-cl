@@ -73,6 +73,7 @@ CONDA_PKG = Miniconda3-$(CONDA_VERSION)-$(CONDA_OS)-$(CONDA_ARCH).sh
 CONDA_URL = $(CONDA_REPO)/$(CONDA_PKG)
 CONDA_SRC = system/src/$(CONDA_PKG)
 CONDA_DEST = $(INSTALLDIR)/conda
+CONDA_BIN = $(CONDA_DEST)/bin
 CONDA = $(CONDA_DEST)/bin/python
 
 ifeq ($(USE_MINICONDA),true)
@@ -106,7 +107,7 @@ python_download: $(CONDA_SRC)
 
 $(CONDA): $(CONDA_SRC)
 	bash $< -b -u -p $(CONDA_DEST)
-	touch $(CONDA_DEST)/bin/*
+	touch $(CONDA_BIN)/*
 
 $(CONDA_SRC):
 	$(MKDIR) `dirname "$(CONDA_SRC)"`
@@ -125,9 +126,9 @@ DOCS=$(PROJECT)/docs
 MAN=$(PROJECT)/docs/build/man
 USER_MAN=$(HOME)/.local/share/man/man1
 
-man:
-	$(MKDIR) -p $(USER_MAN)
-	$(MAKE) -C $(DOCS) man
+man: build
+	$(MKDIR) $(USER_MAN)
+	PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	$(COPY) $(MAN)/* $(USER_MAN)
 	mandb
 
