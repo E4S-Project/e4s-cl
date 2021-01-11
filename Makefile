@@ -1,5 +1,6 @@
 RM = rm -f
 MV = mv -f
+COPY = cp -rv
 MKDIR = mkdir -p
 
 VERSION = $(shell cat VERSION 2>/dev/null || ./.version.sh 2>/dev/null || echo "0.0.0")
@@ -95,7 +96,7 @@ build: python_check
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
 	$(PYTHON) setup.py build
 
-install: build
+install: build man
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
 
 python_check: $(PYTHON_EXE)
@@ -115,9 +116,20 @@ $(CONDA_SRC):
 		false)
 
 completion:
-	mkdir -p $(HOME)/.bash_completion.d
-	cp scripts/e4s-cl-completion.bash $(HOME)/.bash_completion.d
+	$(MKDIR) $(HOME)/.bash_completion.d
+	$(COPY) scripts/e4s-cl-completion.bash $(HOME)/.bash_completion.d
 	grep -q bash_completion $(HOME)/.bashrc || echo "source ~/.bash_completion.d/*" >> $(HOME)/.bashrc
+
+PROJECT=.
+DOCS=$(PROJECT)/docs
+MAN=$(PROJECT)/docs/build/man
+USER_MAN=$(HOME)/.local/share/man/man1
+
+man:
+	$(MKDIR) -p $(USER_MAN)
+	$(MAKE) -C $(DOCS) man
+	$(COPY) $(MAN)/* $(USER_MAN)
+	mandb
 
 clean:
 	rm -fr build/
