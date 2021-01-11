@@ -8,6 +8,11 @@
 E4S Container Launcher is a accessory launcher to ensure host MPI libraries are used in containers.
 It wraps around a valid MPI launch command to work.
 
+The minimal options that must be given are:
+
+* A container image;
+* A container technology to run the image with.
+
 When a :ref:`profile<profile>` is selected, options can be omitted as the profile's fields will be implicitly used.
 Command line options have precedence over profiles' fields.
 
