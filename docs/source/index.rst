@@ -12,7 +12,7 @@ Given a combination of an MPI library, a container and a MPI binary, E4S Contain
 This is useful when the binary has been compiled using a different library than the one passed as an argument: as long as the two libraries are `ABI compatible <https://www.mpich.org/abi/>`_, the binary will run under the new environment.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    usage/index

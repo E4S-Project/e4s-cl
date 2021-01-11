@@ -13,16 +13,6 @@ E4S Container Launcher requires a subcommand to be given to determine its mode o
 
 The main entrypoint is the :ref:`launch command<launch>`, while the other commands are helpers to facilitate the use of the former.
 
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Available commands:
-
-   init
-   launch
-   profiles/index.rst
-
-
 Options
 --------
 
@@ -34,3 +24,13 @@ Options
 
 **-d**, **--dry-run**
         do nothing; print what would have been done instead
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Available commands:
+
+   init
+   launch
+   profiles/index.rst
+
+
