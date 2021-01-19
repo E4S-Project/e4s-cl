@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>detect - Create a profile from a MPI library &#8212; E4S Container Launcher 1.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="dump - Print internal profile information" href="dump.html" />
+    <link rel="prev" title="unselect - Unselect a profile" href="unselect.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="detect-create-a-profile-from-a-mpi-library">
+<h1><strong>detect</strong> - Create a profile from a MPI library<a class="headerlink" href="#detect-create-a-profile-from-a-mpi-library" title="Permalink to this headline">¶</a></h1>
+<p><strong>e4s-cl profile detect</strong> [ <cite>OPTIONS</cite> ] &lt; MPI launcher command &gt;</p>
+<p>OPTIONS := { <strong>-p</strong>[rofile] }</p>
+<p>The <strong>profile detect</strong> command will create a profile from the analysis of a MPI command.
+This process uses system call interception to produce an exhaustive list of files required by the MPI process.
+A few point must be respected:</p>
+<ul class="simple">
+<li><p>The MPI launcher and binary shall use the host's MPI library, to be imported in the future containers;</p></li>
+<li><p>The MPI program shall call at least one (1) collective to ensure the network stack is used;</p></li>
+<li><p>The process shall be run on multiple nodes using the target network. Failure to do so may result in erroneous detection of communication libraries and thus may create communication errors when using the profile.</p></li>
+</ul>
+<p>Use <strong>-p</strong>/<strong>--profile</strong> to select a output profile. If none is passed as an argument, the selected profile is selected instead.</p>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">E4S Container Launcher</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Usage</a><ul>
+  <li><a href="index.html"><cite>profile</cite> - Edit and manage profiles</a><ul>
+      <li>Previous: <a href="unselect.html" title="previous chapter"><strong>unselect</strong> - Unselect a profile</a></li>
+      <li>Next: <a href="dump.html" title="next chapter"><strong>dump</strong> - Print internal profile information</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Jean-Baptiste Skutnik.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/usage/profiles/detect.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

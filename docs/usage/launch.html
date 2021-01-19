@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>launch - Run MPI commands &#8212; E4S Container Launcher 1.0 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="profile - Edit and manage profiles" href="profiles/index.html" />
+    <link rel="prev" title="init - Initialize the tool" href="init.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="launch-run-mpi-commands">
+<span id="launch"></span><h1><cite>launch</cite> - Run MPI commands<a class="headerlink" href="#launch-run-mpi-commands" title="Permalink to this headline">¶</a></h1>
+<p><strong>e4s-cl launch</strong> [ <cite>OPTIONS</cite> ] [ <strong>--</strong> ] &lt; <cite>MPI Command</cite> &gt;</p>
+<p>E4S Container Launcher is a accessory launcher to ensure host MPI libraries are used in containers.
+It wraps around a valid MPI launch command to work.</p>
+<p>The minimal options that must be given are:</p>
+<ul class="simple">
+<li><p>A container image;</p></li>
+<li><p>A container technology to run the image with.</p></li>
+</ul>
+<p>When a <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a> is selected, options can be omitted as the profile's fields will be implicitly used.
+Command line options have precedence over profiles' fields.</p>
+<p>E4S Container Launcher will analyse the command line to determine the exact arguments of the launcher.
+Certain launchers have esoteric options that may prevent this system from working properly.
+To ensure the arguments are understood correctly, an additionnal <cite>--</cite> can be added between the options and the MPI command.</p>
+<div class="section" id="options">
+<h2>Options<a class="headerlink" href="#options" title="Permalink to this headline">¶</a></h2>
+<p>The <cite>launch</cite> command accepts several options to tune the outcome of its execution:</p>
+<dl class="simple">
+<dt><strong>--profile</strong></dt><dd><p>profile to use for the execution</p>
+</dd>
+<dt><strong>--image</strong></dt><dd><p>identifier for the image to use when launching the container</p>
+</dd>
+<dt><strong>--backend</strong></dt><dd><p>container technology to employ</p>
+</dd>
+<dt><strong>--libraries</strong></dt><dd><p>comma-separated list of libraries to load at run-time</p>
+</dd>
+<dt><strong>--files</strong></dt><dd><p>comma-separated list of files to make accessible in the container</p>
+</dd>
+<dt><strong>--source</strong></dt><dd><p>path of script to source before execution</p>
+</dd>
+</dl>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">E4S Container Launcher</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../authors.html">Authors</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Usage</a><ul>
+      <li>Previous: <a href="init.html" title="previous chapter"><cite>init</cite> - Initialize the tool</a></li>
+      <li>Next: <a href="profiles/index.html" title="next chapter"><cite>profile</cite> - Edit and manage profiles</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Jean-Baptiste Skutnik.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/usage/launch.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
