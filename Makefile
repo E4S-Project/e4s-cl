@@ -122,8 +122,8 @@ completion:
 	grep -q bash_completion $(HOME)/.bashrc || echo "source ~/.bash_completion.d/*" >> $(HOME)/.bashrc
 
 PROJECT=.
-DOCS=$(PROJECT)/docs
-MAN=$(PROJECT)/docs/build/man
+DOCS=$(PROJECT)/doc-source
+MAN=$(PROJECT)/doc-source/build/man
 USER_MAN=$(HOME)/.local/share/man/man1
 
 man: build

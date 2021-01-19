@@ -97,4 +97,4 @@ id_rsa_Travis2GH.pub
 *.ipynb
 
 # Sphynx build files
-/docs/build
+/doc-source/build
