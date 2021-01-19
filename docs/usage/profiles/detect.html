@@ -155,11 +155,11 @@
 This process uses system call interception to produce an exhaustive list of files required by the MPI process.
 A few point must be respected:</p>
 <ul class="simple">
-<li><p>The MPI launcher and binary shall use the host's MPI library, to be imported in the future containers;</p></li>
+<li><p>The MPI launcher and binary shall use the host’s MPI library, to be imported in the future containers;</p></li>
 <li><p>The MPI program shall call at least one (1) collective to ensure the network stack is used;</p></li>
 <li><p>The process shall be run on multiple nodes using the target network. Failure to do so may result in erroneous detection of communication libraries and thus may create communication errors when using the profile.</p></li>
 </ul>
-<p>Use <strong>-p</strong>/<strong>--profile</strong> to select a output profile. If none is passed as an argument, the selected profile is selected instead.</p>
+<p>Use <strong>-p</strong>/<strong>–profile</strong> to select a output profile. If none is passed as an argument, the selected profile is selected instead.</p>
 </div>
 
       </article>

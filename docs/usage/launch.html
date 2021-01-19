@@ -149,7 +149,7 @@
         </label>
         <div class="section" id="launch-run-mpi-commands">
 <span id="launch"></span><h1><cite>launch</cite> - Run MPI commands<a class="headerlink" href="#launch-run-mpi-commands" title="Permalink to this headline">¶</a></h1>
-<p><strong>e4s-cl launch</strong> [ <cite>OPTIONS</cite> ] [ <strong>--</strong> ] &lt; <cite>MPI Command</cite> &gt;</p>
+<p><strong>e4s-cl launch</strong> [ <cite>OPTIONS</cite> ] [ <strong>–</strong> ] &lt; <cite>MPI Command</cite> &gt;</p>
 <p>E4S Container Launcher is a accessory launcher to ensure host MPI libraries are used in containers.
 It wraps around a valid MPI launch command to work.</p>
 <p>The minimal options that must be given are:</p>
@@ -157,26 +157,26 @@ It wraps around a valid MPI launch command to work.</p>
 <li><p>A container image;</p></li>
 <li><p>A container technology to run the image with.</p></li>
 </ul>
-<p>When a <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a> is selected, options can be omitted as the profile's fields will be implicitly used.
-Command line options have precedence over profiles' fields.</p>
+<p>When a <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a> is selected, options can be omitted as the profile’s fields will be implicitly used.
+Command line options have precedence over profiles’ fields.</p>
 <p>E4S Container Launcher will analyse the command line to determine the exact arguments of the launcher.
 Certain launchers have esoteric options that may prevent this system from working properly.
-To ensure the arguments are understood correctly, an additionnal <cite>--</cite> can be added between the options and the MPI command.</p>
+To ensure the arguments are understood correctly, an additionnal <cite>–</cite> can be added between the options and the MPI command.</p>
 <div class="section" id="options">
 <h2>Options<a class="headerlink" href="#options" title="Permalink to this headline">¶</a></h2>
 <p>The <cite>launch</cite> command accepts several options to tune the outcome of its execution:</p>
 <dl class="simple">
-<dt><strong>--profile</strong></dt><dd><p>profile to use for the execution</p>
+<dt><strong>–profile</strong></dt><dd><p>profile to use for the execution</p>
 </dd>
-<dt><strong>--image</strong></dt><dd><p>identifier for the image to use when launching the container</p>
+<dt><strong>–image</strong></dt><dd><p>identifier for the image to use when launching the container</p>
 </dd>
-<dt><strong>--backend</strong></dt><dd><p>container technology to employ</p>
+<dt><strong>–backend</strong></dt><dd><p>container technology to employ</p>
 </dd>
-<dt><strong>--libraries</strong></dt><dd><p>comma-separated list of libraries to load at run-time</p>
+<dt><strong>–libraries</strong></dt><dd><p>comma-separated list of libraries to load at run-time</p>
 </dd>
-<dt><strong>--files</strong></dt><dd><p>comma-separated list of files to make accessible in the container</p>
+<dt><strong>–files</strong></dt><dd><p>comma-separated list of files to make accessible in the container</p>
 </dd>
-<dt><strong>--source</strong></dt><dd><p>path of script to source before execution</p>
+<dt><strong>–source</strong></dt><dd><p>path of script to source before execution</p>
 </dd>
 </dl>
 </div>
