@@ -9,7 +9,7 @@ import json
 import tempfile
 import subprocess
 import pathlib
-from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
+from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
 from e4s_cl.cf.containers import guess_backend
@@ -121,6 +121,10 @@ class InitCommand(AbstractCommand):
             mpirun = pathlib.Path(args.mpi) / "bin" / "mpirun"
             if mpirun.exists():
                 launcher = mpirun.as_posix()
+
+        if not (compiler and launcher):
+            LOGGER.error("No MPI detected in PATH. Please load the module or use `--mpi` to specify the location of a library to use.")
+            return EXIT_FAILURE
 
         if getattr(args, 'launcher', None):
             launcher = util.which(args.launcher)
