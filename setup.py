@@ -45,10 +45,11 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.6',
 ]
 
-import os
-import setuptools
+import os, sys, setuptools, subprocess
 from setuptools.command.install import install as InstallCommand
 
+PACKAGE_TOPDIR = os.path.realpath(os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(PACKAGE_TOPDIR, 'packages'))
 
 class Install(InstallCommand):
     """Customize the install command with new lib, script, and data installation locations."""
@@ -68,9 +69,22 @@ class Install(InstallCommand):
     def run(self):
         InstallCommand.run(self)
 
+def _version():
+    version_file = os.path.join(PACKAGE_TOPDIR, "VERSION")
+
+    if os.path.exists(version_file):
+        with open(version_file) as fin:
+            version = fin.readline()
+    else:
+        try:
+            version = subprocess.check_output(['./scripts/version.sh'])
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            version = "0.0.0"
+
+    return version.strip()
 
 setuptools.setup(name=NAME,
-                 version=VERSION,
+                 version=_version(),
                  author=AUTHOR,
                  author_email=AUTHOR_EMAIL,
                  description=DESCRIPTION,
