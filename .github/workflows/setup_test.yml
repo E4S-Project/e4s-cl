@@ -2,11 +2,7 @@
 
 name: Run Setup script and tests
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [ push, pull_request ]
 
 jobs:
   Setup:
