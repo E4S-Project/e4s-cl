@@ -2,6 +2,7 @@ RM = rm -f
 MV = mv -f
 COPY = cp -rv
 MKDIR = mkdir -p
+RMDIR = rm -fr
 
 VERSION = $(shell cat VERSION 2>/dev/null || ./.version.sh 2>/dev/null || echo "0.0.0")
 
@@ -14,7 +15,7 @@ ifeq ($(BUILDDIR),)
 	BUILDDIR=build
 endif
 ifeq ($(INSTALLDIR),)
-	INSTALLDIR=$(HOME)/e4s-cl-$(VERSION)
+	INSTALLDIR=$(shell pwd)/e4s-cl-$(VERSION)
 endif
 
 # Get target OS and architecture
@@ -92,16 +93,14 @@ else
 endif
 PYTHON = $(PYTHON_EXE) $(PYTHON_FLAGS)
 
-build: python_check
-	$(PYTHON) -m pip install -U -r requirements.txt
+install: python_check man
+	$(PYTHON) setup.py build -b "$(BUILDDIR)"
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
-	$(PYTHON) setup.py build
-
-install: build man
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
 
 python_check: $(PYTHON_EXE)
 	@$(PYTHON) -c "import sys; import setuptools;" || (echo "ERROR: setuptools is required." && false)
+	$(PYTHON) -m pip install -U -r requirements.txt
 
 python_download: $(CONDA_SRC)
 
@@ -126,14 +125,14 @@ DOCS=$(PROJECT)/doc-source
 MAN=$(PROJECT)/doc-source/build/man
 USER_MAN=$(HOME)/.local/share/man/man1
 
-man: build
+man: python_check
 	$(MKDIR) $(USER_MAN)
 	PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	$(COPY) $(MAN)/* $(USER_MAN)
-	mandb
+	mandb || true
 
 clean:
 	rm -fr build/
 
-test: build
+test: python_check
 	$(PYTHON) -m tox tox.ini
