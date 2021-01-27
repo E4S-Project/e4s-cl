@@ -44,7 +44,7 @@ e4s-cl launch srun -n 2 --mpi=pmi2 ./foo
 ## Installation
 
 ```
-git clone https://github.com/spoutn1k/e4s-cl
+git clone https://github.com/E4S-Project/e4s-cl
 cd e4s-cl
 make install
 export PATH=$HOME/e4s-cl-0.0.0/bin:$PATH
@@ -70,4 +70,4 @@ If you know what a library relies on when running, you can manually maintain pro
 `e4s-cl` wraps around launchers to execute a small amount of pre-processing before launching a container.
 It recursively calls itself with the launcher used by the user before executing the command, analyses the library environment from the host, and uses on the container technology to bind the necessary files and libraries in the guest container.
 
-![structure](https://github.com/spoutn1k/e4s-cl/raw/master/assets/images/e4scl_structure.png)
+![structure](https://github.com/E4S-Project/e4s-cl/raw/master/assets/images/e4scl_structure.png)
