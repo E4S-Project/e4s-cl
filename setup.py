@@ -1,28 +1,54 @@
 #!/usr/bin/env python3
 
+import os, sys, setuptools, subprocess
+from setuptools.command.install import install as InstallCommand
+
+PACKAGE_TOPDIR = os.path.realpath(os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(PACKAGE_TOPDIR, 'packages'))
+
+
+def _version():
+    version_file = os.path.join(PACKAGE_TOPDIR, "VERSION")
+
+    if os.path.exists(version_file):
+        with open(version_file) as fin:
+            version = fin.readline()
+    else:
+        try:
+            version = subprocess.check_output(['./scripts/version.sh'])
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            version = "0.0.0"
+
+    return version.strip()
+
+
 NAME = "e4s-cl"
 
-VERSION = "0.0"
+VERSION = _version()
 
 # Package author information
-AUTHOR = "ParaTools, Inc."
-AUTHOR_EMAIL = "info@paratools.com"
+AUTHOR = "Jean-Baptiste Skutnik"
+AUTHOR_EMAIL = "jskutnik@uoregon.edu"
 
 # Package short description
-DESCRIPTION = "A command-line utility to run projects in E4S containers"
+DESCRIPTION = "A command-line utility to run MPI projects in E4S containers"
 
 # Package long description
 LONG_DESCRIPTION = \
-"""TODO"""
+"""
+This program acts as a launcher to try and use MPICH-compatible binaries in 
+containers while using the libraries available on the host environment.
+Binaries are analysed to bind their dynamic dependencies.
+"""
 
 # Package software license
-LICENSE = "BSD"
+LICENSE = "MIT"
 
 # Package keywords
-KEYWORDS = ["E4S", "container"]
+KEYWORDS = ["E4S", "container", "MPI"]
 
 # Package homepage
-HOMEPAGE = "http://www.taucommander.com/"
+HOMEPAGE = "http://github.com/E4S-Project"
 
 # PyPI classifiers
 CLASSIFIERS = [
@@ -34,10 +60,9 @@ CLASSIFIERS = [
 
     # Indicate who your project is intended for
     'Intended Audience :: Developers',
-    'Topic :: Software Development :: User Interfaces',
 
     # Pick your license as you wish (should match "license" above)
-    'License :: OSI Approved :: BSD License',
+    'License :: MIT License',
 
     # Specify the Python versions you support here. In particular, ensure
     # that you indicate whether you support Python 2, Python 3 or both.
@@ -45,11 +70,6 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.6',
 ]
 
-import os, sys, setuptools, subprocess
-from setuptools.command.install import install as InstallCommand
-
-PACKAGE_TOPDIR = os.path.realpath(os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(PACKAGE_TOPDIR, 'packages'))
 
 class Install(InstallCommand):
     """Customize the install command with new lib, script, and data installation locations."""
@@ -69,19 +89,6 @@ class Install(InstallCommand):
     def run(self):
         InstallCommand.run(self)
 
-def _version():
-    version_file = os.path.join(PACKAGE_TOPDIR, "VERSION")
-
-    if os.path.exists(version_file):
-        with open(version_file) as fin:
-            version = fin.readline()
-    else:
-        try:
-            version = subprocess.check_output(['./scripts/version.sh'])
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            version = "0.0.0"
-
-    return version.strip()
 
 setuptools.setup(name=NAME,
                  version=_version(),
