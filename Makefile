@@ -26,16 +26,17 @@ ifeq ($(HOST_ARCH),)
 	HOST_ARCH = $(shell uname -m)
 endif
 
-WGET = $(shell command -pv wget || type -P wget || which wget)
+WGET = $(shell command -pv wget || which wget)
+CURL = $(shell command -pv curl || which curl)
+
 ifneq ($(WGET),)
-	download = $(WGET) --no-check-certificate $(WGET_FLAGS) -O "$(2)" "$(1)"
+download = $(WGET) --no-check-certificate $(WGET_FLAGS) -O "$(2)" "$(1)"
 else
-	CURL = $(shell command -pv curl || type -P curl || which curl)
-	ifneq ($(CURL),)
-		download = $(CURL) --insecure $(CURL_FLAGS) -L "$(1)" > "$(2)"
-	else
-		$(warning Either curl or wget must be in PATH to download packages)
-	endif
+ifneq ($(CURL),)
+download = $(CURL) --insecure $(CURL_FLAGS) -L "$(1)" > "$(2)"
+else
+$(error Either curl or wget must be in PATH to download the python interpreter)
+endif
 endif
 
 # Miniconda configuration
