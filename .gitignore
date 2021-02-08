@@ -98,3 +98,6 @@ id_rsa_Travis2GH.pub
 
 # Sphynx build files
 /doc-source/build
+
+# Non-prefixed installs
+e4s-cl-*
