@@ -405,7 +405,9 @@ if not _ROOT_LOGGER.handlers:
     try:
         os.makedirs(_LOG_FILE_PREFIX)
     except OSError as exc:
-        if not (exc.errno == errno.EEXIST and os.path.isdir(_LOG_FILE_PREFIX)):
+        if exc.errno == errno.EROFS: # Don't crash and burn on RO systems
+            pass
+        elif not (exc.errno == errno.EEXIST and os.path.isdir(_LOG_FILE_PREFIX)):
             raise
     _STDOUT_HANDLER = logging.StreamHandler(sys.stderr)
     _STDOUT_HANDLER.setFormatter(
