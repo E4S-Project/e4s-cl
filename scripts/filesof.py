@@ -30,6 +30,9 @@ if __name__ == '__main__':
     libs, files = filter_files(accessed_files, ldd_requirements)
 
     if not returncode:
-        with open("filesof.%s" % os.getpid(), "w") as f:
-            json.dump({"files": files, "libraries": libs}, f, indent=2)
+        try:
+            with open("filesof.%s" % os.getpid(), "w") as f:
+                json.dump({"files": files, "libraries": libs}, f, indent=2)
+        except OSError:
+            json.dump({"files": files, "libraries": libs}, sys.stdout)
 
