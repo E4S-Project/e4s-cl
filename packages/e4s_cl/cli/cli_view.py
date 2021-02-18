@@ -683,7 +683,7 @@ class CopyCommand(CreateCommand):
     """Base class for the `copy` subcommand of command line views."""
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
-                          "Copy and modify %(model_name)s configurations.")
+                          "Copy %(model_name)s.")
         super(CopyCommand, self).__init__(*args, **kwargs)
 
     def _construct_parser(self):
