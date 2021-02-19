@@ -12,23 +12,15 @@ class ProfileSelectCommand(AbstractCommand):
     """``profile select`` subcommand."""
     def _construct_parser(self):
         usage = "%s <profile_name>" % self.command
-        parser = arguments.get_parser(prog=self.command,
+        parser = arguments.get_model_identifier(Profile,
+                                      prog=self.command,
                                       usage=usage,
                                       description=self.summary)
-        parser.add_argument('name',
-                            help="Profile name",
-                            metavar='<profile_name>')
         return parser
 
     def main(self, argv):
-        args = self._parse_args(argv)
-        profile_ctrl = Profile.controller()
-        name = args.name
-        profile = profile_ctrl.one({"name": name})
-        if not profile:
-            self.parser.error("There is no profile configuration named '%s.'" %
-                              name)
-        profile_ctrl.select(profile)
+        profile = self._parse_args(argv).profile
+        Profile.controller().select(profile)
         return EXIT_SUCCESS
 
 
