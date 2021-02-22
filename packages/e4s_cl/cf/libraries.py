@@ -4,7 +4,7 @@ Helpers linked to library manipulation
 
 import re
 import pathlib
-from e4s_cl import logger
+from e4s_cl import logger, util
 from e4s_cl.util import which, create_subprocess_exp
 from e4s_cl.error import InternalError
 
@@ -103,7 +103,12 @@ def host_libraries():
     if HOST_LIBRARIES:
         return HOST_LIBRARIES
 
-    _, output = create_subprocess_exp(['ldconfig', '-p'], redirect_stdout=True)
+    ldconfig_path = util.which('ldconfig')
+
+    if ldconfig_path is None:
+        return HOST_LIBRARIES
+
+    _, output = create_subprocess_exp([ldconfig_path, '-p'], redirect_stdout=True)
 
     for row in output.strip().split('\n')[1:]:
         # Expecting format "libname.so.y (lib,arch) => /path/libname.so.y"
