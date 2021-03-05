@@ -94,11 +94,22 @@ else
 endif
 PYTHON = $(PYTHON_EXE) $(PYTHON_FLAGS)
 
-install: python_check man
+# Completion folder resolution from https://github.com/scop/bash-completion#faq
+ifeq ($(BASH_COMPLETION_USER_DIR),)
+	ifeq ($(XDG_DATA_HOME),)
+		COMPLETION_DIR = $(HOME)/.local/share/bash-completion/completions
+	else
+		COMPLETION_DIR = $(XDG_DATA_HOME)/bash-completion/completions
+	endif
+else
+	COMPLETION_DIR = $(BASH_COMPLETION_USER_DIR)/completions
+endif
+
+install: python_check
 	$(PYTHON) setup.py build -b "$(BUILDDIR)"
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
-	@$(PYTHON) scripts/success.py $(INSTALLDIR)
+	@$(PYTHON) scripts/success.py "Installation succeded. Please add $(INSTALLDIR)/e4s-cl/bin to your PATH."
 
 python_check: $(PYTHON_EXE)
 	@$(PYTHON) -c "import sys; import setuptools;" || (echo "ERROR: setuptools is required." && false)
@@ -118,9 +129,9 @@ $(CONDA_SRC):
 		false)
 
 completion:
-	$(MKDIR) $(HOME)/.bash_completion.d
-	$(COPY) scripts/e4s-cl-completion.bash $(HOME)/.bash_completion.d
-	grep -q bash_completion $(HOME)/.bashrc || echo "source ~/.bash_completion.d/*" >> $(HOME)/.bashrc
+	@$(MKDIR) $(COMPLETION_DIR)
+	@$(COPY) scripts/e4s-cl-completion.bash $(COMPLETION_DIR)/e4s-cl
+	@$(PYTHON) scripts/success.py "Please source $(COMPLETION_DIR)/e4s-cl to enable completion to the current shell."
 
 PROJECT=.
 DOCS=$(PROJECT)/doc-source
@@ -128,6 +139,7 @@ MAN=$(PROJECT)/doc-source/build/man
 USER_MAN=$(HOME)/.local/share/man/man1
 
 man: python_check
+	$(PYTHON) -m pip install -U -r $(DOCS)/requirements.txt
 	$(MKDIR) $(USER_MAN)
 	PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	$(COPY) $(MAN)/* $(USER_MAN)

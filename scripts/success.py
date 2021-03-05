@@ -14,4 +14,4 @@ if __name__ == '__main__':
 
     from e4s_cl import logger
 
-    logger.get_logger(__name__).info("e4s-cl installation succeded. Please add %s to your PATH." % os.path.join(sys.argv[1], "bin"))
+    logger.get_logger(__name__).warning(sys.argv[1])
