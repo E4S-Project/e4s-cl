@@ -105,11 +105,13 @@ else
 	COMPLETION_DIR = $(BASH_COMPLETION_USER_DIR)/completions
 endif
 
+all: install completion man
+
 install: python_check
 	$(PYTHON) setup.py build -b "$(BUILDDIR)"
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
-	@$(PYTHON) scripts/success.py "Installation succeded. Please add $(INSTALLDIR)/e4s-cl/bin to your PATH."
+	@$(PYTHON) scripts/success.py "Installation succeded. Please add '$(INSTALLDIR)/e4s-cl/bin' to your PATH."
 
 python_check: $(PYTHON_EXE)
 	@$(PYTHON) -c "import sys; import setuptools;" || (echo "ERROR: setuptools is required." && false)
@@ -131,7 +133,8 @@ $(CONDA_SRC):
 completion:
 	@$(MKDIR) $(COMPLETION_DIR)
 	@$(COPY) scripts/e4s-cl-completion.bash $(COMPLETION_DIR)/e4s-cl
-	@$(PYTHON) scripts/success.py "Please source $(COMPLETION_DIR)/e4s-cl to enable completion to the current shell."
+	@$(PYTHON) scripts/success.py "Please source '$(COMPLETION_DIR)/e4s-cl' to enable completion to the current shell."
+	@$(PYTHON) scripts/success.py "If the bash-completion package is installed, completion will be enabled on new sessions."
 
 PROJECT=.
 DOCS=$(PROJECT)/doc-source
@@ -144,7 +147,7 @@ man: python_check
 	@$(MKDIR) $(USER_MAN)/man1
 	@$(COPY) $(MAN)/* $(USER_MAN)/man1
 	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
-	@$(PYTHON) scripts/success.py "Append $(USER_MAN) to your MANPATH to access the e4s-cl manual."
+	@$(PYTHON) scripts/success.py "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
 clean:
 	rm -fr build/
