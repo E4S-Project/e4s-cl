@@ -113,7 +113,7 @@ install: python_check
 
 python_check: $(PYTHON_EXE)
 	@$(PYTHON) -c "import sys; import setuptools;" || (echo "ERROR: setuptools is required." && false)
-	$(PYTHON) -m pip install -U -r requirements.txt
+	$(PYTHON) -m pip install -q -U -r requirements.txt
 
 python_download: $(CONDA_SRC)
 
@@ -136,14 +136,15 @@ completion:
 PROJECT=.
 DOCS=$(PROJECT)/doc-source
 MAN=$(PROJECT)/doc-source/build/man
-USER_MAN=$(HOME)/.local/share/man/man1
+USER_MAN=$(HOME)/.local/share/man
 
 man: python_check
-	$(PYTHON) -m pip install -U -r $(DOCS)/requirements.txt
-	$(MKDIR) $(USER_MAN)
+	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
 	PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
-	$(COPY) $(MAN)/* $(USER_MAN)
-	mandb || true
+	@$(MKDIR) $(USER_MAN)/man1
+	@$(COPY) $(MAN)/* $(USER_MAN)/man1
+	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
+	@$(PYTHON) scripts/success.py "Append $(USER_MAN) to your MANPATH to access the e4s-cl manual."
 
 clean:
 	rm -fr build/
