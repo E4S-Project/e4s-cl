@@ -1,7 +1,7 @@
 import os
 import sys
 import traceback
-from e4s_cl import HELP_CONTACT, EXIT_FAILURE, EXIT_WARNING, E4S_CL_SCRIPT
+from e4s_cl import EXIT_FAILURE, EXIT_WARNING, E4S_CL_SCRIPT
 from e4s_cl import logger
 
 
@@ -25,7 +25,7 @@ class Error(Exception):
                    "\n"
                    "%(backtrace)s\n"
                    "This is a bug in E4S Container Launcher.\n"
-                   "Please send '%(logfile)s' to %(contact)s for assistance.")
+                   "Please raise an issue on Github with the contents of '%(logfile)s'.")
     
     def __init__(self, value, *hints):
         """Initialize the Error instance.
@@ -37,7 +37,7 @@ class Error(Exception):
         super(Error, self).__init__()
         self.value = value
         self.hints = list(hints)
-        self.message_fields = {'contact': HELP_CONTACT, 'logfile': logger.LOG_FILE}
+        self.message_fields = {'logfile': logger.LOG_FILE}
     
     @property
     def message(self):
@@ -75,7 +75,7 @@ class ConfigurationError(Error):
                    "\n"
                    "%(hints)s\n"
                    "Cannot proceed with the given inputs.\n"
-                   "Please check the configuration for errors or contact %(contact)s for assistance.")
+                   "Please check the configuration for errors or raise an issue on Github.")
 
     def __init__(self, value, *hints):
         """Initialize the Error instance.
@@ -159,7 +159,6 @@ def excepthook(etype, value, tb):
         except AttributeError:
             message = Error.message_fmt % {'value': value,
                                            'typename': etype.__name__,
-                                           'contact': HELP_CONTACT,
                                            'logfile': logger.LOG_FILE,
                                            'backtrace': backtrace}
             LOGGER.critical(message)

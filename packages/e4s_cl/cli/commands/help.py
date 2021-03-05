@@ -4,7 +4,7 @@ Definition of the help command. Subject to change as it was mostly imported from
 
 import os
 import mimetypes
-from e4s_cl import EXIT_SUCCESS, HELP_CONTACT, E4S_CL_SCRIPT
+from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util, cli
 from e4s_cl.cli import arguments, UnknownCommandError
 from e4s_cl.cli.command import AbstractCommand
@@ -13,8 +13,7 @@ LOGGER = logger.get_logger(__name__)
 
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
-_GENERIC_HELP = "See '%s --help' or contact %s for assistance" % (_SCRIPT_CMD,
-                                                                  HELP_CONTACT)
+_GENERIC_HELP = "See '%s --help' or raise an issue on Github for assistance" % (_SCRIPT_CMD)
 
 _KNOWN_FILES = {}
 

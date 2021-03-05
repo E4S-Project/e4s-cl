@@ -111,7 +111,7 @@ install: python_check
 	$(PYTHON) setup.py build -b "$(BUILDDIR)"
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
-	@$(PYTHON) scripts/success.py "Installation succeded. Please add '$(INSTALLDIR)/e4s-cl/bin' to your PATH."
+	@$(PYTHON) scripts/success.py "Installation succeded. Please add '$(INSTALLDIR)/bin' to your PATH."
 
 python_check: $(PYTHON_EXE)
 	@$(PYTHON) -c "import sys; import setuptools;" || (echo "ERROR: setuptools is required." && false)

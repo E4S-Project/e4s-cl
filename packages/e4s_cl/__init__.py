@@ -16,9 +16,6 @@ EXIT_WARNING = 100
 EXIT_SUCCESS = 0
 """int: Process exit code indicating successful operation."""
 
-HELP_CONTACT = '<support@paratools.com>'
-"""str: E-mail address users should contact for help."""
-
 MIN_PYTHON_VERSION = (3, 6)
 """tuple: Required Python version for E4S Comamnder.
 
@@ -32,8 +29,8 @@ if sys.version_info[0] < MIN_PYTHON_VERSION[0] or sys.version_info[
     sys.stderr.write("""%s
 %s
 Your Python version is %s but Python %s is required.
-Please install the required Python version or contact %s for support.
-""" % (sys.executable, sys.version, VERSION, EXPECTED, HELP_CONTACT))
+Please install the required Python version or raise an issue on Github for support.
+""" % (sys.executable, sys.version, VERSION, EXPECTED))
     sys.exit(EXIT_FAILURE)
 
 E4S_CL_HOME = os.path.realpath(
