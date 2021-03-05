@@ -232,26 +232,22 @@ class LogFormatter(logging.Formatter):
     @hierachical
     @on_stderr
     def CRITICAL(self, record):
-        header = self._colored('[Critical] ', 'red', None, ['bold'])
-        return self._format_message(record, header=header)
+        return self._colored(self._format_message(record), 'red', None, ['bold'])
 
     @hierachical
     @on_stderr
     def ERROR(self, record):
-        header = self._colored('[Error] ', 'red', None, ['bold'])
-        return self._format_message(record, header=header)
+        return self._colored(self._format_message(record), 'red', None, ['bold'])
 
     @hierachical
     @on_stderr
     def WARNING(self, record):
-        header = self._colored('[Warning] ', 'yellow', None, ['bold'])
-        return self._format_message(record, header=header)
+        return self._colored(self._format_message(record), 'yellow', None, ['bold'])
 
     @hierachical
     @on_stdout
     def INFO(self, record):
-        header = self._colored('[Info] ', 'white', None, ['bold'])
-        return self._format_message(record, header=header)
+        return self._format_message(record)
 
     @hierachical
     @on_stderr
@@ -334,6 +330,7 @@ class LogFormatter(logging.Formatter):
         output = []
         text = record.getMessage().split("\n")
 
+        # Strip empty lines at the end only
         while len(text) > 1 and not text[-1]:
             text.pop()
 
