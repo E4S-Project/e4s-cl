@@ -1,6 +1,8 @@
-+++++
+Reference
+=========
+
 Usage
-+++++
+-----
 
 **e4s-cl** [ `OPTIONS` ] OBJECT { `COMMAND` }
 
@@ -8,16 +10,11 @@ Usage
 
 `OPTIONS` := { **-V**\[`ersion`] | **-v**\[`erbose`] | **-d**\[`ry-run`] }
 
-
-E4S Container Launcher requires a subcommand to be given to determine its mode of operation.
-
-The main entrypoint is the :ref:`launch command<launch>`, while the other commands are helpers to facilitate the use of the former.
-
 Options
 --------
 
 **-V**, **--version**
-        print the version information of e4s-cl and exit
+        print the version information of **e4s-cl** and exit
 
 **-v**, **--verbose**
         print debugging information during execution
@@ -25,9 +22,16 @@ Options
 **-d**, **--dry-run**
         do nothing; print what would have been done instead
 
+Description
+-------------
+
+This top level command is the entrypoint to the application. Options given here will influence all modes of operation, but the command by itself does not amount to any operation.
+
+Sub-Commands Description
+---------------------------
+
 .. toctree::
    :maxdepth: 1
-   :caption: Available commands:
 
    init
    launch
