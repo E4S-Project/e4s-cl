@@ -1,3 +1,5 @@
+.. _profile_detect:
+
 **detect** - Create a profile from a MPI library
 ================================================
 
@@ -13,4 +15,4 @@ A few point must be respected:
 * The MPI program shall call at least one (1) collective to ensure the network stack is used;
 * The process shall be run on multiple nodes using the target network. Failure to do so may result in erroneous detection of communication libraries and thus may create communication errors when using the profile.
 
-Use **-p**/**--profile** to select a output profile. If none is passed as an argument, the selected profile is selected instead.
+Use **-p**/**--profile** to select a output profile. If none is passed as an argument, the selected profile is overwritten instead.

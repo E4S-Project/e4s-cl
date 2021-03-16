@@ -1,3 +1,5 @@
+.. _init:
+
 `init` - Initialize the tool
 ============================
 
