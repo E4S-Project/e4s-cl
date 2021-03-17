@@ -1,7 +1,10 @@
 import os
 import sys
 
-__version__ = "0.0.0"
+try:
+    from e4s_cl.version import __version__
+except ImportError:
+    __version__ = "Undefined"
 """str: E4S Container Launcher Version"""
 
 E4S_CL_VERSION = __version__

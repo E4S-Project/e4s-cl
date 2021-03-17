@@ -19,6 +19,9 @@ def _version():
         except (FileNotFoundError, subprocess.CalledProcessError):
             version = "0.0.0"
 
+    with open(os.path.join(PACKAGE_TOPDIR, 'packages', 'e4s_cl', 'version.py'), 'w') as embedded_version_file:
+        embedded_version_file.write("__version__ = '%s'" % version.strip())
+
     return version.strip()
 
 

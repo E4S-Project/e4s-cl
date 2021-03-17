@@ -101,3 +101,6 @@ id_rsa_Travis2GH.pub
 
 # Non-prefixed installs
 e4s-cl-*
+
+# Version script
+packages/e4s_cl/version.py
