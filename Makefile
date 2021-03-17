@@ -143,7 +143,7 @@ USER_MAN=$(HOME)/.local/share/man
 
 man: python_check
 	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
-	PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
+	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	@$(MKDIR) $(USER_MAN)/man1
 	@$(COPY) $(MAN)/* $(USER_MAN)/man1
 	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
@@ -152,7 +152,7 @@ man: python_check
 html: python_check
 	find $(DOCS)/source -exec touch {} \;
 	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
-	PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) html
+	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) html
 
 clean:
 	rm -fr build/

@@ -1,4 +1,4 @@
-E4S Container Launcher's documentation
+E4S Container Launcher's |version| documentation
 ==================================================
 
 Introduction
