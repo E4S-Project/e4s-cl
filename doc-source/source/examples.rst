@@ -17,6 +17,8 @@ Listing the available profiles::
 
     e4s-cl profile list
 
+.. _init_override:
+
 Library detection override
 --------------------------
 

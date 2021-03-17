@@ -52,3 +52,7 @@ Full installation
 ******************
 
 All of the above steps can be done at once by using :code:`make all`.
+
+.. code-block:: bash
+
+    $ make INSTALLDIR=<prefix> man
