@@ -25,7 +25,7 @@ Description
 
 This command initializes E4S Container Launcher for the system's available MPI library.
 
-During initialization, the available MPI library is parsed and analysed to guess its running requirements.
+During initialization, the available MPI library is parsed and analyzed to guess its running requirements.
 A :ref:`profile<profile>` is created with the collected results from the analysis, and made accessible for the next :ref:`launch command<launch>`.
 
 .. caution::

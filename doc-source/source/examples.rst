@@ -22,7 +22,7 @@ Listing the available profiles::
 Library detection override
 --------------------------
 
-Some MPI libraries behave differently according to the user's input, making them very hard for **e4s-cl** to accurately profile on its own. You will have to provide a sample MPI environment for **e4s-cl** to analyse. Let's detail one such example.
+Some MPI libraries behave differently according to the user's input, making them very hard for **e4s-cl** to accurately profile on its own. You will have to provide a sample MPI environment for **e4s-cl** to analyze. Let's detail one such example.
 
 The following message will appear when a redundant execution is detected:
 
@@ -31,7 +31,7 @@ The following message will appear when a redundant execution is detected:
     $ e4s-cl init
     The target launcher /usr/bin/mpirun uses a single host by default, which may
     tamper with the library discovery. Consider running `e4s-cl profile detect`
-    using mpirun specifiying multiple hosts.
+    using mpirun specifying multiple hosts.
 
 To ensure the validity of the generated profile, a launcher command should be given with at least some communication between hosts. To do so, one can compile and then run a sample program using **e4s-cl**. Using a generic MPI library:
 

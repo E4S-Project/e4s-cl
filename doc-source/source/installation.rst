@@ -38,7 +38,7 @@ The :code:`INSTALLDIR` used for the script must be specified to tie the completi
 Manual page
 ************
 
-This website can also be installed in the :code:`man` format to be accessible on the CLI with :code:`make man`. This will create a man page in :code:`$HOME/.local/share/man/man1` and update the manual page database. This is the default user-level install directory, but you may have to add :code:`$HOME/.local/share/man` to the :code:`MANPATH` environment pariable to access it depending on your system's configuration.
+This website can also be installed in the :code:`man` format to be accessible on the CLI with :code:`make man`. This will create a man page in :code:`$HOME/.local/share/man/man1` and update the manual page database. This is the default user-level install directory, but you may have to add :code:`$HOME/.local/share/man` to the :code:`MANPATH` environment variable to access it depending on your system's configuration.
 
 The :code:`INSTALLDIR` used for the script must be specified to tie the manual to the installed package.
 

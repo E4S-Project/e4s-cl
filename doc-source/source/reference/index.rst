@@ -20,7 +20,7 @@ Options
 Description
 -------------
 
-This top level command is the entrypoint to the application. Options given here will influence all modes of operation, but the command by itself does not amount to any operation.
+This top level command is the entry-point to the application. Options given here will influence all modes of operation, but the command by itself does not amount to any operation.
 
 Sub-Commands Description
 ---------------------------

@@ -52,11 +52,11 @@ A profile is a recorded collection of fields relating to a specific MPI library.
 +-------------+--------------------------------------------------------------+
 
 **e4s-cl** stores profiles to simplify :ref:`launch commands<launch>`.
-Profiles are accessed and edited using the `profile` subcommands.
+Profiles are accessed and edited using the `profile` sub-commands.
 
 Profile Selection
 -----------------
 
-A profile can be selected using the :ref:`profile select<profile_select>` command. The target profile is then implicitly used for most of the commands teking a profile as an argument.
+A profile can be selected using the :ref:`profile select<profile_select>` command. The target profile is then implicitly used for most of the commands taking a profile as an argument.
 
-A unique profile can be selected at a time. Switching selection is done by selecting another profile. A selection can also be cancelled by using :ref:`profile unselect<profile_unselect>`.
+A unique profile can be selected at a time. Switching selection is done by selecting another profile. A selection can also be canceled by using :ref:`profile unselect<profile_unselect>`.

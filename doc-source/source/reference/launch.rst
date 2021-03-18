@@ -36,7 +36,7 @@ The minimal options that must be given are:
 When a :ref:`profile<profile>` is selected, options can be omitted as the profile's fields will be implicitly used.
 Command line options have precedence over profiles' fields.
 
-E4S Container Launcher will analyse the command line to determine the exact arguments of the launcher.
+E4S Container Launcher will analyze the command line to determine the exact arguments of the launcher.
 Certain launchers have esoteric options that may prevent this system from working properly.
-To ensure the arguments are understood correctly, an additionnal `--` can be added between the options and the MPI command.
+To ensure the arguments are understood correctly, an additional `--` can be added between the options and the MPI command.
 
