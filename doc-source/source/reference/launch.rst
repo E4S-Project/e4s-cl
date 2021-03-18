@@ -6,30 +6,21 @@
 Usage
 -----
 
-**e4s-cl launch** [ `OPTIONS` ] [ **--** ] < `MPI Command` >
+.. code::
+
+    e4s-cl launch [ OPTIONS ] [ -- ] < MPI Command >
 
 Options
 -------
 
 The `launch` command accepts several options to tune the outcome of its execution:
 
-**--profile**
-        profile to use for the execution
-
-**--image**
-        identifier for the image to use when launching the container
-
-**--backend**
-        container technology to employ
-
-**--libraries**
-        comma-separated list of libraries to load at run-time
-
-**--files**
-        comma-separated list of files to make accessible in the container
-
-**--source**
-        path of script to source before execution
+--profile	profile to use for the execution
+--image		identifier for the image to use when launching the container
+--backend	container technology to employ
+--libraries	comma-separated list of libraries to load at run-time
+--files		comma-separated list of files to make accessible in the container
+--source	path of script to source before execution
 
 Description
 -----------

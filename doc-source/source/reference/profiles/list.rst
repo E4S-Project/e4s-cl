@@ -4,9 +4,14 @@
 Usage
 ------
 
-**e4s-cl profile list** [ `OPTIONS` ]
+.. code::
 
-`OPTIONS` := { **-s**\[hort] }
+    e4s-cl profile list [ OPTIONS ]
+
+Options
+----------
+
+-s,--short      Print the list with no formatting
 
 Description
 ------------

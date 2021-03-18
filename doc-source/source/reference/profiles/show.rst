@@ -4,7 +4,9 @@
 Usage
 ------
 
-**e4s-cl profile show** [ NAME ]
+.. code::
+
+    e4s-cl profile show [ NAME ]
 
 Description
 --------------

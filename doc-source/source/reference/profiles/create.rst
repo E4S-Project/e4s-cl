@@ -4,9 +4,18 @@
 Usage
 ------
 
-**e4s-cl profile create** <NAME> [ `OPTIONS` ]
+.. code::
 
-`OPTIONS` := { **--libraries** | **--files** | **--backend** | **--image** | **--source** }
+    e4s-cl profile create <NAME> [ OPTIONS ]
+
+Options 
+--------
+
+--libraries	A comma-separated of libraries to add to the profile
+--files		A comma-separated of files to add to the profile
+--image		The image to use with the profile
+--backend	The container technology to use for the profile's image
+--source	Path towards a script to source before execution
 
 Description
 ------------

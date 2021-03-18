@@ -6,7 +6,9 @@
 Usage
 ---------
 
-**e4s-cl profile unselect**
+.. code::
+
+    e4s-cl profile unselect
 
 Description
 ------------

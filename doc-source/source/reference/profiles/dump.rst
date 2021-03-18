@@ -4,7 +4,9 @@
 Usage
 --------
 
-**e4s-cl profile dump** [ NAME ]
+.. code::
+
+    e4s-cl profile dump [ NAME ]
 
 Description
 --------------

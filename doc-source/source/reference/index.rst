@@ -4,23 +4,18 @@ Reference
 Usage
 -----
 
-**e4s-cl** [ `OPTIONS` ] OBJECT { `COMMAND` }
+.. code::
 
-`OBJECT` := { **init** | **launch** | **profile** }
+    e4s-cl [ OPTIONS ] OBJECT { COMMAND }
 
-`OPTIONS` := { **-V**\[`ersion`] | **-v**\[`erbose`] | **-d**\[`ry-run`] }
+    OBJECT := { init | launch | profile }
 
 Options
 --------
 
-**-V**, **--version**
-        print the version information of **e4s-cl** and exit
-
-**-v**, **--verbose**
-        print debugging information during execution
-
-**-d**, **--dry-run**
-        do nothing; print what would have been done instead
+-V, --version		print the version information of **e4s-cl** and exit
+-v, --verbose		print debugging information during execution
+-d, --dry-run		do nothing; print what would have been done instead
 
 Description
 -------------

@@ -4,7 +4,9 @@
 Usage
 ------
 
-**e4s-cl profile copy** <NAME> <NEW NAME>
+.. code::
+
+    e4s-cl profile copy <NAME> <NEW NAME>
 
 Description
 -------------

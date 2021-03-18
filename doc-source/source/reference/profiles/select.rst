@@ -6,7 +6,9 @@
 Usage
 --------
 
-**e4s-cl profile select** <NAME>
+.. code::
+
+    e4s-cl profile select <NAME>
 
 Description
 --------------

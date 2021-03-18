@@ -4,7 +4,9 @@
 Usage
 ------
 
-**e4s-cl profile delete** <NAME>
+.. code::
+
+    e4s-cl profile delete <NAME>
 
 Description
 -------------

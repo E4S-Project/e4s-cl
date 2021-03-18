@@ -4,9 +4,21 @@
 Usage
 ------
 
-**e4s-cl profile edit** [ NAME ] [ `OPTIONS` ]
+.. code::
 
-OPTIONS := { **--new_name** | **--backend** | **--image** | **--source** | **--add-files** | **--remove-files** | **--add-libraries** | **--remove-libraries** }
+    e4s-cl profile edit [ NAME ] [ OPTIONS ]
+
+Options
+-----------
+
+--new_name		Change the profile's name
+--backend		Change the profile's backend
+--image		    Change the profile's default image
+--source		Change the profile's default init script
+--add-files		Comma-separated list of files to add
+--remove-files		Comma-separated list of files to remove
+--add-libraries		Comma-separated list of libraries to add
+--remove-libraries      Comma-separated list of libraries to remove
 
 Description
 ------------
