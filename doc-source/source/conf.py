@@ -21,7 +21,7 @@ copyright = '2021, Jean-Baptiste Skutnik'
 author = 'Jean-Baptiste Skutnik'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+# release = '1.0'
 
 # -- General configuration ---------------------------------------------------
 
@@ -49,6 +49,18 @@ html_theme = 'furo'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
+
+# -- HTML theme options ------------------------------------------------------
+
+html_theme_options = {
+    "navigation_with_keys": True,
+    "light_css_variables": {
+        "code-font-size": ".9em",
+    },
+    "dark_css_variables": {
+        "code-font-size": ".9em",
+    }
+}
 
 # -- Options for man output --------------------------------------------------
 
