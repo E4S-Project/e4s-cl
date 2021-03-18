@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(PACKAGE_TOPDIR, 'packages'))
 
 def _version():
     version_file = os.path.join(PACKAGE_TOPDIR, "VERSION")
+    commit_file = os.path.join(PACKAGE_TOPDIR, "COMMIT")
 
     if os.path.exists(version_file):
         with open(version_file) as fin:
@@ -19,8 +20,14 @@ def _version():
         except (FileNotFoundError, subprocess.CalledProcessError):
             version = "0.0.0"
 
+    if os.path.exists(commit_file):
+        with open(commit_file) as fin:
+            commit = fin.readline()
+    else:
+        commit = "Unknown"
+
     with open(os.path.join(PACKAGE_TOPDIR, 'packages', 'e4s_cl', 'version.py'), 'w') as embedded_version_file:
-        embedded_version_file.write("__version__ = '%s'" % version.strip())
+        embedded_version_file.write("__version__ = '%s'\n__commit__ = '%s'\n" % (version.strip(), commit.strip()))
 
     return version.strip()
 
