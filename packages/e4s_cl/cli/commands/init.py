@@ -38,7 +38,11 @@ def check_mpirun(executable):
     hostnames = {hostname.strip() for hostname in proc.stdout.readlines()}
 
     if len(hostnames) == 1:
-        LOGGER.warn("The target launcher %s uses a single host by default, which may tamper with the library discovery. Consider running `%s` using mpirun specifiying multiple hosts.", executable, str(detect_command))
+        LOGGER.warn(
+            "The target launcher %s uses a single host by default, "
+            "which may tamper with the library discovery. Consider "
+            "running `%s` using mpirun specifying multiple hosts.", executable,
+            str(detect_command))
 
 
 class InitCommand(AbstractCommand):
@@ -123,7 +127,9 @@ class InitCommand(AbstractCommand):
                 launcher = mpirun.as_posix()
 
         if not (compiler and launcher):
-            LOGGER.error("No MPI detected in PATH. Please load the module or use `--mpi` to specify the location of a library to use.")
+            LOGGER.error(
+                "No MPI detected in PATH. Please load the module or use `--mpi` to specify the location of a library to use."
+            )
             return EXIT_FAILURE
 
         if getattr(args, 'launcher', None):
