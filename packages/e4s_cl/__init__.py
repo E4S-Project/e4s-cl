@@ -79,7 +79,7 @@ def version_banner():
     import socket
     from datetime import datetime
     import e4s_cl.logger
-    fmt = ("E4S Container Launcher\n"
+    fmt = ("E4S Container Launcher [ http://e4s-project.github.io/e4s-cl ]\n"
            "\n"
            "Prefix         : %(prefix)s\n"
            "Version        : %(version)s@%(commit)s\n"
