@@ -2,10 +2,10 @@
 <html class="no-js">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Authors" href="authors.html" /><link rel="prev" title="Software Compatibility" href="compatibility/index.html" />
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Reference" href="reference/index.html" /><link rel="prev" title="Quickstart" href="quickstart.html" />
 
     <meta name="generator" content="sphinx-3.5.2, furo 2021.03.19.beta29"/>
-        <title>Examples - E4S Container Launcher v1.0rc2 documentation</title>
+        <title>Installation - E4S Container Launcher v1.0rc2 documentation</title>
       <link rel="stylesheet" href="_static/styles/furo.css?digest=ca8f8ad188754d6c0133301b749e93f9e95aff28">
     <link rel="stylesheet" href="_static/pygments.css">
     <link media="(prefers-color-scheme: dark)" rel="stylesheet" href="_static/pygments_dark.css">
@@ -113,7 +113,7 @@
 </form><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Installation</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="reference/index.html">Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="reference/init.html"><strong>init</strong> - Initialize the tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reference/launch.html"><strong>launch</strong> - Run MPI commands</a></li>
@@ -133,7 +133,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="compatibility/index.html">Software Compatibility</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 </ul>
 
@@ -149,39 +149,49 @@
         <label class="toc-overlay-icon toc-content-icon" for="__toc">
           <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
         </label>
-        <div class="section" id="examples">
-<h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="cheatsheet">
-<h2>Cheatsheet<a class="headerlink" href="#cheatsheet" title="Permalink to this headline">¶</a></h2>
-<p>Initializing the tool for the available MPI library:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">init</span>
+        <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="from-source">
+<h2>From source<a class="headerlink" href="#from-source" title="Permalink to this headline">¶</a></h2>
+<p>To install a version from the sources, first clone the repository or download a <a class="reference external" href="https://github.com/E4S-Project/e4s-cl/releases">release</a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ git clone https://github.com/E4S-Project/e4s-cl
 </pre></div>
 </div>
-<p>Launch a MPI command in a container:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">launch</span> <span class="o">--</span><span class="n">image</span> <span class="o">./</span><span class="n">image</span><span class="o">.</span><span class="n">sif</span> <span class="o">--</span><span class="n">backend</span> <span class="n">singularity</span> <span class="o">--</span> <span class="n">mpirun</span> <span class="o">./</span><span class="n">binary</span>
+<div class="section" id="script">
+<h3>Script<a class="headerlink" href="#script" title="Permalink to this headline">¶</a></h3>
+<p>Install the script using <code class="code docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code>. The installation directory can be modified using the <code class="code docutils literal notranslate"><span class="pre">INSTALLDIR</span></code> variable:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ make <span class="nv">INSTALLDIR</span><span class="o">=</span>&lt;prefix&gt; install
 </pre></div>
 </div>
-<p>Listing the available profiles:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">profile</span> <span class="nb">list</span>
+<p>The <strong>e4s-cl</strong> program will be copied over to <code class="code docutils literal notranslate"><span class="pre">&lt;prefix&gt;/bin</span></code>. On success, a message will be printed with the full path to add to your <code class="code docutils literal notranslate"><span class="pre">PATH</span></code>.</p>
+<p>A python interpreter will be downloaded to ensure a compatible Python 3 version is available.</p>
+</div>
+<div class="section" id="completion">
+<h3>Completion<a class="headerlink" href="#completion" title="Permalink to this headline">¶</a></h3>
+<p>Automatic completion for commands and profiles can be installed by running <code class="code docutils literal notranslate"><span class="pre">make</span> <span class="pre">completion</span></code>. A BASH completion script will be installed in <code class="code docutils literal notranslate"><span class="pre">$HOME/.local/share/bash-completion/completions/</span></code>. Sourcing it will enable <strong>e4s-cl</strong> completion in the shell; if the <code class="code docutils literal notranslate"><span class="pre">bash-completion</span></code> package is installed, it will be enabled for every new shell.</p>
+<p>The <code class="code docutils literal notranslate"><span class="pre">INSTALLDIR</span></code> used for the script must be specified to tie the completion to the installed package.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ make <span class="nv">INSTALLDIR</span><span class="o">=</span>&lt;prefix&gt; completion
+$ <span class="nb">source</span> <span class="nv">$HOME</span>/.local/share/bash-completion/completions/e4s-cl
 </pre></div>
 </div>
 </div>
-<div class="section" id="library-detection-override">
-<span id="init-override"></span><h2>Library detection override<a class="headerlink" href="#library-detection-override" title="Permalink to this headline">¶</a></h2>
-<p>Some MPI libraries behave differently according to the user’s input, making them very hard for <strong>e4s-cl</strong> to accurately profile on its own. You will have to provide a sample MPI environment for <strong>e4s-cl</strong> to analyze. Let’s detail one such example.</p>
-<p>The following message will appear when a redundant execution is detected:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ e4s-cl init
-The target launcher /usr/bin/mpirun uses a single host by default, which may
-tamper with the library discovery. Consider running <span class="sb">`</span>e4s-cl profile detect<span class="sb">`</span>
-using mpirun specifying multiple hosts.
+<div class="section" id="manual-page">
+<h3>Manual page<a class="headerlink" href="#manual-page" title="Permalink to this headline">¶</a></h3>
+<p>This website can also be installed in the <code class="code docutils literal notranslate"><span class="pre">man</span></code> format to be accessible on the CLI with <code class="code docutils literal notranslate"><span class="pre">make</span> <span class="pre">man</span></code>. This will create a man page in <code class="code docutils literal notranslate"><span class="pre">$HOME/.local/share/man/man1</span></code> and update the manual page database. This is the default user-level install directory, but you may have to add <code class="code docutils literal notranslate"><span class="pre">$HOME/.local/share/man</span></code> to the <code class="code docutils literal notranslate"><span class="pre">MANPATH</span></code> environment variable to access it depending on your system’s configuration.</p>
+<p>The <code class="code docutils literal notranslate"><span class="pre">INSTALLDIR</span></code> used for the script must be specified to tie the manual to the installed package.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ make <span class="nv">INSTALLDIR</span><span class="o">=</span>&lt;prefix&gt; man
+$ <span class="nb">export</span> <span class="nv">MANPATH</span><span class="o">=</span><span class="nv">$HOME</span>/.local/share/man:<span class="nv">$MANPATH</span>
+$ man e4s-cl
 </pre></div>
 </div>
-<p>To ensure the validity of the generated profile, a launcher command should be given with at least some communication between hosts. To do so, one can compile and then run a sample program using <strong>e4s-cl</strong>. Using a generic MPI library:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ mpicc program.c -o example
-$ e4s-cl profile detect -p &lt;profile_name&gt; mpirun -hosts &lt;host1&gt;,&lt;host2&gt; ./example
+</div>
+<div class="section" id="full-installation">
+<h3>Full installation<a class="headerlink" href="#full-installation" title="Permalink to this headline">¶</a></h3>
+<p>All of the above steps can be done at once by using <code class="code docutils literal notranslate"><span class="pre">make</span> <span class="pre">all</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ make <span class="nv">INSTALLDIR</span><span class="o">=</span>&lt;prefix&gt; man
 </pre></div>
 </div>
-<p>On success, the newly-created profile will be found in the profile list.</p>
+</div>
 </div>
 </div>
 
@@ -189,23 +199,23 @@ $ e4s-cl profile detect -p &lt;profile_name&gt; mpirun -hosts &lt;host1&gt;,&lt;
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="authors.html">
+          <a class="next-page" href="reference/index.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Authors</div>
+                <div class="title">Reference</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="compatibility/index.html">
+          <a class="prev-page" href="quickstart.html">
               <svg><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Software Compatibility</div>
+                <div class="title">Quickstart</div>
                 
               </div>
             </a>
@@ -219,7 +229,7 @@ $ e4s-cl profile detect -p &lt;profile_name&gt; mpirun -hosts &lt;host1&gt;,&lt;
               <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
               <a href="https://github.com/pradyunsg/furo">Furo theme</a>.
             |
-            <a class="muted-link" href="_sources/examples.rst.txt"
+            <a class="muted-link" href="_sources/installation.rst.txt"
                rel="nofollow">
               Show Source
             </a>
@@ -239,9 +249,14 @@ $ e4s-cl profile detect -p &lt;profile_name&gt; mpirun -hosts &lt;host1&gt;,&lt;
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Examples</a><ul>
-<li><a class="reference internal" href="#cheatsheet">Cheatsheet</a></li>
-<li><a class="reference internal" href="#library-detection-override">Library detection override</a></li>
+<li><a class="reference internal" href="#">Installation</a><ul>
+<li><a class="reference internal" href="#from-source">From source</a><ul>
+<li><a class="reference internal" href="#script">Script</a></li>
+<li><a class="reference internal" href="#completion">Completion</a></li>
+<li><a class="reference internal" href="#manual-page">Manual page</a></li>
+<li><a class="reference internal" href="#full-installation">Full installation</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
