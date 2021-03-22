@@ -2,6 +2,8 @@
 
 E4S container launcher is a tool to ease running MPI applications in E4S containers with host libraries. Built upon the [MPICH ABI Compatibility Initiative](https://www.mpich.org/abi/).
 
+__Check out the documentation [here](https://e4s-project.github.io/e4s-cl/) !__. 
+
 ## Usage
 
 Running an application with E4S Container Launcher can be as simple as prefixing the launcher command by `e4s-cl launch`.
@@ -11,7 +13,7 @@ e4s-cl init
 e4s-cl launch mpirun -np 4 ./foo
 ```
 
-The full details on execution and configuration can be found [here](https://e4s-project.github.io/e4s-cl).
+The full details on execution and configuration can be found [here](https://e4s-project.github.io/e4s-cl/quickstart.html).
 
 ## Installation
 
@@ -24,6 +26,8 @@ make INSTALLDIR=<prefix> install
 ```
 
 Once the installation succeeds, add `<prefix>/bin` to your `PATH`.
+
+The full details on installation targets can be found [here](https://e4s-project.github.io/e4s-cl/installation.html).
 
 ## How it works
 
