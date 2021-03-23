@@ -22,10 +22,11 @@ from elftools.elf.gnuversions import (
     GNUVerNeedSection,
 )
 
+
 class ReadElf(object):
     """ display_* methods are used to emit output into the output stream
     """
-    def __init__(self, file, output):
+    def __init__(self, file):
         """ file:
                 stream object with the ELF file to read
 
@@ -33,29 +34,33 @@ class ReadElf(object):
                 output stream to write to
         """
         self.elffile = ELFFile(file)
-        self.output = output
 
         self._versioninfo = None
 
     def display_version_info(self):
         """ Display the version info contained in the file
         """
-        self._init_versioninfo()
+        self._query_sections()
 
-        verdata = {}
+        verdata = {'symbols': {}}
 
         if not self._versioninfo['type']:
             self._emitline("\nNo version information found in this file.")
             return verdata
 
+        if self._versioninfo['dynamic']:
+            needed_ = filter(lambda x: x.entry.d_tag == 'DT_NEEDED',
+                             self._versioninfo['dynamic'].iter_tags())
+
+            verdata['dependencies'] = [tag.needed for tag in needed_]
+
         if self._versioninfo['verdef']:
-            self._emitline('Defined symbols')
             verdefined = [
                 next(verdaux_iter).name for verdef, verdaux_iter in
                 self._versioninfo['verdef'].iter_versions()
             ]
 
-            verdata['defined'] = verdefined
+            verdata['symbols']['defined'] = verdefined
 
         if self._versioninfo['verneed']:
             verneeded = {}
@@ -66,12 +71,11 @@ class ReadElf(object):
                     vernaux.name
                     for idx, vernaux in enumerate(verneed_iter, start=1)
                 ]
-            verdata['needed'] = verneeded
+            verdata['symbols']['needed'] = verneeded
 
-        self._emit(json.dumps(verdata))
         return verdata
 
-    def _init_versioninfo(self):
+    def _query_sections(self):
         """ Search and initialize informations about version related sections
             and the kind of versioning used (GNU or Solaris).
         """
@@ -82,6 +86,7 @@ class ReadElf(object):
             'versym': None,
             'verdef': None,
             'verneed': None,
+            'dynamic': None,
             'type': None
         }
 
@@ -93,6 +98,7 @@ class ReadElf(object):
             elif isinstance(section, GNUVerNeedSection):
                 self._versioninfo['verneed'] = section
             elif isinstance(section, DynamicSection):
+                self._versioninfo['dynamic'] = section
                 for tag in section.iter_tags():
                     if tag['d_tag'] == 'DT_VERSYM':
                         self._versioninfo['type'] = 'GNU'
@@ -101,16 +107,6 @@ class ReadElf(object):
         if not self._versioninfo['type'] and (self._versioninfo['verneed']
                                               or self._versioninfo['verdef']):
             self._versioninfo['type'] = 'Solaris'
-
-    def _emit(self, s=''):
-        """ Emit an object to output
-        """
-        self.output.write(str(s))
-
-    def _emitline(self, s=''):
-        """ Emit an object to output, followed by a newline
-        """
-        self.output.write(str(s).rstrip() + '\n')
 
 
 SCRIPT_DESCRIPTION = 'Display information about the symbols of ELF files'
@@ -128,10 +124,6 @@ def main(stream=None):
                            nargs='?',
                            default=None,
                            help='ELF file to parse')
-    argparser.add_argument('-v',
-                           '--version',
-                           action='version',
-                           version=VERSION_STRING)
     argparser.add_argument('-H',
                            '--help',
                            action='store_true',
@@ -146,8 +138,8 @@ def main(stream=None):
 
     with open(args.file, 'rb') as file:
         try:
-            readelf = ReadElf(file, stream or sys.stdout)
-            readelf.display_version_info()
+            readelf = ReadElf(file)
+            print(json.dumps(readelf.display_version_info()))
         except ELFError as ex:
             sys.stdout.flush()
             sys.stderr.write('ELF error: %s\n' % ex)
