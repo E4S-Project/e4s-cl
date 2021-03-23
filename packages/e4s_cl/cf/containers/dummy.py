@@ -8,6 +8,7 @@ from e4s_cl.cf.containers import Container
 NAME = 'dummy'
 EXECUTABLES = ['bash']
 MIMES = ['e4s_cl_test']
+DEBUG_BACKEND = True
 
 
 class DummyContainer(Container):
