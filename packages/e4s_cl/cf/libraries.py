@@ -1,5 +1,5 @@
 """
-Helpers linked to library manipulation
+Library analysis and manipulation helpers
 """
 
 import re
@@ -7,6 +7,14 @@ import pathlib
 from e4s_cl import logger, util
 from e4s_cl.util import which, create_subprocess_exp
 from e4s_cl.error import InternalError
+
+from elftools.common.exceptions import ELFError
+from elftools.elf.elffile import ELFFile
+from elftools.elf.dynamic import DynamicSection
+from elftools.elf.gnuversions import (
+    GNUVerDefSection,
+    GNUVerNeedSection,
+)
 
 LOGGER = logger.get_logger(__name__)
 
@@ -108,7 +116,8 @@ def host_libraries():
     if ldconfig_path is None:
         return HOST_LIBRARIES
 
-    _, output = create_subprocess_exp([ldconfig_path, '-p'], redirect_stdout=True)
+    _, output = create_subprocess_exp([ldconfig_path, '-p'],
+                                      redirect_stdout=True)
 
     for row in output.strip().split('\n')[1:]:
         # Expecting format "libname.so.y (lib,arch) => /path/libname.so.y"
@@ -165,3 +174,61 @@ def libc_version():
         HOST_LIBC = extract_libc(out)
 
     return HOST_LIBC
+
+
+class ELFData:
+    """
+    Relevant ELF header fields used in the dynamic linking of libraries
+    """
+    def __init__(self):
+        self.soname = ""
+        self.dyn_dependencies = []
+        self.required_symbols = {}
+        self.defined_symbols = []
+
+
+def parseELF(file):
+    """
+    Create ELFData from an opened shared binary.
+    The file argument must be opened in byte mode !
+    """
+    library = ELFData()
+
+    def parseDynamic(section):
+        tags = list(
+            filter(lambda x: x.entry.d_tag == 'DT_SONAME',
+                   section.iter_tags()))
+
+        if len(tags) == 1:
+            library.soname = tags[0].soname
+
+        tags = filter(lambda x: x.entry.d_tag == 'DT_NEEDED',
+                      section.iter_tags())
+
+        library.dyn_dependencies = [tag.needed for tag in tags]
+
+    def parseVerDef(section):
+        defined = [next(v_iter).name for _, v_iter in section.iter_versions()]
+
+        library.defined_symbols = defined
+
+    def parseVerNeed(section):
+        needed = {}
+
+        for v, v_iter in section.iter_versions():
+            needed[v.name] = [v.name for v in v_iter]
+
+        library.required_symbols = needed
+
+    try:
+        for section in ELFFile(file).iter_sections():
+            if isinstance(section, GNUVerDefSection):
+                parseVerDef(section)
+            elif isinstance(section, GNUVerNeedSection):
+                parseVerNeed(section)
+            elif isinstance(section, DynamicSection):
+                parseDynamic(section)
+    except ELFError as e:
+        LOGGER.error("%s error:" % file.name, e, file=sys.stderr)
+
+    return library
