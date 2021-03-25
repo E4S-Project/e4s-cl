@@ -5,7 +5,7 @@ Library analysis and manipulation helpers
 import re
 import pathlib
 from e4s_cl import logger, util
-from e4s_cl.util import which, create_subprocess_exp, flatten
+from e4s_cl.util import which, create_subprocess_exp, flatten, color_text
 from e4s_cl.error import InternalError
 
 from elftools.common.exceptions import ELFError
@@ -184,7 +184,7 @@ class ELFData:
     """
     def __init__(self):
         self.soname = ""
-        self.dyn_dependencies = []
+        self.dyn_dependencies = set()
         self.required_symbols = {}
         self.defined_symbols = []
 
@@ -215,7 +215,7 @@ def parseELF(file):
         tags = filter(lambda x: x.entry.d_tag == 'DT_NEEDED',
                       section.iter_tags())
 
-        library.dyn_dependencies = [tag.needed for tag in tags]
+        library.dyn_dependencies = {tag.needed for tag in tags}
 
     def parseVerDef(section):
         defined = [next(v_iter).name for _, v_iter in section.iter_versions()]
@@ -274,11 +274,26 @@ class LibrarySet(set):
 
     def trees(self):
         def get_name(elem):
-            return elem.soname
+            if getattr(elem, 'found', True):
+                return elem.soname
+            return color_text(elem.soname, 'red', None, ['bold'])
 
         def gen_get_children(lib_pool):
             def get_children(elem):
-                return filter(lambda x: x.soname in elem.dyn_dependencies, lib_pool)
+                found = LibrarySet(
+                    filter(lambda x: x.soname in elem.dyn_dependencies,
+                           lib_pool))
+
+                not_found = elem.dyn_dependencies - found.sonames
+
+                for name in not_found:
+                    mock = ELFData()
+                    mock.soname = name
+                    mock.found = False
+
+                    found.add(mock)
+
+                return found
 
             return get_children
 
