@@ -5,7 +5,7 @@ Library analysis and manipulation helpers
 import re
 import pathlib
 from e4s_cl import logger, util
-from e4s_cl.util import which, create_subprocess_exp
+from e4s_cl.util import which, create_subprocess_exp, flatten
 from e4s_cl.error import InternalError
 
 from elftools.common.exceptions import ELFError
@@ -15,6 +15,8 @@ from elftools.elf.gnuversions import (
     GNUVerDefSection,
     GNUVerNeedSection,
 )
+
+from tree_format import format_tree
 
 LOGGER = logger.get_logger(__name__)
 
@@ -186,6 +188,14 @@ class ELFData:
         self.required_symbols = {}
         self.defined_symbols = []
 
+    def __hash__(self):
+        return hash(self.soname)
+
+    def __eq__(self, other):
+        if isinstance(other, ELFData):
+            return self.soname == other.soname
+        return NotImplemented
+
 
 def parseELF(file):
     """
@@ -232,3 +242,51 @@ def parseELF(file):
         LOGGER.error("%s error:" % file.name, e, file=sys.stderr)
 
     return library
+
+
+class LibrarySet(set):
+    @property
+    def defined_symbols(self):
+        return set(flatten(map(lambda x: x.defined_symbols, self)))
+
+    @property
+    def required_symbols(self):
+        return set(
+            flatten(flatten(map(lambda x: x.required_symbols.values(), self))))
+
+    @property
+    def required_libraries(self):
+        sonames = set(flatten(map(lambda x: x.dyn_dependencies, self)))
+        return LibrarySet(filter(lambda x: x.soname in sonames, self))
+
+    @property
+    def sonames(self):
+        return set(map(lambda x: x.soname, self))
+
+    @property
+    def top_level(self):
+        return self - self.required_libraries
+
+    @property
+    def complete(self):
+        return (self.required_libraries.issubset(self)
+                and self.required_symbols.issubset(self.defined_symbols))
+
+    def trees(self):
+        def get_name(elem):
+            return elem.soname
+
+        def gen_get_children(lib_pool):
+            def get_children(elem):
+                return filter(lambda x: x.soname in elem.dyn_dependencies, lib_pool)
+
+            return get_children
+
+        trees = []
+        for lib in self.top_level:
+            trees.append(
+                format_tree(lib,
+                            format_node=get_name,
+                            get_children=gen_get_children(self)))
+
+        return trees
