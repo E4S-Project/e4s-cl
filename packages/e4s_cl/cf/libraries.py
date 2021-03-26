@@ -197,10 +197,13 @@ class ELFData:
     def __init__(self):
         self.soname = ""
         self.dyn_dependencies = set()
-        self.required_symbols = {}
-        self.defined_symbols = []
+        self.required_versions = {}
+        self.defined_versions = set()
 
     def __hash__(self):
+        """
+        hash method tying the ELFData object to the soname, to use in sets
+        """
         return hash(self.soname)
 
     def __eq__(self, other):
@@ -230,9 +233,10 @@ def parseELF(file):
         library.dyn_dependencies = {tag.needed for tag in tags}
 
     def parseVerDef(section):
-        defined = [next(v_iter).name for _, v_iter in section.iter_versions()]
-
-        library.defined_symbols = defined
+        library.defined_versions = {
+            next(v_iter).name
+            for _, v_iter in section.iter_versions()
+        }
 
     def parseVerNeed(section):
         needed = {}
@@ -240,7 +244,7 @@ def parseELF(file):
         for v, v_iter in section.iter_versions():
             needed[v.name] = [v.name for v in v_iter]
 
-        library.required_symbols = needed
+        library.required_versions = needed
 
     try:
         for section in ELFFile(file).iter_sections():
@@ -258,13 +262,14 @@ def parseELF(file):
 
 class LibrarySet(set):
     @property
-    def defined_symbols(self):
-        return set(flatten(map(lambda x: x.defined_symbols, self)))
+    def defined_versions(self):
+        return set(flatten(map(lambda x: x.defined_versions, self)))
 
     @property
-    def required_symbols(self):
+    def required_versions(self):
         return set(
-            flatten(flatten(map(lambda x: x.required_symbols.values(), self))))
+            flatten(flatten(map(lambda x: x.required_versions.values(),
+                                self))))
 
     @property
     def required_libraries(self):
@@ -282,7 +287,7 @@ class LibrarySet(set):
     @property
     def complete(self):
         return (self.required_libraries.issubset(self)
-                and self.required_symbols.issubset(self.defined_symbols))
+                and self.required_versions.issubset(self.defined_versions))
 
     def trees(self):
         def get_name(elem):
@@ -290,11 +295,10 @@ class LibrarySet(set):
                 return elem.soname
             return color_text(elem.soname, 'red', None, ['bold'])
 
-        def gen_get_children(lib_pool):
+        def gen_get_children():
             def get_children(elem):
                 found = LibrarySet(
-                    filter(lambda x: x.soname in elem.dyn_dependencies,
-                           lib_pool))
+                    filter(lambda x: x.soname in elem.dyn_dependencies, self))
 
                 not_found = elem.dyn_dependencies - found.sonames
 
@@ -314,6 +318,6 @@ class LibrarySet(set):
             trees.append(
                 format_tree(lib,
                             format_node=get_name,
-                            get_children=gen_get_children(self)))
+                            get_children=gen_get_children()))
 
         return trees
