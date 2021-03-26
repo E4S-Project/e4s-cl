@@ -19,13 +19,27 @@ def _parse_line(line):
     """
     found = not 'not found' in line
     parts = [part.strip() for part in line.split(' ')]
+
+    if parts[0] != pathlib.Path(parts[0]).name and 'ld' in parts[0]:
+        """
+        More often than not, the linker will be shown with a line as such:
+            /usr/lib64/ld-linux-x86-64.so.2
+        While the other lines just have a soname as first field.
+        Unfortunately some systems require the linker via ELF arcanes, and
+        it shows as such:
+            /usr/lib/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2
+        This weeds the linker out, as one cannot reliably expect no `=>` to
+        appear on linker lines.
+        """
+        return {'linker': {'path': parts[0], 'found': True}}
+
     # pylint: disable=line-too-long
     # There are two types of outputs for a dependency, with or without soname.
     # For example:
     # with soname: 'libstdc++.so.6 => /usr/lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f9a19d8a000)'
     # without soname: '/lib64/ld-linux-x86-64.so.2 (0x00007f9a1a329000)'
     # with soname but not found: 'libboost_program_options.so.1.62.0 => not found'
-    # with soname but without rpath: 'linux-vdso.so.1 =>  (0x00007ffd7c7fd000)'
+    # with soname but without path: 'linux-vdso.so.1 =>  (0x00007ffd7c7fd000)'
     # pylint: enable=line-too-long
     if '=>' in line:
         if len(parts) != 4:
@@ -35,6 +49,7 @@ def _parse_line(line):
 
         soname = None
         dep_path = None
+
         if found:
             soname = parts[0]
             if parts[2] != '':
@@ -57,9 +72,6 @@ def _parse_line(line):
         raise InternalError(
             "Expected 2 parts in the line but found {}: {}".format(
                 len(parts), line))
-
-    if 'ld' in line:
-        return {'linker': {'path': parts[0], 'found': True}}
 
     # In this case, no soname was available
     return {}
