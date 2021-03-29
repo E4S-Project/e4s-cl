@@ -54,9 +54,6 @@ def homogenize_files(data):
 class ProfileController(Controller):
     """Profile data controller."""
     def create(self, data):
-        if self.storage is not USER_STORAGE:
-            raise InternalError(
-                "Profiles may only be created in profile-level storage")
         homogenize_files(data)
         return super(ProfileController, self).create(data)
 

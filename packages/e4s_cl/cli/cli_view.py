@@ -660,7 +660,7 @@ class ShowCommand(AbstractCliView):
         return parser
 
     def main(self, argv):
-        self.detail(self._parse_args(argv).profile)
+        self.detail(getattr(self._parse_args(argv), self.model_name))
 
         return EXIT_SUCCESS
 
