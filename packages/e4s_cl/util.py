@@ -11,6 +11,7 @@ import errno
 import pkgutil
 import pathlib
 import hashlib
+import json
 from collections import deque
 from e4s_cl import logger
 from e4s_cl.variables import is_master
@@ -555,3 +556,59 @@ def hash256(string):
     grinder = hashlib.sha256()
     grinder.update(string.encode())
     return grinder.hexdigest()
+
+
+def JSONSerializer(obj):
+    """
+    JSON add-on that will transform classes into dicts, and sets into special
+    objects to be decoded back into sets with `util.JSONDecoder`.
+    """
+    if getattr(obj, '__dict__', False):
+        return {'__type': type(obj).__name__, '__dict': obj.__dict__}
+    if isinstance(obj, set):
+        return {'__type': 'set', '__list': list(obj)}
+
+    return obj
+
+"""
+Dict of methods to use when decoding e4s-cl json. Keys correspond to values
+of the `__type` field.
+"""
+JSON_HOOKS = {}
+
+def JSONDecoder(obj):
+    """
+    JSON add-on to decode dicts with embedded data from `util.JSONSerializer`
+    """
+    if obj.get('__type', False):
+        if obj['__type'] == 'set':
+            return set(obj['__list'])
+
+        if obj['__type'] in JSON_HOOKS.keys():
+            return JSON_HOOKS[obj['__type']](obj['__dict'])
+
+    return obj
+
+
+def json_dumps(*args, **kwargs):
+    """
+    json.dumps wrapper
+    """
+    if kwargs.get('default'):
+        raise InternalError("Cannot override default from util.json_dumps")
+
+    kwargs['default'] = JSONSerializer
+
+    return json.dumps(*args, **kwargs)
+
+
+def json_loads(*args, **kwargs):
+    """
+    json.loads wrapper
+    """
+    if kwargs.get('object_hook'):
+        raise InternalError("Cannot override object_hook from util.json_loads")
+
+    kwargs['object_hook'] = JSONDecoder
+
+    return json.loads(*args, **kwargs)

@@ -5,7 +5,7 @@ Library analysis and manipulation helpers
 import re
 import pathlib
 from e4s_cl import logger, util
-from e4s_cl.util import which, create_subprocess_exp, flatten, color_text
+from e4s_cl.util import which, create_subprocess_exp, flatten, color_text, JSON_HOOKS
 from e4s_cl.error import InternalError
 
 from elftools.common.exceptions import ELFError
@@ -321,3 +321,13 @@ class LibrarySet(set):
                             get_children=gen_get_children()))
 
         return trees
+
+def ELFDataFromDict(obj):
+    out = ELFData()
+
+    for key, value in obj.items():
+        setattr(out, key, value)
+
+    return out
+
+JSON_HOOKS['ELFData'] = ELFDataFromDict
