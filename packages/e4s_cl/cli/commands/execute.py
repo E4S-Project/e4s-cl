@@ -262,9 +262,6 @@ class ExecuteCommand(AbstractCommand):
             for path in args.files:
                 container.bind_file(path, options='ro')
 
-        if logger.debug_mode():
-            container.bind_env_var('LD_DEBUG', 'files')
-
         script_name = params.setUp()
 
         command = [script_name]

@@ -19,6 +19,9 @@ TEMPLATE = """#!/bin/bash -i
 # Source a user-provided script for convenience
 %(source_script)s
 
+# If in debug mode, enable linker debugging from here
+%(debugging)s
+
 # Enable the host's libraries for this last command by prepending the
 # resulting LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=%(library_dir)s${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
@@ -72,7 +75,8 @@ class Entrypoint:
             'source_script': self.source_script,
             'command': self.command,
             'library_dir': self.library_dir,
-            'linker': self.linker
+            'linker': self.linker,
+            'debugging': "export LD_DEBUG=files" if logger.debug_mode() else ''
         }
 
         return TEMPLATE % fields
