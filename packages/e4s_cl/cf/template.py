@@ -1,6 +1,6 @@
 """
 This file contains a BASH script template that will get written in the
-container. This script is to be the entrypoint as it should set the
+container. This script is to be the entry-point as it should set the
 execution environment and allows for arbitrary code execution (e.g.
 library loading)
 """
@@ -26,13 +26,13 @@ TEMPLATE = """#!/bin/bash -i
 # resulting LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=%(library_dir)s${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
-# If a linker has been imported, this line will make sure it is loaded instead
+# If a linker has been imported, this line will make sure it is used instead
 # of the default. This is of the utmost importance, as libc imports will break
 # with non-adapted linkers.
 export LD_PRELOAD=%(linker)s${LD_PRELOAD:+:${LD_PRELOAD}}
 
-# Finally, run the command
-%(command)s
+# Finally run the command, using the imported linker if applicable
+%(linker)s %(command)s
 """
 
 
