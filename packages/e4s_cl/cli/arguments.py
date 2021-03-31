@@ -705,7 +705,7 @@ def get_model_identifier(model,
     parser.add_argument(model_name.lower(),
                         nargs='?',
                         type=defined_object(model, key_attr),
-                        help="",
+                        help="The target profile. If omitted, defaults to the selected profile",
                         default=_default,
                         metavar="%s_%s" % (model_name.lower(), key_attr))
 

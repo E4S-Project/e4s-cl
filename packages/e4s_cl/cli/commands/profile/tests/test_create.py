@@ -30,7 +30,7 @@ class ProfileCreateTest(tests.TestCase):
         libraries = ['/tmp/e4s_cl/lib%d.so' % k for k in range(5)]
 
         stdout, stderr = self.assertCommandReturnValue(
-            0, create_command, [self.profile_name, '--libraries', *libraries])
+            0, create_command, [self.profile_name, '--libraries', ",".join(libraries)])
 
         stdout, stderr = self.assertCommandReturnValue(0, list_command, [])
         self.assertIn(self.profile_name, stdout)
@@ -44,7 +44,7 @@ class ProfileCreateTest(tests.TestCase):
         files = ['/tmp/e4s_cl/file%d.txt' % k for k in range(5)]
 
         stdout, stderr = self.assertCommandReturnValue(
-            0, create_command, [self.profile_name, '--files', *files])
+            0, create_command, [self.profile_name, '--files', ",".join(files)])
 
         stdout, stderr = self.assertCommandReturnValue(0, list_command, [])
         self.assertIn(self.profile_name, stdout)

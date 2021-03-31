@@ -8,6 +8,7 @@ from e4s_cl.cli import arguments
 from e4s_cl.logger import get_logger
 from e4s_cl.cli.cli_view import EditCommand
 from e4s_cl.model.profile import Profile
+from e4s_cl.cf.containers import EXPOSED_BACKENDS
 
 LOGGER = get_logger(__name__)
 
@@ -27,22 +28,26 @@ class ProfileEditCommand(EditCommand):
                             dest='new_name',
                             default=arguments.SUPPRESS)
 
-        parser.add_argument('--backend',
-                            help="change the profile's container technology",
-                            metavar='<backend>',
-                            dest='backend',
-                            default=arguments.SUPPRESS)
+        parser.add_argument(
+            '--backend',
+            help="change the profile's container technology." +
+            " Available backends are: %s" % ", ".join(EXPOSED_BACKENDS),
+            metavar='<backend>',
+            dest='backend',
+            default=arguments.SUPPRESS)
 
         parser.add_argument('--image',
                             help="change the profile's image",
-                            metavar='<image>',
+                            metavar='<path/to/image>',
                             dest='image',
+                            type=arguments.posix_path,
                             default=arguments.SUPPRESS)
 
         parser.add_argument('--source',
                             help="change the profile's setup script",
-                            metavar='<script>',
+                            metavar='<path/to/script>',
                             dest='source',
+                            type=arguments.posix_path,
                             default=arguments.SUPPRESS)
 
         parser.add_argument('--add-files',
@@ -115,7 +120,6 @@ class ProfileEditCommand(EditCommand):
         updates['backend'] = getattr(args, 'backend', profile.get('backend'))
         updates['image'] = getattr(args, 'image', profile.get('image'))
         updates['source'] = getattr(args, 'source', profile.get('source'))
-
 
         for data in self._parse_add_args(args, updates):
             self.logger.info("Added %s to profile configuration '%s'.", data,

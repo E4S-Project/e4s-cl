@@ -12,7 +12,7 @@ from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
-from e4s_cl.cf import template
+from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, BackendNotAvailableError
 from e4s_cl.cf.libraries import ldd, libc_version
 
@@ -61,7 +61,7 @@ def import_library(shared_object_path, container):
         container.bind_file(file, Path(HOST_LIBS_DIR, file.name), options='ro')
 
 
-def filter_libraries(library_paths, container):
+def filter_libraries(library_paths, container, entrypoint):
     """ Library filter
 
     library_paths: list[pathlib.Path]
@@ -94,7 +94,7 @@ def filter_libraries(library_paths, container):
     return selected.values()
 
 
-def overlay_libraries(library_paths, container):
+def overlay_libraries(library_paths, container, entrypoint):
     """ Library overlay
 
     library_paths: list[pathlib.Path]
@@ -124,22 +124,29 @@ def overlay_libraries(library_paths, container):
 
     # Resolve linkers actual paths. This now contains paths to all the linkers
     # required to load the entire dependency tree.
-    host_linkers = list({os.path.realpath(linker) for linker in linkers})
+    host_linkers = {Path(os.path.realpath(linker)) for linker in linkers}
 
-    # TODO figure out what to do when multiple linkers are required
+    # Figure out what to if multiple linkers are required
     if len(host_linkers) != 1:
         raise InternalError(
-            "Mutliple or no linkers detected. This is not supported.")
-
+            "Mutliple or no linkers detected. This should not happen.")
+    """
     # Override every linker on the container
     for linker in container.linkers:
         LOGGER.debug("Overwriting linker: %s => %s", host_linkers[0], linker)
         container.bind_file(host_linkers[0], dest=linker, options='ro')
+        """
+
+    for linker in host_linkers:
+        entrypoint.linker = Path(HOST_LIBS_DIR, linker.name)
+        container.bind_file(linker,
+                            dest=Path(HOST_LIBS_DIR, linker.name),
+                            options='ro')
 
     return selected.values()
 
 
-def select_libraries(library_paths, container):
+def select_libraries(library_paths, container, entrypoint):
     """ Select the libraries to make available in the future container
 
     library_paths: list[pathlib.Path]
@@ -185,7 +192,7 @@ def select_libraries(library_paths, container):
                  '.'.join([str(no)
                            for no in container.libc_version]), host_precedence)
 
-    return methods[host_precedence](library_paths, container)
+    return methods[host_precedence](library_paths, container, entrypoint)
 
 
 class ExecuteCommand(AbstractCommand):
@@ -234,6 +241,12 @@ class ExecuteCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
+        params = Entrypoint()
+
+        params.command = args.cmd
+        params.source_script_path = args.source
+        params.library_dir = HOST_LIBS_DIR
+
         try:
             container = Container(executable=args.backend, image=args.image)
         except BackendNotAvailableError:
@@ -241,29 +254,26 @@ class ExecuteCommand(AbstractCommand):
             return EXIT_FAILURE
 
         if args.libraries:
-            for local_path in select_libraries(args.libraries, container):
+            for local_path in select_libraries(args.libraries, container,
+                                               params):
                 import_library(local_path, container)
-            container.add_ld_library_path(HOST_LIBS_DIR)
 
         if args.files:
             for path in args.files:
                 container.bind_file(path, options='ro')
 
-        if logger.debug_mode():
-            container.bind_env_var('LD_DEBUG', 'files')
-
-        script_name = template.setUp(args.cmd, HOST_LIBS_DIR, args.source)
+        script_name = params.setUp()
 
         command = [script_name]
 
         if variables.is_dry_run():
             LOGGER.info("Running %s in container %s", command, container)
-            template.tearDown(script_name)
+            params.tearDown()
             return EXIT_SUCCESS
 
         container.run(command, redirect_stdout=False)
 
-        template.tearDown(script_name)
+        params.tearDown()
 
         return EXIT_SUCCESS
 

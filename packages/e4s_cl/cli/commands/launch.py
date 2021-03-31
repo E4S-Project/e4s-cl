@@ -13,6 +13,7 @@ from e4s_cl.util import create_subprocess_exp
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.launchers import interpret
 from e4s_cl.model.profile import Profile
+from e4s_cl.cf.containers import EXPOSED_BACKENDS
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
@@ -65,35 +66,40 @@ class LaunchCommand(AbstractCommand):
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
-        parser.add_argument('--profile',
-                            type=arguments.defined_object(Profile, 'name'),
-                            help="Name of the profile to use",
-                            default=Profile.selected().get('name', arguments.SUPPRESS),
-                            metavar='profile')
+        parser.add_argument(
+            '--profile',
+            type=arguments.defined_object(Profile, 'name'),
+            help=
+            "Profile to use. Its fields will be used by default, but any other argument will override them",
+            default=Profile.selected().get('name', arguments.SUPPRESS),
+            metavar='profile')
 
         parser.add_argument('--image',
                             type=arguments.posix_path,
-                            help="Container image to use",
+                            help="Path to the container image to run the program in",
                             metavar='image')
 
         parser.add_argument('--source',
                             type=arguments.posix_path,
-                            help="Script to source",
+                            help="Path to a bash script to source before execution",
                             metavar='source')
 
         parser.add_argument('--files',
                             type=arguments.posix_path_list,
-                            help="Files to bind, comma-separated",
+                            help="Comma-separated list of files to bind",
                             metavar='files')
 
         parser.add_argument('--libraries',
                             type=arguments.posix_path_list,
-                            help="Libraries to bind, comma-separated",
+                            help="Comma-separated list of libraries to bind",
                             metavar='libraries')
 
-        parser.add_argument('--backend',
-                            help="Container backend to use",
-                            metavar='solution')
+        parser.add_argument(
+            '--backend',
+            help="Container backend to use to launch the image." +
+            " Available backends are: %s" % ", ".join(EXPOSED_BACKENDS),
+            metavar='technology',
+            dest='backend')
 
         parser.add_argument('cmd',
                             help="Executable command, e.g. './a.out'",

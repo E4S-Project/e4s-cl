@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from e4s_cl import logger, cli
 from e4s_cl.cli.arguments import ArgumentsNamespace
 
+
 class AbstractCommand(object, metaclass=ABCMeta):
     """Abstract base class for E4S Container Launcher commands.
     
@@ -12,29 +13,42 @@ class AbstractCommand(object, metaclass=ABCMeta):
         help_page (str): Long and informative description of the command.
         group (str): If not None, commands will be grouped together by group name in help messages.
     """
-    
-    def __init__(self, module_name, format_fields=None, summary_fmt=None, help_page_fmt=None, group=None):
+    def __init__(self,
+                 module_name,
+                 format_fields=None,
+                 summary_fmt=None,
+                 help_page_fmt=None,
+                 group=None):
         if not summary_fmt:
             summary_fmt = "No summary for '%(command)s'"
         if not help_page_fmt:
-            help_page_fmt = "No help page for '%(command)s'" 
+            help_page_fmt = "No help page for '%(command)s'"
         self.module_name = module_name
         self.logger = logger.get_logger(module_name)
         self.command = cli.command_from_module_name(module_name)
-        self.format_fields = format_fields if format_fields else {}
-        self.format_fields['command'] = self.command
+
+        self.format_fields = format_fields or {}
+
+        default_format_fields = [
+            ('prog', cli.SCRIPT_COMMAND),
+            ('command', self.command),
+        ]
+
+        for key, value in default_format_fields:
+            self.format_fields.setdefault(key, value)
+
         self.summary_fmt = summary_fmt
         self.help_page_fmt = help_page_fmt
         self.group = group
         self._parser = None
-        
+
     def __str__(self):
         return self.command
 
     @property
     def summary(self):
         return self.summary_fmt % self.format_fields
-    
+
     @property
     def help_page(self):
         return self.help_page_fmt % self.format_fields
@@ -44,7 +58,7 @@ class AbstractCommand(object, metaclass=ABCMeta):
         if self._parser is None:
             self._parser = self._construct_parser()
         return self._parser
-        
+
     @property
     def usage(self):
         return self.parser.format_help()
@@ -71,4 +85,3 @@ class AbstractCommand(object, metaclass=ABCMeta):
         Returns:
             int: Process return code: non-zero if a problem occurred, 0 otherwise
         """
-

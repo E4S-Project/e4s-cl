@@ -17,7 +17,10 @@ from e4s_cl.error import InternalError
 LOGGER = logger.get_logger(__name__)
 
 # List of available modules, accessible by their "executable" or cli tool names
-EXECUTABLES = {}
+BACKENDS = {}
+
+# List of available, non-debug backends, for help and completion
+EXPOSED_BACKENDS = []
 
 # Used to identify backends by the image's suffix
 # list of tuples containing (suffix, backend_name)
@@ -56,7 +59,7 @@ class Container():
         Object level creation hijacking: depending on the executable
         argument, the appropriate subclass will be returned.
         """
-        module_name = EXECUTABLES.get(Path(executable).name)
+        module_name = BACKENDS.get(Path(executable).name)
         module = sys.modules.get(module_name)
 
         if not module_name or not module:
@@ -239,7 +242,12 @@ for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
     _module = sys.modules[_module_name]
 
     for _executable in _module.EXECUTABLES:
-        EXECUTABLES.update({_executable: _module_name})
+        BACKENDS.update({
+            _executable: _module_name,
+        })
+
+        if not getattr(_module, 'DEBUG_BACKEND', False):
+            EXPOSED_BACKENDS.append(_executable)
 
     for mimetype in _module.MIMES:
         MIMES.append((mimetype, _module.NAME))

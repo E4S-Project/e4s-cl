@@ -12,7 +12,7 @@ import pathlib
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
-from e4s_cl.cf.containers import guess_backend
+from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.sample import program
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
@@ -52,35 +52,40 @@ class InitCommand(AbstractCommand):
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
-        parser.add_argument('--mpi',
-                            type=arguments.posix_path,
-                            help="Path of the MPI library to use",
-                            default=arguments.SUPPRESS,
-                            metavar='mpi')
-
-        parser.add_argument('--source',
-                            help="Script to source before execution",
-                            metavar='script',
-                            default=arguments.SUPPRESS,
-                            dest='source')
-
-        parser.add_argument('--image',
-                            help="Container image to use by default",
-                            metavar='path',
-                            default=arguments.SUPPRESS,
-                            dest='image')
-
-        parser.add_argument('--backend',
-                            help="Container backend to use by default",
-                            metavar='technology',
-                            default=arguments.SUPPRESS,
-                            dest='backend')
-
         parser.add_argument('--launcher',
-                            help="Launcher required to run the MPI program",
+                            help="Launcher required to run the MPI analysis",
                             metavar='launcher',
                             default=arguments.SUPPRESS,
                             dest='launcher')
+
+        parser.add_argument(
+            '--mpi',
+            type=arguments.posix_path,
+            help="Path of the MPI installation to use with this profile",
+            default=arguments.SUPPRESS,
+            metavar='/path/to/mpi')
+
+        parser.add_argument(
+            '--source',
+            help="Script to source before execution with this profile",
+            metavar='script',
+            default=arguments.SUPPRESS,
+            dest='source')
+
+        parser.add_argument(
+            '--image',
+            help="Container image to use by default with this profile",
+            metavar='/path/to/image',
+            default=arguments.SUPPRESS,
+            dest='image')
+
+        parser.add_argument(
+            '--backend',
+            help="Container backend to use by default with this profile." +
+            " Available backends are: %s" % ", ".join(EXPOSED_BACKENDS),
+            metavar='technology',
+            default=arguments.SUPPRESS,
+            dest='backend')
 
         return parser
 
@@ -128,8 +133,8 @@ class InitCommand(AbstractCommand):
 
         if not (compiler and launcher):
             LOGGER.error(
-                "No MPI detected in PATH. Please load the module or use `--mpi` to specify the location of a library to use."
-            )
+                "No MPI detected in PATH. Please load a module or " +
+                "use `--mpi` to specify the MPI installation to use.")
             return EXIT_FAILURE
 
         if getattr(args, 'launcher', None):
@@ -147,5 +152,8 @@ class InitCommand(AbstractCommand):
 
         return EXIT_SUCCESS
 
+SUMMARY="""
+Initialize %(prog)s. This helper will analyze the accessible MPI library, and create a profile with the results.
+"""
 
-COMMAND = InitCommand(__name__, summary_fmt="Create defaults")
+COMMAND = InitCommand(__name__, summary_fmt=SUMMARY)
