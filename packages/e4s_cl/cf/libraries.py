@@ -377,12 +377,27 @@ def resolve(soname, rpath='', runpath=''):
     Get a path towards a library from a given soname.
     Implements system rules and takes the environment into account
     """
-    search_paths = [rpath] + __linker_path()[0] + [runpath
-                                                   ] + __linker_path()[1]
-    search_paths = list(
-        filter(lambda x: os.path.exists(x) and os.path.isdir(x), search_paths))
 
-    for dir in search_paths:
+    found = None
+
+    def valid(path):
+        return os.path.exists(path) and os.path.isdir(path)
+
+    dynamic_paths = [rpath] + __linker_path()[0] + [runpath]
+    default_paths = __linker_path()[1]
+
+    for dir in filter(valid, dynamic_paths):
         potential_lib = pathlib.Path(dir, soname).as_posix()
         if os.path.exists(potential_lib):
-            return os.path.realpath(potential_lib)
+            found = potential_lib
+
+    if not found and soname in host_libraries().keys():
+        found = host_libraries()[soname]
+
+    if not found:
+        for dir in filter(valid, default_paths):
+            potential_lib = pathlib.Path(dir, soname).as_posix()
+            if os.path.exists(potential_lib):
+                found = potential_lib
+
+    return os.path.realpath(found)
