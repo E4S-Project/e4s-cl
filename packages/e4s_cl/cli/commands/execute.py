@@ -185,12 +185,10 @@ def select_libraries(library_paths, container, entrypoint):
 
     methods = {HOST_NEWER: overlay_libraries, GUEST_NEWER: filter_libraries}
 
-    host_precedence = compare_versions(libc_version(), container.libc_version)
+    host_precedence = libc_version() > container.libc_version
 
-    LOGGER.debug("Host libc: %s / Guest libc: %s, %s",
-                 '.'.join([str(no) for no in libc_version()]),
-                 '.'.join([str(no)
-                           for no in container.libc_version]), host_precedence)
+    LOGGER.debug("Host libc: %s / Guest libc: %s", str(libc_version()),
+                 str(container.libc_version))
 
     return methods[host_precedence](library_paths, container, entrypoint)
 

@@ -8,6 +8,7 @@ import pathlib
 from e4s_cl import logger, util
 from e4s_cl.util import which, create_subprocess_exp, flatten, color_text, JSON_HOOKS
 from e4s_cl.error import InternalError
+from e4s_cl.cf.version import Version
 
 from elftools.common.exceptions import ELFError
 from elftools.elf.elffile import ELFFile
@@ -164,21 +165,23 @@ def extract_libc(text):
     Extract libc version sumber from the output of ldd --version
     We could have used the libc but locating it would require some
     gymnastic, so accessing ldd seemed cleaner.
+    EDIT - Almost deprecated, a switch in the scope of analysis made
+    locating the libc cleaner. See the method below.
     """
 
     # The first line of output is usually:
     # > ldd (<noise with numbers>) x.y
     if not text:
         LOGGER.error("Failed to determine libc version from '%s'", text)
-        return (0, 0, 0)
+        return Version('0.0.0')
 
     try:
         version_string = text.split('\n')[0].split()[-1]
     except IndexError:
         LOGGER.error("Failed to determine libc version from '%s'", text)
-        return (0, 0, 0)
+        return Version('0.0.0')
 
-    return tuple([int(val) for val in re.findall(r'\d+', version_string)])
+    return Version(version_string)
 
 
 HOST_LIBC = None
@@ -195,15 +198,19 @@ def libc_version():
     if HOST_LIBC:
         return HOST_LIBC
 
-    executable = which('ldd')
-    ret, out = create_subprocess_exp([executable, '--version'],
-                                     redirect_stdout=True)
-    if ret:
-        LOGGER.error("Could not determine the libc version")
-        HOST_LIBC = (0, 0, 0)
+    path = resolve('libc.so.6')
 
-    else:
-        HOST_LIBC = extract_libc(out)
+    if not path:
+        raise InternalError("libc not found on host")
+
+    with open(path, 'rb') as file:
+        data = parseELF(file)
+
+    # Get the version with major 2 from the defined versions,
+    # as almost all libc implementations have the GLIBC_3.4 symbol
+    HOST_LIBC = max(
+        filter(lambda x: x and x.major == 2,
+               [Version(s) for s in data.defined_versions]))
 
     return HOST_LIBC
 
