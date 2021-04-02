@@ -2,6 +2,7 @@
 Library analysis and manipulation helpers
 """
 
+import os
 import re
 import pathlib
 from e4s_cl import logger, util
@@ -350,3 +351,38 @@ def ELFDataFromDict(obj):
 
 
 JSON_HOOKS['ELFData'] = ELFDataFromDict
+
+__LINKER_PATH = None
+
+
+def __linker_path():
+    """
+    Return linker search paths, in order
+    Sourced from `man ld.so`
+    """
+    global __LINKER_PATH
+
+    if __LINKER_PATH is not None:
+        return __LINKER_PATH
+
+    default_path = ['/lib', '/usr/lib', '/lib64', '/usr/lib64']
+    ld_library_path = os.environ.get('LD_LIBRARY_PATH', "").split(':')
+
+    __LINKER_PATH = (ld_library_path, default_path)
+    return __LINKER_PATH
+
+
+def resolve(soname, rpath='', runpath=''):
+    """
+    Get a path towards a library from a given soname.
+    Implements system rules and takes the environment into account
+    """
+    search_paths = [rpath] + __linker_path()[0] + [runpath
+                                                   ] + __linker_path()[1]
+    search_paths = list(
+        filter(lambda x: os.path.exists(x) and os.path.isdir(x), search_paths))
+
+    for dir in search_paths:
+        potential_lib = pathlib.Path(dir, soname).as_posix()
+        if os.path.exists(potential_lib):
+            return os.path.realpath(potential_lib)
