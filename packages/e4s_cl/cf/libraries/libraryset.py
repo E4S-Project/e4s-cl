@@ -25,8 +25,8 @@ class Library:
         self.required_versions = {}
         self.defined_versions = set()
 
-        self.rpath = None
-        self.runpath = None
+        self.rpath = []
+        self.runpath = []
         self.binary_path = None
 
         if file:
@@ -55,11 +55,11 @@ class Library:
 
         tags = __fetch_tags('DT_RPATH')
         if len(tags) == 1:
-            self.rpath = tags[0].rpath
+            self.rpath = tags[0].rpath.split(':')
 
         tags = __fetch_tags('DT_RUNPATH')
         if len(tags) == 1:
-            self.runpath = tags[0].runpath
+            self.runpath = tags[0].runpath.split(':')
 
         tags = __fetch_tags('DT_NEEDED')
         self.dyn_dependencies = {tag.needed for tag in tags}
@@ -99,6 +99,22 @@ class GuestLibrary(Library):
 
 
 class LibrarySet(set):
+    @property
+    def rpath(self):
+        """
+        -> set(str)
+        Return a set of the libraries rpaths merged together
+        """
+        return set(flatten(map(lambda x: x.rpath, self)))
+
+    @property
+    def runpath(self):
+        """
+        -> set(str)
+        Return a set of the libraries runpaths merged together
+        """
+        return set(flatten(map(lambda x: x.runpath, self)))
+
     @property
     def defined_versions(self):
         return set(flatten(map(lambda x: x.defined_versions, self)))

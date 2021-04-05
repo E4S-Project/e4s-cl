@@ -22,7 +22,7 @@ def __linker_path():
     return __LINKER_PATH
 
 
-def resolve(soname, rpath='', runpath=''):
+def resolve(soname, rpath=[], runpath=[]):
     """
     Get a path towards a library from a given soname.
     Implements system rules and takes the environment into account
@@ -33,7 +33,7 @@ def resolve(soname, rpath='', runpath=''):
     def valid(path):
         return os.path.exists(path) and os.path.isdir(path)
 
-    dynamic_paths = [rpath] + __linker_path()[0] + [runpath]
+    dynamic_paths = list(rpath) + __linker_path()[0] + list(runpath)
     default_paths = __linker_path()[1]
 
     for dir in filter(valid, dynamic_paths):
