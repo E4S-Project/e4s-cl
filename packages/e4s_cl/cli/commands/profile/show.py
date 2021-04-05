@@ -5,7 +5,7 @@ Show a profile's configuration in detail.
 from pathlib import Path
 from e4s_cl import EXIT_SUCCESS
 from e4s_cl.util import color_text
-from e4s_cl.cf.libraries import LibrarySet, parseELF
+from e4s_cl.cf.libraries import LibrarySet, Library
 from e4s_cl.cli.cli_view import ShowCommand
 from e4s_cl.model.profile import Profile
 
@@ -72,9 +72,7 @@ class ProfileShowCommand(ShowCommand):
 
         for p in map(Path, profile_dict.get('libraries', [])):
             with open(p, 'rb') as so:
-                data = parseELF(so)
-
-            cache.add(data)
+                cache.add(Library(so))
 
         print("%s:" % bold("\nLibrary dependencies"))
         for tree in cache.trees():

@@ -6,7 +6,7 @@ from e4s_cl.cf.version import Version
 from e4s_cl.cf.libraries.ldcache import host_libraries
 from e4s_cl.cf.libraries.ldd import ldd
 from e4s_cl.cf.libraries.linker import resolve
-from e4s_cl.cf.libraries.libraryset import LibrarySet, parseELF, ELFData
+from e4s_cl.cf.libraries.libraryset import LibrarySet, Library, HostLibrary, GuestLibrary
 
 def extract_libc(text):
     """
@@ -52,7 +52,7 @@ def libc_version():
         raise InternalError("libc not found on host")
 
     with open(path, 'rb') as file:
-        data = parseELF(file)
+        data = HostLibrary(file)
 
     # Get the version with major 2 from the defined versions,
     # as almost all libc implementations have the GLIBC_3.4 symbol

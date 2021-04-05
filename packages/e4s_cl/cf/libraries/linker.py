@@ -50,4 +50,4 @@ def resolve(soname, rpath='', runpath=''):
             if os.path.exists(potential_lib):
                 found = potential_lib
 
-    return os.path.realpath(found)
+    return os.path.realpath(found) if found else None

@@ -15,15 +15,68 @@ from tree_format import format_tree
 LOGGER = logger.get_logger(__name__)
 
 
-class ELFData:
+class Library:
     """
     Relevant ELF header fields used in the dynamic linking of libraries
     """
-    def __init__(self):
-        self.soname = ""
+    def __init__(self, file=None, soname=""):
+        self.soname = soname
         self.dyn_dependencies = set()
         self.required_versions = {}
         self.defined_versions = set()
+
+        self.rpath = None
+        self.runpath = None
+        self.binary_path = None
+
+        if file:
+            try:
+                for section in ELFFile(file).iter_sections():
+                    if isinstance(section, GNUVerDefSection):
+                        self.__parseVerDef(section)
+                    elif isinstance(section, GNUVerNeedSection):
+                        self.__parseVerNeed(section)
+                    elif isinstance(section, DynamicSection):
+                        self.__parseDynamic(section)
+            except ELFError as e:
+                LOGGER.error("Error parsing '%s' for ELF data: %s", file.name,
+                             e)
+
+            self.binary_path = file.name
+
+    def __parseDynamic(self, section):
+        def __fetch_tags(id):
+            return list(
+                filter(lambda x: x.entry.d_tag == id, section.iter_tags()))
+
+        tags = __fetch_tags('DT_SONAME')
+        if len(tags) == 1:
+            self.soname = tags[0].soname
+
+        tags = __fetch_tags('DT_RPATH')
+        if len(tags) == 1:
+            self.rpath = tags[0].rpath
+
+        tags = __fetch_tags('DT_RUNPATH')
+        if len(tags) == 1:
+            self.runpath = tags[0].runpath
+
+        tags = __fetch_tags('DT_NEEDED')
+        self.dyn_dependencies = {tag.needed for tag in tags}
+
+    def __parseVerDef(self, section):
+        self.defined_versions = {
+            next(v_iter).name
+            for _, v_iter in section.iter_versions()
+        }
+
+    def __parseVerNeed(self, section):
+        needed = {}
+
+        for v, v_iter in section.iter_versions():
+            needed[v.name] = [v.name for v in v_iter]
+
+        self.required_versions = needed
 
     def __hash__(self):
         """
@@ -32,57 +85,17 @@ class ELFData:
         return hash(self.soname)
 
     def __eq__(self, other):
-        if isinstance(other, ELFData):
+        if isinstance(other, Library):
             return self.soname == other.soname
         return NotImplemented
 
 
-def parseELF(file):
-    """
-    Create ELFData from an opened shared binary.
-    The file argument must be opened in byte mode !
-    """
-    library = ELFData()
+class HostLibrary(Library):
+    pass
 
-    def parseDynamic(section):
-        tags = list(
-            filter(lambda x: x.entry.d_tag == 'DT_SONAME',
-                   section.iter_tags()))
 
-        if len(tags) == 1:
-            library.soname = tags[0].soname
-
-        tags = filter(lambda x: x.entry.d_tag == 'DT_NEEDED',
-                      section.iter_tags())
-
-        library.dyn_dependencies = {tag.needed for tag in tags}
-
-    def parseVerDef(section):
-        library.defined_versions = {
-            next(v_iter).name
-            for _, v_iter in section.iter_versions()
-        }
-
-    def parseVerNeed(section):
-        needed = {}
-
-        for v, v_iter in section.iter_versions():
-            needed[v.name] = [v.name for v in v_iter]
-
-        library.required_versions = needed
-
-    try:
-        for section in ELFFile(file).iter_sections():
-            if isinstance(section, GNUVerDefSection):
-                parseVerDef(section)
-            elif isinstance(section, GNUVerNeedSection):
-                parseVerNeed(section)
-            elif isinstance(section, DynamicSection):
-                parseDynamic(section)
-    except ELFError as e:
-        LOGGER.error("%s error:" % file.name, e, file=sys.stderr)
-
-    return library
+class GuestLibrary(Library):
+    pass
 
 
 class LibrarySet(set):
@@ -143,9 +156,12 @@ class LibrarySet(set):
                 and self.required_versions.issubset(self.defined_versions))
 
     def trees(self):
+        """
+        -> list(list(str))
+        """
         def get_name(elem):
-            if getattr(elem, 'found', True):
-                return elem.soname
+            if elem.binary_path:
+                return "%s (%s)" % (elem.soname, elem.binary_path)
             return color_text(elem.soname, 'red', None, ['bold'])
 
         def gen_get_children():
@@ -156,11 +172,7 @@ class LibrarySet(set):
                 not_found = elem.dyn_dependencies - found.sonames
 
                 for name in not_found:
-                    mock = ELFData()
-                    mock.soname = name
-                    mock.found = False
-
-                    found.add(mock)
+                    found.add(Library(soname=name))
 
                 return found
 
@@ -176,14 +188,18 @@ class LibrarySet(set):
         return trees
 
 
-def ELFDataFromDict(obj):
-    out = ELFData()
+def __LibraryDecoder(_type):
+    def __LDecoder(obj):
+        out = _type()
 
-    for key, value in obj.items():
-        setattr(out, key, value)
+        for key, value in obj.items():
+            setattr(out, key, value)
 
-    return out
+        return out
+
+    return __LDecoder
 
 
-JSON_HOOKS['ELFData'] = ELFDataFromDict
-
+JSON_HOOKS['Library'] = __LibraryDecoder(Library)
+JSON_HOOKS['HostLibrary'] = __LibraryDecoder(HostLibrary)
+JSON_HOOKS['GuestLibrary'] = __LibraryDecoder(GuestLibrary)
