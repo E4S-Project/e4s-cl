@@ -297,21 +297,49 @@ class LibrarySet(set):
                                 self))))
 
     @property
+    def top_level(self):
+        """
+        -> LibrarySet, subset of self
+        Returns a set of all libraries included in self that are not depended
+        upon from another library in the set
+        """
+        return self - self.required_libraries
+
+    @property
     def required_libraries(self):
+        """
+        -> LibrarySet, subset of self
+        Returns a set of all libraries included in self that are depended
+        upon from another library in the set
+        """
         sonames = set(flatten(map(lambda x: x.dyn_dependencies, self)))
         return LibrarySet(filter(lambda x: x.soname in sonames, self))
 
     @property
     def sonames(self):
+        """
+        -> set(str)
+        Returns a set with the sonames of all the libraries in self
+        """
         return set(map(lambda x: x.soname, self))
 
     @property
-    def top_level(self):
-        return self - self.required_libraries
+    def missing_libraries(self):
+        """
+        -> set(str)
+        Returns a set with the sonames of all the dependencies of the set's
+        libraries not present in self
+        """
+        sonames = set(flatten(map(lambda x: x.dyn_dependencies, self)))
+        return set(filter(lambda x: x not in self.sonames, sonames))
 
     @property
     def complete(self):
-        return (self.required_libraries.issubset(self)
+        """
+        -> bool
+        Returns True if all the dependencies are resolved
+        """
+        return (len(self.missing_libraries) == 0
                 and self.required_versions.issubset(self.defined_versions))
 
     def trees(self):
