@@ -71,10 +71,10 @@ class Library:
         }
 
     def __parseVerNeed(self, section):
-        needed = {}
+        needed = dict()
 
         for v, v_iter in section.iter_versions():
-            needed[v.name] = [v.name for v in v_iter]
+            needed[v.name] = {v.name for v in v_iter}
 
         self.required_versions = needed
 
@@ -161,6 +161,29 @@ class LibrarySet(set):
         """
         sonames = set(flatten(map(lambda x: x.dyn_dependencies, self)))
         return set(filter(lambda x: x not in self.sonames, sonames))
+
+    @property
+    def outdated_libraries(self):
+        """
+        -> LibrarySet, subset of self
+        Sonames of libraries that do not implement all the symbols expected by
+        the other libraries
+        """
+        outdated = LibrarySet()
+
+        for library in self:
+            for soname, required in library.required_versions.items():
+                matches = set(filter(lambda x: x.soname == soname, self))
+
+                if len(matches) != 1:
+                    continue
+
+                dependency = matches.pop()
+
+                if required > dependency.defined_versions:
+                    outdated.add(dependency)
+
+        return outdated
 
     @property
     def complete(self):
