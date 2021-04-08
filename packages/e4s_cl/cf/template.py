@@ -12,10 +12,7 @@ from pathlib import Path
 
 LOGGER = logger.get_logger(__name__)
 
-TEMPLATE = """#!/bin/bash -i
-# The shell need to be interactive for spack commands
-# see https://github.com/spack/spack/issues/11098
-
+TEMPLATE = """#!/bin/bash
 # Source a user-provided script for convenience
 %(source_script)s
 
