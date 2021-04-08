@@ -120,7 +120,7 @@ def command_from_module_name(module_name):
     """Converts a module name to a command name string.
     
     Maps command module names to their command line equivilants, e.g.
-    'e4s_cl.cli.commands.target.create' => 'tau target create'
+    'e4s_cl.cli.commands.profile.show' => 'e4s-cl profile show'
     
     Args:
         module_name (str): Name of a module.
