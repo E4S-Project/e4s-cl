@@ -10,16 +10,75 @@ from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
+from e4s_cl.util import json_loads
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
+from e4s_cl.cli.commands.analyze import COMMAND as analyzeCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, BackendNotAvailableError
-from e4s_cl.cf.libraries import ldd, libc_version
+from e4s_cl.cf.libraries import ldd, libc_version, resolve, LibrarySet, HostLibrary
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
 
 HOST_LIBS_DIR = Path('/hostlibs/').as_posix()
+
+
+def create_set(library_list):
+    """
+    Given a list of strings, create a cf.libraries.LibrarySet with all the
+    dependencies resolved
+    """
+
+    cache = LibrarySet()
+
+    for element in library_list:
+        if isinstance(element, Path):
+            path = element.as_posix()
+        elif isinstance(element, str):
+            if '/' in element:
+                path = Path(element).as_posix()
+            else:
+                path = resolve(element,
+                               rpath=cache.rpath,
+                               runpath=cache.runpath)
+        else:
+            LOGGER.error("Unresolved library: '%s'", element)
+
+        with open(path, 'rb') as file:
+            cache.add(HostLibrary(file))
+
+    missing = cache.missing_libraries
+    change = True
+
+    while change:
+        for soname in cache.missing_libraries:
+            path = resolve(soname, rpath=cache.rpath, runpath=cache.runpath)
+
+            if not path:
+                continue
+
+            with open(path, 'rb') as file:
+                cache.add(HostLibrary(file))
+
+        change = cache.missing_libraries != missing
+        missing = cache.missing_libraries
+
+    return cache
+
+
+def analyze_container(container, libset, entrypoint):
+    print("Looking for %s (%d)" % (str(libset.sonames), len(libset.sonames)))
+    command = [E4S_CL_SCRIPT, 'analyze', '--libraries'] + list(libset.sonames)
+    entrypoint.command = command
+    script_name = entrypoint.setUp()
+    output = container.run([script_name], redirect_stdout=True)
+    entrypoint.tearDown()
+
+    if not output:
+        raise InternalError("Container analysis failed !")
+
+    return json_loads(output)
 
 
 def import_library(shared_object_path, container):
@@ -221,6 +280,7 @@ class ExecuteCommand(AbstractCommand):
         parser.add_argument('--libraries',
                             type=arguments.existing_posix_path_list,
                             help="Libraries to bind, comma-separated",
+                            default=[],
                             metavar='libraries')
 
         parser.add_argument('--source',
@@ -239,17 +299,16 @@ class ExecuteCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        params = Entrypoint()
-
-        params.command = args.cmd
-        params.source_script_path = args.source
-        params.library_dir = HOST_LIBS_DIR
-
         try:
             container = Container(executable=args.backend, image=args.image)
         except BackendNotAvailableError:
             self.parser.error("Executable %s not available" % args.backend)
             return EXIT_FAILURE
+
+        params = Entrypoint()
+        params.source_script_path = args.source
+        params.command = args.cmd
+        params.library_dir = HOST_LIBS_DIR
 
         if args.libraries:
             for local_path in select_libraries(args.libraries, container,
