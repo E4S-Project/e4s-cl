@@ -155,7 +155,7 @@ html: python_check
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) html
 
 clean:
-	rm -fr build/
+	rm -fr build/ COMMIT VERSION
 
 test: python_check
 	$(PYTHON) -m tox tox.ini
