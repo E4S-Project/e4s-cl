@@ -1,11 +1,12 @@
 import os
+import sys
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger
+from e4s_cl.error import InternalError
 from e4s_cl.util import json_dumps
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.libraries import libc_version, LibrarySet, resolve, GuestLibrary
-from e4s_cl.model.profile import Profile
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
@@ -37,7 +38,12 @@ class AnalyzeCommand(AbstractCommand):
             with open(path, 'rb') as file:
                 cache.add(GuestLibrary(file))
 
-        print(json_dumps(cache), end='')
+        fd = int(os.environ.get('__E4S_CL_JSON_FD', '-1'))
+
+        if fd == -1:
+            raise InternalError("No file descriptor set to send data !")
+
+        os.write(fd, json_dumps(cache).encode('utf-8'))
 
         return EXIT_SUCCESS
 

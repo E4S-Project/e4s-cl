@@ -68,17 +68,24 @@ def create_set(library_list):
 
 
 def analyze_container(container, libset, entrypoint):
-    print("Looking for %s (%d)" % (str(libset.sonames), len(libset.sonames)))
-    command = [E4S_CL_SCRIPT, 'analyze', '--libraries'] + list(libset.sonames)
-    entrypoint.command = command
+    """
+    Run the e4s-cl analyze command in the container to analyze the environment
+    inside of it. The results will be used to tailor the library import
+    to ensure compatibility of the shared objects.
+    """
+    fdr, fdw = os.pipe()
+    os.set_inheritable(fdw, True)
+    container.bind_env_var('__E4S_CL_JSON_FD', str(fdw))
+
+    entrypoint.command = [E4S_CL_SCRIPT, 'analyze', '--libraries'] + list(
+        libset.sonames)
     script_name = entrypoint.setUp()
-    output = container.run([script_name], redirect_stdout=True)
+
+    container.run([script_name], redirect_stdout=True)
+
     entrypoint.tearDown()
 
-    if not output:
-        raise InternalError("Container analysis failed !")
-
-    return json_loads(output)
+    return json_loads(os.read(fdr, 1024**3).decode())
 
 
 def import_library(shared_object_path, container):
@@ -307,6 +314,10 @@ class ExecuteCommand(AbstractCommand):
 
         params = Entrypoint()
         params.source_script_path = args.source
+
+        libset = create_set(args.libraries)
+        analyze_container(container, libset, params)
+
         params.command = args.cmd
         params.library_dir = HOST_LIBS_DIR
 
