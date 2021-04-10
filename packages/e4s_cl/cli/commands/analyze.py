@@ -13,37 +13,53 @@ _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
 class AnalyzeCommand(AbstractCommand):
+    """
+    Analysis command. This command is intended to be ran inside of an
+    environment to analyze (e.g. a container), and will resolve and parse
+    shared objects from the inside to ensure the validity the resulting
+    composite environment.
+    """
     def _construct_parser(self):
         usage = "%s" % self.command
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
+
         parser.add_argument('--libraries',
                             help="Sonames to resolve and analyze",
                             nargs='+',
                             default=[],
                             metavar='soname')
+
         return parser
 
     def main(self, argv):
         args = self._parse_args(argv)
-
-        cache = LibrarySet()
-        for soname in args.libraries:
-            path = resolve(soname, rpath=cache.rpath, runpath=cache.runpath)
-
-            if not path:
-                continue
-
-            with open(path, 'rb') as file:
-                cache.add(GuestLibrary(file))
 
         fd = int(os.environ.get('__E4S_CL_JSON_FD', '-1'))
 
         if fd == -1:
             raise InternalError("No file descriptor set to send data !")
 
-        os.write(fd, json_dumps(cache).encode('utf-8'))
+        guest_libraries = LibrarySet()
+
+        for soname in args.libraries:
+            path = resolve(soname,
+                           rpath=guest_libraries.rpath,
+                           runpath=guest_libraries.runpath)
+
+            if not path:
+                continue
+
+            with open(path, 'rb') as file:
+                guest_libraries.add(GuestLibrary(file))
+
+        data = {
+            'libc_version': libc_version(),
+            'libraries': guest_libraries,
+        }
+
+        os.write(fd, json_dumps(data).encode('utf-8'))
 
         return EXIT_SUCCESS
 
