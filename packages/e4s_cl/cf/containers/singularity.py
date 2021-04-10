@@ -28,10 +28,10 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
         container_cmd = [self.executable, 'exec'
                          ] + nvidia_flag + [self.image.as_posix()] + command
-        _, output = create_subprocess_exp(container_cmd,
-                                          env=self.env,
-                                          redirect_stdout=redirect_stdout)
-        return output
+
+        return create_subprocess_exp(container_cmd,
+                                     env=self.env,
+                                     redirect_stdout=redirect_stdout)
 
     def format_bound(self):
         """

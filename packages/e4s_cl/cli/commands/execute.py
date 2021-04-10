@@ -10,7 +10,6 @@ from pathlib import Path
 from argparse import ArgumentTypeError
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
-from e4s_cl.util import json_loads
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.analyze import COMMAND as analyzeCommand
@@ -67,28 +66,7 @@ def create_set(library_list):
     return cache
 
 
-def analyze_container(container, libset, entrypoint):
-    """
-    Run the e4s-cl analyze command in the container to analyze the environment
-    inside of it. The results will be used to tailor the library import
-    to ensure compatibility of the shared objects.
-    """
-    fdr, fdw = os.pipe()
-    os.set_inheritable(fdw, True)
-    container.bind_env_var('__E4S_CL_JSON_FD', str(fdw))
-
-    entrypoint.command = [E4S_CL_SCRIPT, 'analyze', '--libraries'] + list(
-        libset.sonames)
-    script_name = entrypoint.setUp()
-
-    container.run([script_name], redirect_stdout=True)
-
-    entrypoint.tearDown()
-
-    return json_loads(os.read(fdr, 1024**3).decode())
-
-
-def import_library(shared_object_path, container):
+def import_library(shared_object, container):
     """
     End import method
 
@@ -109,17 +87,17 @@ def import_library(shared_object_path, container):
     library is found down the line.
     """
 
-    if not isinstance(shared_object_path, Path):
-        shared_object_path = Path(shared_object_path)
+    if not isinstance(so, HostLibrary):
+        raise InternalError("Wrong argument to import_libraries: %s" % type(so))
 
-    libname = shared_object_path.name.split('.so')
-    library_file = os.path.realpath(shared_object_path)
+    libname = Path(so.binary_path).name.split('.so')
+    library_file = so.binary_path
     cleared = []
 
-    if not libname:
-        LOGGER.error("Invalid name: %s", shared_object_path.as_posix())
+    if not libname or len(libname) < 2:
+        LOGGER.error("Invalid name: %s", so.soname)
 
-    for file in list(shared_object_path.parent.glob("%s.so*" % libname[0])):
+    for file in list(Path(so.binary_path).parent.glob("%s.so*" % libname[0])):
         if os.path.realpath(file) == library_file:
             cleared.append(file)
 
@@ -137,30 +115,10 @@ def filter_libraries(library_paths, container, entrypoint):
     as they would trigger symbol issues when used with the container's
     linker.
     """
-    # Compute the list of sonames available in the container
-    selected = {}
-
-    for path in library_paths:
-        # Use a ldd parser to grab all the dependencies of
-        # the requested library
-        # format:
-        #   { name(str): path(str) }
-        dependencies = ldd(path)
-
-        # Add the library itself as a potential import
-        dependencies.update({path.name: {'path': path.as_posix()}})
-
-        dependencies.pop('linker')
-
-        for soname, info in dependencies.items():
-            # Add if not present in the container but present on the host
-            if (soname not in container.libraries.keys()) and info.get('path'):
-                selected.update({soname: info.get('path')})
-
-    return selected.values()
+    raise NotImplementedError("Library filtering has to be implemented")
 
 
-def overlay_libraries(library_paths, container, entrypoint):
+def overlay_libraries(library_set, container, entrypoint):
     """ Library overlay
 
     library_paths: list[pathlib.Path]
@@ -169,50 +127,28 @@ def overlay_libraries(library_paths, container, entrypoint):
     This method selects all the libraries defined in the list, along with
     with the host's (implicitly newer) linker.
     """
-    selected = {}
-    linkers = []
-
-    for path in library_paths:
-        # Use a ldd parser to grab all the dependencies of
-        # the requested library
-        # format:
-        #   { name(str): path(str) }
-        dependencies = ldd(path)
-
-        # Add the library itself as a potential import
-        dependencies.update({path.name: {'path': path.as_posix()}})
-
-        # Don't bind the linker as a library
-        linkers.append(dependencies.pop('linker')['path'])
-
-        for soname, info in dependencies.items():
-            selected.update({soname: info.get('path')})
+    selected = LibrarySet(filter(lambda x: x.isinstance(x, HostLibrary), library_set))
 
     # Resolve linkers actual paths. This now contains paths to all the linkers
     # required to load the entire dependency tree.
-    host_linkers = {Path(os.path.realpath(linker)) for linker in linkers}
+    host_linkers = {l for l in library_set.linkers}
 
     # Figure out what to if multiple linkers are required
     if len(host_linkers) != 1:
-        raise InternalError(
-            "Mutliple or no linkers detected. This should not happen.")
-    """
-    # Override every linker on the container
-    for linker in container.linkers:
-        LOGGER.debug("Overwriting linker: %s => %s", host_linkers[0], linker)
-        container.bind_file(host_linkers[0], dest=linker, options='ro')
-        """
+        raise InternalError("%d linkers detected. This should not happen." %
+                            len(host_linkers))
 
     for linker in host_linkers:
-        entrypoint.linker = Path(HOST_LIBS_DIR, linker.name)
+        entrypoint.linker = Path(HOST_LIBS_DIR, Path(linker.binary_path).name)
         container.bind_file(linker,
-                            dest=Path(HOST_LIBS_DIR, linker.name),
+                            dest=Path(HOST_LIBS_DIR,
+                                      Path(linker.binary_path).name),
                             options='ro')
 
-    return selected.values()
+    return selected
 
 
-def select_libraries(library_paths, container, entrypoint):
+def select_libraries(library_set, container, entrypoint):
     """ Select the libraries to make available in the future container
 
     library_paths: list[pathlib.Path]
@@ -239,24 +175,17 @@ def select_libraries(library_paths, container, entrypoint):
     HOST_NEWER = True
     GUEST_NEWER = False
 
-    def compare_versions(host_ver, container_ver):
-        for host, container in zip(host_ver, container_ver):
-            if host > container:
-                return HOST_NEWER
-            elif host < container:
-                return GUEST_NEWER
-
-        # By default, better to overlay
-        return HOST_NEWER
+    host_libc = libc_version()
+    guest_libc = container.libc_v
 
     methods = {HOST_NEWER: overlay_libraries, GUEST_NEWER: filter_libraries}
 
-    host_precedence = libc_version() > container.libc_version
+    host_precedence = host_libc > guest_libc
 
-    LOGGER.debug("Host libc: %s / Guest libc: %s", str(libc_version()),
-                 str(container.libc_version))
+    LOGGER.debug("Host libc: %s / Guest libc: %s", str(host_libc),
+                 str(guest_libc))
 
-    return methods[host_precedence](library_paths, container, entrypoint)
+    return methods[host_precedence](library_set, container, entrypoint)
 
 
 class ExecuteCommand(AbstractCommand):
@@ -314,13 +243,16 @@ class ExecuteCommand(AbstractCommand):
 
         params = Entrypoint()
         params.source_script_path = args.source
+
+        libset = create_set(args.libraries)
+        container.get_data(params, library_set=libset)
+
         params.command = args.cmd
         params.library_dir = HOST_LIBS_DIR
 
         if args.libraries:
-            for local_path in select_libraries(args.libraries, container,
-                                               params):
-                import_library(local_path, container)
+            for so in select_libraries(libset, container, params):
+                import_library(so, container)
 
         if args.files:
             for path in args.files:
@@ -335,7 +267,7 @@ class ExecuteCommand(AbstractCommand):
             params.tearDown()
             return EXIT_SUCCESS
 
-        container.run(command, redirect_stdout=False)
+        code, _ = container.run(command, redirect_stdout=False)
 
         params.tearDown()
 

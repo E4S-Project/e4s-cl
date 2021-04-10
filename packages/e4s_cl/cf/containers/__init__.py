@@ -4,14 +4,16 @@ Defines an abstract class to simplify the use of container technology.
 Creating an instance of ``Container`` will return a specific class to
 the required backend."""
 
+import os
 import re
 import sys
 import json
 from importlib import import_module
 from pathlib import Path
-from e4s_cl import logger, variables
-from e4s_cl.util import walk_packages, which, unrelative
-from e4s_cl.cf.libraries import extract_libc
+from e4s_cl import E4S_CL_SCRIPT, logger, variables
+from e4s_cl.util import walk_packages, which, unrelative, json_loads
+from e4s_cl.cf.version import Version
+from e4s_cl.cf.libraries import extract_libc, LibrarySet
 from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
@@ -96,8 +98,32 @@ class Container():
 
         # Container analysis attributes
         self._libc_ver = None
-        self._embarked_libraries = {}
-        self._linkers = []
+
+    def get_data(self, entrypoint, library_set=LibrarySet()):
+        """
+        Run the e4s-cl analyze command in the container to analyze the environment
+        inside of it. The results will be used to tailor the library import
+        to ensure compatibility of the shared objects.
+        """
+        fdr, fdw = os.pipe()
+        os.set_inheritable(fdw, True)
+        self.bind_env_var('__E4S_CL_JSON_FD', str(fdw))
+
+        entrypoint.command = [E4S_CL_SCRIPT, 'analyze', '--libraries'] + list(
+            library_set.sonames)
+        script_name = entrypoint.setUp()
+
+        code, _ = self.run([script_name], redirect_stdout=False)
+
+        entrypoint.tearDown()
+
+        if code:
+            raise InternalError("Could not determine container's content !")
+
+        data = json_loads(os.read(fdr, 1024**3).decode())
+
+        self.libc_v = Version(data.get('libc_version', '0.0.0'))
+        self.libraries = data.get('libraries', LibrarySet())
 
     def bind_file(self, path, dest=None, options=None):
         """
@@ -125,67 +151,6 @@ class Container():
         if path not in self.ld_lib_path:
             self.ld_lib_path.append(path)
 
-    @property
-    def libraries(self):
-        """
-        Returns a dictionnary of all libraries in the container's ld
-        cache with the format {soname: path}
-        """
-        if self._embarked_libraries:
-            return self._embarked_libraries
-
-        # Run a command in the container, in the container-specific
-        # implemented run method
-        # pylint: disable=assignment-from-no-return
-        ld_cache = self.run(['ldconfig', '-p'], redirect_stdout=True)
-        # pylint: enable=assignment-from-no-return
-
-        lines = ld_cache.split('\n')[1:]
-        for line in filter(lambda x: x, lines):
-            # line sample:
-            # \t\tlibGL.so.1 (libc6,x86-64) => /usr/lib/libGL.so.1
-            line = line.strip().split()
-            self._embarked_libraries.update({line[0]: line[-1]})
-
-        return self._embarked_libraries
-
-    @property
-    def libc_version(self):
-        """
-        Returns the libc version from inside the container
-        """
-        if self._libc_ver:
-            return self._libc_ver
-
-        self._libc_ver = extract_libc(
-            self.run(['ldd', '--version'], redirect_stdout=True))
-
-        return self._libc_ver
-
-    @property
-    def linkers(self):
-        """
-        Returns a list of all the actual linkers in the image
-
-        Begins by grabbing all the linker references in the linker cache,
-        then calls a `readlink -f` on it to get the actual file.
-        """
-        if self._linkers:
-            return self._linkers
-
-        cache = filter(lambda x: re.match('^ld.*', x), self.libraries.keys())
-
-        symbolic_links = [self.libraries[linker] for linker in cache]
-
-        targets = [
-            self.run(['readlink', '-f', path], redirect_stdout=True)
-            for path in symbolic_links
-        ]
-
-        self._linkers = [f.strip() for f in filter(lambda x: x, targets)]
-
-        return self._linkers
-
     def run(self, command, redirect_stdout=False):
         """
         run a command in a container.
@@ -201,9 +166,12 @@ class Container():
         - The LD_PRELOAD self.ld_preload;
         - The LD_LIBRARY_PATH self.ld_lib_path
         and set them to be available in the created container.
+
+        It should return a tuple the process' returncode and output
         """
-        raise InternalError("run not implemented for container %s" %
-                            self.__class__.__name__)
+        raise NotImplementedError(
+            "`run` method not implemented for container module %s" %
+            self.__class__.__name__)
 
     def __str__(self):
         out = []

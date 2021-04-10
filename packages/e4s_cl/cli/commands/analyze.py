@@ -27,7 +27,7 @@ class AnalyzeCommand(AbstractCommand):
 
         parser.add_argument('--libraries',
                             help="Sonames to resolve and analyze",
-                            nargs='+',
+                            nargs='*',
                             default=[],
                             metavar='soname')
 
@@ -55,7 +55,7 @@ class AnalyzeCommand(AbstractCommand):
                 guest_libraries.add(GuestLibrary(file))
 
         data = {
-            'libc_version': libc_version(),
+            'libc_version': str(libc_version()),
             'libraries': guest_libraries,
         }
 

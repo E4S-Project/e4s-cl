@@ -22,10 +22,9 @@ class DummyContainer(Container):
             'command': ' '.join(command)
         }
 
-        _, output = create_subprocess_exp(shlex.split(container_cmd),
-                                          env=self.env,
-                                          redirect_stdout=redirect_stdout)
-        return output
+        return create_subprocess_exp(shlex.split(container_cmd),
+                                     env=self.env,
+                                     redirect_stdout=redirect_stdout)
 
 
 CLASS = DummyContainer

@@ -135,6 +135,14 @@ class LibrarySet(set):
         return self - self.required_libraries
 
     @property
+    def linkers(self):
+        """
+        -> LibrarySet, subset of self
+        Returns a set of all linkers present in the set
+        """
+        return LibrarySet(filter(lambda x: not x.dyn_dependencies, self))
+
+    @property
     def required_libraries(self):
         """
         -> LibrarySet, subset of self
