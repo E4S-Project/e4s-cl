@@ -314,10 +314,6 @@ class ExecuteCommand(AbstractCommand):
 
         params = Entrypoint()
         params.source_script_path = args.source
-
-        libset = create_set(args.libraries)
-        analyze_container(container, libset, params)
-
         params.command = args.cmd
         params.library_dir = HOST_LIBS_DIR
 
