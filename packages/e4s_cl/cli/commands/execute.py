@@ -47,23 +47,7 @@ def create_set(library_list):
         with open(path, 'rb') as file:
             cache.add(HostLibrary(file))
 
-    missing = cache.missing_libraries
-    change = True
-
-    while change:
-        for soname in cache.missing_libraries:
-            path = resolve(soname, rpath=cache.rpath, runpath=cache.runpath)
-
-            if not path:
-                continue
-
-            with open(path, 'rb') as file:
-                cache.add(HostLibrary(file))
-
-        change = cache.missing_libraries != missing
-        missing = cache.missing_libraries
-
-    return cache
+    return cache.resolve()
 
 
 def import_library(shared_object, container):

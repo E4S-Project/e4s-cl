@@ -1,5 +1,6 @@
 import re
 from e4s_cl import logger
+from e4s_cl.cf.libraries.linker import resolve
 from e4s_cl.util import flatten, color_text, JSON_HOOKS
 
 from elftools.common.exceptions import ELFError
@@ -82,7 +83,7 @@ class Library:
         """
         hash method tying the ELFData object to the soname, to use in sets
         """
-        return hash(self.soname)
+        return hash(self.soname + self.binary_path or '')
 
     def __eq__(self, other):
         if isinstance(other, Library):
@@ -102,18 +103,18 @@ class LibrarySet(set):
     @property
     def rpath(self):
         """
-        -> set(str)
+        -> list(str)
         Return a set of the libraries rpaths merged together
         """
-        return set(flatten(map(lambda x: x.rpath, self)))
+        return flatten(map(lambda x: x.rpath, self))
 
     @property
     def runpath(self):
         """
-        -> set(str)
+        -> list(str)
         Return a set of the libraries runpaths merged together
         """
-        return set(flatten(map(lambda x: x.runpath, self)))
+        return flatten(map(lambda x: x.runpath, self))
 
     @property
     def defined_versions(self):
@@ -201,6 +202,37 @@ class LibrarySet(set):
         """
         return (len(self.missing_libraries) == 0
                 and self.required_versions.issubset(self.defined_versions))
+
+    def resolve(self, rpath=[], runpath=[]):
+        """
+        -> LibrarySet, superset of self
+        will try to resolve all dynamic depedencies of the set's members, then
+        add them to the returned set
+
+        if the returned set complete() method returns False, a library cannot
+        be found by e4s-cl
+        """
+        superset = LibrarySet(self)
+
+        missing = superset.missing_libraries
+        change = True
+
+        while change:
+            for soname in missing:
+                path = resolve(soname,
+                               rpath=superset.rpath + rpath,
+                               runpath=superset.runpath + runpath)
+
+                if not path:
+                    continue
+
+                with open(path, 'rb') as file:
+                    superset.add(HostLibrary(file))
+
+            change = superset.missing_libraries != missing
+            missing = superset.missing_libraries
+
+        return superset
 
     def trees(self):
         """
