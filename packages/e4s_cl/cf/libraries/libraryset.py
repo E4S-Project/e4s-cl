@@ -133,7 +133,7 @@ class LibrarySet(set):
         Returns a set of all libraries included in self that are not depended
         upon from another library in the set
         """
-        return self - self.required_libraries
+        return LibrarySet(self - self.required_libraries)
 
     @property
     def linkers(self):
