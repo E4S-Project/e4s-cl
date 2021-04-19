@@ -23,7 +23,7 @@ class Library:
     def __init__(self, file=None, soname=""):
         self.soname = soname
         self.dyn_dependencies = set()
-        self.required_versions = {}
+        self.required_versions = dict()
         self.defined_versions = set()
 
         self.rpath = []
@@ -234,14 +234,30 @@ class LibrarySet(set):
 
         return superset
 
-    def trees(self):
+    def trees(self, show_versions=False):
         """
         -> list(list(str))
+        Returns a list of string lists. Each list contains lines that, when
+        printed in succession, describe a dependency tree. Trees are calculated
+        for every library in self.top_level.
         """
         def get_name(elem):
+            header = color_text(elem.soname, 'red', None, ['bold'])
+
             if elem.binary_path:
-                return "%s (%s)" % (elem.soname, elem.binary_path)
-            return color_text(elem.soname, 'red', None, ['bold'])
+                header = "%s (%s)" % (elem.soname, elem.binary_path)
+
+            sections = []
+            for soname, versions in elem.required_versions.items():
+                for version in versions:
+                    if not version in self.defined_versions:
+                        version = color_text(version, 'red', None, ['bold'])
+                    sections.append("├ %s (from %s)" % (version, soname))
+
+            if sections and show_versions:
+                header = "%s\n%s" % (header, "\n".join(sections))
+
+            return header
 
         def gen_get_children():
             def get_children(elem):
