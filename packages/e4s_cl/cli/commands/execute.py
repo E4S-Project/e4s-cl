@@ -72,7 +72,8 @@ def import_library(shared_object, container):
     """
 
     if not isinstance(so, HostLibrary):
-        raise InternalError("Wrong argument to import_libraries: %s" % type(so))
+        raise InternalError("Wrong argument type for import_libraries: %s" %
+                            type(so))
 
     libname = Path(so.binary_path).name.split('.so')
     library_file = so.binary_path
@@ -89,7 +90,7 @@ def import_library(shared_object, container):
         container.bind_file(file, Path(HOST_LIBS_DIR, file.name), options='ro')
 
 
-def filter_libraries(library_paths, container, entrypoint):
+def filter_libraries(library_set, container, entrypoint):
     """ Library filter
 
     library_paths: list[pathlib.Path]
@@ -99,6 +100,9 @@ def filter_libraries(library_paths, container, entrypoint):
     as they would trigger symbol issues when used with the container's
     linker.
     """
+
+
+
     raise NotImplementedError("Library filtering has to be implemented")
 
 
@@ -111,7 +115,8 @@ def overlay_libraries(library_set, container, entrypoint):
     This method selects all the libraries defined in the list, along with
     with the host's (implicitly newer) linker.
     """
-    selected = LibrarySet(filter(lambda x: x.isinstance(x, HostLibrary), library_set))
+    selected = LibrarySet(
+        filter(lambda x: x.isinstance(x, HostLibrary), library_set))
 
     # Resolve linkers actual paths. This now contains paths to all the linkers
     # required to load the entire dependency tree.

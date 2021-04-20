@@ -96,14 +96,14 @@ class Container():
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
 
-        # Container analysis attributes
-        self._libc_ver = None
-
     def get_data(self, entrypoint, library_set=LibrarySet()):
         """
-        Run the e4s-cl analyze command in the container to analyze the environment
-        inside of it. The results will be used to tailor the library import
-        to ensure compatibility of the shared objects.
+        Run the e4s-cl analyze command in the container to analyze the
+        environment inside of it. The results will be used to tailor the
+        library import to ensure compatibility of the shared objects.
+
+        A library set with data about libraries listed in library_set will
+        be returned
         """
         fdr, fdw = os.pipe()
         os.set_inheritable(fdw, True)
@@ -123,7 +123,9 @@ class Container():
         data = json_loads(os.read(fdr, 1024**3).decode())
 
         self.libc_v = Version(data.get('libc_version', '0.0.0'))
-        self.libraries = data.get('libraries', LibrarySet())
+        self.libraries = LibrarySet(data.get('libraries', set()))
+
+        return self.libraries
 
     def bind_file(self, path, dest=None, options=None):
         """
