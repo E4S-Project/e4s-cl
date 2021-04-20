@@ -83,7 +83,7 @@ class Library:
         """
         hash method tying the ELFData object to the soname, to use in sets
         """
-        return hash(self.soname + self.binary_path or '')
+        return hash(self.soname)
 
     def __eq__(self, other):
         if isinstance(other, Library):
@@ -202,6 +202,12 @@ class LibrarySet(set):
         """
         return (len(self.missing_libraries) == 0
                 and self.required_versions.issubset(self.defined_versions))
+
+    def find(self, soname):
+        matches = set(filter(lambda x: re.match(soname, x.soname), self))
+
+        if len(matches) == 1:
+            return matches.pop()
 
     def resolve(self, rpath=[], runpath=[]):
         """
