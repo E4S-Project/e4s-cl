@@ -124,6 +124,7 @@ class Container():
         self.bind_env_var('__E4S_CL_JSON_FD', str(fdw))
 
         entrypoint.command = [
+            Path(CONTAINER_DIR, 'conda', 'bin', 'python3').as_posix(),
             Path(CONTAINER_DIR, 'bin', 'e4s-cl').as_posix(), 'analyze',
             '--libraries'
         ] + list(library_set.sonames)
