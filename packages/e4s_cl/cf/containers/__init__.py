@@ -10,7 +10,7 @@ import sys
 import json
 from importlib import import_module
 from pathlib import Path
-from e4s_cl import E4S_CL_SCRIPT, logger, variables
+from e4s_cl import E4S_CL_HOME, CONTAINER_DIR, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.util import walk_packages, which, unrelative, json_loads
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.libraries import extract_libc, LibrarySet
@@ -50,6 +50,17 @@ def dump(func):
 
     wrapper.__name__ = func.__name__
     return wrapper
+
+
+def brand(container):
+    """
+    Bind the python interpreter and e4s_cl packages to a container object
+    """
+    requirements = ['packages', 'conda', 'bin']
+
+    for folder in requirements:
+        container.bind_file(Path(E4S_CL_HOME, folder).as_posix(),
+                            dest=Path(CONTAINER_DIR, folder).as_posix())
 
 
 class Container():
@@ -105,12 +116,17 @@ class Container():
         A library set with data about libraries listed in library_set will
         be returned
         """
+
+        brand(self)
+
         fdr, fdw = os.pipe()
         os.set_inheritable(fdw, True)
         self.bind_env_var('__E4S_CL_JSON_FD', str(fdw))
 
-        entrypoint.command = [E4S_CL_SCRIPT, 'analyze', '--libraries'] + list(
-            library_set.sonames)
+        entrypoint.command = [
+            Path(CONTAINER_DIR, 'bin', 'e4s-cl').as_posix(), 'analyze',
+            '--libraries'
+        ] + list(library_set.sonames)
         script_name = entrypoint.setUp()
 
         code, _ = self.run([script_name], redirect_stdout=False)
@@ -127,7 +143,7 @@ class Container():
 
         return self.libraries
 
-    def bind_file(self, path, dest=None, options=None):
+    def bind_file(self, path, dest=None, options='ro'):
         """
         If there is no destination, handle files with relative paths.
         For instance on summit, some files are required as

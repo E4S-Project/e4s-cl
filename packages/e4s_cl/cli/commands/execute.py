@@ -8,7 +8,7 @@ argument.
 import os
 from pathlib import Path
 from argparse import ArgumentTypeError
-from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
+from e4s_cl import CONTAINER_DIR, EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -20,7 +20,7 @@ from e4s_cl.cf.libraries import ldd, libc_version, resolve, LibrarySet, HostLibr
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
 
-HOST_LIBS_DIR = Path('/hostlibs/').as_posix()
+HOST_LIBS_DIR = Path(CONTAINER_DIR, 'hostlibs').as_posix()
 
 
 def create_set(library_list):

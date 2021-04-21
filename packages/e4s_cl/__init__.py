@@ -1,5 +1,6 @@
 import os
 import sys
+import pathlib
 
 try:
     from e4s_cl.version import __version__, __commit__
@@ -71,6 +72,10 @@ USER_PREFIX = os.path.realpath(
 
 PROFILE_DIR = USER_PREFIX
 """str: Name of the project-level directory containing E4S Container Launcher project files."""
+
+
+CONTAINER_DIR = pathlib.Path("/.e4s-cl").as_posix()
+"""str: Path of a directory in which to bind files when in containers"""
 
 
 def version_banner():
