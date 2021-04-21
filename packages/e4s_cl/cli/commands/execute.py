@@ -71,18 +71,20 @@ def import_library(shared_object, container):
     library is found down the line.
     """
 
-    if not isinstance(so, HostLibrary):
+    if not isinstance(shared_object, HostLibrary):
         raise InternalError("Wrong argument type for import_libraries: %s" %
-                            type(so))
+                            type(shared_object))
 
-    libname = Path(so.binary_path).name.split('.so')
-    library_file = so.binary_path
+    libname = Path(shared_object.binary_path).name.split('.so')
+    library_file = shared_object.binary_path
     cleared = []
 
     if not libname or len(libname) < 2:
         LOGGER.error("Invalid name: %s", so.soname)
 
-    for file in list(Path(so.binary_path).parent.glob("%s.so*" % libname[0])):
+    for file in list(
+            Path(shared_object.binary_path).parent.glob("%s.so*" %
+                                                        libname[0])):
         if os.path.realpath(file) == library_file:
             cleared.append(file)
 
@@ -101,8 +103,6 @@ def filter_libraries(library_set, container, entrypoint):
     linker.
     """
 
-
-
     raise NotImplementedError("Library filtering has to be implemented")
 
 
@@ -116,7 +116,7 @@ def overlay_libraries(library_set, container, entrypoint):
     with the host's (implicitly newer) linker.
     """
     selected = LibrarySet(
-        filter(lambda x: x.isinstance(x, HostLibrary), library_set))
+        filter(lambda x: isinstance(x, HostLibrary), library_set))
 
     # Resolve linkers actual paths. This now contains paths to all the linkers
     # required to load the entire dependency tree.
@@ -129,7 +129,7 @@ def overlay_libraries(library_set, container, entrypoint):
 
     for linker in host_linkers:
         entrypoint.linker = Path(HOST_LIBS_DIR, Path(linker.binary_path).name)
-        container.bind_file(linker,
+        container.bind_file(linker.binary_path,
                             dest=Path(HOST_LIBS_DIR,
                                       Path(linker.binary_path).name),
                             options='ro')
