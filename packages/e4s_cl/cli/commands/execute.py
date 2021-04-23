@@ -98,12 +98,27 @@ def filter_libraries(library_set, container, entrypoint):
     library_paths: list[pathlib.Path]
     container: e4s_cl.cf.containers.Container
 
-    This method selects all the libraries not present in the container,
-    as they would trigger symbol issues when used with the container's
-    linker.
+    This method generates a LibarySet of libraries to import in the container.
     """
 
-    raise NotImplementedError("Library filtering has to be implemented")
+    guest_set = container.libraries
+    filtered_set = LibrarySet(library_set)
+
+    # Remove libc-tied libraries from the filtered set by adding the guest libraries
+    for lib in library_set.glib:
+        guest_lib = guest_set.find(lib.soname)
+        if guest_lib:
+            filtered_set.add(guest_lib)
+
+    # Remove linkers from the import list
+    for linker in guest_set.linkers:
+        filtered_set.add(linker)
+
+    # Print details on selected libraries as a tree
+    for tree in filtered_set.trees(True):
+        print(tree)
+
+    return LibrarySet(filter(lambda x: isinstance(x, HostLibrary), filtered_set))
 
 
 def overlay_libraries(library_set, container, entrypoint):
