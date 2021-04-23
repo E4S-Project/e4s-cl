@@ -87,7 +87,7 @@ class Library:
 
     def __eq__(self, other):
         if isinstance(other, Library):
-            return self.soname == other.soname
+            return self.soname == other.soname and self.defined_versions == other.defined_versions
         return NotImplemented
 
 
@@ -100,6 +100,28 @@ class GuestLibrary(Library):
 
 
 class LibrarySet(set):
+    def add(self, elem):
+        """
+        -> None
+        Wraps the default set.add method
+
+        If a library with a given soname is added to a set, python will avoid
+        copying it over if the set already contains a library with the same
+        soname. This is an issue when adding HostLibraries/GuestLibraries
+        depicting the same library.
+
+        This method gets rid of matching libraries before calling set.add
+        """
+        if not isinstance(elem, Library):
+            raise InternalError("Adding object of incompatible type %s to LibrarySet !" % type(elem))
+
+        conflict = list(filter(lambda x: hash(x) == hash(elem), self))
+
+        if len(conflict) == 1:
+            self.discard(conflict.pop())
+
+        super(LibrarySet, self).add(elem)
+
     @property
     def rpath(self):
         """
@@ -142,6 +164,19 @@ class LibrarySet(set):
         Returns a set of all linkers present in the set
         """
         return LibrarySet(filter(lambda x: not x.dyn_dependencies, self))
+
+    @property
+    def glib(self):
+        """
+        -> LibrarySet, subset of self
+        Returns a set with all libraries tied to the available libc,
+        recognizable by the GLIBC_PRIVATE dependency. Using these with any
+        other libc will trigger a symbol error
+        """
+        def needs_private(lib):
+            return 'GLIBC_PRIVATE' in flatten(lib.required_versions.values())
+
+        return LibrarySet(filter(needs_private, self))
 
     @property
     def required_libraries(self):
@@ -252,6 +287,11 @@ class LibrarySet(set):
 
             if elem.binary_path:
                 header = "%s (%s)" % (elem.soname, elem.binary_path)
+
+            if isinstance(elem, GuestLibrary):
+                header += " %s" % color_text("(GUEST)", 'green', None, ['bold'])
+            if isinstance(elem, HostLibrary):
+                header += " %s" % color_text("(HOST)", 'blue', None, ['bold'])
 
             sections = []
             for soname, versions in elem.required_versions.items():
