@@ -63,7 +63,7 @@ def import_library(shared_object, container):
     -rwxr-xr-x. 1 root root 2.7M May 13  2019 libmpi.so.12.1.1
 
     If any of those 3 files were to be passed as an argument, all would be
-    selected to be bound.
+    bound to the container.
 
     This is because depending on the linker at compile-time some binaries
     require more or less precise versions of the same file (eg. libmpi.so for
@@ -76,15 +76,14 @@ def import_library(shared_object, container):
                             type(shared_object))
 
     libname = Path(shared_object.binary_path).name.split('.so')
-    library_file = shared_object.binary_path
+    library_file = os.path.realpath(shared_object.binary_path)
     cleared = []
 
     if not libname or len(libname) < 2:
         LOGGER.error("Invalid name: %s", so.soname)
+        return
 
-    for file in list(
-            Path(shared_object.binary_path).parent.glob("%s.so*" %
-                                                        libname[0])):
+    for file in list(Path(library_file).parent.glob("%s.so*" % libname[0])):
         if os.path.realpath(file) == library_file:
             cleared.append(file)
 
@@ -116,7 +115,7 @@ def filter_libraries(library_set, container, entrypoint):
 
     # Print details on selected libraries as a tree
     for tree in filtered_set.trees(True):
-        print(tree)
+        LOGGER.debug(tree)
 
     return LibrarySet(filter(lambda x: isinstance(x, HostLibrary), filtered_set))
 
