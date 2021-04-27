@@ -8,7 +8,7 @@ argument.
 import os
 from pathlib import Path
 from argparse import ArgumentTypeError
-from e4s_cl import CONTAINER_DIR, EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
+from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT, EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -248,7 +248,11 @@ class ExecuteCommand(AbstractCommand):
         params = Entrypoint()
         params.source_script_path = args.source
 
+        # Analyze the host to get a thorough set of libraries required
         libset = create_set(args.libraries)
+
+        # Analyze the container to get library information from the environment
+        # it offers, using the entrypoint
         container.get_data(params, library_set=libset)
 
         params.command = args.cmd
@@ -260,11 +264,13 @@ class ExecuteCommand(AbstractCommand):
 
         if args.files:
             for path in args.files:
-                container.bind_file(path, options='ro')
+                container.bind_file(path)
 
         script_name = params.setUp()
 
-        command = [script_name]
+        container.bind_file(script_name, dest=CONTAINER_SCRIPT)
+
+        command = [CONTAINER_SCRIPT]
 
         if variables.is_dry_run():
             LOGGER.info("Running %s in container %s", command, container)
