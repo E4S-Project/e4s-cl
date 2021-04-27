@@ -5,13 +5,15 @@ Module introducing singularity support
 from e4s_cl import logger
 from e4s_cl.util import create_subprocess_exp
 from e4s_cl.cf.libraries import host_libraries
-from e4s_cl.cf.containers import Container
+from e4s_cl.cf.containers import Container, file_options
 
 LOGGER = logger.get_logger(__name__)
 
 NAME = 'singularity'
 EXECUTABLES = ['singularity']
 MIMES = ['.simg', '.sif']
+
+OPTION_STRINGS = {file_options.READ_ONLY: 'ro', file_options.READ_WRITE: 'rw'}
 
 
 class SingularityContainer(Container):
@@ -37,19 +39,11 @@ class SingularityContainer(Container):
         """
         Format a list of files to a compatible bind option of singularity
         """
-        file_list = []
+        def _format():
+            for source, dest, options_val in self.bound:
+                yield "%s:%s:%s" % (source, dest, OPTION_STRINGS[options_val])
 
-        for request in self.bound:
-            if request[1]:
-                file_list.append("%s:%s:%s" % request)
-            else:
-                file_list.append("%s:%s:%s" %
-                                 (request[0], request[0], request[2]))
-
-        files = ','.join(file_list)
-
-        if files:
-            self.env.update({"SINGULARITY_BIND": files})
+        self.env.update({"SINGULARITY_BIND": ','.join(_format())})
 
     def bind_env_var(self, key, value):
         new_key = "SINGULARITYENV_{}".format(key)

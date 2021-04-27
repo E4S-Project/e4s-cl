@@ -29,6 +29,11 @@ EXPOSED_BACKENDS = []
 MIMES = []
 
 
+class file_options:
+    READ_ONLY = 0
+    READ_WRITE = 1
+
+
 class BackendNotAvailableError(InternalError):
     pass
 
@@ -63,7 +68,12 @@ def brand(container):
                             dest=Path(CONTAINER_DIR, folder).as_posix())
 
 
-class Container():
+class Container:
+    class _bound_file:
+        def __init__(self, path: Path, option: int = file_options.READ_ONLY):
+            self.path = Path(path)
+            self.option = option
+
     """Abstract class to complete depending on the container tech."""
 
     # pylint: disable=unused-argument
@@ -102,7 +112,9 @@ class Container():
         self.image = image
 
         # User-set parameters
-        self.bound = []  # Files to bind (host_path, guest_path, options)
+        # Files to bind: dict(guest_path -> (host_path, options))
+        # dict[Path, Container._bound_file]
+        self.__bound_files = dict()
         self.env = {}  # Environment
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
@@ -146,7 +158,7 @@ class Container():
 
         return self.libraries
 
-    def bind_file(self, path, dest=None, options='ro'):
+    def bind_file(self, path, dest=None, option=file_options.READ_ONLY):
         """
         If there is no destination, handle files with relative paths.
         For instance on summit, some files are required as
@@ -157,9 +169,24 @@ class Container():
         """
         if not dest:
             for _path in unrelative(path):
-                self.bound.append((_path, None, options))
+                self.__bound_files.update(
+                    {Path(_path): Container._bound_file(_path, option)})
         else:
-            self.bound.append((path, dest, options))
+            self.__bound_files.update(
+                {Path(dest): Container._bound_file(path, option)})
+
+    @property
+    def bound(self):
+        for path, data in self._Container__bound_files.items():
+            if data.path.exists():
+                yield data.path, path, data.option
+            else:
+                LOGGER.warning(
+                    "Attempting to bind non-existing file: %(source)s to %(dest)s"
+                    % {
+                        'source': data.path,
+                        'dest': path
+                    })
 
     def bind_env_var(self, key, value):
         self.env.update({key: value})
@@ -200,9 +227,8 @@ class Container():
         if self.image:
             out.append("- image: %s" % self.image)
         if self.bound:
-            out.append("- bound: %s" %
-                       json.dumps([str(path)
-                                   for path in self.bound], indent=2))
+            out.append("- bound:\n%s" %
+                       "\n".join(["\t%s -> %s (%d)" % v for v in self.bound]))
         if self.env:
             out.append("- env: %s" % json.dumps(self.env, indent=2))
         if self.ld_preload:
