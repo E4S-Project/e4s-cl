@@ -113,7 +113,9 @@ class LibrarySet(set):
         This method gets rid of matching libraries before calling set.add
         """
         if not isinstance(elem, Library):
-            raise InternalError("Adding object of incompatible type %s to LibrarySet !" % type(elem))
+            raise InternalError(
+                "Adding object of incompatible type %s to LibrarySet !" %
+                type(elem))
 
         conflict = list(filter(lambda x: hash(x) == hash(elem), self))
 
@@ -289,7 +291,8 @@ class LibrarySet(set):
                 header = "%s (%s)" % (elem.soname, elem.binary_path)
 
             if isinstance(elem, GuestLibrary):
-                header += " %s" % color_text("(GUEST)", 'green', None, ['bold'])
+                header += " %s" % color_text("(GUEST)", 'green', None,
+                                             ['bold'])
             if isinstance(elem, HostLibrary):
                 header += " %s" % color_text("(HOST)", 'blue', None, ['bold'])
 

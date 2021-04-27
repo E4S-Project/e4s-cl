@@ -117,7 +117,8 @@ def filter_libraries(library_set, container, entrypoint):
     for tree in filtered_set.trees(True):
         LOGGER.debug(tree)
 
-    return LibrarySet(filter(lambda x: isinstance(x, HostLibrary), filtered_set))
+    return LibrarySet(
+        filter(lambda x: isinstance(x, HostLibrary), filtered_set))
 
 
 def overlay_libraries(library_set, container, entrypoint):

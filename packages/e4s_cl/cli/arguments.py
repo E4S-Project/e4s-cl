@@ -702,12 +702,13 @@ def get_model_identifier(model,
     if 'selected' in dir(model):
         _default = model.selected().get(key_attr, UNSELECTED)
 
-    parser.add_argument(model_name.lower(),
-                        nargs='?',
-                        type=defined_object(model, key_attr),
-                        help="The target profile. If omitted, defaults to the selected profile",
-                        default=_default,
-                        metavar="%s_%s" % (model_name.lower(), key_attr))
+    parser.add_argument(
+        model_name.lower(),
+        nargs='?',
+        type=defined_object(model, key_attr),
+        help="The target profile. If omitted, defaults to the selected profile",
+        default=_default,
+        metavar="%s_%s" % (model_name.lower(), key_attr))
 
     return parser
 

@@ -8,6 +8,7 @@ from e4s_cl.cf.libraries.ldd import ldd
 from e4s_cl.cf.libraries.linker import resolve
 from e4s_cl.cf.libraries.libraryset import LibrarySet, Library, HostLibrary, GuestLibrary
 
+
 def extract_libc(text):
     """
     Extract libc version sumber from the output of ldd --version

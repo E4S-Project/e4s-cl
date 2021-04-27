@@ -17,9 +17,12 @@ class ProfileShowTest(tests.TestCase):
             '--files', '/path/to/file', '--libraries', '/lib64/libtest.so'
         ])
         stdout, stderr = self.assertCommandReturnValue(0, command, ['test02'])
-        fields = ["test02", "filepath", "container", "/path/to/file", "/lib64/libtest.so"]
+        fields = [
+            "test02", "filepath", "container", "/path/to/file",
+            "/lib64/libtest.so"
+        ]
         for field in fields:
-            self.assertIn(field , stdout)
+            self.assertIn(field, stdout)
         self.resetStorage()
 
     def test_existence(self):

@@ -10,11 +10,13 @@ from e4s_cl.cf.storage import AbstractStorage, StorageRecord, StorageError
 
 LOGGER = logger.get_logger(__name__)
 
+
 class _JsonRecord(StorageRecord):
     eid_type = int
-    
+
     def __init__(self, database, element, eid=None):
-        super(_JsonRecord, self).__init__(database, eid or element.eid, element)
+        super(_JsonRecord, self).__init__(database, eid or element.eid,
+                                          element)
 
     def __str__(self):
         return json.dumps(self)
@@ -43,7 +45,8 @@ class _JsonFileStorage(tinydb.JSONStorage):
 
     def write(self, *args, **kwargs):
         if self.readonly:
-            raise ConfigurationError("Cannot write to '%s'" % self.path, "Check that you have `write` access.")
+            raise ConfigurationError("Cannot write to '%s'" % self.path,
+                                     "Check that you have `write` access.")
         super(_JsonFileStorage, self).write(*args, **kwargs)
 
 
@@ -55,16 +58,16 @@ class LocalFileStorage(AbstractStorage):
     Attributes:
         dbfile (str): Absolute path to database file.
     """
-    
+
     Record = _JsonRecord
-    
+
     def __init__(self, name, prefix):
         super(LocalFileStorage, self).__init__(name)
         self._transaction_count = 0
         self._db_copy = None
         self._database = None
         self._prefix = prefix
-        
+
     def __len__(self):
         return self.count()
 
@@ -73,21 +76,21 @@ class LocalFileStorage(AbstractStorage):
         if record is not None:
             return record['value']
         raise KeyError
-    
+
     def __setitem__(self, key, value):
         if self.contains({'key': key}):
             self.update({'value': value}, {'key': key})
         else:
             self.insert({'key': key, 'value': value})
-        
+
     def __delitem__(self, key):
         if not self.contains({'key': key}):
             raise KeyError
         self.remove({'key': key})
-    
+
     def __contains__(self, key):
         return self.contains({'key': key})
-    
+
     def __iter__(self):
         for item in self.search():
             yield item['key']
@@ -103,7 +106,7 @@ class LocalFileStorage(AbstractStorage):
     def iteritems(self):
         for item in self.search():
             yield item['key'], item['value']
-    
+
     def is_writable(self):
         """Check if the storage filesystem is writable.
         
@@ -117,20 +120,24 @@ class LocalFileStorage(AbstractStorage):
         if not os.access(self.prefix, os.W_OK):
             return False
         try:
-            with tempfile.NamedTemporaryFile(dir=self.prefix, delete=True) as tmp_file:
+            with tempfile.NamedTemporaryFile(dir=self.prefix,
+                                             delete=True) as tmp_file:
                 tmp_file.write("Write test. Delete this file.")
         except (OSError, IOError):
             return False
         return True
-    
+
     def connect_filesystem(self, *args, **kwargs):
         """Prepares the store filesystem for reading and writing."""
         if not os.path.isdir(self._prefix):
             try:
                 util.mkdirp(self._prefix)
             except Exception as err:
-                raise StorageError("Failed to access %s filesystem prefix '%s': %s" % (self.name, self._prefix, err))
-            LOGGER.debug("Initialized %s filesystem prefix '%s'", self.name, self._prefix)
+                raise StorageError(
+                    "Failed to access %s filesystem prefix '%s': %s" %
+                    (self.name, self._prefix, err))
+            LOGGER.debug("Initialized %s filesystem prefix '%s'", self.name,
+                         self._prefix)
 
     def disconnect_filesystem(self, *args, **kwargs):
         """Disconnects the store filesystem."""
@@ -146,11 +153,14 @@ class LocalFileStorage(AbstractStorage):
                 storage.WRITE_CACHE_SIZE = 0
                 self._database = tinydb.TinyDB(dbfile, storage=storage)
             except IOError as err:
-                raise StorageError("Failed to access %s database '%s': %s" % (self.name, dbfile, err),
-                                   "Check that you have `write` access")
+                raise StorageError(
+                    "Failed to access %s database '%s': %s" %
+                    (self.name, dbfile, err),
+                    "Check that you have `write` access")
             if not util.path_accessible(dbfile):
-                raise StorageError("Database file '%s' exists but cannot be read." % dbfile,
-                                   "Check that you have `read` access")
+                raise StorageError(
+                    "Database file '%s' exists but cannot be read." % dbfile,
+                    "Check that you have `read` access")
             LOGGER.debug("Initialized %s database '%s'", self.name, dbfile)
 
     def disconnect_database(self, *args, **kwargs):
@@ -162,7 +172,7 @@ class LocalFileStorage(AbstractStorage):
     @property
     def prefix(self):
         return self._prefix
-        
+
     def __str__(self):
         """Human-readable identifier for this database."""
         # pylint: disable=protected-access
@@ -193,14 +203,16 @@ class LocalFileStorage(AbstractStorage):
         if table_name is None:
             return self._database
         return self._database.table(table_name)
-    
+
     @staticmethod
     def _query(keys, match_any):
         """Construct a TinyDB query object."""
-        def _and(lhs, rhs): 
+        def _and(lhs, rhs):
             return lhs & rhs
-        def _or(lhs, rhs): 
+
+        def _or(lhs, rhs):
             return lhs | rhs
+
         join = _or if match_any else _and
         itr = list(keys.items())
         key, val = itr[0]
@@ -219,7 +231,7 @@ class LocalFileStorage(AbstractStorage):
             int: Number of records in the table.
         """
         return len(self.table(table_name))
-    
+
     def get(self, keys, table_name=None, match_any=False):
         """Find a single record.
         
@@ -254,7 +266,10 @@ class LocalFileStorage(AbstractStorage):
             element = table.get(self._query(keys, match_any))
         elif isinstance(keys, (list, tuple)):
             #LOGGER.debug("%s: get(keys=%r)", table_name, keys)
-            return [self.get(key, table_name=table_name, match_any=match_any) for key in keys]
+            return [
+                self.get(key, table_name=table_name, match_any=match_any)
+                for key in keys
+            ]
         else:
             raise ValueError(keys)
         if element:
@@ -286,19 +301,27 @@ class LocalFileStorage(AbstractStorage):
         table = self.table(table_name)
         if keys is None:
             #LOGGER.debug("%s: all()", table_name)
-            return [self.Record(self, element=element) for element in table.all()]
+            return [
+                self.Record(self, element=element) for element in table.all()
+            ]
         elif isinstance(keys, self.Record.eid_type):
             #LOGGER.debug("%s: search(eid=%r)", table_name, keys)
             element = table.get(eid=keys)
             return [self.Record(self, element=element)] if element else []
         elif isinstance(keys, dict) and keys:
             #LOGGER.debug("%s: search(keys=%r)", table_name, keys)
-            return [self.Record(self, element=element) for element in table.search(self._query(keys, match_any))]
+            return [
+                self.Record(self, element=element)
+                for element in table.search(self._query(keys, match_any))
+            ]
         elif isinstance(keys, (list, tuple)):
             #LOGGER.debug("%s: search(keys=%r)", table_name, keys)
             result = []
             for key in keys:
-                result.extend(self.search(keys=key, table_name=table_name, match_any=match_any))
+                result.extend(
+                    self.search(keys=key,
+                                table_name=table_name,
+                                match_any=match_any))
             return result
         else:
             raise ValueError(keys)
@@ -326,13 +349,22 @@ class LocalFileStorage(AbstractStorage):
         table = self.table(table_name)
         if test is not None:
             #LOGGER.debug('%s: search(where(%s).test(%r))', table_name, field, test)
-            return [self.Record(self, element=elem) for elem in table.search(tinydb.where(field).test(test))]
+            return [
+                self.Record(self, element=elem)
+                for elem in table.search(tinydb.where(field).test(test))
+            ]
         elif regex is not None:
             #LOGGER.debug('%s: search(where(%s).matches(%r))', table_name, field, regex)
-            return [self.Record(self, element=elem) for elem in table.search(tinydb.where(field).matches(regex))]
+            return [
+                self.Record(self, element=elem)
+                for elem in table.search(tinydb.where(field).matches(regex))
+            ]
         else:
             #LOGGER.debug("%s: search(where(%s).matches('.*'))", table_name, field)
-            return [self.Record(self, element=elem) for elem in table.search(tinydb.where(field).matches(".*"))]
+            return [
+                self.Record(self, element=elem)
+                for elem in table.search(tinydb.where(field).matches(".*"))
+            ]
 
     def contains(self, keys, table_name=None, match_any=False):
         """Check if the specified table contains at least one matching record.
@@ -365,7 +397,11 @@ class LocalFileStorage(AbstractStorage):
             #LOGGER.debug("%s: contains(keys=%r)", table_name, keys)
             return table.contains(self._query(keys, match_any))
         elif isinstance(keys, (list, tuple)):
-            return [self.contains(keys=key, table_name=table_name, match_any=match_any) for key in keys]
+            return [
+                self.contains(keys=key,
+                              table_name=table_name,
+                              match_any=match_any) for key in keys
+            ]
         else:
             raise ValueError(keys)
 
@@ -415,7 +451,7 @@ class LocalFileStorage(AbstractStorage):
             table.update(fields, eids=keys)
         else:
             raise ValueError(keys)
-      
+
     def unset(self, fields, keys, table_name=None, match_any=False):
         """Update records by unsetting fields.
         
@@ -445,14 +481,15 @@ class LocalFileStorage(AbstractStorage):
         elif isinstance(keys, dict):
             for field in fields:
                 #LOGGER.debug("%s: unset(%s, keys=%r)", table_name, field, keys)
-                table.update(operations.delete(field), self._query(keys, match_any))
+                table.update(operations.delete(field),
+                             self._query(keys, match_any))
         elif isinstance(keys, (list, tuple)):
             for field in fields:
                 #LOGGER.debug("%s: unset(%s, eids=%r)", table_name, field, keys)
                 table.update(operations.delete(field), eids=keys)
         else:
             raise ValueError(keys)
-        
+
     def remove(self, keys, table_name=None, match_any=False):
         """Delete records.
         

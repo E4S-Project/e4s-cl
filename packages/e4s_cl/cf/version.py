@@ -1,6 +1,7 @@
 import re
 from e4s_cl.error import InternalError
 
+
 class Version(list):
     def __init__(self, string):
         m = re.match('.*(?P<version>[0-9]+(\.[0-9]+)+).*', string)
@@ -37,4 +38,3 @@ class Version(list):
     @property
     def patch(self):
         return self[2]
-

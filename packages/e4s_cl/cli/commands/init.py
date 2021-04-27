@@ -132,9 +132,8 @@ class InitCommand(AbstractCommand):
                 launcher = mpirun.as_posix()
 
         if not (compiler and launcher):
-            LOGGER.error(
-                "No MPI detected in PATH. Please load a module or " +
-                "use `--mpi` to specify the MPI installation to use.")
+            LOGGER.error("No MPI detected in PATH. Please load a module or " +
+                         "use `--mpi` to specify the MPI installation to use.")
             return EXIT_FAILURE
 
         if getattr(args, 'launcher', None):
@@ -152,7 +151,8 @@ class InitCommand(AbstractCommand):
 
         return EXIT_SUCCESS
 
-SUMMARY="""
+
+SUMMARY = """
 Initialize %(prog)s. This helper will analyze the accessible MPI library, and create a profile with the results.
 """
 

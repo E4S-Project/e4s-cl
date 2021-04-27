@@ -682,8 +682,7 @@ class ShowCommand(AbstractCliView):
 class CopyCommand(CreateCommand):
     """Base class for the `copy` subcommand of command line views."""
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('summary_fmt',
-                          "Copy %(model_name)s.")
+        kwargs.setdefault('summary_fmt', "Copy %(model_name)s.")
         super(CopyCommand, self).__init__(*args, **kwargs)
 
     def _construct_parser(self):
@@ -691,9 +690,9 @@ class CopyCommand(CreateCommand):
         usage = ("%s <%s_%s> <copy_%s> [arguments]" %
                  (self.command, self.model_name, key_attr, key_attr))
         parser = arguments.get_model_identifier(self.model,
-                                                 prog=self.command,
-                                                 usage=usage,
-                                                 description=self.summary)
+                                                prog=self.command,
+                                                usage=usage,
+                                                description=self.summary)
         group = parser.add_argument_group('%s arguments' % self.model_name)
         group.add_argument('copy_%s' % key_attr,
                            help="new %s configuration's %s" %

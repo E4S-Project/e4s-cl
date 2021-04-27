@@ -13,7 +13,8 @@ LOGGER = logger.get_logger(__name__)
 
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
-_GENERIC_HELP = "See '%s --help' or raise an issue on Github for assistance" % (_SCRIPT_CMD)
+_GENERIC_HELP = "See '%s --help' or raise an issue on Github for assistance" % (
+    _SCRIPT_CMD)
 
 _KNOWN_FILES = {}
 

@@ -47,6 +47,3 @@ def host_libraries():
         __HOST_LIBRARIES[m.group('soname')] = m.group('path')
 
     return __HOST_LIBRARIES
-
-
-

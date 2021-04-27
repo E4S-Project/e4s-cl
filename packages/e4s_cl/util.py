@@ -570,11 +570,13 @@ def JSONSerializer(obj):
 
     return obj
 
+
 """
 Dict of methods to use when decoding e4s-cl json. Keys correspond to values
 of the `__type` field.
 """
 JSON_HOOKS = {}
+
 
 def JSONDecoder(obj):
     """

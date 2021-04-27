@@ -232,17 +232,20 @@ class LogFormatter(logging.Formatter):
     @hierachical
     @on_stderr
     def CRITICAL(self, record):
-        return self._colored(self._format_message(record), 'red', None, ['bold'])
+        return self._colored(self._format_message(record), 'red', None,
+                             ['bold'])
 
     @hierachical
     @on_stderr
     def ERROR(self, record):
-        return self._colored(self._format_message(record), 'red', None, ['bold'])
+        return self._colored(self._format_message(record), 'red', None,
+                             ['bold'])
 
     @hierachical
     @on_stderr
     def WARNING(self, record):
-        return self._colored(self._format_message(record), 'yellow', None, ['bold'])
+        return self._colored(self._format_message(record), 'yellow', None,
+                             ['bold'])
 
     @hierachical
     @on_stdout
@@ -402,9 +405,10 @@ if not _ROOT_LOGGER.handlers:
     try:
         os.makedirs(_LOG_FILE_PREFIX)
     except OSError as exc:
-        if exc.errno == errno.EROFS: # Don't crash and burn on RO systems
+        if exc.errno == errno.EROFS:  # Don't crash and burn on RO systems
             pass
-        elif not (exc.errno == errno.EEXIST and os.path.isdir(_LOG_FILE_PREFIX)):
+        elif not (exc.errno == errno.EEXIST
+                  and os.path.isdir(_LOG_FILE_PREFIX)):
             raise
     _STDOUT_HANDLER = logging.StreamHandler(sys.stderr)
     _STDOUT_HANDLER.setFormatter(

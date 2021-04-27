@@ -74,15 +74,17 @@ class LaunchCommand(AbstractCommand):
             default=Profile.selected().get('name', arguments.SUPPRESS),
             metavar='profile')
 
-        parser.add_argument('--image',
-                            type=arguments.posix_path,
-                            help="Path to the container image to run the program in",
-                            metavar='image')
+        parser.add_argument(
+            '--image',
+            type=arguments.posix_path,
+            help="Path to the container image to run the program in",
+            metavar='image')
 
-        parser.add_argument('--source',
-                            type=arguments.posix_path,
-                            help="Path to a bash script to source before execution",
-                            metavar='source')
+        parser.add_argument(
+            '--source',
+            type=arguments.posix_path,
+            help="Path to a bash script to source before execution",
+            metavar='source')
 
         parser.add_argument('--files',
                             type=arguments.posix_path_list,
