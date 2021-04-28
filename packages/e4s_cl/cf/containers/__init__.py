@@ -13,7 +13,7 @@ from pathlib import Path
 from e4s_cl import E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.util import walk_packages, which, unrelative, json_loads
 from e4s_cl.cf.version import Version
-from e4s_cl.cf.libraries import extract_libc, LibrarySet
+from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
