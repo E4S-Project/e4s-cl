@@ -7,15 +7,13 @@ argument.
 
 import os
 from pathlib import Path
-from argparse import ArgumentTypeError
 from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT, EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
-from e4s_cl.cli.commands.analyze import COMMAND as analyzeCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, BackendNotAvailableError
-from e4s_cl.cf.libraries import ldd, libc_version, resolve, LibrarySet, HostLibrary
+from e4s_cl.cf.libraries import libc_version, resolve, LibrarySet, HostLibrary
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -80,7 +78,7 @@ def import_library(shared_object, container):
     cleared = []
 
     if not libname or len(libname) < 2:
-        LOGGER.error("Invalid name: %s", so.soname)
+        LOGGER.error("Invalid name: %s", shared_object.soname)
         return
 
     for file in list(Path(library_file).parent.glob("%s.so*" % libname[0])):
@@ -88,9 +86,10 @@ def import_library(shared_object, container):
             cleared.append(file)
 
     for file in cleared:
-        container.bind_file(file, Path(HOST_LIBS_DIR, file.name), options='ro')
+        container.bind_file(file, Path(HOST_LIBS_DIR, file.name))
 
 
+# pylint: disable=unused-argument
 def filter_libraries(library_set, container, entrypoint):
     """ Library filter
 
@@ -133,21 +132,16 @@ def overlay_libraries(library_set, container, entrypoint):
     selected = LibrarySet(
         filter(lambda x: isinstance(x, HostLibrary), library_set))
 
-    # Resolve linkers actual paths. This now contains paths to all the linkers
-    # required to load the entire dependency tree.
-    host_linkers = {l for l in library_set.linkers}
-
     # Figure out what to if multiple linkers are required
-    if len(host_linkers) != 1:
+    if len(library_set.linkers) != 1:
         raise InternalError("%d linkers detected. This should not happen." %
-                            len(host_linkers))
+                            len(library_set.linkers))
 
-    for linker in host_linkers:
+    for linker in library_set.linkers:
         entrypoint.linker = Path(HOST_LIBS_DIR, Path(linker.binary_path).name)
         container.bind_file(linker.binary_path,
                             dest=Path(HOST_LIBS_DIR,
-                                      Path(linker.binary_path).name),
-                            options='ro')
+                                      Path(linker.binary_path).name))
 
     return selected
 
@@ -176,13 +170,13 @@ def select_libraries(library_set, container, entrypoint):
     a newer libc, but very hazardous to run with an older one.
     """
 
-    HOST_NEWER = True
-    GUEST_NEWER = False
+    host_newer = True
+    guest_newer = False
 
     host_libc = libc_version()
     guest_libc = container.libc_v
 
-    methods = {HOST_NEWER: overlay_libraries, GUEST_NEWER: filter_libraries}
+    methods = {host_newer: overlay_libraries, guest_newer: filter_libraries}
 
     host_precedence = host_libc > guest_libc
 
@@ -259,8 +253,8 @@ class ExecuteCommand(AbstractCommand):
         params.library_dir = HOST_LIBS_DIR
 
         if args.libraries:
-            for so in select_libraries(libset, container, params):
-                import_library(so, container)
+            for shared_object in select_libraries(libset, container, params):
+                import_library(shared_object, container)
 
         if args.files:
             for path in args.files:
@@ -274,14 +268,14 @@ class ExecuteCommand(AbstractCommand):
 
         if variables.is_dry_run():
             LOGGER.info("Running %s in container %s", command, container)
-            params.tearDown()
+            params.teardown()
             return EXIT_SUCCESS
 
         code, _ = container.run(command, redirect_stdout=False)
 
         params.teardown()
 
-        return EXIT_SUCCESS
+        return code
 
 
 COMMAND = ExecuteCommand(
