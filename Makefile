@@ -159,3 +159,6 @@ clean:
 
 test: python_check
 	$(PYTHON) -m tox tox.ini
+
+format:
+	bash ./scripts/format.sh packages/e4s_cl
