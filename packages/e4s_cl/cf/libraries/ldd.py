@@ -1,5 +1,9 @@
+"""
+ldd wrapper
+"""
+
 from pathlib import Path
-from e4s_cl import logger, util
+from e4s_cl import logger
 from e4s_cl.util import which, create_subprocess_exp
 from e4s_cl.error import InternalError
 
@@ -16,16 +20,14 @@ def _parse_line(line):
     parts = [part.strip() for part in line.split(' ')]
 
     if parts[0] != Path(parts[0]).name and 'ld' in parts[0]:
-        """
-        More often than not, the linker will be shown with a line as such:
-            /usr/lib64/ld-linux-x86-64.so.2
-        While the other lines just have a soname as first field.
-        Unfortunately some systems require the linker via ELF arcanes, and
-        it shows as such:
-            /usr/lib/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2
-        This weeds the linker out, as one cannot reliably expect no `=>` to
-        appear on linker lines.
-        """
+        # More often than not, the linker will be shown with a line as such:
+        #    /usr/lib64/ld-linux-x86-64.so.2
+        # While the other lines just have a soname as first field.
+        # Unfortunately some systems require the linker via ELF arcanes, and
+        # it shows as such:
+        #    /usr/lib/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2
+        # This weeds the linker out, as one cannot reliably expect no `=>` to
+        # appear on linker lines.
         return {'linker': {'path': parts[0], 'found': True}}
 
     # pylint: disable=line-too-long
