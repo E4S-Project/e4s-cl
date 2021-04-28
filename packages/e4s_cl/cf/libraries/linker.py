@@ -4,12 +4,12 @@ Rules in ld.so(8)
 """
 
 import os
-from functools import cache
+from functools import lru_cache
 from pathlib import Path
 from e4s_cl.cf.libraries.ldcache import host_libraries
 
 
-@cache
+@lru_cache
 def _linker_path():
     """
     Return linker search paths, in order

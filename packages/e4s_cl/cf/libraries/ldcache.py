@@ -3,14 +3,14 @@ Method using the ldconfig utility to get a list of libraries present on the host
 """
 
 import re
-from functools import cache
+from functools import lru_cache
 from e4s_cl import logger
 from e4s_cl.util import which, create_subprocess_exp
 
 LOGGER = logger.get_logger(__name__)
 
 
-@cache
+@lru_cache
 def host_libraries():
     """
     Output a dict containing all the host's linker cache in x86_64 format

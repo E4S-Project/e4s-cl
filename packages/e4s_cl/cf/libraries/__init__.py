@@ -2,7 +2,7 @@
 Library analysis and manipulation helpers
 """
 
-from functools import cache
+from functools import lru_cache
 from e4s_cl.error import InternalError
 from e4s_cl.cf.version import Version
 
@@ -13,7 +13,7 @@ from e4s_cl.cf.libraries.linker import resolve
 from e4s_cl.cf.libraries.libraryset import LibrarySet, Library, HostLibrary, GuestLibrary
 
 
-@cache
+@lru_cache
 def libc_version():
     """
     Get the version number of the libc available on the host
