@@ -156,12 +156,12 @@ class Container:
             '--libraries'
         ] + list(library_set.sonames)
 
-        script_name = entrypoint.setUp()
+        script_name = entrypoint.setup()
         self.bind_file(script_name, CONTAINER_SCRIPT)
 
         code, _ = self.run([CONTAINER_SCRIPT], redirect_stdout=False)
 
-        entrypoint.tearDown()
+        entrypoint.teardown()
 
         if code:
             raise InternalError("Could not determine container's content !")

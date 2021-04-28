@@ -1,13 +1,23 @@
+"""
+Version helper module
+"""
+
 import re
 from e4s_cl.error import InternalError
 
 
 class Version(list):
+    """
+    Class abstracting a version of form x.y.z.
+    Comparison operators are defined for simplicity.
+    """
     def __init__(self, string):
-        m = re.match('.*(?P<version>[0-9]+(\.[0-9]+)+).*', string)
+        super().__init__()
 
-        if m:
-            for digit in m.group('version').split('.'):
+        digits = re.match(r'.*(?P<version>[0-9]+(\.[0-9]+)+).*', string)
+
+        if digits:
+            for digit in digits.group('version').split('.'):
                 self.append(int(digit))
 
     def __str__(self):

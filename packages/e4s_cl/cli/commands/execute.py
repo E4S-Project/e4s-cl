@@ -266,7 +266,7 @@ class ExecuteCommand(AbstractCommand):
             for path in args.files:
                 container.bind_file(path)
 
-        script_name = params.setUp()
+        script_name = params.setup()
 
         container.bind_file(script_name, dest=CONTAINER_SCRIPT)
 
@@ -279,7 +279,7 @@ class ExecuteCommand(AbstractCommand):
 
         code, _ = container.run(command, redirect_stdout=False)
 
-        params.tearDown()
+        params.teardown()
 
         return EXIT_SUCCESS
 

@@ -5,10 +5,11 @@ execution environment and allows for arbitrary code execution (e.g.
 library loading)
 """
 
-import os, stat
+import os
 import tempfile
+import shlex
 from e4s_cl import logger
-from pathlib import Path
+from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
 
@@ -34,7 +35,12 @@ export LD_PRELOAD=%(linker)s${LD_PRELOAD:+:${LD_PRELOAD}}
 
 
 class Entrypoint:
+    """
+    Objects with exection information that convert to scripts on command
+    """
     def __init__(self):
+        self.file_name = None
+
         # Command to run in the container
         self.command = []
 
@@ -78,20 +84,24 @@ class Entrypoint:
 
         return TEMPLATE % fields
 
-    def setUp(self):
-        script = tempfile.NamedTemporaryFile('w', delete=False)
-        script.write(str(self))
-        script.close()
+    def setup(self):
+        """
+        Create a temporary file and print the script in it
+        """
+        with tempfile.NamedTemporaryFile('w', delete=False) as script:
+            self.file_name = script.name
+            script.write(str(self))
 
-        os.chmod(script.name, 0o755)
+        os.chmod(self.file_name, 0o755)
 
-        LOGGER.debug("Running templated script:\n" +
-                     "".join('=' for _ in range(80)) + "\n%s\n" % str(self) +
-                     "".join('=' for _ in range(80)))
+        sep = "\n" + "".join('=' for _ in range(80))
+        LOGGER.debug("Running templated script:%(sep)s\n%(script)s%(sep)s", {
+            'sep': sep,
+            'script': str(self)
+        })
 
-        self.file_name = script.name
         return self.file_name
 
-    def tearDown(self):
+    def teardown(self):
         if getattr(self, 'file_name', False):
             os.unlink(self.file_name)
