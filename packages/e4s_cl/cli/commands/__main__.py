@@ -23,9 +23,9 @@ class MainCommand(AbstractCommand):
                             'red',
                             attrs=['bold'])
         ]
-        super(MainCommand, self).__init__(__name__,
-                                          summary_fmt=''.join(summary_parts),
-                                          help_page_fmt=HELP_PAGE_FMT)
+        super().__init__(__name__,
+                         summary_fmt=''.join(summary_parts),
+                         help_page_fmt=HELP_PAGE_FMT)
         self.command = os.path.basename(E4S_CL_SCRIPT)
 
     def _construct_parser(self):

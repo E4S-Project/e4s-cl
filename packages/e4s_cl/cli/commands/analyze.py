@@ -1,5 +1,8 @@
+"""
+Command run in containers to get information
+"""
+
 import os
-import sys
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger
 from e4s_cl.error import InternalError

@@ -1,9 +1,13 @@
+"""
+Base template for commands
+"""
+
 from abc import ABCMeta, abstractmethod
 from e4s_cl import logger, cli
 from e4s_cl.cli.arguments import ArgumentsNamespace
 
 
-class AbstractCommand(object, metaclass=ABCMeta):
+class AbstractCommand(metaclass=ABCMeta):
     """Abstract base class for E4S Container Launcher commands.
     
     Attributes:

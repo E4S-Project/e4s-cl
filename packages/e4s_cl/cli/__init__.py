@@ -1,3 +1,7 @@
+"""
+CLI interface module
+"""
+
 import os
 import sys
 from types import ModuleType
@@ -27,12 +31,12 @@ _COMMANDS = {SCRIPT_COMMAND: {}}
 
 class UnknownCommandError(ConfigurationError):
     """Indicates that a specified command is unknown."""
-    message_fmt = ("%(value)r is not a valid command.\n" "\n" "%(hints)s")
+    message_fmt = ("%(value)r is not a valid command.\n\n%(hints)s")
 
 
 class AmbiguousCommandError(ConfigurationError):
     """Indicates that a specified partial command is ambiguous."""
-    message_fmt = ("Command '%(value)s' is ambiguous.\n" "\n" "%(hints)s")
+    message_fmt = ("Command '%(value)s' is ambiguous.\n\n%(hints)s")
 
     def __init__(self, value, matches, *hints):
         parts = [
@@ -40,8 +44,7 @@ class AmbiguousCommandError(ConfigurationError):
             for match in matches
         ]
         parts.append("Try `%s --help`" % SCRIPT_COMMAND)
-        super(AmbiguousCommandError, self).__init__(value,
-                                                    *hints + tuple(parts))
+        super().__init__(value, *hints + tuple(parts))
 
 
 def _command_as_list(module_name):
@@ -209,6 +212,7 @@ def get_all_commands(package_name=COMMANDS_PACKAGE_NAME):
     return all_commands
 
 
+# pylint: disable=inconsistent-return-statements
 def _resolve(cmd, c, d):
     # pylint: disable=invalid-name
     if not c:
@@ -250,14 +254,14 @@ def find_command(cmd):
         resolved = _resolve(cmd, cmd, _COMMANDS[SCRIPT_COMMAND])
         LOGGER.debug('Resolved ambiguous command %r to %r', cmd, resolved)
         return find_command(resolved)
-    except AttributeError:
-        raise InternalError("'COMMAND' undefined in %r" % cmd)
+    except AttributeError as a_err:
+        raise InternalError("'COMMAND' undefined in %r" % cmd) from a_err
 
 
 def _permute(cmd, cmd_args):
     cmd_len = len(cmd)
     full_len = len(cmd) + len(cmd_args)
-    skip = [x[0] == '-' or os.path.isfile(x) for x in (cmd + cmd_args)]
+    skip = [x[0] == '-' or os.path.isfile(x) for x in cmd + cmd_args]
     yield cmd, cmd_args
     for i in range(full_len):
         if skip[i]:
@@ -296,18 +300,4 @@ def execute_command(cmd, cmd_args=None, parent_module=None):
         parent = _command_as_list(parent_module)[1:]
         cmd = parent + cmd
 
-    main = find_command(cmd).main
-    return main(cmd_args)
-
-    if len(cmd) <= 1:
-        # We finally give up
-        LOGGER.debug("Unknown command %r has no parent module: giving up.",
-                     cmd)
-        raise UnknownCommandError(' '.join(cmd))
-    if not parent_module:
-        parent = cmd[:-1]
-    LOGGER.debug('Getting help from parent command %r', parent)
-    parent_usage = util.uncolor_text(find_command(parent).usage)
-    LOGGER.error("Invalid %s subcommand: %s\n\n%s", parent[0], cmd[-1],
-                 parent_usage)
-    return EXIT_FAILURE
+    return find_command(cmd).main(cmd_args)

@@ -23,22 +23,24 @@ _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
 def compile_sample(compiler, destination):
-    std_in = tempfile.TemporaryFile('w+')
-    std_in.write(program)
-    std_in.seek(0)
-
     command = "%s -o %s -lm -x c -" % (compiler, destination)
-    subprocess.Popen(command.split(), stdin=std_in).wait()
+
+    with tempfile.TemporaryFile('w+') as std_in:
+        std_in.write(program)
+        std_in.seek(0)
+
+        subprocess.Popen(command.split(), stdin=std_in).wait()
 
 
 def check_mpirun(executable):
-    proc = subprocess.Popen([executable, 'hostname'], stdout=subprocess.PIPE)
-    proc.wait()
+    with subprocess.Popen([executable, 'hostname'],
+                          stdout=subprocess.PIPE) as proc:
+        proc.wait()
 
-    hostnames = {hostname.strip() for hostname in proc.stdout.readlines()}
+        hostnames = {hostname.strip() for hostname in proc.stdout.readlines()}
 
     if len(hostnames) == 1:
-        LOGGER.warn(
+        LOGGER.warning(
             "The target launcher %s uses a single host by default, "
             "which may tamper with the library discovery. Consider "
             "running `%s` using mpirun specifying multiple hosts.", executable,
@@ -90,6 +92,9 @@ class InitCommand(AbstractCommand):
         return parser
 
     def create_profile(self, args, metadata):
+        """
+        Populate profile record
+        """
         data = {}
 
         controller = Profile.controller()
@@ -105,12 +110,12 @@ class InitCommand(AbstractCommand):
         if getattr(args, 'source', None):
             data['source'] = args.source
 
-        self.profile_hash = "default-%s" % util.hash256(json.dumps(metadata))
+        profile_hash = "default-%s" % util.hash256(json.dumps(metadata))
 
-        if controller.one({"name": self.profile_hash}):
-            controller.delete({"name": self.profile_hash})
+        if controller.one({"name": profile_hash}):
+            controller.delete({"name": profile_hash})
 
-        data["name"] = self.profile_hash
+        data["name"] = profile_hash
         profile = controller.create(data)
 
         controller.select(profile)
@@ -120,8 +125,8 @@ class InitCommand(AbstractCommand):
 
         compiler = util.which('mpicc')
         launcher = util.which('mpirun')
-        program = tempfile.NamedTemporaryFile('w+', delete=False)
-        program.close()
+        with tempfile.NamedTemporaryFile('w+', delete=False) as program_file:
+            file_name = program_file.name
 
         if getattr(args, 'mpi', None):
             mpicc = pathlib.Path(args.mpi) / "bin" / "mpicc"
@@ -132,8 +137,9 @@ class InitCommand(AbstractCommand):
                 launcher = mpirun.as_posix()
 
         if not (compiler and launcher):
-            LOGGER.error("No MPI detected in PATH. Please load a module or " +
-                         "use `--mpi` to specify the MPI installation to use.")
+            LOGGER.error(
+                "No MPI detected in PATH. Please load a module or use `--mpi` \
+                        to specify the MPI installation to use.")
             return EXIT_FAILURE
 
         if getattr(args, 'launcher', None):
@@ -142,12 +148,11 @@ class InitCommand(AbstractCommand):
         LOGGER.debug("Using MPI programs:\nCompiler: %s\nLauncher %s",
                      compiler, launcher)
         check_mpirun(launcher)
-        compile_sample(compiler, program.name)
+        compile_sample(compiler, file_name)
 
         self.create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
-        arguments = [launcher, program.name]
-        detect_command.main(arguments)
+        detect_command.main([launcher, file_name])
 
         return EXIT_SUCCESS
 
