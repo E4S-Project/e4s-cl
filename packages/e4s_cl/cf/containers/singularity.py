@@ -5,7 +5,7 @@ Module introducing singularity support
 from e4s_cl import logger
 from e4s_cl.util import create_subprocess_exp
 from e4s_cl.cf.libraries import host_libraries
-from e4s_cl.cf.containers import Container, file_options
+from e4s_cl.cf.containers import Container, FileOptions
 
 LOGGER = logger.get_logger(__name__)
 
@@ -13,7 +13,7 @@ NAME = 'singularity'
 EXECUTABLES = ['singularity']
 MIMES = ['.simg', '.sif']
 
-OPTION_STRINGS = {file_options.READ_ONLY: 'ro', file_options.READ_WRITE: 'rw'}
+OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
 
 
 class SingularityContainer(Container):

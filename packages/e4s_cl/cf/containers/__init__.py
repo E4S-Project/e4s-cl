@@ -29,13 +29,19 @@ EXPOSED_BACKENDS = []
 MIMES = []
 
 
-class file_options:
+# pylint: disable=too-few-public-methods
+class FileOptions:
+    """
+    Abstraction of bound files options
+    """
     READ_ONLY = 0
     READ_WRITE = 1
 
 
 class BackendNotAvailableError(InternalError):
-    pass
+    """
+    Error raised when the requested container tech is not available
+    """
 
 
 def dump(func):
@@ -69,12 +75,18 @@ def brand(container):
 
 
 class Container:
-    class _bound_file:
-        def __init__(self, path: Path, option: int = file_options.READ_ONLY):
+    """
+    Abstract class that auto-completes depending on the container tech
+    """
+
+    # pylint: disable=too-few-public-methods
+    class BoundFile:
+        """
+        Element of the bound file dictionnary
+        """
+        def __init__(self, path: Path, option: int = FileOptions.READ_ONLY):
             self.path = Path(path)
             self.option = option
-
-    """Abstract class to complete depending on the container tech."""
 
     # pylint: disable=unused-argument
     def __new__(cls, image=None, executable=None):
@@ -119,6 +131,9 @@ class Container:
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
 
+        self.libc_v = Version('0.0.0')
+        self.libraries = LibrarySet()
+
     def get_data(self, entrypoint, library_set=LibrarySet()):
         """
         Run the e4s-cl analyze command in the container to analyze the
@@ -158,7 +173,7 @@ class Container:
 
         return self.libraries
 
-    def bind_file(self, path, dest=None, option=file_options.READ_ONLY):
+    def bind_file(self, path, dest=None, option=FileOptions.READ_ONLY):
         """
         If there is no destination, handle files with relative paths.
         For instance on summit, some files are required as
@@ -170,10 +185,10 @@ class Container:
         if not dest:
             for _path in unrelative(path):
                 self.__bound_files.update(
-                    {Path(_path): Container._bound_file(_path, option)})
+                    {Path(_path): Container.BoundFile(_path, option)})
         else:
             self.__bound_files.update(
-                {Path(dest): Container._bound_file(path, option)})
+                {Path(dest): Container.BoundFile(path, option)})
 
     @property
     def bound(self):
@@ -182,8 +197,8 @@ class Container:
                 yield data.path, path, data.option
             else:
                 LOGGER.warning(
-                    "Attempting to bind non-existing file: %(source)s to %(dest)s"
-                    % {
+                    "Attempting to bind non-existing file: %(source)s to %(dest)s",
+                    {
                         'source': data.path,
                         'dest': path
                     })
@@ -226,9 +241,8 @@ class Container:
         out.append("%s object:" % self.__class__.__name__)
         if self.image:
             out.append("- image: %s" % self.image)
-        if self.bound:
-            out.append("- bound:\n%s" %
-                       "\n".join(["\t%s -> %s (%d)" % v for v in self.bound]))
+        out.append("- bound:\n%s" %
+                   "\n".join(["\t%s -> %s (%d)" % v for v in self.bound]))
         if self.env:
             out.append("- env: %s" % json.dumps(self.env, indent=2))
         if self.ld_preload:
@@ -247,7 +261,7 @@ def guess_backend(path):
 
     # If we cannot associate a unique backend to a MIME
     if len(matches) != 1:
-        return
+        return None
 
     return matches[0][1]
 
