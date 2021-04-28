@@ -1,5 +1,11 @@
+"""
+Defines a derived class of set() with shared objects, along with a few methods,
+to facilitate handling large amounts of libraries
+"""
+
 import re
 from e4s_cl import logger
+from e4s_cl.error import InternalError
 from e4s_cl.cf.libraries.linker import resolve
 from e4s_cl.util import flatten, color_text, JSON_HOOKS
 
@@ -34,21 +40,21 @@ class Library:
             try:
                 for section in ELFFile(file).iter_sections():
                     if isinstance(section, GNUVerDefSection):
-                        self.__parseVerDef(section)
+                        self.__parse_ver_def(section)
                     elif isinstance(section, GNUVerNeedSection):
-                        self.__parseVerNeed(section)
+                        self.__parse_ver_need(section)
                     elif isinstance(section, DynamicSection):
-                        self.__parseDynamic(section)
-            except ELFError as e:
+                        self.__parse_dynamic(section)
+            except ELFError as err:
                 LOGGER.error("Error parsing '%s' for ELF data: %s", file.name,
-                             e)
+                             err)
 
             self.binary_path = file.name
 
-    def __parseDynamic(self, section):
-        def __fetch_tags(id):
+    def __parse_dynamic(self, section):
+        def __fetch_tags(id_):
             return list(
-                filter(lambda x: x.entry.d_tag == id, section.iter_tags()))
+                filter(lambda x: x.entry.d_tag == id_, section.iter_tags()))
 
         tags = __fetch_tags('DT_SONAME')
         if len(tags) == 1:
@@ -65,17 +71,17 @@ class Library:
         tags = __fetch_tags('DT_NEEDED')
         self.dyn_dependencies = {tag.needed for tag in tags}
 
-    def __parseVerDef(self, section):
+    def __parse_ver_def(self, section):
         self.defined_versions = {
             next(v_iter).name
             for _, v_iter in section.iter_versions()
         }
 
-    def __parseVerNeed(self, section):
+    def __parse_ver_need(self, section):
         needed = dict()
 
-        for v, v_iter in section.iter_versions():
-            needed[v.name] = {v.name for v in v_iter}
+        for ver, v_iter in section.iter_versions():
+            needed[ver.name] = {ver.name for ver in v_iter}
 
         self.required_versions = needed
 
@@ -91,15 +97,20 @@ class Library:
         return NotImplemented
 
 
+# pylint: disable=too-few-public-methods
 class HostLibrary(Library):
     pass
 
 
+# pylint: disable=too-few-public-methods
 class GuestLibrary(Library):
     pass
 
 
 class LibrarySet(set):
+    """
+    Set-like object to collect Libray objects
+    """
     def add(self, elem):
         """
         -> None
@@ -122,7 +133,7 @@ class LibrarySet(set):
         if len(conflict) == 1:
             self.discard(conflict.pop())
 
-        super(LibrarySet, self).add(elem)
+        super().add(elem)
 
     @property
     def rpath(self):
@@ -218,8 +229,12 @@ class LibrarySet(set):
         outdated = LibrarySet()
 
         for library in self:
-            for soname, required in library.required_versions.items():
-                matches = set(filter(lambda x: x.soname == soname, self))
+            for _soname, required in library.required_versions.items():
+                matches = set()
+
+                for obj in self:
+                    if obj.soname == _soname:
+                        matches.add(obj)
 
                 if len(matches) != 1:
                     continue
@@ -243,10 +258,9 @@ class LibrarySet(set):
     def find(self, soname):
         matches = set(filter(lambda x: re.match(soname, x.soname), self))
 
-        if len(matches) == 1:
-            return matches.pop()
+        return matches.pop() if matches else None
 
-    def resolve(self, rpath=[], runpath=[]):
+    def resolve(self, rpath=None, runpath=None):
         """
         -> LibrarySet, superset of self
         will try to resolve all dynamic depedencies of the set's members, then
@@ -256,6 +270,8 @@ class LibrarySet(set):
         be found by e4s-cl
         """
         superset = LibrarySet(self)
+        rpath = rpath or list()
+        runpath = runpath or list()
 
         missing = superset.missing_libraries
         change = True
@@ -332,8 +348,8 @@ class LibrarySet(set):
         return trees
 
 
-def __LibraryDecoder(_type):
-    def __LDecoder(obj):
+def __library_decoder(_type):
+    def __l_decoder(obj):
         out = _type()
 
         for key, value in obj.items():
@@ -341,9 +357,9 @@ def __LibraryDecoder(_type):
 
         return out
 
-    return __LDecoder
+    return __l_decoder
 
 
-JSON_HOOKS['Library'] = __LibraryDecoder(Library)
-JSON_HOOKS['HostLibrary'] = __LibraryDecoder(HostLibrary)
-JSON_HOOKS['GuestLibrary'] = __LibraryDecoder(GuestLibrary)
+JSON_HOOKS['Library'] = __library_decoder(Library)
+JSON_HOOKS['HostLibrary'] = __library_decoder(HostLibrary)
+JSON_HOOKS['GuestLibrary'] = __library_decoder(GuestLibrary)
