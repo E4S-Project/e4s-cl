@@ -6,6 +6,7 @@ argument.
 """
 
 import os
+import re
 from pathlib import Path
 from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT, EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
@@ -73,17 +74,24 @@ def import_library(shared_object, container):
         raise InternalError("Wrong argument type for import_libraries: %s" %
                             type(shared_object))
 
-    libname = Path(shared_object.binary_path).name.split('.so')
-    library_file = os.path.realpath(shared_object.binary_path)
-    cleared = []
-
-    if not libname or len(libname) < 2:
+    if not re.match(r'[a-z_A-Z0-9\-\.]+\.so.*', shared_object.soname):
         LOGGER.error("Invalid name: %s", shared_object.soname)
         return
 
-    for file in list(Path(library_file).parent.glob("%s.so*" % libname[0])):
-        if os.path.realpath(file) == library_file:
-            cleared.append(file)
+    cleared = []
+    libname = Path(shared_object.binary_path).name.split('.so')[0]
+    library_file = os.path.realpath(shared_object.binary_path)
+
+    def _glob_links(prefix):
+        for file in list(Path(library_file).parent.glob("%s.so*" % prefix)):
+            if os.path.realpath(file) == library_file:
+                cleared.append(file)
+
+    _glob_links(libname)
+
+    # glib files are named as libc-2.33.so, but the links are named libc.so.x
+    if match := re.match(r'(?P<prefix>lib[a-z]+)-2\.[0-9]+', libname):
+        _glob_links(match.group('prefix'))
 
     for file in cleared:
         container.bind_file(file, Path(HOST_LIBS_DIR, file.name))
