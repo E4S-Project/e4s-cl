@@ -241,11 +241,7 @@ class ExecuteCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        try:
-            container = Container(executable=args.backend, image=args.image)
-        except BackendNotAvailableError:
-            self.parser.error("Executable %s not available" % args.backend)
-            return EXIT_FAILURE
+        container = Container(executable=args.backend, image=args.image)
 
         params = Entrypoint()
         params.source_script_path = args.source

@@ -14,7 +14,7 @@ from e4s_cl import E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, 
 from e4s_cl.util import walk_packages, which, unrelative, json_loads
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.libraries import LibrarySet
-from e4s_cl.error import InternalError
+from e4s_cl.error import ConfigurationError
 
 LOGGER = logger.get_logger(__name__)
 
@@ -38,10 +38,43 @@ class FileOptions:
     READ_WRITE = 1
 
 
-class BackendNotAvailableError(InternalError):
-    """
-    Error raised when the requested container tech is not available
-    """
+class BackendError(ConfigurationError):
+    """Error raised when the requested container tech is not available"""
+    def __init__(self, backend_name):
+        self.offending = backend_name
+        self._message = "An error has been encountered setting up the container \
+                technology backend %s." % backend_name
+        super().__init__(self.message)
+
+    def handle(self, etype, value, tb):
+        LOGGER.critical(self._message)
+
+
+class BackendNotAvailableError(BackendError):
+    """Error raised when the requested backend is not found on the system"""
+    def __init__(self, backend_name):
+        super().__init__(backend_name)
+        self._message = "Backend %s not found. Is the module loaded ?" % self.offending
+
+
+class BackendUnsupported(BackendError):
+    """Error raised when the requested backend is not supported"""
+    def __init__(self, backend_name):
+        super().__init__(backend_name)
+        pretty = 's are' if len(EXPOSED_BACKENDS) > 1 else ' is'
+        self._message = """Backend %s not supported at this time. The available backend%s: %s.
+Please create a GitHub issue if support is required.""" % (
+            self.offending, pretty, ", ".join(EXPOSED_BACKENDS))
+
+
+class AnalysisError(ConfigurationError):
+    """Generic error for container analysis failure"""
+    def __init__(self, returncode):
+        self.code = returncode
+        super().__init__("Container analysis failed ! (%d)" % self.code)
+
+    def handle(self, etype, value, tb):
+        LOGGER.critical("Container analysis failed ! (%d)", self.code)
 
 
 def dump(func):
@@ -98,8 +131,7 @@ class Container:
         module = sys.modules.get(module_name)
 
         if not module_name or not module:
-            raise BackendNotAvailableError(
-                "Module for backend {} not found".format(module_name))
+            raise BackendUnsupported(executable)
 
         driver = object.__new__(module.CLASS)
 
@@ -117,8 +149,7 @@ class Container:
         self.executable = which(executable)
 
         if not self.executable or (not Path(self.executable).exists()):
-            raise BackendNotAvailableError("Executable %s not found" %
-                                           executable)
+            raise BackendNotAvailableError(executable)
 
         # Container image file on the host
         self.image = image
@@ -144,12 +175,15 @@ class Container:
         be returned
         """
 
+        # Import python and e4s-cl files
         brand(self)
 
+        # Setup a one-way communication channel
         fdr, fdw = os.pipe()
         os.set_inheritable(fdw, True)
         self.bind_env_var('__E4S_CL_JSON_FD', str(fdw))
 
+        # Use the imported python interpreter with the imported e4s-cl
         entrypoint.command = [
             Path(CONTAINER_DIR, 'conda', 'bin', 'python3').as_posix(),
             Path(CONTAINER_DIR, 'bin', 'e4s-cl').as_posix(), 'analyze',
@@ -164,7 +198,7 @@ class Container:
         entrypoint.teardown()
 
         if code:
-            raise InternalError("Could not determine container's content !")
+            raise AnalysisError(code)
 
         data = json_loads(os.read(fdr, 1024**3).decode())
 

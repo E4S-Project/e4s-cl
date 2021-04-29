@@ -159,7 +159,7 @@ def excepthook(etype, value, tb):
         tb: Traceback object.
     """
     if etype == KeyboardInterrupt:
-        LOGGER.info('Received keyboard interrupt.  Exiting.')
+        LOGGER.info('Received keyboard interrupt. Exiting.')
         sys.exit(EXIT_WARNING)
     else:
         backtrace = ''.join(traceback.format_exception(etype, value, tb))

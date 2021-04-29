@@ -23,9 +23,11 @@ class MainCommand(AbstractCommand):
                             'red',
                             attrs=['bold'])
         ]
+
         super().__init__(__name__,
                          summary_fmt=''.join(summary_parts),
                          help_page_fmt=HELP_PAGE_FMT)
+
         self.command = os.path.basename(E4S_CL_SCRIPT)
 
     def _construct_parser(self):
@@ -98,6 +100,7 @@ class MainCommand(AbstractCommand):
         log_level = getattr(args, 'verbose',
                             getattr(args, 'quiet', logger.LOG_LEVEL))
         logger.set_log_level(log_level)
+
         LOGGER.debug('Arguments: %s', args)
         LOGGER.debug('Verbosity level: %s', logger.LOG_LEVEL)
 
@@ -110,6 +113,7 @@ class MainCommand(AbstractCommand):
         # Not sure what to do at this point, so advise the user and exit
         LOGGER.info("Unknown command.  Calling `%s help %s` to get advice.",
                     E4S_CL_SCRIPT, cmd)
+
         return cli.execute_command(['help'], [cmd])
 
 
