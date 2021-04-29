@@ -254,6 +254,7 @@ class ExecuteCommand(AbstractCommand):
         container.get_data(params, library_set=libset)
 
         params.command = args.cmd
+        params.debug = logger.debug_mode()
         params.library_dir = HOST_LIBS_DIR
 
         if args.libraries:

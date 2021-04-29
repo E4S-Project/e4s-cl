@@ -38,7 +38,7 @@ class Entrypoint:
     """
     Objects with exection information that convert to scripts on command
     """
-    def __init__(self):
+    def __init__(self, debug=False):
         self.file_name = None
 
         # Command to run in the container
@@ -52,6 +52,8 @@ class Entrypoint:
 
         # Path to the imported host linker
         self.linker = ''
+
+        self.debug=debug
 
     @property
     def command(self):
@@ -79,7 +81,7 @@ class Entrypoint:
             'command': self.command,
             'library_dir': self.library_dir,
             'linker': self.linker,
-            'debugging': "export LD_DEBUG=files" if logger.debug_mode() else ''
+            'debugging': "export LD_DEBUG=files" if self.debug else ''
         }
 
         return TEMPLATE % fields
