@@ -150,7 +150,7 @@ def path_accessible(path, mode='r'):
     return False
 
 
-def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
+def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
     """Create a subprocess.
 
     See :any:`subprocess.Popen`.
@@ -188,7 +188,7 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
     output, errors = proc.communicate()
     retval = proc.returncode
 
-    if redirect_stdout:
+    if redirect_stdout and log:
         LOGGER.debug(output.strip())
 
     for line in errors.split('\n'):

@@ -26,6 +26,7 @@ def host_libraries():
         return {}
 
     retval, output = create_subprocess_exp([ldconfig_path, '-p'],
+                                           log=False,
                                            redirect_stdout=True)
 
     if retval:
