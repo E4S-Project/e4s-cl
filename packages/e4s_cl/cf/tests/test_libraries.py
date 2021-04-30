@@ -3,7 +3,7 @@ import pathlib
 from unittest import skipIf
 from e4s_cl import tests
 from e4s_cl.util import which
-from e4s_cl.cf.libraries import host_libraries, ldd, resolve, LibrarySet, Library
+from e4s_cl.cf.libraries import host_libraries, ldd, resolve, LibrarySet, Library, is_elf
 
 
 class LibraryTest(tests.TestCase):
@@ -71,3 +71,9 @@ class LibraryTest(tests.TestCase):
             libset.add(Library(file=file))
 
         self.assertIn('libm.so.6', libset.top_level.sonames)
+
+    @skipIf(not resolve('libm.so.6'), "No library to test with")
+    def test_is_elf(self):
+        self.assertFalse(is_elf('/proc/meminfo'))
+        self.assertFalse(is_elf('/'))
+        self.assertTrue(is_elf(resolve('libm.so.6')))
