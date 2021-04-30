@@ -1,8 +1,8 @@
-"""containers module
-
+"""
 Defines an abstract class to simplify the use of container technology.
 Creating an instance of ``Container`` will return a specific class to
-the required backend."""
+the required backend.
+"""
 
 import os
 import re
@@ -10,7 +10,7 @@ import sys
 import json
 from importlib import import_module
 from pathlib import Path
-from e4s_cl import E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
+from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.util import walk_packages, which, unrelative, json_loads
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.libraries import LibrarySet
@@ -42,12 +42,12 @@ class BackendError(ConfigurationError):
     """Error raised when the requested container tech is not available"""
     def __init__(self, backend_name):
         self.offending = backend_name
-        self._message = "An error has been encountered setting up the container \
-                technology backend %s." % backend_name
-        super().__init__(self.message)
+        self._message = "An error has been encountered setting up the container technology backend %s." % backend_name
+        super().__init__(self._message)
 
     def handle(self, etype, value, tb):
         LOGGER.critical(self._message)
+        return EXIT_FAILURE
 
 
 class BackendNotAvailableError(BackendError):
@@ -75,6 +75,7 @@ class AnalysisError(ConfigurationError):
 
     def handle(self, etype, value, tb):
         LOGGER.critical("Container analysis failed ! (%d)", self.code)
+        return EXIT_FAILURE
 
 
 def dump(func):

@@ -13,7 +13,7 @@ from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
-from e4s_cl.cf.containers import Container, BackendNotAvailableError
+from e4s_cl.cf.containers import Container, BackendNotAvailableError, BackendError
 from e4s_cl.cf.libraries import libc_version, resolve, LibrarySet, HostLibrary
 
 LOGGER = logger.get_logger(__name__)
@@ -241,7 +241,10 @@ class ExecuteCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        container = Container(executable=args.backend, image=args.image)
+        try:
+            container = Container(executable=args.backend, image=args.image)
+        except BackendError as err:
+            return err.handle(type(err), err, None)
 
         params = Entrypoint()
         params.source_script_path = args.source
