@@ -4,6 +4,13 @@ complete_profile() {
     # Toggle completion help
     export E4S_COMPLETION=Y
 
+    __complete_profile $@
+
+    # Disable special help formatting
+    unset E4S_COMPLETION
+}
+
+__complete_profile() {
     # if e4s-cl is not in the path, do nothing
     if [ -z "$(which e4s-cl 2>/dev/null)" ]; then
         return 
@@ -33,9 +40,6 @@ complete_profile() {
     fi
 
     COMPREPLY=($(compgen -W "$paths" "${COMP_WORDS[$minimal_index]}"))
-
-    # Disable special help formatting
-    unset E4S_COMPLETION
 }
 
 complete -F complete_profile -o default e4s-cl
