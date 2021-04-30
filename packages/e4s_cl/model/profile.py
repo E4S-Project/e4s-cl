@@ -22,23 +22,23 @@ def attributes():
         },
         'backend': {
             'type': 'string',
-            'description': 'backend type',
+            'description': 'container backend technology',
         },
         'image': {
             'type': 'string',
-            'description': 'image file',
+            'description': 'image file or location',
         },
         'files': {
             'type': 'string',
-            'description': 'files to bind',
+            'description': 'files to bind in the container',
         },
         'libraries': {
             'type': 'string',
-            'description': 'libraries to bind',
+            'description': 'libraries to bind in the container',
         },
         'source': {
             'type': 'string',
-            'description': 'script to source',
+            'description': 'script to source before execution',
         },
     }
 

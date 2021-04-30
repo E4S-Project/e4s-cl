@@ -25,8 +25,6 @@ class AbstractCommand(metaclass=ABCMeta):
                  group=None):
         if not summary_fmt:
             summary_fmt = "No summary for '%(command)s'"
-        if not help_page_fmt:
-            help_page_fmt = "No help page for '%(command)s'"
         self.module_name = module_name
         self.logger = logger.get_logger(module_name)
         self.command = cli.command_from_module_name(module_name)
@@ -55,7 +53,7 @@ class AbstractCommand(metaclass=ABCMeta):
 
     @property
     def help_page(self):
-        return self.help_page_fmt % self.format_fields
+        return self.help_page_fmt % self.format_fields if self.help_page_fmt else None
 
     @property
     def parser(self):

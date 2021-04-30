@@ -58,6 +58,6 @@ class ProfileCreateCommand(CreateCommand):
         return parser
 
 
-SUMMARY = "Create a profile. %(prog)s uses profiles to record information about MPI libraries and simplify the launch commands."
+SUMMARY = "Create a profile."
 
 COMMAND = ProfileCreateCommand(Profile, __name__, summary_fmt=SUMMARY)

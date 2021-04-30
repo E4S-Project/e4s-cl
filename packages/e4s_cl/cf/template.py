@@ -53,7 +53,7 @@ class Entrypoint:
         # Path to the imported host linker
         self.linker = ''
 
-        self.debug=debug
+        self.debug = debug
 
     @property
     def command(self):

@@ -66,19 +66,26 @@ def _guess_filetype(filename):
     return filetype
 
 
+def _gen_parts(cmd_obj):
+    parts = []
+
+    if cmd_obj.help_page:
+        parts.extend(
+            ["", util.hline("Help: " + cmd_obj.command), cmd_obj.help_page])
+    if cmd_obj.usage:
+        parts.extend(
+            ["", util.hline("Usage: " + cmd_obj.command), cmd_obj.usage])
+
+    return parts
+
+
 class HelpCommand(AbstractCommand):
     """``help`` subcommand."""
     @staticmethod
     def exit_with_help(name):
         """Show a subcommands help page and exit."""
         cmd_obj = cli.find_command(name)
-        command = cmd_obj.command
-        parts = [
-            "",
-            util.hline("Help: " + command), cmd_obj.help_page, "",
-            util.hline("Usage: " + command), cmd_obj.usage
-        ]
-        util.page_output('\n'.join(parts))
+        util.page_output('\n'.join(_gen_parts(cmd_obj)))
         return EXIT_SUCCESS
 
     @staticmethod
@@ -88,13 +95,7 @@ class HelpCommand(AbstractCommand):
         for cmd_name in cli.get_all_commands():
             name = cli.command_from_module_name(cmd_name)
             cmd_obj = cli.find_command(name.split()[1:])
-            command = cmd_obj.command
-            parts = [
-                "",
-                util.hline("Help: " + command), cmd_obj.help_page, "",
-                util.hline("Usage: " + command), cmd_obj.usage
-            ]
-            help_output += '\n'.join(parts)
+            help_output += '\n'.join(_gen_parts(cmd_obj))
         util.page_output(help_output)
         return EXIT_SUCCESS
 

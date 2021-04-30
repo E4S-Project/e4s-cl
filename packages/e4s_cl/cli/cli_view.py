@@ -39,10 +39,10 @@ class AbstractCliView(AbstractCommand):
             summary_fmt = "Create and manage %(model_name)s configurations."
         self.include_storage_flag = include_storage_flag
         super().__init__(module_name,
-                                              format_fields=format_fields,
-                                              summary_fmt=summary_fmt,
-                                              help_page_fmt=help_page_fmt,
-                                              group=group)
+                         format_fields=format_fields,
+                         summary_fmt=summary_fmt,
+                         help_page_fmt=help_page_fmt,
+                         group=group)
 
 
 class RootCommand(AbstractCliView):
