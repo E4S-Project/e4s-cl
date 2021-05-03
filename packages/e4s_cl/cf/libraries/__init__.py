@@ -21,9 +21,7 @@ def libc_version():
     Get the version number of the libc available on the host
     Caches the result
     """
-    path = resolve('libc.so.6')
-
-    if not path:
+    if not (path := resolve('libc.so.6')):
         raise InternalError("libc not found on host")
 
     with open(path, 'rb') as file:

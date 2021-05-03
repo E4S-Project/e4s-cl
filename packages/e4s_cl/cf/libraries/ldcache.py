@@ -3,6 +3,7 @@ Method using the ldconfig utility to get a list of libraries present on the host
 """
 
 import re
+from tempfile import NamedTemporaryFile
 from functools import lru_cache
 from e4s_cl import logger
 from e4s_cl.util import which, create_subprocess_exp
@@ -18,18 +19,22 @@ def host_libraries():
     """
     # The versions that appear in `ldconfig -p`
     # For some reason, ppc shows '64bits'
-    valid_versions = {'64bits', 'x86-64'}
+    valid_versions = {'64bit', 'x86-64'}
 
     ldconfig_path = which('ldconfig')
     if ldconfig_path is None:
         LOGGER.error("ldconfig executable not found")
         return {}
 
-    retval, output = create_subprocess_exp([ldconfig_path, '-p'],
+    with NamedTemporaryFile('r+') as custom:
+        generation, _ = create_subprocess_exp([ldconfig_path, '-C', custom.name],
+                                           redirect_stdout=True)
+
+        parsing, output = create_subprocess_exp([ldconfig_path, '-C', custom.name, '-p'],
                                            log=False,
                                            redirect_stdout=True)
 
-    if retval:
+    if generation or parsing:
         LOGGER.error("Error getting libraries using %s", ldconfig_path)
         return {}
 
