@@ -3,7 +3,7 @@ import pathlib
 from unittest import skipIf
 from e4s_cl import tests
 from e4s_cl.util import which
-from e4s_cl.cf.libraries import host_libraries, ldd, resolve, LibrarySet, Library, is_elf
+from e4s_cl.cf.libraries import host_libraries, ldd, resolve, LibrarySet, Library, is_elf, library_links
 
 
 class LibraryTest(tests.TestCase):
@@ -31,6 +31,15 @@ class LibraryTest(tests.TestCase):
         for soname in dependencies:
             self.assertEqual(os.path.realpath(libraries[soname]['path']),
                              resolve(soname))
+
+    @skipIf(not resolve('libm.so.6'), "No library to test with")
+    def test_links(self):
+        with open(resolve('libm.so.6'), 'rb') as file:
+            target = Library(file=file)
+
+        links = library_links(target)
+        for path in links:
+            self.assertEqual(os.path.realpath(path), os.path.realpath(target.binary_path))
 
     @skipIf(not resolve('libm.so.6'), "No library to test with")
     def test_set(self):

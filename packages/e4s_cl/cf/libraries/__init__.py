@@ -2,6 +2,9 @@
 Library analysis and manipulation helpers
 """
 
+from os.path import realpath
+from re import match
+from pathlib import Path
 from functools import lru_cache
 from e4s_cl.error import InternalError
 from e4s_cl.cf.version import Version
@@ -47,3 +50,46 @@ def is_elf(path):
         return False
 
     return True
+
+
+def library_links(shared_object: Library):
+    """
+    This method resolves all the symbolic links that may exist and point to
+    the argument.
+
+    Given the directory:
+    lrwxrwxrwx. 1 root root   16 May 13  2019 libmpi.so -> libmpi.so.12.1.1
+    lrwxrwxrwx. 1 root root   16 May 13  2019 libmpi.so.12 -> libmpi.so.12.1.1
+    -rwxr-xr-x. 1 root root 2.7M May 13  2019 libmpi.so.12.1.1
+
+    If any of those 3 files were to be passed as an argument, all would be
+    returned.
+    """
+    if not isinstance(shared_object, Library):
+        raise InternalError("Wrong argument type for import_libraries: %s" %
+                            type(shared_object))
+
+    libname = Path(shared_object.binary_path).name
+
+    # If no '.so' in the file name, bind anyway and exit
+    if not match(r'.*\.so.*', libname):
+        LOGGER.debug("Error binding links of file %s",
+                     shared_object.binary_path)
+        return {Path(shared_object.binary_path)}
+
+    cleared = set()
+    prefix = libname.split('.so')[0]
+    library_file = realpath(shared_object.binary_path)
+
+    def _glob_links(prefix_):
+        for file in list(Path(library_file).parent.glob("%s.so*" % prefix_)):
+            if realpath(file) == library_file:
+                cleared.add(file)
+
+    _glob_links(prefix)
+
+    # glib files are named as libc-2.33.so, but the links are named libc.so.x
+    if matches := match(r'(?P<prefix>lib[a-z]+)-2\.[0-9]+', prefix):
+        _glob_links(matches.group('prefix'))
+
+    return cleared

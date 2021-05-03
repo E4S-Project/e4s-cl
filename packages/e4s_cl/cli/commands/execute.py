@@ -5,16 +5,14 @@ file import calculations, and execution of a program passed as an
 argument.
 """
 
-import os
-import re
 from pathlib import Path
-from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT, EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, variables
+from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT, EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
-from e4s_cl.cf.containers import Container, BackendNotAvailableError, BackendError
-from e4s_cl.cf.libraries import libc_version, resolve, LibrarySet, HostLibrary
+from e4s_cl.cf.containers import Container, BackendError
+from e4s_cl.cf.libraries import libc_version, resolve, LibrarySet, HostLibrary, library_links
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -51,56 +49,15 @@ def create_set(library_list):
 
 def import_library(shared_object, container):
     """
-    End import method
-
     This method binds the shared object it got as an argument, along with all
     the symbolic links that may exist and point to the same file.
-
-    Given the directory:
-    lrwxrwxrwx. 1 root root   16 May 13  2019 libmpi.so -> libmpi.so.12.1.1
-    lrwxrwxrwx. 1 root root   16 May 13  2019 libmpi.so.12 -> libmpi.so.12.1.1
-    -rwxr-xr-x. 1 root root 2.7M May 13  2019 libmpi.so.12.1.1
-
-    If any of those 3 files were to be passed as an argument, all would be
-    bound to the container.
 
     This is because depending on the linker at compile-time some binaries
     require more or less precise versions of the same file (eg. libmpi.so for
     some and libmpi.so.12 for others). Binding all the references ensures the
     library is found down the line.
     """
-    if not isinstance(shared_object, HostLibrary):
-        raise InternalError("Wrong argument type for import_libraries: %s" %
-                            type(shared_object))
-
-    libname = Path(shared_object.binary_path).name
-
-    # If no '.so' in the file name, bind anyway and exit
-    if not re.match(r'.*\.so.*', libname):
-        LOGGER.debug("Error binding links of file %s",
-                     shared_object.binary_path)
-        container.bind_file(
-            shared_object.binary_path,
-            Path(HOST_LIBS_DIR,
-                 libname))
-        return
-
-    cleared = set()
-    prefix = libname.split('.so')[0]
-    library_file = os.path.realpath(shared_object.binary_path)
-
-    def _glob_links(prefix_):
-        for file in list(Path(library_file).parent.glob("%s.so*" % prefix_)):
-            if os.path.realpath(file) == library_file:
-                cleared.add(file)
-
-    _glob_links(prefix)
-
-    # glib files are named as libc-2.33.so, but the links are named libc.so.x
-    if match := re.match(r'(?P<prefix>lib[a-z]+)-2\.[0-9]+', prefix):
-        _glob_links(match.group('prefix'))
-
-    for file in cleared:
+    for file in library_links(shared_object):
         container.bind_file(file, Path(HOST_LIBS_DIR, file.name))
 
 
