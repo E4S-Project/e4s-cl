@@ -69,28 +69,35 @@ def import_library(shared_object, container):
     some and libmpi.so.12 for others). Binding all the references ensures the
     library is found down the line.
     """
-
     if not isinstance(shared_object, HostLibrary):
         raise InternalError("Wrong argument type for import_libraries: %s" %
                             type(shared_object))
 
-    if not re.match(r'[a-z_A-Z0-9\-\.]+\.so.*', shared_object.soname):
-        LOGGER.error("Invalid name: %s", shared_object.soname)
+    libname = Path(shared_object.binary_path).name
+
+    # If no '.so' in the file name, bind anyway and exit
+    if not re.match(r'.*\.so.*', libname):
+        LOGGER.debug("Error binding links of file %s",
+                     shared_object.binary_path)
+        container.bind_file(
+            shared_object.binary_path,
+            Path(HOST_LIBS_DIR,
+                 libname))
         return
 
-    cleared = []
-    libname = Path(shared_object.binary_path).name.split('.so')[0]
+    cleared = set()
+    prefix = libname.split('.so')[0]
     library_file = os.path.realpath(shared_object.binary_path)
 
-    def _glob_links(prefix):
-        for file in list(Path(library_file).parent.glob("%s.so*" % prefix)):
+    def _glob_links(prefix_):
+        for file in list(Path(library_file).parent.glob("%s.so*" % prefix_)):
             if os.path.realpath(file) == library_file:
-                cleared.append(file)
+                cleared.add(file)
 
-    _glob_links(libname)
+    _glob_links(prefix)
 
     # glib files are named as libc-2.33.so, but the links are named libc.so.x
-    if match := re.match(r'(?P<prefix>lib[a-z]+)-2\.[0-9]+', libname):
+    if match := re.match(r'(?P<prefix>lib[a-z]+)-2\.[0-9]+', prefix):
         _glob_links(match.group('prefix'))
 
     for file in cleared:
