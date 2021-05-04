@@ -10,7 +10,7 @@ from gettext import gettext as _, ngettext
 from operator import attrgetter
 from e4s_cl import logger, util
 from e4s_cl.cli import USAGE_FORMAT
-from e4s_cl.util import flatten
+from e4s_cl.util import flatten, add_dot
 from e4s_cl.error import InternalError
 from e4s_cl.cf.storage.levels import ORDERED_LEVELS, STORAGE_LEVELS
 
@@ -46,7 +46,7 @@ class MutableArgumentGroup(argparse._ArgumentGroup):
     # pylint: disable=protected-access
 
     def __init__(self, *args, **kwargs):
-        super(MutableArgumentGroup, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __getitem__(self, option_string):
         return self._option_string_actions[option_string]
@@ -254,8 +254,8 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
 
     def _get_help_string(self, action):
         indent = ' ' * self._indent_increment
-        helpstr = action.help
-        helpstr = helpstr[0].upper() + helpstr[1:] + "."
+        helpstr = add_dot(action.help)
+        helpstr = helpstr[0].upper() + helpstr[1:]
         choices = getattr(action, 'choices', None)
         if choices:
             helpstr += '\n%s- %s: %s' % (indent, action.metavar,
@@ -454,8 +454,8 @@ class MarkdownHelpFormatter(HelpFormatter):
         return text.splitlines()
 
     def _get_help_string(self, action):
-        helpstr = action.help
-        helpstr = helpstr[0].upper() + helpstr[1:] + "."
+        helpstr = add_dot(action.help)
+        helpstr = helpstr[0].upper() + helpstr[1:]
         choices = getattr(action, 'choices', None)
         if choices:
             helpstr += self._escape_markdown(

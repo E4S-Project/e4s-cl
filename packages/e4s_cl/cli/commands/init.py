@@ -33,7 +33,10 @@ def compile_sample(compiler, destination):
 
 
 def check_mpirun(executable):
-    with subprocess.Popen([executable, 'hostname'],
+    if not (hostname_bin := util.which('hostname')):
+        return
+
+    with subprocess.Popen([executable, hostname_bin],
                           stdout=subprocess.PIPE) as proc:
         proc.wait()
 
@@ -47,6 +50,35 @@ def check_mpirun(executable):
             str(detect_command))
 
 
+def create_profile(args, metadata):
+    """Populate profile record"""
+    data = {}
+
+    controller = Profile.controller()
+
+    if getattr(args, 'image', None):
+        data['image'] = args.image
+
+    if getattr(args, 'backend', None):
+        data['backend'] = args.backend
+    elif getattr(args, 'image', None) and guess_backend(args.image):
+        data['backend'] = guess_backend(args.image)
+
+    if getattr(args, 'source', None):
+        data['source'] = args.source
+
+    profile_name = getattr(args, 'profile_name',
+                           "default-%s" % util.hash256(json.dumps(metadata)))
+
+    if controller.one({"name": profile_name}):
+        controller.delete({"name": profile_name})
+
+    data["name"] = profile_name
+    profile = controller.create(data)
+
+    controller.select(profile)
+
+
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
     def _construct_parser(self):
@@ -54,11 +86,12 @@ class InitCommand(AbstractCommand):
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
-        parser.add_argument('--launcher',
-                            help="Launcher required to run the MPI analysis",
-                            metavar='launcher',
-                            default=arguments.SUPPRESS,
-                            dest='launcher')
+        parser.add_argument(
+            '--launcher',
+            help="MPI launcher required to run a sample program.",
+            metavar='launcher',
+            default=arguments.SUPPRESS,
+            dest='launcher')
 
         parser.add_argument(
             '--mpi',
@@ -89,36 +122,14 @@ class InitCommand(AbstractCommand):
             default=arguments.SUPPRESS,
             dest='backend')
 
+        parser.add_argument(
+            '--profile',
+            help="Profile to create. This will erase an existing profile !",
+            metavar='profile_name',
+            default=arguments.SUPPRESS,
+            dest='profile_name')
+
         return parser
-
-    def create_profile(self, args, metadata):
-        """
-        Populate profile record
-        """
-        data = {}
-
-        controller = Profile.controller()
-
-        if getattr(args, 'image', None):
-            data['image'] = args.image
-
-        if getattr(args, 'backend', None):
-            data['backend'] = args.backend
-        elif getattr(args, 'image', None) and guess_backend(args.image):
-            data['backend'] = guess_backend(args.image)
-
-        if getattr(args, 'source', None):
-            data['source'] = args.source
-
-        profile_hash = "default-%s" % util.hash256(json.dumps(metadata))
-
-        if controller.one({"name": profile_hash}):
-            controller.delete({"name": profile_hash})
-
-        data["name"] = profile_hash
-        profile = controller.create(data)
-
-        controller.select(profile)
 
     def main(self, argv):
         args = self._parse_args(argv)
@@ -150,7 +161,7 @@ class InitCommand(AbstractCommand):
         check_mpirun(launcher)
         compile_sample(compiler, file_name)
 
-        self.create_profile(args, {'compiler': compiler, 'launcher': launcher})
+        create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
         detect_command.main([launcher, file_name])
 

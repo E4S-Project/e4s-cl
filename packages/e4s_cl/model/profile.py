@@ -55,7 +55,7 @@ class ProfileController(Controller):
     """Profile data controller."""
     def create(self, data):
         homogenize_files(data)
-        return super(ProfileController, self).create(data)
+        return super().create(data)
 
     def delete(self, keys):
         to_delete = self.one(keys)
@@ -68,7 +68,7 @@ class ProfileController(Controller):
             if selected == to_delete:
                 self.unselect()
 
-        super(ProfileController, self).delete(keys)
+        super().delete(keys)
 
     def select(self, profile):
         self.storage['selected_profile'] = profile.eid
@@ -89,7 +89,7 @@ class ProfileController(Controller):
 
     def update(self, data, keys):
         homogenize_files(data)
-        super(ProfileController, self).update(data, keys)
+        super().update(data, keys)
 
 
 class Profile(Model):

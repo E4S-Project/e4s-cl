@@ -614,3 +614,9 @@ def json_loads(*args, **kwargs):
     kwargs['object_hook'] = JSONDecoder
 
     return json.loads(*args, **kwargs)
+
+
+def add_dot(string: str) -> str:
+    if string[-1] in ['.', '!', '?']:
+        return string
+    return string + '.'
