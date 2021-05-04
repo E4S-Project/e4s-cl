@@ -178,15 +178,14 @@ def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
     LOGGER.debug("Creating subprocess: %s", ' '.join(cmd))
 
     out = (subprocess.PIPE if redirect_stdout else sys.stdout)
-    proc = subprocess.Popen(cmd,
-                            env=subproc_env,
-                            stdout=out,
-                            stderr=subprocess.PIPE,
-                            close_fds=False,
-                            universal_newlines=True)
-
-    output, errors = proc.communicate()
-    retval = proc.returncode
+    with subprocess.Popen(cmd,
+                          env=subproc_env,
+                          stdout=out,
+                          stderr=subprocess.PIPE,
+                          close_fds=False,
+                          universal_newlines=True) as proc:
+        output, errors = proc.communicate()
+        retval = proc.returncode
 
     if redirect_stdout and log:
         LOGGER.debug(output.strip())
@@ -323,8 +322,8 @@ def page_output(output_string):
     """
     if os.environ.get('__E4S_CL_ENABLE_PAGER__', False):
         pager_cmd = os.environ.get('PAGER', 'less -F -R -S -X -K').split(' ')
-        proc = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE)
-        proc.communicate(bytearray(output_string, 'utf-8'))
+        with subprocess.Popen(pager_cmd, stdin=subprocess.PIPE) as proc:
+            proc.communicate(bytearray(output_string, 'utf-8'))
     else:
         print(output_string)
 
@@ -558,7 +557,7 @@ def hash256(string):
     return grinder.hexdigest()
 
 
-def JSONSerializer(obj):
+def _json_serializer(obj):
     """
     JSON add-on that will transform classes into dicts, and sets into special
     objects to be decoded back into sets with `util.JSONDecoder`.
@@ -578,7 +577,7 @@ of the `__type` field.
 JSON_HOOKS = {}
 
 
-def JSONDecoder(obj):
+def _json_decoder(obj):
     """
     JSON add-on to decode dicts with embedded data from `util.JSONSerializer`
     """
@@ -599,7 +598,7 @@ def json_dumps(*args, **kwargs):
     if kwargs.get('default'):
         raise InternalError("Cannot override default from util.json_dumps")
 
-    kwargs['default'] = JSONSerializer
+    kwargs['default'] = _json_serializer
 
     return json.dumps(*args, **kwargs)
 
@@ -611,7 +610,7 @@ def json_loads(*args, **kwargs):
     if kwargs.get('object_hook'):
         raise InternalError("Cannot override object_hook from util.json_loads")
 
-    kwargs['object_hook'] = JSONDecoder
+    kwargs['object_hook'] = _json_decoder
 
     return json.loads(*args, **kwargs)
 

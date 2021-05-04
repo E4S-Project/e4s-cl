@@ -39,7 +39,8 @@ class LibraryTest(tests.TestCase):
 
         links = library_links(target)
         for path in links:
-            self.assertEqual(os.path.realpath(path), os.path.realpath(target.binary_path))
+            self.assertEqual(os.path.realpath(path),
+                             os.path.realpath(target.binary_path))
 
     @skipIf(not resolve('libm.so.6'), "No library to test with")
     def test_set(self):

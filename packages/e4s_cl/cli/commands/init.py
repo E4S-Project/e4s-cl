@@ -13,7 +13,7 @@ from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
-from e4s_cl.sample import program
+from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
 from e4s_cl.model.profile import Profile
@@ -26,7 +26,7 @@ def compile_sample(compiler, destination):
     command = "%s -o %s -lm -x c -" % (compiler, destination)
 
     with tempfile.TemporaryFile('w+') as std_in:
-        std_in.write(program)
+        std_in.write(PROGRAM)
         std_in.seek(0)
 
         subprocess.Popen(command.split(), stdin=std_in).wait()

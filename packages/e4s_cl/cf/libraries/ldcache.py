@@ -27,12 +27,13 @@ def host_libraries():
         return {}
 
     with NamedTemporaryFile('r+') as custom:
-        generation, _ = create_subprocess_exp([ldconfig_path, '-C', custom.name],
-                                           redirect_stdout=True)
+        generation, _ = create_subprocess_exp(
+            [ldconfig_path, '-C', custom.name], redirect_stdout=True)
 
-        parsing, output = create_subprocess_exp([ldconfig_path, '-C', custom.name, '-p'],
-                                           log=False,
-                                           redirect_stdout=True)
+        parsing, output = create_subprocess_exp(
+            [ldconfig_path, '-C', custom.name, '-p'],
+            log=False,
+            redirect_stdout=True)
 
     if generation or parsing:
         LOGGER.error("Error getting libraries using %s", ldconfig_path)

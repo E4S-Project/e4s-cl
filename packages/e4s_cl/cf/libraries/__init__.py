@@ -2,11 +2,12 @@
 Library analysis and manipulation helpers
 """
 
-from os.path import realpath
 from re import match
+from os.path import realpath
 from pathlib import Path
 from functools import lru_cache
 from e4s_cl.error import InternalError
+from e4s_cl.logger import get_logger
 from e4s_cl.cf.version import Version
 
 # Symbols imported for ease of use
@@ -16,6 +17,8 @@ from e4s_cl.cf.libraries.linker import resolve
 from e4s_cl.cf.libraries.libraryset import LibrarySet, Library, HostLibrary, GuestLibrary
 
 from elftools.elf.elffile import ELFFile
+
+LOGGER = get_logger(__name__)
 
 
 @lru_cache
@@ -73,8 +76,7 @@ def library_links(shared_object: Library):
 
     # If no '.so' in the file name, bind anyway and exit
     if not match(r'.*\.so.*', libname):
-        LOGGER.debug("Error binding links of file %s",
-                     shared_object.binary_path)
+        LOGGER.debug("library_links: Error in format of %s", libname)
         return {Path(shared_object.binary_path)}
 
     cleared = set()
