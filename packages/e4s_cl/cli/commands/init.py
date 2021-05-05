@@ -168,8 +168,6 @@ class InitCommand(AbstractCommand):
         return EXIT_SUCCESS
 
 
-SUMMARY = """
-Initialize %(prog)s. This helper will analyze the accessible MPI library, and create a profile with the results.
-"""
+SUMMARY = "Initialize %(prog)s with the accessible MPI library, and create a profile with the results."
 
 COMMAND = InitCommand(__name__, summary_fmt=SUMMARY)
