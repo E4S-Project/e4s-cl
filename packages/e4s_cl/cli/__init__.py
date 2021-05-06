@@ -3,6 +3,7 @@ CLI interface module
 """
 
 import os
+import re
 import sys
 from types import ModuleType
 from e4s_cl import E4S_CL_SCRIPT, EXIT_FAILURE
@@ -51,7 +52,7 @@ def _command_as_list(module_name):
     """Converts a module name to a command name list.
     
     Maps command module names to their command line equivilants, e.g.
-    'e4s_cl.cli.commands.target.create' => ['tau', 'target', 'create']
+    'e4s_cl.cli.commands.target.create' => ['e4s-cl', 'target', 'create']
 
     Args:
         module_name (str): Name of a module.
@@ -155,37 +156,53 @@ def commands_description(package_name=COMMANDS_PACKAGE_NAME):
     """
     usage_fmt = USAGE_FORMAT.lower()
     groups = {}
+
     commands = sorted([
         i for i in _get_commands(package_name).items() if i[0] != '__module__'
     ])
+
     for cmd, topcmd in commands:
         module = topcmd['__module__']
+
         try:
             command_obj = module.COMMAND
         except AttributeError:
             continue
+
+        if re.match(r'__.*', cmd):
+            continue
+
         descr = command_obj.summary.split('\n')[0]
         group = command_obj.group
+
         if usage_fmt == 'console':
             line = '  %s%s' % (util.color_text('{:<14}'.format(cmd),
                                                'green'), descr)
         elif usage_fmt == 'markdown':
             line = '  %s | %s' % ('{:<28}'.format(cmd), descr)
+
         else:
             line = ''
+
         groups.setdefault(group, []).append(line)
+
     parts = []
+
     for group, members in groups.items():
         title = group.title() + ' Subcommands' if group else 'Subcommands'
+
         if usage_fmt == 'console':
             parts.append(util.color_text(title + ':', attrs=['bold']))
+
         elif usage_fmt == 'markdown':
             parts.extend([
                 '', ' ', '{:<30}'.format(title) + ' | Description',
                 '%s:| %s' % ('-' * 30, '-' * len('Description'))
             ])
+
         parts.extend(members)
         parts.append('')
+
     return '\n'.join(parts)
 
 
@@ -277,7 +294,7 @@ def _permute(cmd, cmd_args):
 def execute_command(cmd, cmd_args=None, parent_module=None):
     """Import the command module and run its main routine.
     
-    Partial commands are allowed, e.g. cmd=['tau', 'cli', 'commands', 'app', 'cre'] will resolve
+    Partial commands are allowed, e.g. cmd=['e4s-cl', 'cli', 'commands', 'app', 'cre'] will resolve
     to 'e4s_cl.cli.commands.application.create'.  If the command can't be found then the parent 
     command (if any) will be invoked with the ``--help`` flag.
     

@@ -65,6 +65,10 @@ class AbstractCommand(metaclass=ABCMeta):
     def usage(self):
         return self.parser.format_help()
 
+    @property
+    def monicker(self):
+        return self.module_name.split('.')[-1]
+
     def _parse_args(self, argv):
         if isinstance(argv, ArgumentsNamespace):
             args = argv

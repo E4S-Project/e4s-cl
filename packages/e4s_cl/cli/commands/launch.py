@@ -15,6 +15,8 @@ from e4s_cl.cf.launchers import interpret
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
 
+from e4s_cl.cli.commands.__execute import COMMAND as execute_cmd
+
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
@@ -37,7 +39,6 @@ def _parameters(args):
 
 
 def _format_execute(parameters):
-    from e4s_cl.cli.commands.execute import COMMAND as execute_cmd
     execute_command = str(execute_cmd).split()
 
     # Insert a top-level e4s option between the script name and the subcommand

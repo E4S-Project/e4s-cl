@@ -143,14 +143,14 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
     def _format_help_path(self):
         """Format completion list"""
         formatter = self._get_formatter()
+        formatter.start_section('')
+        args = []
         for action_group in self._sorted_groups():
-            title = ' '.join(x[0].upper() + x[1:]
-                             for x in action_group.title.split())
-            formatter.start_section(title)
-            formatter.add_arguments(
+            args.extend(
                 sorted(action_group._group_actions,
                        key=attrgetter('option_strings')))
-            formatter.end_section()
+        formatter.add_arguments(args)
+        formatter.end_section()
         return formatter.format_help()
 
     def format_help(self):
@@ -253,10 +253,11 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
         indent = ' ' * self._indent_increment
         helpstr = add_dot(action.help)
         helpstr = helpstr[0].upper() + helpstr[1:]
-        choices = getattr(action, 'choices', None)
-        if choices:
+        """Disabled in favour of per-help customization
+        if choices := getattr(action, 'choices', None)
             helpstr += '\n%s- %s: %s' % (indent, action.metavar,
                                          ', '.join(choices))
+        """
         if '%(default)' not in action.help:
             if action.default is not argparse.SUPPRESS:
                 defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
@@ -492,8 +493,7 @@ class MarkdownHelpFormatter(HelpFormatter):
 
 
 class PathHelpFormatter(HelpFormatter):
-    """Formatter for generating a list of possible completion targets
-    """
+    """Formatter generating a list of possible completion targets"""
     class _Section(object):
         def __init__(self, formatter, parent, heading=None):
             self.formatter = formatter
@@ -511,14 +511,10 @@ class PathHelpFormatter(HelpFormatter):
         pass
 
     def format_help(self):
-        help = self._root_section.format_help()
-        return " ".join(help) + "\n"
+        return ' '.join(self._root_section.format_help()) + '\n'
 
     def _format_action(self, action):
-        # collect the pieces of the action help
-        parts = (action.choices or [])
-
-        return parts
+        return filter(lambda x: not re.match(r'__.*', x), action.choices or [])
 
 
 class ParseBooleanAction(argparse.Action):

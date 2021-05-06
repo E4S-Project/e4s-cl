@@ -16,6 +16,8 @@ from e4s_cl.cf.version import Version
 from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import ConfigurationError
 
+from e4s_cl.cli.commands.__analyze import COMMAND as ANALYZE_COMMAND
+
 LOGGER = logger.get_logger(__name__)
 
 # List of available modules, accessible by their "executable" or cli tool names
@@ -187,8 +189,8 @@ class Container:
         # Use the imported python interpreter with the imported e4s-cl
         entrypoint.command = [
             Path(CONTAINER_DIR, 'conda', 'bin', 'python3').as_posix(),
-            Path(CONTAINER_DIR, 'bin', 'e4s-cl').as_posix(), 'analyze',
-            '--libraries'
+            Path(CONTAINER_DIR, 'bin', 'e4s-cl').as_posix(),
+            ANALYZE_COMMAND.monicker, '--libraries'
         ] + list(library_set.sonames)
 
         script_name = entrypoint.setup()
