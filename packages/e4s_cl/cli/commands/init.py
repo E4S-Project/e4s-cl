@@ -149,14 +149,14 @@ class InitCommand(AbstractCommand):
 
         if not (compiler and launcher):
             LOGGER.error(
-                "No MPI detected in PATH. Please load a module or use `--mpi` \
-                        to specify the MPI installation to use.")
+                "No MPI detected in PATH. Please load a module or use `--mpi`"
+                + " to specify the MPI installation to use.")
             return EXIT_FAILURE
 
         if getattr(args, 'launcher', None):
             launcher = util.which(args.launcher)
 
-        LOGGER.debug("Using MPI programs:\nCompiler: %s\nLauncher %s",
+        LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s",
                      compiler, launcher)
         check_mpirun(launcher)
         compile_sample(compiler, file_name)

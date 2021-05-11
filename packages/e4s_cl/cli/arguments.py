@@ -266,7 +266,7 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
                         default_str = ', '.join(action.default)
                     else:
                         default_str = str(action.default)
-                    helpstr += '\n%s' % indent + '- default: %s' % default_str
+                    #helpstr += '\n%s' % indent + '- default: %s' % default_str
         return helpstr
 
     def _format_positional(self, argstr):

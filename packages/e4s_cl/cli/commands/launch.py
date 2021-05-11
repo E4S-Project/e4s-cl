@@ -24,8 +24,7 @@ _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 def _parameters(args):
     """Generate compound parameters by merging profile and cli arguments
     The profile's parameters have less priority than the ones specified on
-    the command line.
-    If no profile is given, try to load the selected one."""
+    the command line."""
     if isinstance(args, Namespace):
         args = vars(args)
 
@@ -130,4 +129,6 @@ class LaunchCommand(AbstractCommand):
         return retval
 
 
-COMMAND = LaunchCommand(__name__, summary_fmt="Launch a process")
+SUMMARY = "Launch a process with a tailored environment."
+
+COMMAND = LaunchCommand(__name__, summary_fmt=SUMMARY)
