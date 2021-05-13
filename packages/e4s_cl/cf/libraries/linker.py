@@ -83,13 +83,13 @@ def resolve(soname, rpath=None, runpath=None):
     rpath = rpath or list()
     runpath = runpath or list()
 
-    def valid(path):
+    def _valid(path):
         return os.path.exists(path) and os.path.isdir(path)
 
     dynamic_paths = list(rpath) + _linker_path()[0] + list(runpath)
     default_paths = _linker_path()[1]
 
-    for dir_ in filter(valid, dynamic_paths):
+    for dir_ in filter(_valid, dynamic_paths):
         potential_lib = Path(dir_, soname).as_posix()
         if os.path.exists(potential_lib):
             found = potential_lib
@@ -98,7 +98,7 @@ def resolve(soname, rpath=None, runpath=None):
         found = host_libraries()[soname]
 
     if not found:
-        for dir_ in filter(valid, default_paths):
+        for dir_ in filter(_valid, default_paths):
             potential_lib = Path(dir_, soname).as_posix()
             if os.path.exists(potential_lib):
                 found = potential_lib

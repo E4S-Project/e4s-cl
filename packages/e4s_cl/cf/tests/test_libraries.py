@@ -3,10 +3,15 @@ import pathlib
 from unittest import skipIf
 from e4s_cl import tests
 from e4s_cl.util import which
-from e4s_cl.cf.libraries import host_libraries, ldd, resolve, LibrarySet, Library, is_elf, library_links
+from e4s_cl.cf.version import Version
+from e4s_cl.cf.libraries import libc_version, host_libraries, ldd, resolve, LibrarySet, Library, is_elf, library_links
 
 
 class LibraryTest(tests.TestCase):
+    def test_libc_version(self):
+        self.assertTrue(isinstance(libc_version(), Version))
+        self.assertNotEqual(str(libc_version()), '0.0.0')
+
     def test_host_libraries(self):
         self.assertNotEqual(host_libraries(), {})
 
@@ -87,3 +92,14 @@ class LibraryTest(tests.TestCase):
         self.assertFalse(is_elf('/proc/meminfo'))
         self.assertFalse(is_elf('/'))
         self.assertTrue(is_elf(resolve('libm.so.6')))
+
+    @skipIf(not resolve('libm.so.6'), "No library to test with")
+    def test_library_links(self):
+        with open(resolve('libm.so.6'), 'rb') as file:
+            sample = Library(file=file)
+
+        links = library_links(sample)
+
+        self.assertGreater(len(links), 1)
+        for path in links:
+            self.assertEqual(os.path.realpath(path), sample.binary_path)

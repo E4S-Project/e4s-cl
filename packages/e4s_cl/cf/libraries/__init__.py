@@ -23,6 +23,7 @@ LOGGER = get_logger(__name__)
 @lru_cache
 def libc_version():
     """
+    -> e4s_cl.cf.version.Version
     Get the version number of the libc available on the host
     Caches the result
     """
@@ -43,6 +44,7 @@ def libc_version():
 
 def is_elf(path):
     """
+    -> bool
     It's dirty, but that is the best I could find in the elftools module
     """
     try:
@@ -56,8 +58,9 @@ def is_elf(path):
 
 def library_links(shared_object: Library):
     """
-    This method resolves all the symbolic links that may exist and point to
-    the argument.
+    -> set(pathlib.Path)
+    This method resolves symbolic links that may exist and point to the
+    library passed as an argument.
 
     Given the directory:
     lrwxrwxrwx. 1 root root   16 May 13  2019 libmpi.so -> libmpi.so.12.1.1
