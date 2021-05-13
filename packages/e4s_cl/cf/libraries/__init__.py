@@ -11,9 +11,8 @@ from e4s_cl.logger import get_logger
 from e4s_cl.cf.version import Version
 
 # Symbols imported for ease of use
-from e4s_cl.cf.libraries.ldcache import host_libraries
 from e4s_cl.cf.libraries.ldd import ldd
-from e4s_cl.cf.libraries.linker import resolve
+from e4s_cl.cf.libraries.linker import resolve, host_libraries
 from e4s_cl.cf.libraries.libraryset import LibrarySet, Library, HostLibrary, GuestLibrary
 
 from elftools.elf.elffile import ELFFile
