@@ -24,10 +24,10 @@ TEMPLATE = """#!/bin/bash
 # resulting LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=%(library_dir)s${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
-# If a linker has been imported, this line will make sure it is used instead
-# of the default. This is of the utmost importance, as libc imports will break
-# with non-adapted linkers.
-export LD_PRELOAD=%(linker)s${LD_PRELOAD:+:${LD_PRELOAD}}
+# Preload select libraries to ensure they are used, even if RPATHs are set in
+# guest libraries.
+# Additionally, the imported linker may be set at this step.
+export LD_PRELOAD=%(preload)s${LD_PRELOAD:+:${LD_PRELOAD}}
 
 # Finally run the command, using the imported linker if applicable
 %(linker)s %(command)s
@@ -50,8 +50,11 @@ class Entrypoint:
         # Path to a directory where the host libraries were bound
         self.library_dir = ''
 
+        # List of libraries to preload
+        self.preload = []
+
         # Path to the imported host linker
-        self.linker = ''
+        self.linker = None
 
         self.debug = debug
 
@@ -76,11 +79,18 @@ class Entrypoint:
         return ""
 
     def __str__(self):
+        # Convert to a set to remove duplicates, then as a list to get order
+        preload = list(set(self.preload))
+
+        if self.linker:
+            preload.append(self.linker)
+
         fields = {
             'source_script': self.source_script,
             'command': self.command,
             'library_dir': self.library_dir,
-            'linker': self.linker,
+            'linker': self.linker or '',
+            'preload': ':'.join(preload),
             'debugging': "export LD_DEBUG=files" if self.debug else ''
         }
 

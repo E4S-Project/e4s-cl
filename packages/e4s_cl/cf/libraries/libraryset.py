@@ -116,10 +116,10 @@ class LibrarySet(set):
         -> None
         Wraps the default set.add method
 
-        If a library with a given soname is added to a set, python will avoid
-        copying it over if the set already contains a library with the same
-        soname. This is an issue when adding HostLibraries/GuestLibraries
-        depicting the same library.
+        If a element with a given hash is added to a set, python will avoid
+        copying it over if the set already contains an element with the same
+        hash. This is an issue when adding HostLibraries/GuestLibraries
+        depicting the same library, as the hash needs to be their soname.
 
         This method gets rid of matching libraries before calling set.add
         """
