@@ -1,5 +1,6 @@
 """
 Command run in containers to get information
+This command is used internally and thus cloaked from the UI
 """
 
 import os
@@ -9,6 +10,7 @@ from e4s_cl.error import InternalError
 from e4s_cl.util import json_dumps
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
+from e4s_cl.cf import pipe
 from e4s_cl.cf.libraries import libc_version, LibrarySet, resolve, GuestLibrary
 
 LOGGER = logger.get_logger(__name__)
@@ -39,10 +41,7 @@ class AnalyzeCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        fd = int(os.environ.get('__E4S_CL_JSON_FD', '-1'))
-
-        if fd == -1:
-            raise InternalError("No file descriptor set to send data !")
+        fd = pipe.attach()
 
         guest_libraries = LibrarySet()
 

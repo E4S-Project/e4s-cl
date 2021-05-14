@@ -3,6 +3,7 @@
 Definition of arguments and hooks related to the execute command,
 file import calculations, and execution of a program passed as an
 argument.
+This command is used internally and thus cloaked from the UI
 """
 
 from pathlib import Path

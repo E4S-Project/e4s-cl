@@ -13,6 +13,7 @@ from pathlib import Path
 from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.util import walk_packages, which, unrelative, json_loads
 from e4s_cl.cf.version import Version
+from e4s_cl.cf import pipe
 from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import ConfigurationError
 
@@ -182,9 +183,7 @@ class Container:
         brand(self)
 
         # Setup a one-way communication channel
-        fdr, fdw = os.pipe()
-        os.set_inheritable(fdw, True)
-        self.bind_env_var('__E4S_CL_JSON_FD', str(fdw))
+        fdr = pipe.create()
 
         # Use the imported python interpreter with the imported e4s-cl
         entrypoint.command = [
