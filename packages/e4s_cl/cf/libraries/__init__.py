@@ -93,7 +93,7 @@ def library_links(shared_object: Library):
     _glob_links(prefix)
 
     # glib files are named as libc-2.33.so, but the links are named libc.so.x
-    if matches := match(r'(?P<prefix>lib[a-z]+)-2\.[0-9]+', prefix):
+    if matches := match(r'(?P<prefix>lib[a-z_]+)-.+', prefix):
         _glob_links(matches.group('prefix'))
 
     return cleared
