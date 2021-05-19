@@ -6,7 +6,6 @@ This command is used internally and thus cloaked from the UI
 import os
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger
-from e4s_cl.error import InternalError
 from e4s_cl.util import json_dumps
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand

@@ -42,10 +42,9 @@ class ProfileListCommand(ListCommand):
             'function': _count('files')
         }]
 
-        super(ProfileListCommand,
-              self).__init__(Profile,
-                             __name__,
-                             dashboard_columns=dashboard_columns)
+        super().__init__(Profile,
+                         __name__,
+                         dashboard_columns=dashboard_columns)
 
 
 COMMAND = ProfileListCommand()

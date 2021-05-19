@@ -1,9 +1,8 @@
-from e4s_cl import logger
-from e4s_cl.util import create_subprocess_exp
-from e4s_cl.cf.libraries import host_libraries
-from e4s_cl.cf.containers import Container, FileOptions
+"""
+Dummy container used during tests
+"""
 
-LOGGER = logger.get_logger(__name__)
+from e4s_cl.cf.containers import Container
 
 DEBUG_BACKEND = True
 NAME = 'dummy'

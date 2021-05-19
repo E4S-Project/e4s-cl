@@ -15,8 +15,11 @@ def bold(string):
 
 
 class ProfileShowCommand(ShowCommand):
+    """
+    Output details about a profile
+    """
     def _construct_parser(self):
-        parser = super(ProfileShowCommand, self)._construct_parser()
+        parser = super()._construct_parser()
 
         parser.add_argument("--tree",
                             action='store_true',
@@ -25,6 +28,9 @@ class ProfileShowCommand(ShowCommand):
         return parser
 
     def detail(self, profile_dict):
+        """
+        Format template for the output
+        """
 
         outline = """%(field_name)s: %(name)s
 %(field_image)s: %(image)s
@@ -70,9 +76,9 @@ class ProfileShowCommand(ShowCommand):
     def tree(self, profile_dict):
         cache = LibrarySet()
 
-        for p in map(Path, profile_dict.get('libraries', [])):
-            with open(p, 'rb') as so:
-                cache.add(Library(so))
+        for path in map(Path, profile_dict.get('libraries', [])):
+            with open(path, 'rb') as shared_object:
+                cache.add(Library(shared_object))
 
         print("%s:" % bold("\nLibrary dependencies"))
         for tree in cache.trees():

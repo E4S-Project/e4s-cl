@@ -4,7 +4,7 @@ Profile data model.
 
 import pathlib
 from e4s_cl import logger
-from e4s_cl.error import InternalError, ProfileSelectionError
+from e4s_cl.error import ProfileSelectionError
 from e4s_cl.mvc.model import Model
 from e4s_cl.mvc.controller import Controller
 from e4s_cl.cf.storage.levels import USER_STORAGE
@@ -82,8 +82,8 @@ class ProfileController(Controller):
             selected = self.one(self.storage['selected_profile'])
             if not selected:
                 raise KeyError
-        except KeyError:
-            raise ProfileSelectionError("No profile selected")
+        except KeyError as key_err:
+            raise ProfileSelectionError("No profile selected") from key_err
         else:
             return selected
 

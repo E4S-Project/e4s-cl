@@ -22,13 +22,16 @@ class ContainerTest(tests.TestCase):
         option = FileOptions.READ_WRITE
 
         container.bind_file(target)
-        self.assertIn((target, target, FileOptions.READ_ONLY), list(container.bound))
+        self.assertIn((target, target, FileOptions.READ_ONLY),
+                      list(container.bound))
 
         container.bind_file(target, dest=dest)
-        self.assertIn((target, dest, FileOptions.READ_ONLY), list(container.bound))
+        self.assertIn((target, dest, FileOptions.READ_ONLY),
+                      list(container.bound))
 
         container.bind_file(target, dest=dest, option=option)
-        self.assertIn((target, dest, FileOptions.READ_WRITE), list(container.bound))
+        self.assertIn((target, dest, FileOptions.READ_WRITE),
+                      list(container.bound))
 
     def test_bind_relative(self):
         container = Container(executable='bash')

@@ -3,6 +3,7 @@ Setup a pipe for communication with child e4s-cl processes
 """
 
 import os
+from e4s_cl.error import InternalError
 
 ENV_VAR = '__E4SCL_PIPE_FD'
 

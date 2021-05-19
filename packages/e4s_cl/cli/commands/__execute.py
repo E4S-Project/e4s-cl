@@ -111,7 +111,8 @@ def overlay_libraries(library_set, container, entrypoint):
                             len(library_set.linkers))
 
     for linker in library_set.linkers:
-        entrypoint.linker = Path(HOST_LIBS_DIR, Path(linker.binary_path).name).as_posix()
+        entrypoint.linker = Path(HOST_LIBS_DIR,
+                                 Path(linker.binary_path).name).as_posix()
         container.bind_file(linker.binary_path,
                             dest=Path(HOST_LIBS_DIR,
                                       Path(linker.binary_path).name))
@@ -235,7 +236,8 @@ class ExecuteCommand(AbstractCommand):
 
             # Preload the roots of all the set's trees
             def _path(library: HostLibrary):
-                return Path(HOST_LIBS_DIR, Path(library.binary_path).name).as_posix()
+                return Path(HOST_LIBS_DIR,
+                            Path(library.binary_path).name).as_posix()
 
             for import_path in map(_path, libset.top_level):
                 params.preload.append(import_path)

@@ -13,6 +13,7 @@ from e4s_cl.util import which, create_subprocess_exp
 
 LOGGER = logger.get_logger(__name__)
 
+
 @lru_cache
 def host_libraries():
     """
@@ -60,6 +61,7 @@ def host_libraries():
         _cache[match.group('soname')] = match.group('path')
 
     return _cache
+
 
 @lru_cache
 def _linker_path():

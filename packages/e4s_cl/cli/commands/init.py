@@ -156,8 +156,8 @@ class InitCommand(AbstractCommand):
         if getattr(args, 'launcher', None):
             launcher = util.which(args.launcher)
 
-        LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s",
-                     compiler, launcher)
+        LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
+                     launcher)
         check_mpirun(launcher)
         compile_sample(compiler, file_name)
 
