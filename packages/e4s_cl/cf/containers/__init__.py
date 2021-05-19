@@ -11,7 +11,7 @@ import json
 from importlib import import_module
 from pathlib import Path
 from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
-from e4s_cl.util import walk_packages, which, unrelative, json_loads
+from e4s_cl.util import walk_packages, which, json_loads
 from e4s_cl.cf.version import Version
 from e4s_cl.cf import pipe
 from e4s_cl.cf.libraries import LibrarySet
@@ -218,8 +218,39 @@ class Container:
         having jsm_pmix/container && lib makes it error out
         unrelative returns a list of all the paths required for such a file
         """
+        def _unrelative(string):
+            """
+            Returns a list of all the directories referenced by a relative path
+            """
+            def _contains(path1, path2):
+                """
+                Returns true if path2 is in the tree of which path1 is the root
+                pathlib's < operator compares alphabetically, so here we are
+                """
+                index = len(path1.parts)
+                return path1.parts[:index] == path2.parts[:index]
+
+            path = Path(string)
+            visited = {path, path.resolve()}
+            deps = set()
+
+            for i in range(0, len(path.parts)):
+                if path.parts[i] == '..':
+                    visited.add(Path(*path.parts[:i]).resolve())
+
+            for element in visited:
+                contained = False
+                for path in visited:
+                    if path != element and _contains(path, element):
+                        contained = True
+
+                if not contained:
+                    deps.add(element)
+
+            return [p.as_posix() for p in deps]
+
         if not dest:
-            for _path in unrelative(path):
+            for _path in _unrelative(path):
                 self.__bound_files.update(
                     {Path(_path): Container.BoundFile(_path, option)})
         else:

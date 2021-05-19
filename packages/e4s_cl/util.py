@@ -513,41 +513,6 @@ def flatten(nested_list):
     return [item for sublist in nested_list for item in sublist]
 
 
-def contains(path1, path2):
-    """
-    Returns path2 is in the tree of which path1 is the root
-    pathlib's < operator compares alphabetically, so here we are
-    """
-    index = len(path1.parts)
-    return path1.parts[:index] == path2.parts[:index]
-
-
-def unrelative(string):
-    """
-    Returns a list of all the directories mentionned by a relative path
-    """
-    path = pathlib.Path(string)
-    visited = set()
-    deps = set()
-
-    visited.add(path)
-    visited.add(path.resolve())
-    for i in range(0, len(path.parts)):
-        if path.parts[i] == '..':
-            visited.add(pathlib.Path(*path.parts[:i]).resolve())
-
-    for element in visited:
-        contained = False
-        for path in visited:
-            if path != element and contains(path, element):
-                contained = True
-
-        if not contained:
-            deps.add(element)
-
-    return [p.as_posix() for p in deps]
-
-
 def hash256(string):
     """
     Create a hash from a string
