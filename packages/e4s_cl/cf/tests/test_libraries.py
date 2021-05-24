@@ -103,3 +103,14 @@ class LibraryTest(tests.TestCase):
         self.assertGreater(len(links), 1)
         for path in links:
             self.assertEqual(os.path.realpath(path), sample.binary_path)
+
+    def test_create_from_soname(self):
+        libset = LibrarySet.create_from(['libm.so.6'])
+
+        self.assertTrue(libset.complete)
+
+    @skipIf(not resolve('libm.so.6'), "No library to test with")
+    def test_create_from_path(self):
+        libset = LibrarySet.create_from([resolve('libm.so.6')])
+
+        self.assertTrue(libset.complete)

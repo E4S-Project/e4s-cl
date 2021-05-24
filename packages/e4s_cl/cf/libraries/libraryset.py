@@ -4,9 +4,11 @@ to facilitate handling large amounts of libraries
 """
 
 import re
+from pathlib import Path
+
 from e4s_cl import logger
 from e4s_cl.error import InternalError
-from e4s_cl.cf.libraries.linker import resolve
+from e4s_cl.cf.libraries.linker import resolve, LinkingError
 from e4s_cl.util import flatten, color_text, JSON_HOOKS
 
 from elftools.common.exceptions import ELFError
@@ -111,6 +113,46 @@ class LibrarySet(set):
     """
     Set-like object to collect Libray objects
     """
+    @classmethod
+    def create_from(cls, library_list, member=Library):
+        """
+        -> LibrarySet[type(member)]
+        Given a list of str or pathlib.Path, create a cf.libraries.LibrarySet
+        with all the libraries and their dependencies resolved.
+
+        Given a class as the member argument, all objects will be created from
+        that class.
+        """
+        def _process(element):
+            path = None
+
+            if isinstance(element, Path):
+                path = element.as_posix()
+            elif isinstance(element, str):
+                if '/' in element:
+                    path = Path(element).as_posix()
+                else:
+                    path = resolve(element,
+                                   rpath=cache.rpath,
+                                   runpath=cache.runpath)
+            else:
+                raise InternalError(
+                    "Wrong type for LibrarySet.create_from: %s" %
+                    type(element))
+
+            if not path:
+                raise LinkingError(element)
+
+            return path
+
+        cache = LibrarySet()
+
+        for path in map(_process, library_list):
+            with open(path, 'rb') as file:
+                cache.add(member(file))
+
+        return cache.resolve()
+
     def add(self, elem):
         """
         -> None
@@ -216,8 +258,8 @@ class LibrarySet(set):
         Returns a set with the sonames of all the dependencies of the set's
         libraries not present in self
         """
-        sonames = set(flatten(map(lambda x: x.dyn_dependencies, self)))
-        return set(filter(lambda x: x not in self.sonames, sonames))
+        req_sonames = set(flatten(map(lambda x: x.dyn_dependencies, self)))
+        return req_sonames - self.sonames
 
     @property
     def outdated_libraries(self):
@@ -256,6 +298,10 @@ class LibrarySet(set):
                 and self.required_versions.issubset(self.defined_versions))
 
     def find(self, soname):
+        """
+        -> Library or None
+        Returns the matching library if found in self, else None
+        """
         matches = set(filter(lambda x: re.match(soname, x.soname), self))
 
         return matches.pop() if matches else None
@@ -292,6 +338,17 @@ class LibrarySet(set):
             missing = superset.missing_libraries
 
         return superset
+
+    def ldd_format(self):
+        """
+        -> list(str)
+        """
+        def line(soname: str):
+            if lib := self.find(soname):
+                return "%(soname)s => %(binary_path)s" % lib.__dict__
+            return "%s => not found" % soname
+
+        return list(map(line, set.union(self.sonames, self.missing_libraries)))
 
     def trees(self, show_versions=False):
         """

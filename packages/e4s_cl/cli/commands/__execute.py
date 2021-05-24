@@ -21,33 +21,6 @@ _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
 HOST_LIBS_DIR = Path(CONTAINER_DIR, 'hostlibs').as_posix()
 
 
-def create_set(library_list):
-    """
-    Given a list of strings, create a cf.libraries.LibrarySet with all the
-    dependencies resolved
-    """
-
-    cache = LibrarySet()
-
-    for element in library_list:
-        if isinstance(element, Path):
-            path = element.as_posix()
-        elif isinstance(element, str):
-            if '/' in element:
-                path = Path(element).as_posix()
-            else:
-                path = resolve(element,
-                               rpath=cache.rpath,
-                               runpath=cache.runpath)
-        else:
-            LOGGER.error("Unresolved library: '%s'", element)
-
-        with open(path, 'rb') as file:
-            cache.add(HostLibrary(file))
-
-    return cache.resolve()
-
-
 def import_library(shared_object, container):
     """
     This method binds the shared object it got as an argument, along with all
@@ -216,7 +189,7 @@ class ExecuteCommand(AbstractCommand):
         params.source_script_path = args.source
 
         # Analyze the host to get a thorough set of libraries required
-        libset = create_set(args.libraries)
+        libset = LibrarySet.create_from(args.libraries, member=HostLibrary)
 
         # Analyze the container to get library information from the environment
         # it offers, using the entrypoint
@@ -229,6 +202,10 @@ class ExecuteCommand(AbstractCommand):
         if args.libraries:
             # Create a set of libraries to import
             libset = select_libraries(libset, container, params)
+
+            if not libset.complete():
+                LOGGER.error("Final set is missing libraries: %s",
+                             ", ".join(libset.missing_libraries))
 
             # Import each library along with all symlinks pointing to it
             for shared_object in libset:

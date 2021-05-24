@@ -8,10 +8,21 @@ import re
 from tempfile import NamedTemporaryFile
 from functools import lru_cache
 from pathlib import Path
+
 from e4s_cl import logger
+from e4s_cl.error import Error
 from e4s_cl.util import which, create_subprocess_exp
 
 LOGGER = logger.get_logger(__name__)
+
+
+class LinkingError(Error):
+    message_fmt = (
+        "The requested library could not be resolved on the system at the moment:\n"
+        "\n"
+        "%(value)s\n"
+        "\n"
+        "A path or soname can be given. Is a module missing ?")
 
 
 @lru_cache
