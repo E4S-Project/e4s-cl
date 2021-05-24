@@ -151,7 +151,7 @@ class LibrarySet(set):
             with open(path, 'rb') as file:
                 cache.add(member(file))
 
-        return cache.resolve()
+        return cache.resolve(member=member)
 
     def add(self, elem):
         """
@@ -306,7 +306,7 @@ class LibrarySet(set):
 
         return matches.pop() if matches else None
 
-    def resolve(self, rpath=None, runpath=None):
+    def resolve(self, rpath=None, runpath=None, member=Library):
         """
         -> LibrarySet, superset of self
         will try to resolve all dynamic depedencies of the set's members, then
@@ -332,7 +332,7 @@ class LibrarySet(set):
                     continue
 
                 with open(path, 'rb') as file:
-                    superset.add(HostLibrary(file))
+                    superset.add(member(file))
 
             change = superset.missing_libraries != missing
             missing = superset.missing_libraries
@@ -345,7 +345,11 @@ class LibrarySet(set):
         """
         def line(soname: str):
             if lib := self.find(soname):
-                return "%(soname)s => %(binary_path)s" % lib.__dict__
+                format_fields = lib.__dict__
+                format_fields.update(
+                    {'origin': lib.__class__.__name__.lower()})
+
+                return "%(soname)s => %(binary_path)s (%(origin)s)" % format_fields
             return "%s => not found" % soname
 
         return list(map(line, set.union(self.sonames, self.missing_libraries)))

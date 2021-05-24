@@ -203,9 +203,8 @@ class ExecuteCommand(AbstractCommand):
             # Create a set of libraries to import
             libset = select_libraries(libset, container, params)
 
-            if not libset.complete():
-                LOGGER.error("Final set is missing libraries: %s",
-                             ", ".join(libset.missing_libraries))
+            for line in libset.ldd_format():
+                LOGGER.debug(line)
 
             # Import each library along with all symlinks pointing to it
             for shared_object in libset:
