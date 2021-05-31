@@ -82,19 +82,21 @@ def get_terminal_size():
     default_width = 80
     default_height = 25
     dims = _get_term_size_env()
+
     if not dims:
-        current_os = platform.system()
-        if current_os == 'Linux' or current_os == 'Darwin' or current_os.startswith(
-                'CYGWIN'):
-            dims = _get_term_size_posix()
+        dims = _get_term_size_posix()
+
         if not dims:
             dims = default_width, default_height
+
     try:
         dims = list(map(int, dims))
     except ValueError:
         dims = default_width, default_height
+
     width = dims[0] if dims[0] >= 10 else default_width
     height = dims[1] if dims[1] >= 1 else default_height
+
     return width, height
 
 
@@ -171,7 +173,7 @@ def _get_term_size_env():
                or None if the size could not be determined.
     """
     try:
-        return (int(os.environ['LINES']), int(os.environ['COLUMNS']))
+        return (int(os.environ['COLUMNS']), int(os.environ['LINES']))
     except (KeyError, ValueError):
         return None
 
@@ -220,7 +222,7 @@ class LogFormatter(logging.Formatter):
     _printable_chars = set(string.printable)
 
     def __init__(self, line_width, printable_only=False, allow_colors=True):
-        super(LogFormatter, self).__init__()
+        super().__init__()
         self.printable_only = printable_only
         self.allow_colors = allow_colors
         self.line_width = line_width
@@ -232,17 +234,20 @@ class LogFormatter(logging.Formatter):
     @hierachical
     @on_stderr
     def CRITICAL(self, record):
-        return self._colored(self._format_message(record), 'red', None, ['bold'])
+        return self._colored(self._format_message(record), 'red', None,
+                             ['bold'])
 
     @hierachical
     @on_stderr
     def ERROR(self, record):
-        return self._colored(self._format_message(record), 'red', None, ['bold'])
+        return self._colored(self._format_message(record), 'red', None,
+                             ['bold'])
 
     @hierachical
     @on_stderr
     def WARNING(self, record):
-        return self._colored(self._format_message(record), 'yellow', None, ['bold'])
+        return self._colored(self._format_message(record), 'yellow', None,
+                             ['bold'])
 
     @hierachical
     @on_stdout
@@ -402,9 +407,10 @@ if not _ROOT_LOGGER.handlers:
     try:
         os.makedirs(_LOG_FILE_PREFIX)
     except OSError as exc:
-        if exc.errno == errno.EROFS: # Don't crash and burn on RO systems
+        if exc.errno == errno.EROFS:  # Don't crash and burn on RO systems
             pass
-        elif not (exc.errno == errno.EEXIST and os.path.isdir(_LOG_FILE_PREFIX)):
+        elif not (exc.errno == errno.EEXIST
+                  and os.path.isdir(_LOG_FILE_PREFIX)):
             raise
     _STDOUT_HANDLER = logging.StreamHandler(sys.stderr)
     _STDOUT_HANDLER.setFormatter(

@@ -1,4 +1,9 @@
-program = """
+"""
+Sample MPI program using basic collectives to ensure the data transmission
+layer is used.
+"""
+
+PROGRAM = """
 // Author: Wes Kendall
 // Copyright 2013 www.mpitutorial.com
 // This code is provided freely with the tutorials on mpitutorial.com. Feel

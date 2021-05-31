@@ -8,6 +8,8 @@ sys.path.insert(0, os.path.join(PACKAGE_TOPDIR, 'packages'))
 
 
 def _version():
+    docstring = """\"\"\"Module generated at install-time\"\"\"
+    """
     version_file = os.path.join(PACKAGE_TOPDIR, "VERSION")
     commit_file = os.path.join(PACKAGE_TOPDIR, "COMMIT")
 
@@ -26,8 +28,11 @@ def _version():
     else:
         commit = "Unknown"
 
-    with open(os.path.join(PACKAGE_TOPDIR, 'packages', 'e4s_cl', 'version.py'), 'w') as embedded_version_file:
-        embedded_version_file.write("__version__ = '%s'\n__commit__ = '%s'\n" % (version.strip(), commit.strip()))
+    with open(os.path.join(PACKAGE_TOPDIR, 'packages', 'e4s_cl', 'version.py'),
+              'w') as embedded_version_file:
+        embedded_version_file.write(
+            "%s\n__version__ = '%s'\n__commit__ = '%s'\n" %
+            (docstring, version.strip(), commit.strip()))
 
     return version.strip()
 

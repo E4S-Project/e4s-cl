@@ -150,7 +150,7 @@ def path_accessible(path, mode='r'):
     return False
 
 
-def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
+def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
     """Create a subprocess.
 
     See :any:`subprocess.Popen`.
@@ -178,17 +178,16 @@ def create_subprocess_exp(cmd, env=None, redirect_stdout=False):
     LOGGER.debug("Creating subprocess: %s", ' '.join(cmd))
 
     out = (subprocess.PIPE if redirect_stdout else sys.stdout)
-    proc = subprocess.Popen(cmd,
-                            env=subproc_env,
-                            stdout=out,
-                            stderr=subprocess.PIPE,
-                            close_fds=False,
-                            universal_newlines=True)
+    with subprocess.Popen(cmd,
+                          env=subproc_env,
+                          stdout=out,
+                          stderr=subprocess.PIPE,
+                          close_fds=False,
+                          universal_newlines=True) as proc:
+        output, errors = proc.communicate()
+        retval = proc.returncode
 
-    output, errors = proc.communicate()
-    retval = proc.returncode
-
-    if redirect_stdout:
+    if redirect_stdout and log:
         LOGGER.debug(output.strip())
 
     for line in errors.split('\n'):
@@ -323,8 +322,8 @@ def page_output(output_string):
     """
     if os.environ.get('__E4S_CL_ENABLE_PAGER__', False):
         pager_cmd = os.environ.get('PAGER', 'less -F -R -S -X -K').split(' ')
-        proc = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE)
-        proc.communicate(bytearray(output_string, 'utf-8'))
+        with subprocess.Popen(pager_cmd, stdin=subprocess.PIPE) as proc:
+            proc.communicate(bytearray(output_string, 'utf-8'))
     else:
         print(output_string)
 
@@ -514,41 +513,6 @@ def flatten(nested_list):
     return [item for sublist in nested_list for item in sublist]
 
 
-def contains(path1, path2):
-    """
-    Returns path2 is in the tree of which path1 is the root
-    pathlib's < operator compares alphabetically, so here we are
-    """
-    index = len(path1.parts)
-    return path1.parts[:index] == path2.parts[:index]
-
-
-def unrelative(string):
-    """
-    Returns a list of all the directories mentionned by a relative path
-    """
-    path = pathlib.Path(string)
-    visited = set()
-    deps = set()
-
-    visited.add(path)
-    visited.add(path.resolve())
-    for i in range(0, len(path.parts)):
-        if path.parts[i] == '..':
-            visited.add(pathlib.Path(*path.parts[:i]).resolve())
-
-    for element in visited:
-        contained = False
-        for path in visited:
-            if path != element and contains(path, element):
-                contained = True
-
-        if not contained:
-            deps.add(element)
-
-    return [p.as_posix() for p in deps]
-
-
 def hash256(string):
     """
     Create a hash from a string
@@ -558,7 +522,7 @@ def hash256(string):
     return grinder.hexdigest()
 
 
-def JSONSerializer(obj):
+def _json_serializer(obj):
     """
     JSON add-on that will transform classes into dicts, and sets into special
     objects to be decoded back into sets with `util.JSONDecoder`.
@@ -570,13 +534,15 @@ def JSONSerializer(obj):
 
     return obj
 
+
 """
 Dict of methods to use when decoding e4s-cl json. Keys correspond to values
 of the `__type` field.
 """
 JSON_HOOKS = {}
 
-def JSONDecoder(obj):
+
+def _json_decoder(obj):
     """
     JSON add-on to decode dicts with embedded data from `util.JSONSerializer`
     """
@@ -597,7 +563,7 @@ def json_dumps(*args, **kwargs):
     if kwargs.get('default'):
         raise InternalError("Cannot override default from util.json_dumps")
 
-    kwargs['default'] = JSONSerializer
+    kwargs['default'] = _json_serializer
 
     return json.dumps(*args, **kwargs)
 
@@ -609,6 +575,12 @@ def json_loads(*args, **kwargs):
     if kwargs.get('object_hook'):
         raise InternalError("Cannot override object_hook from util.json_loads")
 
-    kwargs['object_hook'] = JSONDecoder
+    kwargs['object_hook'] = _json_decoder
 
     return json.loads(*args, **kwargs)
+
+
+def add_dot(string: str) -> str:
+    if string[-1] in ['.', '!', '?']:
+        return string
+    return string + '.'

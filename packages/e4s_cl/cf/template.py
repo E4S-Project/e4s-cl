@@ -5,10 +5,11 @@ execution environment and allows for arbitrary code execution (e.g.
 library loading)
 """
 
-import os, stat
+import os
 import tempfile
+import shlex
 from e4s_cl import logger
-from pathlib import Path
+from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
 
@@ -23,10 +24,10 @@ TEMPLATE = """#!/bin/bash
 # resulting LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=%(library_dir)s${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
-# If a linker has been imported, this line will make sure it is used instead
-# of the default. This is of the utmost importance, as libc imports will break
-# with non-adapted linkers.
-export LD_PRELOAD=%(linker)s${LD_PRELOAD:+:${LD_PRELOAD}}
+# Preload select libraries to ensure they are used, even if RPATHs are set in
+# guest libraries.
+# Additionally, the imported linker may be set at this step.
+export LD_PRELOAD=%(preload)s${LD_PRELOAD:+:${LD_PRELOAD}}
 
 # Finally run the command, using the imported linker if applicable
 %(linker)s %(command)s
@@ -34,7 +35,12 @@ export LD_PRELOAD=%(linker)s${LD_PRELOAD:+:${LD_PRELOAD}}
 
 
 class Entrypoint:
-    def __init__(self):
+    """
+    Objects with exection information that convert to scripts on command
+    """
+    def __init__(self, debug=False):
+        self.file_name = None
+
         # Command to run in the container
         self.command = []
 
@@ -44,8 +50,13 @@ class Entrypoint:
         # Path to a directory where the host libraries were bound
         self.library_dir = ''
 
+        # List of libraries to preload
+        self.preload = []
+
         # Path to the imported host linker
-        self.linker = ''
+        self.linker = None
+
+        self.debug = debug
 
     @property
     def command(self):
@@ -68,30 +79,41 @@ class Entrypoint:
         return ""
 
     def __str__(self):
+        # Convert to a set to remove duplicates, then as a list to get order
+        preload = list(set(self.preload))
+
+        if self.linker:
+            preload.append(self.linker)
+
         fields = {
             'source_script': self.source_script,
             'command': self.command,
             'library_dir': self.library_dir,
-            'linker': self.linker,
-            'debugging': "export LD_DEBUG=files" if logger.debug_mode() else ''
+            'linker': self.linker or '',
+            'preload': ':'.join(preload),
+            'debugging': "export LD_DEBUG=files" if self.debug else ''
         }
 
         return TEMPLATE % fields
 
-    def setUp(self):
-        script = tempfile.NamedTemporaryFile('w', delete=False)
-        script.write(str(self))
-        script.close()
+    def setup(self):
+        """
+        Create a temporary file and print the script in it
+        """
+        with tempfile.NamedTemporaryFile('w', delete=False) as script:
+            self.file_name = script.name
+            script.write(str(self))
 
-        os.chmod(script.name, 0o755)
+        os.chmod(self.file_name, 0o755)
 
-        LOGGER.debug("Running templated script:\n" +
-                     "".join('=' for _ in range(80)) + "\n%s\n" % str(self) +
-                     "".join('=' for _ in range(80)))
+        sep = "\n" + "".join('=' for _ in range(80))
+        LOGGER.debug("Running templated script:%(sep)s\n%(script)s%(sep)s", {
+            'sep': sep,
+            'script': str(self)
+        })
 
-        self.file_name = script.name
         return self.file_name
 
-    def tearDown(self):
+    def teardown(self):
         if getattr(self, 'file_name', False):
             os.unlink(self.file_name)

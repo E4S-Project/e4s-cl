@@ -30,7 +30,8 @@ class ProfileCreateTest(tests.TestCase):
         libraries = ['/tmp/e4s_cl/lib%d.so' % k for k in range(5)]
 
         stdout, stderr = self.assertCommandReturnValue(
-            0, create_command, [self.profile_name, '--libraries', ",".join(libraries)])
+            0, create_command,
+            [self.profile_name, '--libraries', ",".join(libraries)])
 
         stdout, stderr = self.assertCommandReturnValue(0, list_command, [])
         self.assertIn(self.profile_name, stdout)

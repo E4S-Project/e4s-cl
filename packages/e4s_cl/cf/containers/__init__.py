@@ -1,18 +1,23 @@
-"""containers module
-
+"""
 Defines an abstract class to simplify the use of container technology.
 Creating an instance of ``Container`` will return a specific class to
-the required backend."""
+the required backend.
+"""
 
+import os
 import re
 import sys
 import json
 from importlib import import_module
 from pathlib import Path
-from e4s_cl import logger, variables
-from e4s_cl.util import walk_packages, which, unrelative
-from e4s_cl.cf.libraries import extract_libc
-from e4s_cl.error import InternalError
+from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
+from e4s_cl.util import walk_packages, which, json_loads
+from e4s_cl.cf.version import Version
+from e4s_cl.cf import pipe
+from e4s_cl.cf.libraries import LibrarySet
+from e4s_cl.error import ConfigurationError
+
+from e4s_cl.cli.commands.__analyze import COMMAND as ANALYZE_COMMAND
 
 LOGGER = logger.get_logger(__name__)
 
@@ -27,8 +32,53 @@ EXPOSED_BACKENDS = []
 MIMES = []
 
 
-class BackendNotAvailableError(InternalError):
-    pass
+# pylint: disable=too-few-public-methods
+class FileOptions:
+    """
+    Abstraction of bound files options
+    """
+    READ_ONLY = 0
+    READ_WRITE = 1
+
+
+class BackendError(ConfigurationError):
+    """Error raised when the requested container tech is not available"""
+    def __init__(self, backend_name):
+        self.offending = backend_name
+        self._message = "An error has been encountered setting up the container technology backend %s." % backend_name
+        super().__init__(self._message)
+
+    def handle(self, etype, value, tb):
+        LOGGER.critical(self._message)
+        return EXIT_FAILURE
+
+
+class BackendNotAvailableError(BackendError):
+    """Error raised when the requested backend is not found on the system"""
+    def __init__(self, backend_name):
+        super().__init__(backend_name)
+        self._message = "Backend %s not found. Is the module loaded ?" % self.offending
+
+
+class BackendUnsupported(BackendError):
+    """Error raised when the requested backend is not supported"""
+    def __init__(self, backend_name):
+        super().__init__(backend_name)
+        pretty = 's are' if len(EXPOSED_BACKENDS) > 1 else ' is'
+        self._message = """Backend %s not supported at this time. The available backend%s: %s.
+Please create a GitHub issue if support is required.""" % (
+            self.offending, pretty, ", ".join(EXPOSED_BACKENDS))
+
+
+class AnalysisError(ConfigurationError):
+    """Generic error for container analysis failure"""
+    def __init__(self, returncode):
+        self.code = returncode
+        super().__init__("Container analysis failed ! (%d)" % self.code)
+
+    def handle(self, etype, value, tb):
+        LOGGER.critical("Container analysis failed ! (%d)", self.code)
+        return EXIT_FAILURE
 
 
 def dump(func):
@@ -50,8 +100,30 @@ def dump(func):
     return wrapper
 
 
-class Container():
-    """Abstract class to complete depending on the container tech."""
+def brand(container):
+    """
+    Bind the python interpreter and e4s_cl packages to a container object
+    """
+    requirements = ['packages', 'conda', 'bin']
+
+    for folder in requirements:
+        container.bind_file(Path(E4S_CL_HOME, folder).as_posix(),
+                            dest=Path(CONTAINER_DIR, folder).as_posix())
+
+
+class Container:
+    """
+    Abstract class that auto-completes depending on the container tech
+    """
+
+    # pylint: disable=too-few-public-methods
+    class BoundFile:
+        """
+        Element of the bound file dictionnary
+        """
+        def __init__(self, path: Path, option: int = FileOptions.READ_ONLY):
+            self.path = Path(path)
+            self.option = option
 
     # pylint: disable=unused-argument
     def __new__(cls, image=None, executable=None):
@@ -63,8 +135,7 @@ class Container():
         module = sys.modules.get(module_name)
 
         if not module_name or not module:
-            raise BackendNotAvailableError(
-                "Module for backend {} not found".format(module_name))
+            raise BackendUnsupported(executable)
 
         driver = object.__new__(module.CLASS)
 
@@ -82,24 +153,63 @@ class Container():
         self.executable = which(executable)
 
         if not self.executable or (not Path(self.executable).exists()):
-            raise BackendNotAvailableError("Executable %s not found" %
-                                           executable)
+            raise BackendNotAvailableError(executable)
 
         # Container image file on the host
         self.image = image
 
         # User-set parameters
-        self.bound = []  # Files to bind (host_path, guest_path, options)
+        # Files to bind: dict(guest_path -> (host_path, options))
+        # dict[Path, Container._bound_file]
+        self.__bound_files = dict()
         self.env = {}  # Environment
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
 
-        # Container analysis attributes
-        self._libc_ver = None
-        self._embarked_libraries = {}
-        self._linkers = []
+        self.libc_v = Version('0.0.0')
+        self.libraries = LibrarySet()
 
-    def bind_file(self, path, dest=None, options=None):
+    def get_data(self, entrypoint, library_set=LibrarySet()):
+        """
+        Run the e4s-cl analyze command in the container to analyze the
+        environment inside of it. The results will be used to tailor the
+        library import to ensure compatibility of the shared objects.
+
+        A library set with data about libraries listed in library_set will
+        be returned
+        """
+
+        # Import python and e4s-cl files
+        brand(self)
+
+        # Setup a one-way communication channel
+        fdr = pipe.create()
+
+        # Use the imported python interpreter with the imported e4s-cl
+        entrypoint.command = [
+            Path(CONTAINER_DIR, 'conda', 'bin', 'python3').as_posix(),
+            Path(CONTAINER_DIR, 'bin', 'e4s-cl').as_posix(),
+            ANALYZE_COMMAND.monicker, '--libraries'
+        ] + list(library_set.sonames)
+
+        script_name = entrypoint.setup()
+        self.bind_file(script_name, CONTAINER_SCRIPT)
+
+        code, _ = self.run([CONTAINER_SCRIPT], redirect_stdout=False)
+
+        entrypoint.teardown()
+
+        if code:
+            raise AnalysisError(code)
+
+        data = json_loads(os.read(fdr, 1024**3).decode())
+
+        self.libc_v = Version(data.get('libc_version', '0.0.0'))
+        self.libraries = LibrarySet(data.get('libraries', set()))
+
+        return self.libraries
+
+    def bind_file(self, path, dest=None, option=FileOptions.READ_ONLY):
         """
         If there is no destination, handle files with relative paths.
         For instance on summit, some files are required as
@@ -108,11 +218,57 @@ class Container():
         having jsm_pmix/container && lib makes it error out
         unrelative returns a list of all the paths required for such a file
         """
+        def _unrelative(string):
+            """
+            Returns a list of all the directories referenced by a relative path
+            """
+            def _contains(path1, path2):
+                """
+                Returns true if path2 is in the tree of which path1 is the root
+                pathlib's < operator compares alphabetically, so here we are
+                """
+                index = len(path1.parts)
+                return path1.parts[:index] == path2.parts[:index]
+
+            path = Path(string)
+            visited = {path, path.resolve()}
+            deps = set()
+
+            for i in range(0, len(path.parts)):
+                if path.parts[i] == '..':
+                    visited.add(Path(*path.parts[:i]).resolve())
+
+            for element in visited:
+                contained = False
+                for path in visited:
+                    if path != element and _contains(path, element):
+                        contained = True
+
+                if not contained:
+                    deps.add(element)
+
+            return [p.as_posix() for p in deps]
+
         if not dest:
-            for _path in unrelative(path):
-                self.bound.append((_path, None, options))
+            for _path in _unrelative(path):
+                self.__bound_files.update(
+                    {Path(_path): Container.BoundFile(_path, option)})
         else:
-            self.bound.append((path, dest, options))
+            self.__bound_files.update(
+                {Path(dest): Container.BoundFile(path, option)})
+
+    @property
+    def bound(self):
+        for path, data in self._Container__bound_files.items():
+            if data.path.exists():
+                yield data.path, path, data.option
+            else:
+                LOGGER.warning(
+                    "Attempting to bind non-existing file: %(source)s to %(dest)s",
+                    {
+                        'source': data.path,
+                        'dest': path
+                    })
 
     def bind_env_var(self, key, value):
         self.env.update({key: value})
@@ -124,67 +280,6 @@ class Container():
     def add_ld_library_path(self, path):
         if path not in self.ld_lib_path:
             self.ld_lib_path.append(path)
-
-    @property
-    def libraries(self):
-        """
-        Returns a dictionnary of all libraries in the container's ld
-        cache with the format {soname: path}
-        """
-        if self._embarked_libraries:
-            return self._embarked_libraries
-
-        # Run a command in the container, in the container-specific
-        # implemented run method
-        # pylint: disable=assignment-from-no-return
-        ld_cache = self.run(['ldconfig', '-p'], redirect_stdout=True)
-        # pylint: enable=assignment-from-no-return
-
-        lines = ld_cache.split('\n')[1:]
-        for line in filter(lambda x: x, lines):
-            # line sample:
-            # \t\tlibGL.so.1 (libc6,x86-64) => /usr/lib/libGL.so.1
-            line = line.strip().split()
-            self._embarked_libraries.update({line[0]: line[-1]})
-
-        return self._embarked_libraries
-
-    @property
-    def libc_version(self):
-        """
-        Returns the libc version from inside the container
-        """
-        if self._libc_ver:
-            return self._libc_ver
-
-        self._libc_ver = extract_libc(
-            self.run(['ldd', '--version'], redirect_stdout=True))
-
-        return self._libc_ver
-
-    @property
-    def linkers(self):
-        """
-        Returns a list of all the actual linkers in the image
-
-        Begins by grabbing all the linker references in the linker cache,
-        then calls a `readlink -f` on it to get the actual file.
-        """
-        if self._linkers:
-            return self._linkers
-
-        cache = filter(lambda x: re.match('^ld.*', x), self.libraries.keys())
-
-        symbolic_links = [self.libraries[linker] for linker in cache]
-
-        targets = [
-            self.run(['readlink', '-f', path], redirect_stdout=True)
-            for path in symbolic_links
-        ]
-
-        self._linkers = [f.strip() for f in filter(lambda x: x, targets)]
-
-        return self._linkers
 
     def run(self, command, redirect_stdout=False):
         """
@@ -201,19 +296,20 @@ class Container():
         - The LD_PRELOAD self.ld_preload;
         - The LD_LIBRARY_PATH self.ld_lib_path
         and set them to be available in the created container.
+
+        It should return a tuple the process' returncode and output
         """
-        raise InternalError("run not implemented for container %s" %
-                            self.__class__.__name__)
+        raise NotImplementedError(
+            "`run` method not implemented for container module %s" %
+            self.__class__.__name__)
 
     def __str__(self):
         out = []
         out.append("%s object:" % self.__class__.__name__)
         if self.image:
             out.append("- image: %s" % self.image)
-        if self.bound:
-            out.append("- bound: %s" %
-                       json.dumps([str(path)
-                                   for path in self.bound], indent=2))
+        out.append("- bound:\n%s" %
+                   "\n".join(["\t%s -> %s (%d)" % v for v in self.bound]))
         if self.env:
             out.append("- env: %s" % json.dumps(self.env, indent=2))
         if self.ld_preload:
@@ -232,7 +328,7 @@ def guess_backend(path):
 
     # If we cannot associate a unique backend to a MIME
     if len(matches) != 1:
-        return
+        return None
 
     return matches[0][1]
 

@@ -4,7 +4,7 @@ Profile data model.
 
 import pathlib
 from e4s_cl import logger
-from e4s_cl.error import InternalError, ProfileSelectionError
+from e4s_cl.error import ProfileSelectionError
 from e4s_cl.mvc.model import Model
 from e4s_cl.mvc.controller import Controller
 from e4s_cl.cf.storage.levels import USER_STORAGE
@@ -22,23 +22,23 @@ def attributes():
         },
         'backend': {
             'type': 'string',
-            'description': 'backend type',
+            'description': 'container backend technology',
         },
         'image': {
             'type': 'string',
-            'description': 'image file',
+            'description': 'image file or location',
         },
         'files': {
             'type': 'string',
-            'description': 'files to bind',
+            'description': 'files to bind in the container',
         },
         'libraries': {
             'type': 'string',
-            'description': 'libraries to bind',
+            'description': 'libraries to bind in the container',
         },
         'source': {
             'type': 'string',
-            'description': 'script to source',
+            'description': 'script to source before execution',
         },
     }
 
@@ -55,7 +55,7 @@ class ProfileController(Controller):
     """Profile data controller."""
     def create(self, data):
         homogenize_files(data)
-        return super(ProfileController, self).create(data)
+        return super().create(data)
 
     def delete(self, keys):
         to_delete = self.one(keys)
@@ -68,7 +68,7 @@ class ProfileController(Controller):
             if selected == to_delete:
                 self.unselect()
 
-        super(ProfileController, self).delete(keys)
+        super().delete(keys)
 
     def select(self, profile):
         self.storage['selected_profile'] = profile.eid
@@ -82,14 +82,14 @@ class ProfileController(Controller):
             selected = self.one(self.storage['selected_profile'])
             if not selected:
                 raise KeyError
-        except KeyError:
-            raise ProfileSelectionError("No profile selected")
+        except KeyError as key_err:
+            raise ProfileSelectionError("No profile selected") from key_err
         else:
             return selected
 
     def update(self, data, keys):
         homogenize_files(data)
-        super(ProfileController, self).update(data, keys)
+        super().update(data, keys)
 
 
 class Profile(Model):

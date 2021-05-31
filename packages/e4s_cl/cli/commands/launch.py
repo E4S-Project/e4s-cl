@@ -15,6 +15,8 @@ from e4s_cl.cf.launchers import interpret
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
 
+from e4s_cl.cli.commands.__execute import COMMAND as execute_cmd
+
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
@@ -22,8 +24,7 @@ _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 def _parameters(args):
     """Generate compound parameters by merging profile and cli arguments
     The profile's parameters have less priority than the ones specified on
-    the command line.
-    If no profile is given, try to load the selected one."""
+    the command line."""
     if isinstance(args, Namespace):
         args = vars(args)
 
@@ -37,7 +38,6 @@ def _parameters(args):
 
 
 def _format_execute(parameters):
-    from e4s_cl.cli.commands.execute import COMMAND as execute_cmd
     execute_command = str(execute_cmd).split()
 
     # Insert a top-level e4s option between the script name and the subcommand
@@ -74,15 +74,17 @@ class LaunchCommand(AbstractCommand):
             default=Profile.selected().get('name', arguments.SUPPRESS),
             metavar='profile')
 
-        parser.add_argument('--image',
-                            type=arguments.posix_path,
-                            help="Path to the container image to run the program in",
-                            metavar='image')
+        parser.add_argument(
+            '--image',
+            type=arguments.posix_path,
+            help="Path to the container image to run the program in",
+            metavar='image')
 
-        parser.add_argument('--source',
-                            type=arguments.posix_path,
-                            help="Path to a bash script to source before execution",
-                            metavar='source')
+        parser.add_argument(
+            '--source',
+            type=arguments.posix_path,
+            help="Path to a bash script to source before execution",
+            metavar='source')
 
         parser.add_argument('--files',
                             type=arguments.posix_path_list,
@@ -127,4 +129,6 @@ class LaunchCommand(AbstractCommand):
         return retval
 
 
-COMMAND = LaunchCommand(__name__, summary_fmt="Launch a process")
+SUMMARY = "Launch a process with a tailored environment."
+
+COMMAND = LaunchCommand(__name__, summary_fmt=SUMMARY)

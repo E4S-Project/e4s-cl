@@ -1,4 +1,9 @@
+"""
+CLI interface module
+"""
+
 import os
+import re
 import sys
 from types import ModuleType
 from e4s_cl import E4S_CL_SCRIPT, EXIT_FAILURE
@@ -27,12 +32,12 @@ _COMMANDS = {SCRIPT_COMMAND: {}}
 
 class UnknownCommandError(ConfigurationError):
     """Indicates that a specified command is unknown."""
-    message_fmt = ("%(value)r is not a valid command.\n" "\n" "%(hints)s")
+    message_fmt = ("%(value)r is not a valid command.\n\n%(hints)s")
 
 
 class AmbiguousCommandError(ConfigurationError):
     """Indicates that a specified partial command is ambiguous."""
-    message_fmt = ("Command '%(value)s' is ambiguous.\n" "\n" "%(hints)s")
+    message_fmt = ("Command '%(value)s' is ambiguous.\n\n%(hints)s")
 
     def __init__(self, value, matches, *hints):
         parts = [
@@ -40,15 +45,14 @@ class AmbiguousCommandError(ConfigurationError):
             for match in matches
         ]
         parts.append("Try `%s --help`" % SCRIPT_COMMAND)
-        super(AmbiguousCommandError, self).__init__(value,
-                                                    *hints + tuple(parts))
+        super().__init__(value, *hints + tuple(parts))
 
 
 def _command_as_list(module_name):
     """Converts a module name to a command name list.
     
     Maps command module names to their command line equivilants, e.g.
-    'e4s_cl.cli.commands.target.create' => ['tau', 'target', 'create']
+    'e4s_cl.cli.commands.target.create' => ['e4s-cl', 'target', 'create']
 
     Args:
         module_name (str): Name of a module.
@@ -152,37 +156,53 @@ def commands_description(package_name=COMMANDS_PACKAGE_NAME):
     """
     usage_fmt = USAGE_FORMAT.lower()
     groups = {}
+
     commands = sorted([
         i for i in _get_commands(package_name).items() if i[0] != '__module__'
     ])
+
     for cmd, topcmd in commands:
         module = topcmd['__module__']
+
         try:
             command_obj = module.COMMAND
         except AttributeError:
             continue
+
+        if re.match(r'__.*', cmd):
+            continue
+
         descr = command_obj.summary.split('\n')[0]
         group = command_obj.group
+
         if usage_fmt == 'console':
             line = '  %s%s' % (util.color_text('{:<14}'.format(cmd),
                                                'green'), descr)
         elif usage_fmt == 'markdown':
             line = '  %s | %s' % ('{:<28}'.format(cmd), descr)
+
         else:
             line = ''
+
         groups.setdefault(group, []).append(line)
+
     parts = []
+
     for group, members in groups.items():
         title = group.title() + ' Subcommands' if group else 'Subcommands'
+
         if usage_fmt == 'console':
             parts.append(util.color_text(title + ':', attrs=['bold']))
+
         elif usage_fmt == 'markdown':
             parts.extend([
                 '', ' ', '{:<30}'.format(title) + ' | Description',
                 '%s:| %s' % ('-' * 30, '-' * len('Description'))
             ])
+
         parts.extend(members)
         parts.append('')
+
     return '\n'.join(parts)
 
 
@@ -209,6 +229,7 @@ def get_all_commands(package_name=COMMANDS_PACKAGE_NAME):
     return all_commands
 
 
+# pylint: disable=inconsistent-return-statements
 def _resolve(cmd, c, d):
     # pylint: disable=invalid-name
     if not c:
@@ -250,14 +271,14 @@ def find_command(cmd):
         resolved = _resolve(cmd, cmd, _COMMANDS[SCRIPT_COMMAND])
         LOGGER.debug('Resolved ambiguous command %r to %r', cmd, resolved)
         return find_command(resolved)
-    except AttributeError:
-        raise InternalError("'COMMAND' undefined in %r" % cmd)
+    except AttributeError as a_err:
+        raise InternalError("'COMMAND' undefined in %r" % cmd) from a_err
 
 
 def _permute(cmd, cmd_args):
     cmd_len = len(cmd)
     full_len = len(cmd) + len(cmd_args)
-    skip = [x[0] == '-' or os.path.isfile(x) for x in (cmd + cmd_args)]
+    skip = [x[0] == '-' or os.path.isfile(x) for x in cmd + cmd_args]
     yield cmd, cmd_args
     for i in range(full_len):
         if skip[i]:
@@ -273,7 +294,7 @@ def _permute(cmd, cmd_args):
 def execute_command(cmd, cmd_args=None, parent_module=None):
     """Import the command module and run its main routine.
     
-    Partial commands are allowed, e.g. cmd=['tau', 'cli', 'commands', 'app', 'cre'] will resolve
+    Partial commands are allowed, e.g. cmd=['e4s-cl', 'cli', 'commands', 'app', 'cre'] will resolve
     to 'e4s_cl.cli.commands.application.create'.  If the command can't be found then the parent 
     command (if any) will be invoked with the ``--help`` flag.
     
@@ -296,18 +317,4 @@ def execute_command(cmd, cmd_args=None, parent_module=None):
         parent = _command_as_list(parent_module)[1:]
         cmd = parent + cmd
 
-    main = find_command(cmd).main
-    return main(cmd_args)
-
-    if len(cmd) <= 1:
-        # We finally give up
-        LOGGER.debug("Unknown command %r has no parent module: giving up.",
-                     cmd)
-        raise UnknownCommandError(' '.join(cmd))
-    if not parent_module:
-        parent = cmd[:-1]
-    LOGGER.debug('Getting help from parent command %r', parent)
-    parent_usage = util.uncolor_text(find_command(parent).usage)
-    LOGGER.error("Invalid %s subcommand: %s\n\n%s", parent[0], cmd[-1],
-                 parent_usage)
-    return EXIT_FAILURE
+    return find_command(cmd).main(cmd_args)

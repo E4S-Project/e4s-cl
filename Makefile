@@ -159,3 +159,10 @@ clean:
 
 test: python_check
 	$(PYTHON) -m tox tox.ini
+
+format:
+	bash ./scripts/format.sh packages/e4s_cl
+
+lint:
+	@$(PYTHON) -m pip install pylint
+	$(PYTHON) -m pylint --rcfile pylintrc packages/e4s_cl --output-format=colorized

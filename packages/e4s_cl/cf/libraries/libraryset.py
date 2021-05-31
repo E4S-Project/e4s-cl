@@ -1,5 +1,14 @@
+"""
+Defines a derived class of set() with shared objects, along with a few methods,
+to facilitate handling large amounts of libraries
+"""
+
 import re
+from pathlib import Path
+
 from e4s_cl import logger
+from e4s_cl.error import InternalError
+from e4s_cl.cf.libraries.linker import resolve, LinkingError
 from e4s_cl.util import flatten, color_text, JSON_HOOKS
 
 from elftools.common.exceptions import ELFError
@@ -22,7 +31,7 @@ class Library:
     def __init__(self, file=None, soname=""):
         self.soname = soname
         self.dyn_dependencies = set()
-        self.required_versions = {}
+        self.required_versions = dict()
         self.defined_versions = set()
 
         self.rpath = []
@@ -33,21 +42,21 @@ class Library:
             try:
                 for section in ELFFile(file).iter_sections():
                     if isinstance(section, GNUVerDefSection):
-                        self.__parseVerDef(section)
+                        self.__parse_ver_def(section)
                     elif isinstance(section, GNUVerNeedSection):
-                        self.__parseVerNeed(section)
+                        self.__parse_ver_need(section)
                     elif isinstance(section, DynamicSection):
-                        self.__parseDynamic(section)
-            except ELFError as e:
+                        self.__parse_dynamic(section)
+            except ELFError as err:
                 LOGGER.error("Error parsing '%s' for ELF data: %s", file.name,
-                             e)
+                             err)
 
             self.binary_path = file.name
 
-    def __parseDynamic(self, section):
-        def __fetch_tags(id):
+    def __parse_dynamic(self, section):
+        def __fetch_tags(id_):
             return list(
-                filter(lambda x: x.entry.d_tag == id, section.iter_tags()))
+                filter(lambda x: x.entry.d_tag == id_, section.iter_tags()))
 
         tags = __fetch_tags('DT_SONAME')
         if len(tags) == 1:
@@ -64,17 +73,17 @@ class Library:
         tags = __fetch_tags('DT_NEEDED')
         self.dyn_dependencies = {tag.needed for tag in tags}
 
-    def __parseVerDef(self, section):
+    def __parse_ver_def(self, section):
         self.defined_versions = {
             next(v_iter).name
             for _, v_iter in section.iter_versions()
         }
 
-    def __parseVerNeed(self, section):
+    def __parse_ver_need(self, section):
         needed = dict()
 
-        for v, v_iter in section.iter_versions():
-            needed[v.name] = {v.name for v in v_iter}
+        for ver, v_iter in section.iter_versions():
+            needed[ver.name] = {ver.name for ver in v_iter}
 
         self.required_versions = needed
 
@@ -86,34 +95,103 @@ class Library:
 
     def __eq__(self, other):
         if isinstance(other, Library):
-            return self.soname == other.soname
+            return self.soname == other.soname and self.defined_versions == other.defined_versions
         return NotImplemented
 
 
+# pylint: disable=too-few-public-methods
 class HostLibrary(Library):
     pass
 
 
+# pylint: disable=too-few-public-methods
 class GuestLibrary(Library):
     pass
 
 
 class LibrarySet(set):
+    """
+    Set-like object to collect Libray objects
+    """
+    @classmethod
+    def create_from(cls, library_list, member=Library):
+        """
+        -> LibrarySet[type(member)]
+        Given a list of str or pathlib.Path, create a cf.libraries.LibrarySet
+        with all the libraries and their dependencies resolved.
+
+        Given a class as the member argument, all objects will be created from
+        that class.
+        """
+        def _process(element):
+            path = None
+
+            if isinstance(element, Path):
+                path = element.as_posix()
+            elif isinstance(element, str):
+                if '/' in element:
+                    path = Path(element).as_posix()
+                else:
+                    path = resolve(element,
+                                   rpath=cache.rpath,
+                                   runpath=cache.runpath)
+            else:
+                raise InternalError(
+                    "Wrong type for LibrarySet.create_from: %s" %
+                    type(element))
+
+            if not path:
+                raise LinkingError(element)
+
+            return path
+
+        cache = LibrarySet()
+
+        for path in map(_process, library_list):
+            with open(path, 'rb') as file:
+                cache.add(member(file))
+
+        return cache.resolve(member=member)
+
+    def add(self, elem):
+        """
+        -> None
+        Wraps the default set.add method
+
+        If a element with a given hash is added to a set, python will avoid
+        copying it over if the set already contains an element with the same
+        hash. This is an issue when adding HostLibraries/GuestLibraries
+        depicting the same library, as the hash needs to be their soname.
+
+        This method gets rid of matching libraries before calling set.add
+        """
+        if not isinstance(elem, Library):
+            raise InternalError(
+                "Adding object of incompatible type %s to LibrarySet !" %
+                type(elem))
+
+        conflict = list(filter(lambda x: hash(x) == hash(elem), self))
+
+        if len(conflict) == 1:
+            self.discard(conflict.pop())
+
+        super().add(elem)
+
     @property
     def rpath(self):
         """
-        -> set(str)
+        -> list(str)
         Return a set of the libraries rpaths merged together
         """
-        return set(flatten(map(lambda x: x.rpath, self)))
+        return flatten(map(lambda x: x.rpath, self))
 
     @property
     def runpath(self):
         """
-        -> set(str)
+        -> list(str)
         Return a set of the libraries runpaths merged together
         """
-        return set(flatten(map(lambda x: x.runpath, self)))
+        return flatten(map(lambda x: x.runpath, self))
 
     @property
     def defined_versions(self):
@@ -132,7 +210,28 @@ class LibrarySet(set):
         Returns a set of all libraries included in self that are not depended
         upon from another library in the set
         """
-        return self - self.required_libraries
+        return LibrarySet(self - self.required_libraries)
+
+    @property
+    def linkers(self):
+        """
+        -> LibrarySet, subset of self
+        Returns a set of all linkers present in the set
+        """
+        return LibrarySet(filter(lambda x: not x.dyn_dependencies, self))
+
+    @property
+    def glib(self):
+        """
+        -> LibrarySet, subset of self
+        Returns a set with all libraries tied to the available libc,
+        recognizable by the GLIBC_PRIVATE dependency. Using these with any
+        other libc will trigger a symbol error
+        """
+        def needs_private(lib):
+            return 'GLIBC_PRIVATE' in flatten(lib.required_versions.values())
+
+        return LibrarySet(filter(needs_private, self))
 
     @property
     def required_libraries(self):
@@ -159,8 +258,8 @@ class LibrarySet(set):
         Returns a set with the sonames of all the dependencies of the set's
         libraries not present in self
         """
-        sonames = set(flatten(map(lambda x: x.dyn_dependencies, self)))
-        return set(filter(lambda x: x not in self.sonames, sonames))
+        req_sonames = set(flatten(map(lambda x: x.dyn_dependencies, self)))
+        return req_sonames - self.sonames
 
     @property
     def outdated_libraries(self):
@@ -172,8 +271,12 @@ class LibrarySet(set):
         outdated = LibrarySet()
 
         for library in self:
-            for soname, required in library.required_versions.items():
-                matches = set(filter(lambda x: x.soname == soname, self))
+            for _soname, required in library.required_versions.items():
+                matches = set()
+
+                for obj in self:
+                    if obj.soname == _soname:
+                        matches.add(obj)
 
                 if len(matches) != 1:
                     continue
@@ -194,14 +297,93 @@ class LibrarySet(set):
         return (len(self.missing_libraries) == 0
                 and self.required_versions.issubset(self.defined_versions))
 
-    def trees(self):
+    def find(self, soname):
+        """
+        -> Library or None
+        Returns the matching library if found in self, else None
+        """
+        matches = set(filter(lambda x: re.match(soname, x.soname), self))
+
+        return matches.pop() if matches else None
+
+    def resolve(self, rpath=None, runpath=None, member=Library):
+        """
+        -> LibrarySet, superset of self
+        will try to resolve all dynamic depedencies of the set's members, then
+        add them to the returned set
+
+        if the returned set complete() method returns False, a library cannot
+        be found by e4s-cl
+        """
+        superset = LibrarySet(self)
+        rpath = rpath or list()
+        runpath = runpath or list()
+
+        missing = superset.missing_libraries
+        change = True
+
+        while change:
+            for soname in missing:
+                path = resolve(soname,
+                               rpath=superset.rpath + rpath,
+                               runpath=superset.runpath + runpath)
+
+                if not path:
+                    continue
+
+                with open(path, 'rb') as file:
+                    superset.add(member(file))
+
+            change = superset.missing_libraries != missing
+            missing = superset.missing_libraries
+
+        return superset
+
+    def ldd_format(self):
+        """
+        -> list(str)
+        """
+        def line(soname: str):
+            if lib := self.find(soname):
+                format_fields = lib.__dict__
+                format_fields.update(
+                    {'origin': lib.__class__.__name__.lower()})
+
+                return "%(soname)s => %(binary_path)s (%(origin)s)" % format_fields
+            return "%s => not found" % soname
+
+        return list(map(line, set.union(self.sonames, self.missing_libraries)))
+
+    def trees(self, show_versions=False):
         """
         -> list(list(str))
+        Returns a list of string lists. Each list contains lines that, when
+        printed in succession, describe a dependency tree. Trees are calculated
+        for every library in self.top_level.
         """
         def get_name(elem):
+            header = color_text(elem.soname, 'red', None, ['bold'])
+
             if elem.binary_path:
-                return "%s (%s)" % (elem.soname, elem.binary_path)
-            return color_text(elem.soname, 'red', None, ['bold'])
+                header = "%s (%s)" % (elem.soname, elem.binary_path)
+
+            if isinstance(elem, GuestLibrary):
+                header += " %s" % color_text("(GUEST)", 'green', None,
+                                             ['bold'])
+            if isinstance(elem, HostLibrary):
+                header += " %s" % color_text("(HOST)", 'blue', None, ['bold'])
+
+            sections = []
+            for soname, versions in elem.required_versions.items():
+                for version in versions:
+                    if not version in self.defined_versions:
+                        version = color_text(version, 'red', None, ['bold'])
+                    sections.append("├ %s (from %s)" % (version, soname))
+
+            if sections and show_versions:
+                header = "%s\n%s" % (header, "\n".join(sections))
+
+            return header
 
         def gen_get_children():
             def get_children(elem):
@@ -227,8 +409,8 @@ class LibrarySet(set):
         return trees
 
 
-def __LibraryDecoder(_type):
-    def __LDecoder(obj):
+def __library_decoder(_type):
+    def __l_decoder(obj):
         out = _type()
 
         for key, value in obj.items():
@@ -236,9 +418,9 @@ def __LibraryDecoder(_type):
 
         return out
 
-    return __LDecoder
+    return __l_decoder
 
 
-JSON_HOOKS['Library'] = __LibraryDecoder(Library)
-JSON_HOOKS['HostLibrary'] = __LibraryDecoder(HostLibrary)
-JSON_HOOKS['GuestLibrary'] = __LibraryDecoder(GuestLibrary)
+JSON_HOOKS['Library'] = __library_decoder(Library)
+JSON_HOOKS['HostLibrary'] = __library_decoder(HostLibrary)
+JSON_HOOKS['GuestLibrary'] = __library_decoder(GuestLibrary)

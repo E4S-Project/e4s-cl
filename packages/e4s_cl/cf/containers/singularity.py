@@ -5,13 +5,15 @@ Module introducing singularity support
 from e4s_cl import logger
 from e4s_cl.util import create_subprocess_exp
 from e4s_cl.cf.libraries import host_libraries
-from e4s_cl.cf.containers import Container
+from e4s_cl.cf.containers import Container, FileOptions
 
 LOGGER = logger.get_logger(__name__)
 
 NAME = 'singularity'
 EXECUTABLES = ['singularity']
 MIMES = ['.simg', '.sif']
+
+OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
 
 
 class SingularityContainer(Container):
@@ -28,28 +30,20 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
         container_cmd = [self.executable, 'exec'
                          ] + nvidia_flag + [self.image.as_posix()] + command
-        _, output = create_subprocess_exp(container_cmd,
-                                          env=self.env,
-                                          redirect_stdout=redirect_stdout)
-        return output
+
+        return create_subprocess_exp(container_cmd,
+                                     env=self.env,
+                                     redirect_stdout=redirect_stdout)
 
     def format_bound(self):
         """
         Format a list of files to a compatible bind option of singularity
         """
-        file_list = []
+        def _format():
+            for source, dest, options_val in self.bound:
+                yield "%s:%s:%s" % (source, dest, OPTION_STRINGS[options_val])
 
-        for request in self.bound:
-            if request[1]:
-                file_list.append("%s:%s:%s" % request)
-            else:
-                file_list.append("%s:%s:%s" %
-                                 (request[0], request[0], request[2]))
-
-        files = ','.join(file_list)
-
-        if files:
-            self.env.update({"SINGULARITY_BIND": files})
+        self.env.update({"SINGULARITY_BIND": ','.join(_format())})
 
     def bind_env_var(self, key, value):
         new_key = "SINGULARITYENV_{}".format(key)

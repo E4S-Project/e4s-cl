@@ -1,9 +1,13 @@
+"""
+Base template for commands
+"""
+
 from abc import ABCMeta, abstractmethod
 from e4s_cl import logger, cli
 from e4s_cl.cli.arguments import ArgumentsNamespace
 
 
-class AbstractCommand(object, metaclass=ABCMeta):
+class AbstractCommand(metaclass=ABCMeta):
     """Abstract base class for E4S Container Launcher commands.
     
     Attributes:
@@ -21,8 +25,6 @@ class AbstractCommand(object, metaclass=ABCMeta):
                  group=None):
         if not summary_fmt:
             summary_fmt = "No summary for '%(command)s'"
-        if not help_page_fmt:
-            help_page_fmt = "No help page for '%(command)s'"
         self.module_name = module_name
         self.logger = logger.get_logger(module_name)
         self.command = cli.command_from_module_name(module_name)
@@ -51,7 +53,7 @@ class AbstractCommand(object, metaclass=ABCMeta):
 
     @property
     def help_page(self):
-        return self.help_page_fmt % self.format_fields
+        return self.help_page_fmt % self.format_fields if self.help_page_fmt else None
 
     @property
     def parser(self):
@@ -62,6 +64,10 @@ class AbstractCommand(object, metaclass=ABCMeta):
     @property
     def usage(self):
         return self.parser.format_help()
+
+    @property
+    def monicker(self):
+        return self.module_name.split('.')[-1]
 
     def _parse_args(self, argv):
         if isinstance(argv, ArgumentsNamespace):

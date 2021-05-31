@@ -1,16 +1,14 @@
-import os
-import socket
 import sys
 import re
 import copy
 import argparse
 import textwrap
 import pathlib
-from gettext import gettext as _, ngettext
+from gettext import gettext as _
 from operator import attrgetter
 from e4s_cl import logger, util
 from e4s_cl.cli import USAGE_FORMAT
-from e4s_cl.util import flatten
+from e4s_cl.util import flatten, add_dot
 from e4s_cl.error import InternalError
 from e4s_cl.cf.storage.levels import ORDERED_LEVELS, STORAGE_LEVELS
 
@@ -46,7 +44,7 @@ class MutableArgumentGroup(argparse._ArgumentGroup):
     # pylint: disable=protected-access
 
     def __init__(self, *args, **kwargs):
-        super(MutableArgumentGroup, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __getitem__(self, option_string):
         return self._option_string_actions[option_string]
@@ -63,7 +61,7 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
     # pylint: disable=protected-access
 
     def __init__(self, *args, **kwargs):
-        super(MutableArgumentGroupParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.actions = self._actions
 
     def __getitem__(self, option_string):
@@ -145,14 +143,14 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
     def _format_help_path(self):
         """Format completion list"""
         formatter = self._get_formatter()
+        formatter.start_section('')
+        args = []
         for action_group in self._sorted_groups():
-            title = ' '.join(x[0].upper() + x[1:]
-                             for x in action_group.title.split())
-            formatter.start_section(title)
-            formatter.add_arguments(
+            args.extend(
                 sorted(action_group._group_actions,
                        key=attrgetter('option_strings')))
-            formatter.end_section()
+        formatter.add_arguments(args)
+        formatter.end_section()
         return formatter.format_help()
 
     def format_help(self):
@@ -243,8 +241,7 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
                  width=None):
         if width is None:
             width = logger.LINE_WIDTH
-        super(HelpFormatter, self).__init__(prog, indent_increment,
-                                            max_help_position, width)
+        super().__init__(prog, indent_increment, max_help_position, width)
 
     def _split_lines(self, text, width):
         parts = []
@@ -254,12 +251,13 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
 
     def _get_help_string(self, action):
         indent = ' ' * self._indent_increment
-        helpstr = action.help
-        helpstr = helpstr[0].upper() + helpstr[1:] + "."
-        choices = getattr(action, 'choices', None)
-        if choices:
+        helpstr = add_dot(action.help)
+        helpstr = helpstr[0].upper() + helpstr[1:]
+        """Disabled in favour of per-help customization
+        if choices := getattr(action, 'choices', None)
             helpstr += '\n%s- %s: %s' % (indent, action.metavar,
                                          ', '.join(choices))
+        """
         if '%(default)' not in action.help:
             if action.default is not argparse.SUPPRESS:
                 defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
@@ -268,7 +266,7 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
                         default_str = ', '.join(action.default)
                     else:
                         default_str = str(action.default)
-                    helpstr += '\n%s' % indent + '- default: %s' % default_str
+                    #helpstr += '\n%s' % indent + '- default: %s' % default_str
         return helpstr
 
     def _format_positional(self, argstr):
@@ -331,8 +329,7 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
 class ConsoleHelpFormatter(HelpFormatter):
     """Custom help string formatter for console output."""
     def start_section(self, heading):
-        return super(ConsoleHelpFormatter, self).start_section(
-            util.color_text(heading, attrs=['bold']))
+        return super().start_section(util.color_text(heading, attrs=['bold']))
 
     def add_argument(self, action):
         if action.help is not SUPPRESS:
@@ -407,8 +404,7 @@ class MarkdownHelpFormatter(HelpFormatter):
                  indent_increment=2,
                  max_help_position=30,
                  width=logger.LINE_WIDTH):
-        super(MarkdownHelpFormatter, self).__init__(prog, indent_increment,
-                                                    max_help_position, width)
+        super().__init__(prog, indent_increment, max_help_position, width)
         trans = {'<': '*', '>': '*', '|': r'\|'}
         self._escape_rep = {re.escape(k): v for k, v in trans.items()}
         self._escape_pattern = re.compile("|".join(self._escape_rep.keys()))
@@ -454,8 +450,8 @@ class MarkdownHelpFormatter(HelpFormatter):
         return text.splitlines()
 
     def _get_help_string(self, action):
-        helpstr = action.help
-        helpstr = helpstr[0].upper() + helpstr[1:] + "."
+        helpstr = add_dot(action.help)
+        helpstr = helpstr[0].upper() + helpstr[1:]
         choices = getattr(action, 'choices', None)
         if choices:
             helpstr += self._escape_markdown(
@@ -463,13 +459,11 @@ class MarkdownHelpFormatter(HelpFormatter):
         return helpstr
 
     def _format_usage(self, usage, actions, groups, prefix):
-        usage = super(MarkdownHelpFormatter,
-                      self)._format_usage(usage, actions, groups, "")
+        usage = super()._format_usage(usage, actions, groups, "")
         return "`%s`" % usage.strip() + '\n\n'
 
     def _format_action_invocation(self, action):
-        invocation = super(MarkdownHelpFormatter,
-                           self)._format_action_invocation(action)
+        invocation = super()._format_action_invocation(action)
         return '{}{:>{}}'.format(
             ' ' * self._indent_increment, self._escape_markdown(invocation),
             MarkdownHelpFormatter.first_col_width - self._indent_increment)
@@ -499,8 +493,7 @@ class MarkdownHelpFormatter(HelpFormatter):
 
 
 class PathHelpFormatter(HelpFormatter):
-    """Formatter for generating a list of possible completion targets
-    """
+    """Formatter generating a list of possible completion targets"""
     class _Section(object):
         def __init__(self, formatter, parent, heading=None):
             self.formatter = formatter
@@ -518,14 +511,10 @@ class PathHelpFormatter(HelpFormatter):
         pass
 
     def format_help(self):
-        help = self._root_section.format_help()
-        return " ".join(help) + "\n"
+        return ' '.join(self._root_section.format_help()) + '\n'
 
     def _format_action(self, action):
-        # collect the pieces of the action help
-        parts = (action.choices or [])
-
-        return parts
+        return filter(lambda x: not re.match(r'__.*', x), action.choices or [])
 
 
 class ParseBooleanAction(argparse.Action):
@@ -702,12 +691,13 @@ def get_model_identifier(model,
     if 'selected' in dir(model):
         _default = model.selected().get(key_attr, UNSELECTED)
 
-    parser.add_argument(model_name.lower(),
-                        nargs='?',
-                        type=defined_object(model, key_attr),
-                        help="The target profile. If omitted, defaults to the selected profile",
-                        default=_default,
-                        metavar="%s_%s" % (model_name.lower(), key_attr))
+    parser.add_argument(
+        model_name.lower(),
+        nargs='?',
+        type=defined_object(model, key_attr),
+        help="The target profile. If omitted, defaults to the selected profile",
+        default=_default,
+        metavar="%s_%s" % (model_name.lower(), key_attr))
 
     return parser
 

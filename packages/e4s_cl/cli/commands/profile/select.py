@@ -13,9 +13,9 @@ class ProfileSelectCommand(AbstractCommand):
     def _construct_parser(self):
         usage = "%s <profile_name>" % self.command
         parser = arguments.get_model_identifier(Profile,
-                                      prog=self.command,
-                                      usage=usage,
-                                      description=self.summary)
+                                                prog=self.command,
+                                                usage=usage,
+                                                description=self.summary)
         return parser
 
     def main(self, argv):

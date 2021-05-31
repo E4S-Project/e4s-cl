@@ -1,13 +1,16 @@
+"""
+Command stubs, inherited from taucmdr
+"""
+
 import json
 from texttable import Texttable
 from e4s_cl import EXIT_SUCCESS
 from e4s_cl import logger, util, cli
-from e4s_cl.error import UniqueAttributeError, InternalError, ModelError, ProfileSelectionError
+from e4s_cl.error import UniqueAttributeError, InternalError, ModelError
 from e4s_cl.cf.storage import StorageError
-from e4s_cl.cf.storage.levels import SYSTEM_STORAGE, USER_STORAGE, PROFILE_STORAGE
+from e4s_cl.cf.storage.levels import SYSTEM_STORAGE, USER_STORAGE
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
-from e4s_cl.model.profile import Profile
 
 
 class AbstractCliView(AbstractCommand):
@@ -35,11 +38,11 @@ class AbstractCliView(AbstractCommand):
         if not summary_fmt:
             summary_fmt = "Create and manage %(model_name)s configurations."
         self.include_storage_flag = include_storage_flag
-        super(AbstractCliView, self).__init__(module_name,
-                                              format_fields=format_fields,
-                                              summary_fmt=summary_fmt,
-                                              help_page_fmt=help_page_fmt,
-                                              group=group)
+        super().__init__(module_name,
+                         format_fields=format_fields,
+                         summary_fmt=summary_fmt,
+                         help_page_fmt=help_page_fmt,
+                         group=group)
 
 
 class RootCommand(AbstractCliView):
@@ -77,7 +80,7 @@ class CreateCommand(AbstractCliView):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Create %(model_name)s configurations.")
-        super(CreateCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _construct_parser(self):
         usage = "%s <%s_%s> [arguments]" % (self.command, self.model_name,
@@ -128,7 +131,7 @@ class DeleteCommand(AbstractCliView):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Delete %(model_name)s configurations.")
-        super(DeleteCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _construct_parser(self):
         key_attr = self.model.key_attribute
@@ -175,7 +178,7 @@ class EditCommand(AbstractCliView):
         kwargs.setdefault('summary_fmt',
                           "Modify %(model_name)s configurations.")
         self.include_new_key_flag = kwargs.pop('include_new_key_flag', True)
-        super(EditCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _construct_parser(self):
         key_attr = self.model.key_attribute
@@ -233,7 +236,7 @@ class ListCommand(AbstractCliView):
         dashboard_columns = kwargs.pop('dashboard_columns', None)
         title_fmt = kwargs.pop(
             'title_fmt', "%(model_name)s Configurations (%(storage_path)s)")
-        super(ListCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         key_attr = self.model.key_attribute
         self._format_fields = {
             'command': self.command,
@@ -535,10 +538,13 @@ class ListCommand(AbstractCliView):
 
 
 class DumpCommand(AbstractCliView):
+    """
+    Dump json data from the database
+    """
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Dump %(model_name)s configuration data.")
-        super(DumpCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         key_attr = self.model.key_attribute
         self._format_fields = {
             'command': self.command,
@@ -640,10 +646,13 @@ class DumpCommand(AbstractCliView):
 
 
 class ShowCommand(AbstractCliView):
+    """
+    Print details on an object
+    """
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Show %(model_name)s configuration data.")
-        super(ShowCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._format_fields = {
             'command': self.command,
             'model_name': self.model_name,
@@ -660,40 +669,23 @@ class ShowCommand(AbstractCliView):
         return parser
 
     def main(self, argv):
-        self.detail(getattr(self._parse_args(argv), self.model_name))
-
         return EXIT_SUCCESS
-
-    def detail(self, fields):
-        separator = ''.join(['-' for _ in range(80)])
-        parts = [separator]
-
-        for attr, value in fields.items():
-            if not value:
-                continue
-            if type(value) == list:
-                value = "\n".join(value)
-            parts.append("=== %s: %s" % (attr, value))
-
-        parts.append(separator)
-        print("\n".join(parts))
 
 
 class CopyCommand(CreateCommand):
     """Base class for the `copy` subcommand of command line views."""
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('summary_fmt',
-                          "Copy %(model_name)s.")
-        super(CopyCommand, self).__init__(*args, **kwargs)
+        kwargs.setdefault('summary_fmt', "Copy %(model_name)s.")
+        super().__init__(*args, **kwargs)
 
     def _construct_parser(self):
         key_attr = self.model.key_attribute
         usage = ("%s <%s_%s> <copy_%s> [arguments]" %
                  (self.command, self.model_name, key_attr, key_attr))
         parser = arguments.get_model_identifier(self.model,
-                                                 prog=self.command,
-                                                 usage=usage,
-                                                 description=self.summary)
+                                                prog=self.command,
+                                                usage=usage,
+                                                description=self.summary)
         group = parser.add_argument_group('%s arguments' % self.model_name)
         group.add_argument('copy_%s' % key_attr,
                            help="new %s configuration's %s" %

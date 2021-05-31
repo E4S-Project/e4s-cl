@@ -116,5 +116,4 @@ def interpret(cmd):
     if launcher_cmd and env_args:
         launcher_cmd += env_args.split(' ')
 
-    # No launcher command, just an application command
     return launcher_cmd, cmd
