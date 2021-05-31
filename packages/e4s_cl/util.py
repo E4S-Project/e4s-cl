@@ -96,7 +96,8 @@ def which(program, use_cached=True):
             _WHICH_CACHE[program] = abs_program
             return abs_program
     else:
-        for path in os.environ['PATH'].split(os.pathsep):
+        pathlist = os.environ['PATH'].split(os.pathsep) + ['/sbin']
+        for path in pathlist:
             path = path.strip('"')
             exe_file = os.path.join(path, program)
             if _is_exec(exe_file):
