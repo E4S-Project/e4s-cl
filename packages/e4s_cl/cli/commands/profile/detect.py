@@ -1,9 +1,13 @@
 """
-Launch an executable and catch syscalls to determine a list of files. Output it to a profile if asked to.
+Launch an executable and catch syscalls to determine a list of required files.
+Output it to a profile if asked to.
 """
 
 import re
 from json import JSONDecodeError
+from pathlib import Path
+from typing import List
+
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
 from e4s_cl.variables import is_master
 from e4s_cl.util import opened_files, create_subprocess_exp, flatten, json_dumps, json_loads
@@ -16,7 +20,7 @@ from e4s_cl.cli.cli_view import AbstractCliView
 LOGGER = logger.get_logger(__name__)
 
 
-def filter_files(path_list):
+def filter_files(path_list: List[Path]):
     """
     Categorize paths into libraries or files
 
@@ -37,14 +41,16 @@ def filter_files(path_list):
 
         # Process shared objects
         if is_elf(path):
-            if resolve(path):
+            if resolve(path.name):
                 # The library is resolved by the linker, treat it as a library
                 libraries.add(path.as_posix())
                 LOGGER.debug("File %s is a library", path.name)
+
             else:
                 # It is a library BUT must be imported with a full path
                 files.add(path.as_posix())
                 LOGGER.debug("File %s is a library (non-standard)", path.name)
+
             continue
 
         # Discard the linker cache, opened by default for every binary
