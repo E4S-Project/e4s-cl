@@ -385,26 +385,24 @@ class LibrarySet(set):
 
             return header
 
-        def gen_get_children():
-            def get_children(elem):
-                found = LibrarySet(
-                    filter(lambda x: x.soname in elem.dyn_dependencies, self))
+        def get_children(elem):
+            found = LibrarySet(
+                filter(lambda x: x.soname in elem.dyn_dependencies, self))
 
-                not_found = elem.dyn_dependencies - found.sonames
+            not_found = elem.dyn_dependencies - found.sonames
 
-                for name in not_found:
+            for name in not_found:
+                if not re.match(r'^ld.*', name):
                     found.add(Library(soname=name))
 
-                return found
-
-            return get_children
+            return found
 
         trees = []
         for lib in self.top_level:
             trees.append(
                 format_tree(lib,
                             format_node=get_name,
-                            get_children=gen_get_children()))
+                            get_children=get_children))
 
         return trees
 
