@@ -98,6 +98,11 @@ class Library:
             return self.soname == other.soname and self.defined_versions == other.defined_versions
         return NotImplemented
 
+    def __gt__(self, rhs):
+        if isinstance(rhs, Library):
+            return self.soname > rhs.soname
+        return NotImplemented
+
 
 # pylint: disable=too-few-public-methods
 class HostLibrary(Library):
@@ -395,16 +400,19 @@ class LibrarySet(set):
                 if not re.match(r'^ld.*', name):
                     found.add(Library(soname=name))
 
+            found = list(found)
+            found.sort()
             return found
 
-        trees = []
-        for lib in self.top_level:
-            trees.append(
-                format_tree(lib,
-                            format_node=get_name,
-                            get_children=get_children))
+        roots = list(self.top_level)
+        roots.sort()
 
-        return trees
+        def _format(obj):
+            return format_tree(obj,
+                               format_node=get_name,
+                               get_children=get_children)
+
+        return list(map(_format, roots))
 
 
 def __library_decoder(_type):
