@@ -1,6 +1,54 @@
 """
-Module grouping all the profile configuration commands.
-Accessible via `e4s-cl profile <command>`.
+Profiles are a key component of **e4s-cl**. They are used to greatly \
+        reduce the amount of information to input on a command line by \
+        recording chosen arguments.
+
+Instead of listing all necessary files and libraries to use for every command, \
+        passing a profile containing those files as an argument vastly \
+        improves readability.
+
+Profiles are accessed and edited using the `profile` sub-commands.
+
+Contents
+--------
+
+A profile is a recorded collection of fields relating to a specific MPI library.
+
++-------------+--------------------------------------------------------------+
+| Field       | Description                                                  |
++=============+==============================================================+
+| `name`      | A name by which the profile is accessed and invoked          |
++-------------+--------------------------------------------------------------+
+| `image`     | The path of a container image                                |
++-------------+--------------------------------------------------------------+
+| `backend`   | Identifier for a technology to launch the container with     |
++-------------+--------------------------------------------------------------+
+| `source`    | Path of a script to source in the container before execution |
++-------------+--------------------------------------------------------------+
+| `files`     | List of files to make accessible to the running program      |
++-------------+--------------------------------------------------------------+
+| `libraries` | List of libraries to overload in the running program         |
++-------------+--------------------------------------------------------------+
+
+Profile Creation
+----------------
+
+Profiles can be created with the :ref:`init<init>`, :ref:`profile detect<profile_detect>` and :ref:`profile create<profile_create>` commands.
+
+The commands :ref:`init<init>` and :ref:`profile detect<profile_detect>` will create a profile dynamically according to the execution of a reference MPI program.
+
+The :ref:`profile create<profile_create>` command will create a blank profile to complete at the user's discretion.
+
+.. caution::
+
+    MPI libraries often dynamically use files and libraries without warning, and the absence of those unlisted files more often than not results in a crash or segmentation fault. Please ensure you acknowledge the result of :ref:`profile detect<profile_detect>` when creating a blank profile.
+
+Profile Selection
+-----------------
+
+A profile can be selected using the :ref:`profile select<profile_select>` command. The target profile is then implicitly used for most of the commands taking a profile as an argument.
+
+A unique profile can be selected at a time. Switching selection is done by selecting another profile. A selection can also be canceled by using :ref:`profile unselect<profile_unselect>`.
 """
 
 from e4s_cl.cli.cli_view import RootCommand
