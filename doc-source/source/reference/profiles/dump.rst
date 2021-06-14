@@ -11,5 +11,4 @@ Usage
 Description
 --------------
 
-Print profile in its internal representation (JSON format).
-Used to parse and/or access profiles in an script-accessible way.
+.. automodule:: e4s_cl.cli.commands.profile.dump

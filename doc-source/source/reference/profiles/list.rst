@@ -6,7 +6,7 @@ Usage
 
 .. code::
 
-    e4s-cl profile list [ OPTIONS ]
+    e4s-cl profile list [ PATTERN ] [ OPTIONS ]
 
 Options
 ----------
@@ -16,5 +16,4 @@ Options
 Description
 ------------
 
-Print a list of all recorded profiles, along with a brief description.
-Pass option **-s** to print only the names and disable formatting.
+.. automodule:: e4s_cl.cli.commands.profile.list

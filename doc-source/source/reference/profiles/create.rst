@@ -11,8 +11,8 @@ Usage
 Options 
 --------
 
---libraries	A comma-separated of libraries to add to the profile
---files		A comma-separated of files to add to the profile
+--libraries	A space-separated list of libraries to add to the profile
+--files		A space-separated list of files to add to the profile
 --image		The image to use with the profile
 --backend	The container technology to use for the profile's image
 --source	Path towards a script to source before execution
@@ -20,5 +20,4 @@ Options
 Description
 ------------
 
-Create a new profile with the name passed as the first argument.
-Arguments passed to options are directly added to the corresponding field of the newly-created profile.
+.. automodule:: e4s_cl.cli.commands.profile.create

@@ -1,5 +1,5 @@
 """
-Delete a profile from the database
+Delete a profile associated with the name passed as an argument.
 """
 
 from e4s_cl.cli.cli_view import DeleteCommand

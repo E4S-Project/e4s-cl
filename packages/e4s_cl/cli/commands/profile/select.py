@@ -1,5 +1,6 @@
 """
-Select a profile to be used as default later.
+Select the profile associated with the name passed as an argument.
+The selected profile is internally recorded and will be used implicitly in several commands.
 """
 
 from e4s_cl import EXIT_SUCCESS

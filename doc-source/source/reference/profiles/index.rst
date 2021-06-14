@@ -29,6 +29,7 @@ Sub-Commands
    unselect
    detect
    dump 
+   diff
 
 Description
 -----------

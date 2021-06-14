@@ -1,5 +1,21 @@
 """
-List the existing profiles in several formats
+Print a list of all the recorded profiles matching a given pattern, along with a brief description.
+
+Pass option **-s** to print only the names and disable formatting.
+
+.. code::
+
+    $ e4s-cl profile list s
+    == Profile Configurations (/home/user/.local/e4s_cl/user.json) ========
+
+    +----------+--------+---------+-------+-----------+-------+
+    | Selected |  Name  | Backend | Image | Libraries | Files |
+    +==========+========+=========+=======+===========+=======+
+    |          | single |    None |  None |     1     |   0   |
+    +----------+--------+---------+-------+-----------+-------+
+    |          | sparse |    None |  None |     7     |  71   |
+    +----------+--------+---------+-------+-----------+-------+
+
 """
 
 from e4s_cl.cli.cli_view import ListCommand

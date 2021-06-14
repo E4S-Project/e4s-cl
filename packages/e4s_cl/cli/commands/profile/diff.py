@@ -1,3 +1,21 @@
+"""
+This command is a helper meant to easily show differences between profiles.
+It will output a list of paths prefixed by a inequality sign \
+        (:code:`>`/:code:`<`) to highlight which profile has an outstanding \
+        dependency.
+
+Example
+--------
+
+.. code::
+
+    $ e4s-cl profile diff openmpi sparse
+    < /usr/lib/openmpi/libopen-pal.so.40  # Files only in the 'openmpi' profile
+    < /usr/lib/openmpi/libopen-rte.so.40
+    > /usr/bin/strace                     # File only in the 'sparse' module
+
+"""
+
 from e4s_cl.cli import arguments
 from e4s_cl.cli.cli_view import AbstractCliView
 from e4s_cl.model.profile import Profile
@@ -49,6 +67,6 @@ class DiffCommand(AbstractCliView):
         _diff_member('files', _order_r)
         _diff_member('libraries', _order_l)
         _diff_member('files', _order_l)
-        
+
 
 COMMAND = DiffCommand(Profile, __name__)

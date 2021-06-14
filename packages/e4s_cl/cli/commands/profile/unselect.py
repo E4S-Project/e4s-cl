@@ -1,5 +1,5 @@
 """
-Cancel the selection of a profile
+Remove the selected status from the selected profile.
 """
 
 from e4s_cl import EXIT_SUCCESS

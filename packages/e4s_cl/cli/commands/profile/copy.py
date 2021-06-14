@@ -1,5 +1,6 @@
 """
-Copy a profile to another new profile
+Create a new profile as a copy of another existing one.
+The first argument is the name of the profile to copy, the second being the destination profile.
 """
 
 from e4s_cl.cli.cli_view import CopyCommand
