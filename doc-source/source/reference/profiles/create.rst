@@ -1,3 +1,5 @@
+.. _profile_create:
+
 **create** - Create a new profile
 =================================
 

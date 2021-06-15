@@ -1,7 +1,14 @@
 """
-Init command
+This command initializes E4S Container Launcher for the system's available MPI library.
 
-Collection os scripts to setup a default profile and populate it
+During initialization, the available MPI library is parsed and analyzed to guess its running requirements.
+A :ref:`profile<profile>` is created with the collected results from the analysis, and made accessible for the next :ref:`launch command<launch>`.
+
+.. caution::
+
+   The process relies on the good configuration of the MPI launcher, but this may fail.
+   A message will appear in case some limitations were detected.
+   It is good practice to :ref:`perform this process manually<init_override>` to ensure the network stack is exposed to **e4s-cl**.
 """
 
 import os
