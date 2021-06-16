@@ -56,9 +56,13 @@ html_theme_options = {
     "navigation_with_keys": True,
     "light_css_variables": {
         "code-font-size": ".9em",
+        "admonition-title-font-size": "1em",
+        "admonition-font-size": ".9em",
     },
     "dark_css_variables": {
         "code-font-size": ".9em",
+        "admonition-title-font-size": "1em",
+        "admonition-font-size": ".9em",
     }
 }
 
