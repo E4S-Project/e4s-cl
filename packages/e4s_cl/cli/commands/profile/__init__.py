@@ -33,22 +33,35 @@ A profile is a recorded collection of fields relating to a specific MPI library.
 Profile Creation
 ----------------
 
-Profiles can be created with the :ref:`init<init>`, :ref:`profile detect<profile_detect>` and :ref:`profile create<profile_create>` commands.
+Profiles can be created with the :ref:`init<init>`, \
+        :ref:`profile detect<profile_detect>` and \
+        :ref:`profile create<profile_create>` commands.
 
-The commands :ref:`init<init>` and :ref:`profile detect<profile_detect>` will create a profile dynamically according to the execution of a reference MPI program.
+The commands :ref:`init<init>` and :ref:`profile detect<profile_detect>` will \
+        create a profile dynamically according to the execution of a \
+        reference MPI program.
 
-The :ref:`profile create<profile_create>` command will create a blank profile to complete at the user's discretion.
+The :ref:`profile create<profile_create>` command will create an empty profile \
+        to complete at the user's discretion.
 
 .. caution::
 
-    MPI libraries often dynamically use files and libraries without warning, and the absence of those unlisted files more often than not results in a crash or segmentation fault. Please ensure you acknowledge the result of :ref:`profile detect<profile_detect>` when creating a blank profile.
+    MPI libraries often dynamically use files and libraries without warning, \
+            and the absence of those unlisted files during execution more \
+            often than not results in a crash or segmentation fault. Please \
+            ensure you acknowledge the result of \
+            :ref:`profile detect<profile_detect>` when creating an empty profile.
 
 Profile Selection
 -----------------
 
-A profile can be selected using the :ref:`profile select<profile_select>` command. The target profile is then implicitly used for most of the commands taking a profile as an argument.
+A profile can be selected using the :ref:`profile select<profile_select>` \
+        command. The target profile is then implicitly used for most of the \
+        commands taking a profile as an argument.
 
-A unique profile can be selected at a time. Switching selection is done by selecting another profile. A selection can also be canceled by using :ref:`profile unselect<profile_unselect>`.
+A unique profile can be selected at a time. Switching selection is done by \
+        selecting another profile. A selection can also be canceled by using \
+        :ref:`profile unselect<profile_unselect>`.
 """
 
 from e4s_cl.cli.cli_view import RootCommand

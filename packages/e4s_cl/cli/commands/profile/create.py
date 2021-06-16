@@ -1,5 +1,15 @@
 """
-Create a profile from CLI arguments
+This command creates a new profile with the name passed as the first argument.
+Options control the data added to the fields of the newly-created profile.
+
+.. warning::
+
+    MPI libraries often dynamically use files and libraries without warning, \
+            and the absence of those unlisted files during execution more \
+            often than not results in a crash or segmentation fault. Please \
+            ensure you acknowledge the result of \
+            :ref:`profile detect<profile_detect>` when creating an empty profile.
+
 """
 
 from e4s_cl.cli import arguments

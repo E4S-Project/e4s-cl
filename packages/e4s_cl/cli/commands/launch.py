@@ -1,7 +1,31 @@
-"""Launch command
+"""
+E4S Container Launcher is a accessory launcher to ensure host MPI libraries \
+        are used in containers. It wraps around a valid MPI launch command \
+        to work.
 
-Definition of arguments and hooks related to the launch command,
-launcher detection, profile loading, and subprocess creation.
+The minimal options that must be given in order to run are:
+
+* A container image;
+* A container technology to run the image with.
+
+Other options then influence the execution:
+
+* Arguments passed to :code:`--files` will be made available in the container;
+* Libraries passed to :code:`--libraries` will be loaded;
+* A script passed to :code:`--source` will be run in the container.
+
+When a :ref:`profile<profile>` is selected, options can be omitted as the \
+        profile's fields will be implicitly used. Command line options have \
+        precedence over profiles' fields.
+
+.. caution::
+
+        E4S Container Launcher will analyze the command line to determine the \
+        exact arguments of the launcher. Certain launchers may have unique \
+        options that could prevent this system from working properly.
+        To ensure the arguments are understood correctly, an additional \
+        :kbd:`--` can be added between the options and the MPI command.
+
 """
 
 import os
