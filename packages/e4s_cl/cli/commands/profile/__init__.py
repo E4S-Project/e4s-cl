@@ -1,11 +1,11 @@
 """
 Profiles are a key component of **e4s-cl**. They are used to greatly \
-        reduce the amount of information to input on a command line by \
-        recording chosen arguments.
+reduce the amount of information to input on a command line by recording \
+chosen arguments.
 
 Instead of listing all necessary files and libraries to use for every command, \
-        passing a profile containing those files as an argument vastly \
-        improves readability.
+passing a profile containing those files as an argument vastly improves \
+readability.
 
 Profiles are accessed and edited using the `profile` sub-commands.
 
@@ -34,34 +34,33 @@ Profile Creation
 ----------------
 
 Profiles can be created with the :ref:`init<init>`, \
-        :ref:`profile detect<profile_detect>` and \
-        :ref:`profile create<profile_create>` commands.
+:ref:`profile detect<profile_detect>` and \
+:ref:`profile create<profile_create>` commands.
 
 The commands :ref:`init<init>` and :ref:`profile detect<profile_detect>` will \
-        create a profile dynamically according to the execution of a \
-        reference MPI program.
+create a profile dynamically according to the execution of a reference MPI \
+program.
 
 The :ref:`profile create<profile_create>` command will create an empty profile \
-        to complete at the user's discretion.
+to complete at the user's discretion.
 
 .. caution::
 
     MPI libraries often dynamically use files and libraries without warning, \
-            and the absence of those unlisted files during execution more \
-            often than not results in a crash or segmentation fault. Please \
-            ensure you acknowledge the result of \
-            :ref:`profile detect<profile_detect>` when creating an empty profile.
+and the absence of those unlisted files during execution more often than not \
+results in a crash or segmentation fault. Please ensure you acknowledge the \
+result of :ref:`profile detect<profile_detect>` when creating an empty profile.
 
 Profile Selection
 -----------------
 
 A profile can be selected using the :ref:`profile select<profile_select>` \
-        command. The target profile is then implicitly used for most of the \
-        commands taking a profile as an argument.
+command. The target profile is then implicitly used for most of the commands \
+taking a profile as an argument.
 
 A unique profile can be selected at a time. Switching selection is done by \
-        selecting another profile. A selection can also be canceled by using \
-        :ref:`profile unselect<profile_unselect>`.
+selecting another profile. A selection can also be canceled by using \
+:ref:`profile unselect<profile_unselect>`.
 """
 
 from e4s_cl.cli.cli_view import RootCommand
