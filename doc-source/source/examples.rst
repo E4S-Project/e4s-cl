@@ -11,7 +11,7 @@ Initializing the tool for the available MPI library::
 
 Launch a MPI command in a container::
 
-    e4s-cl launch --image ./image.sif --backend singularity -- mpirun ./binary
+    e4s-cl launch --image ./image.sif --backend singularity mpirun ./binary
 
 Listing the available profiles::
 
@@ -26,16 +26,17 @@ Some MPI libraries behave differently according to the user's input, making them
 
 The following message will appear when a redundant execution is detected:
 
-.. code-block:: bash
+.. highlight:: bash
+.. code::
 
     $ e4s-cl init
-    The target launcher /usr/bin/mpirun uses a single host by default, which may
-    tamper with the library discovery. Consider running `e4s-cl profile detect`
-    using mpirun specifying multiple hosts.
+    The target launcher /usr/bin/mpirun uses a single host by default, which
+    may tamper with the library discovery. Consider running `e4s-cl profile
+    detect` using mpirun specifying multiple hosts.
 
 To ensure the validity of the generated profile, a launcher command should be given with at least some communication between hosts. To do so, one can compile and then run a sample program using **e4s-cl**. Using a generic MPI library:
 
-.. code-block:: bash
+.. code::
 
    $ mpicc program.c -o example
    $ e4s-cl profile detect -p <profile_name> mpirun -hosts <host1>,<host2> ./example

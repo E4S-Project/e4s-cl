@@ -5,17 +5,18 @@ The CLI tool is called **e4s-cl**. It behaves as a supplementary launcher over r
 
 To begin using **e4s-cl**, the preferred method is to create a profile for the target library. This can be achieved by using the :ref:`init<init>` or :ref:`profile detect<profile_detect>` commands. The resulting profile can be inspected and modified using the :ref:`profile<profile>` sub-commands.
 
+.. highlight:: bash
 .. code::
 
    $ e4s-cl init
    $ e4s-cl profile list
-   == Profile Configurations (/home/user/.local/e4s_cl/user.json) =================
+   == Profile Configurations (/home/user/.local/e4s_cl/user.json) ============
 
-   +----------+-----------------------------+---------+-------+-----------+-------+
-   | Selected |            Name             | Backend | Image | Libraries | Files |
-   +==========+=============================+=========+=======+===========+=======+
-   |    *     |                     default |     N/A |   N/A |     6     |   7   |
-   +----------+-----------------------------+---------+-------+-----------+-------+
+   +----------+------------------------+---------+-------+-----------+-------+
+   | Selected |          Name          | Backend | Image | Libraries | Files |
+   +==========+========================+=========+=======+===========+=======+
+   |    *     |                default |     N/A |   N/A |     6     |   7   |
+   +----------+------------------------+---------+-------+-----------+-------+
    $ e4s-cl profile edit --backend singularity --image ./image.sif
 
 
@@ -23,4 +24,4 @@ Once a profile has been created, it can be used to launch an MPI command ! The :
 
 .. code::
 
-   $ e4s-cl launch mpirun -np 4 -hosts node1,node2 ./executable
+   e4s-cl launch mpirun -np 4 -hosts node1,node2 ./executable

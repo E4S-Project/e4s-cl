@@ -55,17 +55,22 @@ html_static_path = []
 html_theme_options = {
     "navigation_with_keys": True,
     "light_css_variables": {
-        "code-font-size": ".9em",
+        "code-font-size": "1em",
         "admonition-title-font-size": "1em",
-        "admonition-font-size": ".9em",
+        "admonition-font-size": ".92em",
     },
     "dark_css_variables": {
-        "code-font-size": ".9em",
+        "code-font-size": "1em",
         "admonition-title-font-size": "1em",
-        "admonition-font-size": ".9em",
+        "admonition-font-size": ".92em",
     }
 }
 
 # -- Options for man output --------------------------------------------------
 
 man_pages = [('index', 'e4s-cl', 'E4S Container Launcher', '', 1)]
+
+# -- Options for code color  -------------------------------------------------
+
+pygments_style = "gruvbox-light"
+pygments_dark_style = "gruvbox-dark"
