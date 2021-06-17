@@ -1,7 +1,7 @@
 """
 E4S Container Launcher is a accessory launcher to ensure host MPI libraries \
-        are used in containers. It wraps around a valid MPI launch command \
-        to work.
+are used in containers. It wraps around a valid MPI launch command \
+to work.
 
 The minimal options that must be given in order to run are:
 
@@ -12,19 +12,18 @@ Other options then influence the execution:
 
 * Arguments passed to :code:`--files` will be made available in the container;
 * Libraries passed to :code:`--libraries` will be loaded;
-* A script passed to :code:`--source` will be run in the container.
+* A script passed to :code:`--source` will be run in the container before any \
+other command.
 
-When a :ref:`profile<profile>` is selected, options can be omitted as the \
-        profile's fields will be implicitly used. Command line options have \
-        precedence over profiles' fields.
+All of these options can be bypassed by passing a :ref:`profile<profile>`.
+The fields of the target :ref:`profile<profile>` are then implicitly used for \
+each of the above options.
 
-.. caution::
+.. admonition:: Using a :ref:`selected profile<profile_select>`
 
-        E4S Container Launcher will analyze the command line to determine the \
-        exact arguments of the launcher. Certain launchers may have unique \
-        options that could prevent this system from working properly.
-        To ensure the arguments are understood correctly, an additional \
-        :kbd:`--` can be added between the options and the MPI command.
+    When a :ref:`profile<profile>` is selected, it will be used if no \
+:code:`--profile` option is passed. Command line options have precedence \
+over profiles' fields.
 
 """
 
@@ -135,6 +134,8 @@ class LaunchCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
+        if getattr(args, 'profile') and '--profile' not in argv:
+            LOGGER.info("Using selected profile %s", args.profile.get('name'))
 
         if not args.cmd:
             self.parser.error("No command given")
