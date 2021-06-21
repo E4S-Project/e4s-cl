@@ -12,6 +12,7 @@
 #
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('../../packages'))
 
 # -- Project information -----------------------------------------------------
@@ -52,18 +53,19 @@ html_static_path = []
 
 # -- HTML theme options ------------------------------------------------------
 
+# Make fonts bigger for clarity
+options = {
+    "code-font-size": "1em",
+    "admonition-title-font-size": "1em",
+    "admonition-font-size": ".92em",
+    "font-size--small--2": ".90em",
+    "font-size--small--3": ".82em",
+}
+
 html_theme_options = {
     "navigation_with_keys": True,
-    "light_css_variables": {
-        "code-font-size": "1em",
-        "admonition-title-font-size": "1em",
-        "admonition-font-size": ".92em",
-    },
-    "dark_css_variables": {
-        "code-font-size": "1em",
-        "admonition-title-font-size": "1em",
-        "admonition-font-size": ".92em",
-    }
+    "light_css_variables": options,
+    "dark_css_variables": options
 }
 
 # -- Options for man output --------------------------------------------------

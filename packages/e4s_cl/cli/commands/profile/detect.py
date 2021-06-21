@@ -20,6 +20,15 @@ present, the selected profile will be overwritten instead.
 .. warning::
    Not specifying a profile will overwrite the selected profile on success !
 
+Examples
+----------
+
+.. code::
+
+    mpicc -o ping-pong ping-pong.c
+    e4s-cl profile detect -p profile-detected \\
+            mpirun -np 2 -ppn 1 -hosts node1,node2 ./ping-pong
+
 """
 
 import re

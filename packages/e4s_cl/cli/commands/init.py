@@ -7,13 +7,36 @@ guess its running requirements.
 A :ref:`profile<profile>` is created with the collected results from the \
 analysis, and made accessible for the next :ref:`launch command<launch>`.
 
-.. warning::
+If no :ref:`profile<profile>` name is passed to :code:`--profile`, a profile \
+name will be generated from the parameters of the initialization.
 
-   The process relies on the good configuration of the MPI launcher, but this \
-may fail.
-   A message will appear in case some limitations were detected.
-   It is good practice to :ref:`perform this process manually<init_override>` \
-to ensure the network stack is exposed to **e4s-cl**.
+.. admonition:: The importance of inter-process communication
+
+    This process relies on the execution of a sample MPI program to discover \
+its dependencies.
+    In some cases, a library will lazy-load network libraries, preventing \
+them from being detected.
+    A message will appear in case some limitations were detected.
+
+    In case of error, it is good practice to \
+:ref:`perform this process manually<init_override>` to ensure the network \
+stack is used and exposed to **e4s-cl**.
+
+Examples
+----------
+
+Initializing using the available MPI resources:
+
+.. code::
+
+    module load mpich
+    e4s-cl init --profile mpich
+
+Using a library installed on the system in :code:`/packages`:
+
+.. code::
+
+    e4s-cl init --mpi /packages/mpich --profile mpich
 
 """
 
