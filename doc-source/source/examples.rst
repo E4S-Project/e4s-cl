@@ -38,7 +38,8 @@ To ensure the validity of the generated profile, a launcher command should be gi
 
 .. code::
 
-   $ mpicc program.c -o example
-   $ e4s-cl profile detect -p <profile_name> mpirun -hosts <host1>,<host2> ./example
+    $ mpicc program.c -o example
+    $ e4s-cl profile detect -p <profile_name> \
+        mpirun -hosts <host1>,<host2> ./example
 
 On success, the newly-created profile will be found in the profile list.
