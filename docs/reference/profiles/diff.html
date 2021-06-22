@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="copy - Copy a profile" href="copy.html" /><link rel="prev" title="launch - Run MPI commands" href="../launch.html" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="dump - Print internal profile information" href="dump.html" /><link rel="prev" title="detect - Create a profile from a MPI library" href="detect.html" />
 
     <meta name="generator" content="sphinx-4.0.2, furo 2021.06.24.beta37"/>
-        <title>profile - Edit and manage profiles - E4S Container Launcher v1.0rc3 documentation</title>
+        <title>diff - Compare profiles - E4S Container Launcher v1.0rc3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css" />
@@ -134,12 +134,12 @@
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../init.html"><strong>init</strong> - Initialize the tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../launch.html"><strong>launch</strong> - Run MPI commands</a></li>
-<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#"><strong>profile</strong> - Edit and manage profiles</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="index.html"><strong>profile</strong> - Edit and manage profiles</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="copy.html"><strong>copy</strong> - Copy a profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="create.html"><strong>create</strong> - Create a new profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="delete.html"><strong>delete</strong> - Delete a profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="detect.html"><strong>detect</strong> - Create a profile from a MPI library</a></li>
-<li class="toctree-l3"><a class="reference internal" href="diff.html"><strong>diff</strong> - Compare profiles</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><strong>diff</strong> - Compare profiles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="dump.html"><strong>dump</strong> - Print internal profile information</a></li>
 <li class="toctree-l3"><a class="reference internal" href="edit.html"><strong>edit</strong> - Edit a profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="list.html"><strong>list</strong> - List available profiles</a></li>
@@ -167,90 +167,27 @@
         <label class="toc-overlay-icon toc-content-icon" for="__toc">
           <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
         </label>
-        <section id="profile-edit-and-manage-profiles">
-<span id="profile"></span><h1><strong>profile</strong> - Edit and manage profiles<a class="headerlink" href="#profile-edit-and-manage-profiles" title="Permalink to this headline">¶</a></h1>
+        <section id="diff-compare-profiles">
+<h1><strong>diff</strong> - Compare profiles<a class="headerlink" href="#diff-compare-profiles" title="Permalink to this headline">¶</a></h1>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="p">[</span> <span class="n">OPTIONS</span> <span class="p">]</span> <span class="n">profile</span> <span class="n">SUBCOMMAND</span> <span class="p">{</span> <span class="n">ARGUMENTS</span> <span class="p">}</span>
-
-<span class="n">SUBCOMMAND</span> <span class="o">:=</span> <span class="p">{</span> <span class="n">create</span> <span class="o">|</span> <span class="n">copy</span> <span class="o">|</span> <span class="n">delete</span> <span class="o">|</span> <span class="n">edit</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">|</span> <span class="n">show</span>
-                       <span class="o">|</span> <span class="n">select</span> <span class="o">|</span> <span class="n">unselect</span> <span class="o">|</span> <span class="n">detect</span> <span class="o">|</span> <span class="n">dump</span> <span class="p">}</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">profile</span> <span class="n">diff</span> <span class="o">&lt;</span><span class="n">NAME</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">OTHER</span> <span class="n">NAME</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 </section>
-<section id="module-e4s_cl.cli.commands.profile">
-<span id="description"></span><h2>Description<a class="headerlink" href="#module-e4s_cl.cli.commands.profile" title="Permalink to this headline">¶</a></h2>
-<p>Profiles are a key component of <strong>e4s-cl</strong>. They are used to greatly reduce the amount of information to input on a command line by recording chosen arguments.</p>
-<p>Instead of listing all necessary files and libraries to use for every command, passing a profile containing those files as an argument vastly improves readability.</p>
-<p>Profiles are accessed and edited using the <cite>profile</cite> sub-commands.</p>
-<section id="contents">
-<h3>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h3>
-<p>A profile is a recorded collection of fields relating to a specific MPI library.</p>
-<div class="table-wrapper"><table class="docutils align-default">
-<colgroup>
-<col style="width: 17%"/>
-<col style="width: 83%"/>
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Field</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><cite>name</cite></p></td>
-<td><p>A name by which the profile is accessed and invoked</p></td>
-</tr>
-<tr class="row-odd"><td><p><cite>image</cite></p></td>
-<td><p>The path of a container image</p></td>
-</tr>
-<tr class="row-even"><td><p><cite>backend</cite></p></td>
-<td><p>Identifier for a technology to launch the container with</p></td>
-</tr>
-<tr class="row-odd"><td><p><cite>source</cite></p></td>
-<td><p>Path of a script to source in the container before execution</p></td>
-</tr>
-<tr class="row-even"><td><p><cite>files</cite></p></td>
-<td><p>List of files to make accessible to the running program</p></td>
-</tr>
-<tr class="row-odd"><td><p><cite>libraries</cite></p></td>
-<td><p>List of libraries to overload in the running program</p></td>
-</tr>
-</tbody>
-</table></div>
-</section>
-<section id="profile-creation">
-<h3>Profile Creation<a class="headerlink" href="#profile-creation" title="Permalink to this headline">¶</a></h3>
-<p>Profiles can be created with the <a class="reference internal" href="../init.html#init"><span class="std std-ref">init</span></a>, <a class="reference internal" href="detect.html#profile-detect"><span class="std std-ref">profile detect</span></a> and <a class="reference internal" href="create.html#profile-create"><span class="std std-ref">profile create</span></a> commands.</p>
-<p>The commands <a class="reference internal" href="../init.html#init"><span class="std std-ref">init</span></a> and <a class="reference internal" href="detect.html#profile-detect"><span class="std std-ref">profile detect</span></a> will create a profile dynamically according to the execution of a reference MPI program.</p>
-<p>The <a class="reference internal" href="create.html#profile-create"><span class="std std-ref">profile create</span></a> command will create an empty profile to complete at the user’s discretion.</p>
-<div class="admonition caution">
-<p class="admonition-title">Caution</p>
-<p>MPI libraries often dynamically use files and libraries without warning, and the absence of those unlisted files during execution more often than not results in a crash or segmentation fault. Please ensure you acknowledge the result of <a class="reference internal" href="detect.html#profile-detect"><span class="std std-ref">profile detect</span></a> when creating an empty profile.</p>
+<section id="module-e4s_cl.cli.commands.profile.diff">
+<span id="description"></span><h2>Description<a class="headerlink" href="#module-e4s_cl.cli.commands.profile.diff" title="Permalink to this headline">¶</a></h2>
+<p>This command is a helper meant to easily show differences between profiles.
+It will output a list of paths prefixed by a inequality sign         (<code class="code docutils literal notranslate"><span class="pre">&gt;</span></code>/<code class="code docutils literal notranslate"><span class="pre">&lt;</span></code>) to highlight which profile has an outstanding         dependency.</p>
+<section id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ e4s-cl profile diff openmpi sparse
+&lt; /usr/lib/openmpi/libopen-pal.so.40  # Files only in the 'openmpi' profile
+&lt; /usr/lib/openmpi/libopen-rte.so.40
+&gt; /usr/bin/strace                     # File only in the 'sparse' module
+</pre></div>
 </div>
 </section>
-<section id="profile-selection">
-<h3>Profile Selection<a class="headerlink" href="#profile-selection" title="Permalink to this headline">¶</a></h3>
-<p>A profile can be selected using the <a class="reference internal" href="select.html#profile-select"><span class="std std-ref">profile select</span></a> command. The target profile is then implicitly used for most of the commands taking a profile as an argument.</p>
-<p>A unique profile can be selected at a time. Switching selection is done by selecting another profile. A selection can also be canceled by using <a class="reference internal" href="unselect.html#profile-unselect"><span class="std std-ref">profile unselect</span></a>.</p>
-</section>
-</section>
-<section id="sub-commands">
-<h2>Sub-Commands<a class="headerlink" href="#sub-commands" title="Permalink to this headline">¶</a></h2>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="copy.html"><strong>copy</strong> - Copy a profile</a></li>
-<li class="toctree-l1"><a class="reference internal" href="create.html"><strong>create</strong> - Create a new profile</a></li>
-<li class="toctree-l1"><a class="reference internal" href="delete.html"><strong>delete</strong> - Delete a profile</a></li>
-<li class="toctree-l1"><a class="reference internal" href="detect.html"><strong>detect</strong> - Create a profile from a MPI library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="diff.html"><strong>diff</strong> - Compare profiles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="dump.html"><strong>dump</strong> - Print internal profile information</a></li>
-<li class="toctree-l1"><a class="reference internal" href="edit.html"><strong>edit</strong> - Edit a profile</a></li>
-<li class="toctree-l1"><a class="reference internal" href="list.html"><strong>list</strong> - List available profiles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="select.html"><strong>select</strong> - Select a profile</a></li>
-<li class="toctree-l1"><a class="reference internal" href="show.html"><strong>show</strong> - Detail a specific profile</a></li>
-<li class="toctree-l1"><a class="reference internal" href="unselect.html"><strong>unselect</strong> - Unselect a profile</a></li>
-</ul>
-</div>
 </section>
 </section>
 
@@ -258,23 +195,23 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="copy.html">
+          <a class="next-page" href="dump.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title"><strong>copy</strong> - Copy a profile</div>
+                <div class="title"><strong>dump</strong> - Print internal profile information</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="../launch.html">
+          <a class="prev-page" href="detect.html">
               <svg><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title"><strong>launch</strong> - Run MPI commands</div>
+                <div class="title"><strong>detect</strong> - Create a profile from a MPI library</div>
                 
               </div>
             </a>
@@ -288,7 +225,7 @@
               <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
               <a href="https://github.com/pradyunsg/furo">Furo theme</a>.
             |
-            <a class="muted-link" href="../../_sources/reference/profiles/index.rst.txt"
+            <a class="muted-link" href="../../_sources/reference/profiles/diff.rst.txt"
                rel="nofollow">
               Show Source
             </a>
@@ -308,15 +245,12 @@
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#"><strong>profile</strong> - Edit and manage profiles</a><ul>
+<li><a class="reference internal" href="#"><strong>diff</strong> - Compare profiles</a><ul>
 <li><a class="reference internal" href="#usage">Usage</a></li>
-<li><a class="reference internal" href="#module-e4s_cl.cli.commands.profile">Description</a><ul>
-<li><a class="reference internal" href="#contents">Contents</a></li>
-<li><a class="reference internal" href="#profile-creation">Profile Creation</a></li>
-<li><a class="reference internal" href="#profile-selection">Profile Selection</a></li>
+<li><a class="reference internal" href="#module-e4s_cl.cli.commands.profile.diff">Description</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#sub-commands">Sub-Commands</a></li>
 </ul>
 </li>
 </ul>

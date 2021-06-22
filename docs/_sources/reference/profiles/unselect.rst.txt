@@ -13,4 +13,4 @@ Usage
 Description
 ------------
 
-Remove the selected status from the selected profile.
+.. automodule:: e4s_cl.cli.commands.profile.unselect

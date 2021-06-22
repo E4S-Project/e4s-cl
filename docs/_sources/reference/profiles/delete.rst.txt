@@ -11,4 +11,4 @@ Usage
 Description
 -------------
 
-Delete a profile associated with the name passed as an argument.
+.. automodule:: e4s_cl.cli.commands.profile.delete

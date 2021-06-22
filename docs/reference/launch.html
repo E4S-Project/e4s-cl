@@ -2,46 +2,63 @@
 <html class="no-js">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="profile - Edit and manage profiles" href="profiles/index.html" /><link rel="prev" title="init - Initialize the tool" href="init.html" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="profile - Edit and manage profiles" href="profiles/index.html" /><link rel="prev" title="init - Initialize the tool" href="init.html" />
 
-    <meta name="generator" content="sphinx-3.5.2, furo 2021.03.19.beta29"/>
-        <title>launch - Run MPI commands - E4S Container Launcher v1.0rc2 documentation</title>
-      <link rel="stylesheet" href="../_static/styles/furo.css?digest=ca8f8ad188754d6c0133301b749e93f9e95aff28">
-    <link rel="stylesheet" href="../_static/pygments.css">
-    <link media="(prefers-color-scheme: dark)" rel="stylesheet" href="../_static/pygments_dark.css">
+    <meta name="generator" content="sphinx-4.0.2, furo 2021.06.24.beta37"/>
+        <title>launch - Run MPI commands - E4S Container Launcher v1.0rc3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css" />
     
 
 
 <style>
   :root {
-    --color-code-background: #f8f8f8;
+    --color-code-background: #fbf1c7;
   --color-code-foreground: black;
-  --code-font-size: .9em;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
-  --code-font-size: .9em;
+      --color-code-background: #282828;
+  --color-code-foreground: white;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
     }
   }
 
   /* For allowing end-user-specific overrides */
   .override-light {
-    --color-code-background: #f8f8f8;
+    --color-code-background: #fbf1c7;
   --color-code-foreground: black;
-  --code-font-size: .9em;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
   }
   .override-dark {
-    --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
-  --code-font-size: .9em;
+    --color-code-background: #282828;
+  --color-code-foreground: white;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
   }
-</style><link rel="stylesheet" href="../_static/styles/furo-extensions.css?digest=d391b54134226e4196576da3bdb6dddb7e05ba2b"></head>
+</style><link media="(prefers-color-scheme: dark)" rel="stylesheet" href="../_static/pygments_dark.css"></head>
   <body dir="">
     
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
@@ -90,7 +107,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">E4S Container Launcher v1.0rc2 documentation</div></a>
+      <a href="../index.html"><div class="brand">E4S Container Launcher v1.0rc3 documentation</div></a>
     </div>
     <div class="header-right">
       <label class="toc-overlay-icon toc-header-icon" for="__toc">
@@ -104,7 +121,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
   
-  <span class="sidebar-brand-text">E4S Container Launcher v1.0rc2 documentation</span>
+  <span class="sidebar-brand-text">E4S Container Launcher v1.0rc3 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html">
   <input class="sidebar-search" placeholder=Search name="q">
@@ -118,16 +135,17 @@
 <li class="toctree-l2"><a class="reference internal" href="init.html"><strong>init</strong> - Initialize the tool</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#"><strong>launch</strong> - Run MPI commands</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="profiles/index.html"><strong>profile</strong> - Edit and manage profiles</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="profiles/create.html"><strong>create</strong> - Create a new profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/copy.html"><strong>copy</strong> - Copy a profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/create.html"><strong>create</strong> - Create a new profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/delete.html"><strong>delete</strong> - Delete a profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/detect.html"><strong>detect</strong> - Create a profile from a MPI library</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/diff.html"><strong>diff</strong> - Compare profiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/dump.html"><strong>dump</strong> - Print internal profile information</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/edit.html"><strong>edit</strong> - Edit a profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/list.html"><strong>list</strong> - List available profiles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="profiles/show.html"><strong>show</strong> - Detail a specific profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/select.html"><strong>select</strong> - Select a profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/show.html"><strong>show</strong> - Detail a specific profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/unselect.html"><strong>unselect</strong> - Unselect a profile</a></li>
-<li class="toctree-l3"><a class="reference internal" href="profiles/detect.html"><strong>detect</strong> - Create a profile from a MPI library</a></li>
-<li class="toctree-l3"><a class="reference internal" href="profiles/dump.html"><strong>dump</strong> - Print internal profile information</a></li>
 </ul>
 </li>
 </ul>
@@ -149,15 +167,15 @@
         <label class="toc-overlay-icon toc-content-icon" for="__toc">
           <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
         </label>
-        <div class="section" id="launch-run-mpi-commands">
+        <section id="launch-run-mpi-commands">
 <span id="launch"></span><h1><strong>launch</strong> - Run MPI commands<a class="headerlink" href="#launch-run-mpi-commands" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="usage">
+<section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">launch</span> <span class="p">[</span> <span class="n">OPTIONS</span> <span class="p">]</span> <span class="p">[</span> <span class="o">--</span> <span class="p">]</span> <span class="o">&lt;</span> <span class="n">MPI</span> <span class="n">Command</span> <span class="o">&gt;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>e4s-cl launch <span class="o">[</span> OPTIONS <span class="o">]</span> <span class="o">[</span> MPI LAUNCHER <span class="o">[</span> -- <span class="o">]</span> <span class="o">]</span> &lt; COMMAND &gt;
 </pre></div>
 </div>
-</div>
-<div class="section" id="options">
+</section>
+<section id="options">
 <h2>Options<a class="headerlink" href="#options" title="Permalink to this headline">¶</a></h2>
 <p>The <cite>launch</cite> command accepts several options to tune the outcome of its execution:</p>
 <dl class="option-list">
@@ -165,7 +183,7 @@
 <dd><p>Profile to use for the execution</p>
 </dd>
 <dt><kbd><span class="option">--image</span></kbd></dt>
-<dd><p>Identifier for the image to use when launching the container</p>
+<dd><p>Path for the image to use when launching the container</p>
 </dd>
 <dt><kbd><span class="option">--backend</span></kbd></dt>
 <dd><p>Container technology to employ</p>
@@ -180,23 +198,67 @@
 <dd><p>Path of script to source before execution</p>
 </dd>
 </dl>
+<div class="admonition-mpi-launcher-detection admonition">
+<p class="admonition-title">MPI launcher detection</p>
+<p>E4S Container Launcher needs to determine the exact arguments of the launcher. Certain launchers may have unique options that <strong>e4s-cl</strong> may not recognize.</p>
+<p>To ensure the arguments are understood correctly, an additional <kbd class="kbd docutils literal notranslate">--</kbd> can be added between the launcher options and the command.</p>
+<p>See the examples for an illustration.</p>
 </div>
-<div class="section" id="description">
-<h2>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h2>
-<p>E4S Container Launcher is a accessory launcher to ensure host MPI libraries are used in containers.
-It wraps around a valid MPI launch command to work.</p>
-<p>The minimal options that must be given are:</p>
+</section>
+<section id="module-e4s_cl.cli.commands.launch">
+<span id="description"></span><h2>Description<a class="headerlink" href="#module-e4s_cl.cli.commands.launch" title="Permalink to this headline">¶</a></h2>
+<p>E4S Container Launcher is a accessory launcher to ensure host MPI libraries are used in containers. It wraps around a valid MPI launch command to work.</p>
+<p>The minimal options that must be given in order to run are:</p>
 <ul class="simple">
 <li><p>A container image;</p></li>
 <li><p>A container technology to run the image with.</p></li>
 </ul>
-<p>When a <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a> is selected, options can be omitted as the profile’s fields will be implicitly used.
-Command line options have precedence over profiles’ fields.</p>
-<p>E4S Container Launcher will analyze the command line to determine the exact arguments of the launcher.
-Certain launchers have esoteric options that may prevent this system from working properly.
-To ensure the arguments are understood correctly, an additional <kbd class="kbd docutils literal notranslate">--</kbd> can be added between the options and the MPI command.</p>
+<p>Other options then influence the execution:</p>
+<ul class="simple">
+<li><p>Arguments passed to <code class="code docutils literal notranslate"><span class="pre">--files</span></code> will be made available in the container;</p></li>
+<li><p>Libraries passed to <code class="code docutils literal notranslate"><span class="pre">--libraries</span></code> will be loaded;</p></li>
+<li><p>A script passed to <code class="code docutils literal notranslate"><span class="pre">--source</span></code> will be run in the container before any other command.</p></li>
+</ul>
+<p>All of these options can be bypassed by passing a <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a>.
+The fields of the target <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a> are then implicitly used for each of the above options.</p>
+<div class="admonition-using-a-ref-selected-profile-profile-select admonition">
+<p class="admonition-title">Using a <a class="reference internal" href="profiles/select.html#profile-select"><span class="std std-ref">selected profile</span></a></p>
+<p>When a <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a> is selected, it will be used if no <code class="code docutils literal notranslate"><span class="pre">--profile</span></code> option is passed. Command line options have precedence over profiles’ fields.</p>
 </div>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>A launch command using an explicit profile and an MPI launcher:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>e4s-cl launch --profile intel-21 mpirun -np <span class="m">2</span> ./ping-pong
+</pre></div>
 </div>
+<p>A launch command using an explicit profile and an MPI launcher, but a different image than the profile’s:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>e4s-cl launch --profile intel-21 <span class="se">\</span>
+    --image /home/user/ecp.simg <span class="se">\</span>
+        mpirun -np <span class="m">2</span> ./ping-pong
+</pre></div>
+</div>
+<p>A launch command with implicit profile making explicit the launcher and launchee:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>e4s-cl launch mpirun -np <span class="m">2</span> -ppn <span class="m">1</span> -- ./ping-pong
+</pre></div>
+</div>
+<p>A launch command importing binaries in the container before running a script without profile:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>e4s-cl launch --files /bin/strace,/bin/lsof <span class="se">\</span>
+    --backend singularity <span class="se">\</span>
+    --image ~/Images/ecp.simg <span class="se">\</span>
+        ./script.sh
+</pre></div>
+</div>
+<p>A launch command using a local <code class="code docutils literal notranslate"><span class="pre">mpich</span></code> library without profile:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>e4s-cl profile launch --backend singularity <span class="se">\</span>
+     --image /home/user/ecp.simg <span class="se">\</span>
+     --libraries /home/user/spack/opt/spack/linux-arch-skylake_avx512/gcc-10.2.0/mpich-3.4.1-yjx3whq2g2mrzrws4xhoxyjt7hl6wvb5/lib/libmpi.so.12 <span class="se">\</span>
+     --files /usr/share/hwdata/pci.ids <span class="se">\</span>
+         mpirun -np <span class="m">2</span> ./ping-pong
+</pre></div>
+</div>
+</section>
+</section>
 
       </article>
       <footer>
@@ -255,7 +317,8 @@ To ensure the arguments are understood correctly, an additional <kbd class="kbd 
 <li><a class="reference internal" href="#"><strong>launch</strong> - Run MPI commands</a><ul>
 <li><a class="reference internal" href="#usage">Usage</a></li>
 <li><a class="reference internal" href="#options">Options</a></li>
-<li><a class="reference internal" href="#description">Description</a></li>
+<li><a class="reference internal" href="#module-e4s_cl.cli.commands.launch">Description</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
 </ul>
 </li>
 </ul>
@@ -267,10 +330,10 @@ To ensure the arguments are understood correctly, an additional <kbd class="kbd 
       
     </aside>
   </main>
-</div>
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
-    <script src="../_static/scripts/main.js?digest=e931d09b2a40c1bb82b542effe772014573baf67"></script></body>
+    <script src="../_static/scripts/main.js"></script>
+    </body>
 </html>

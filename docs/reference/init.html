@@ -2,46 +2,63 @@
 <html class="no-js">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="launch - Run MPI commands" href="launch.html" /><link rel="prev" title="Reference" href="index.html" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="launch - Run MPI commands" href="launch.html" /><link rel="prev" title="Reference" href="index.html" />
 
-    <meta name="generator" content="sphinx-3.5.2, furo 2021.03.19.beta29"/>
-        <title>init - Initialize the tool - E4S Container Launcher v1.0rc2 documentation</title>
-      <link rel="stylesheet" href="../_static/styles/furo.css?digest=ca8f8ad188754d6c0133301b749e93f9e95aff28">
-    <link rel="stylesheet" href="../_static/pygments.css">
-    <link media="(prefers-color-scheme: dark)" rel="stylesheet" href="../_static/pygments_dark.css">
+    <meta name="generator" content="sphinx-4.0.2, furo 2021.06.24.beta37"/>
+        <title>init - Initialize the tool - E4S Container Launcher v1.0rc3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css" />
     
 
 
 <style>
   :root {
-    --color-code-background: #f8f8f8;
+    --color-code-background: #fbf1c7;
   --color-code-foreground: black;
-  --code-font-size: .9em;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
-  --code-font-size: .9em;
+      --color-code-background: #282828;
+  --color-code-foreground: white;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
     }
   }
 
   /* For allowing end-user-specific overrides */
   .override-light {
-    --color-code-background: #f8f8f8;
+    --color-code-background: #fbf1c7;
   --color-code-foreground: black;
-  --code-font-size: .9em;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
   }
   .override-dark {
-    --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
-  --code-font-size: .9em;
+    --color-code-background: #282828;
+  --color-code-foreground: white;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
   }
-</style><link rel="stylesheet" href="../_static/styles/furo-extensions.css?digest=d391b54134226e4196576da3bdb6dddb7e05ba2b"></head>
+</style><link media="(prefers-color-scheme: dark)" rel="stylesheet" href="../_static/pygments_dark.css"></head>
   <body dir="">
     
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
@@ -90,7 +107,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">E4S Container Launcher v1.0rc2 documentation</div></a>
+      <a href="../index.html"><div class="brand">E4S Container Launcher v1.0rc3 documentation</div></a>
     </div>
     <div class="header-right">
       <label class="toc-overlay-icon toc-header-icon" for="__toc">
@@ -104,7 +121,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
   
-  <span class="sidebar-brand-text">E4S Container Launcher v1.0rc2 documentation</span>
+  <span class="sidebar-brand-text">E4S Container Launcher v1.0rc3 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html">
   <input class="sidebar-search" placeholder=Search name="q">
@@ -118,16 +135,17 @@
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#"><strong>init</strong> - Initialize the tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="launch.html"><strong>launch</strong> - Run MPI commands</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="profiles/index.html"><strong>profile</strong> - Edit and manage profiles</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="profiles/create.html"><strong>create</strong> - Create a new profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/copy.html"><strong>copy</strong> - Copy a profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/create.html"><strong>create</strong> - Create a new profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/delete.html"><strong>delete</strong> - Delete a profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/detect.html"><strong>detect</strong> - Create a profile from a MPI library</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/diff.html"><strong>diff</strong> - Compare profiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/dump.html"><strong>dump</strong> - Print internal profile information</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/edit.html"><strong>edit</strong> - Edit a profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/list.html"><strong>list</strong> - List available profiles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="profiles/show.html"><strong>show</strong> - Detail a specific profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/select.html"><strong>select</strong> - Select a profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="profiles/show.html"><strong>show</strong> - Detail a specific profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="profiles/unselect.html"><strong>unselect</strong> - Unselect a profile</a></li>
-<li class="toctree-l3"><a class="reference internal" href="profiles/detect.html"><strong>detect</strong> - Create a profile from a MPI library</a></li>
-<li class="toctree-l3"><a class="reference internal" href="profiles/dump.html"><strong>dump</strong> - Print internal profile information</a></li>
 </ul>
 </li>
 </ul>
@@ -149,45 +167,62 @@
         <label class="toc-overlay-icon toc-content-icon" for="__toc">
           <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
         </label>
-        <div class="section" id="init-initialize-the-tool">
+        <section id="init-initialize-the-tool">
 <span id="init"></span><h1><strong>init</strong> - Initialize the tool<a class="headerlink" href="#init-initialize-the-tool" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="usage">
+<section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">init</span> <span class="p">[</span> <span class="n">OPTIONS</span> <span class="p">]</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="options">
+</section>
+<section id="options">
 <h2>Options<a class="headerlink" href="#options" title="Permalink to this headline">¶</a></h2>
 <p>To tailor the initialization process, values can be specified by the user:</p>
 <dl class="option-list">
 <dt><kbd><span class="option">--mpi</span></kbd></dt>
-<dd><p>path to a MPI installation to use instead of the system default</p>
+<dd><p>Path to a MPI installation to use instead of the system default</p>
 </dd>
 <dt><kbd><span class="option">--source</span></kbd></dt>
-<dd><p>script to run before execution</p>
+<dd><p>Script to run before execution</p>
 </dd>
 <dt><kbd><span class="option">--image</span></kbd></dt>
-<dd><p>identifier for the image to use when launching the container</p>
+<dd><p>Identifier for the image to use when launching the container</p>
 </dd>
 <dt><kbd><span class="option">--backend</span></kbd></dt>
-<dd><p>container technology to employ</p>
+<dd><p>Container technology to employ</p>
+</dd>
+<dt><kbd><span class="option">--profile</span></kbd></dt>
+<dd><p>Profile to create or overwrite</p>
 </dd>
 </dl>
-</div>
-<div class="section" id="description">
-<h2>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-e4s_cl.cli.commands.init">
+<span id="description"></span><h2>Description<a class="headerlink" href="#module-e4s_cl.cli.commands.init" title="Permalink to this headline">¶</a></h2>
 <p>This command initializes E4S Container Launcher for the system’s available MPI library.</p>
 <p>During initialization, the available MPI library is parsed and analyzed to guess its running requirements.
 A <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a> is created with the collected results from the analysis, and made accessible for the next <a class="reference internal" href="launch.html#launch"><span class="std std-ref">launch command</span></a>.</p>
-<div class="admonition caution">
-<p class="admonition-title">Caution</p>
-<p>The process relies on the good configuration of the MPI launcher, but this may fail.
-A message will appear in case some limitations were detected.
-It is good practice to <a class="reference internal" href="../examples.html#init-override"><span class="std std-ref">perform this process manually</span></a> to ensure the network stack is exposed to <strong>e4s-cl</strong>.</p>
+<p>If no <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a> name is passed to <code class="code docutils literal notranslate"><span class="pre">--profile</span></code>, a profile name will be generated from the parameters of the initialization.</p>
+<div class="admonition-the-importance-of-inter-process-communication admonition">
+<p class="admonition-title">The importance of inter-process communication</p>
+<p>This process relies on the execution of a sample MPI program to discover its dependencies.
+In some cases, a library will lazy-load network libraries, preventing them from being detected.
+A message will appear in case some limitations were detected.</p>
+<p>In case of error, it is good practice to <a class="reference internal" href="../examples.html#init-override"><span class="std std-ref">perform this process manually</span></a> to ensure the network stack is used and exposed to <strong>e4s-cl</strong>.</p>
 </div>
+<section id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p>Initializing using the available MPI resources:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">module</span> <span class="n">load</span> <span class="n">mpich</span>
+<span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">init</span> <span class="o">--</span><span class="n">profile</span> <span class="n">mpich</span>
+</pre></div>
 </div>
+<p>Using a library installed on the system in <code class="code docutils literal notranslate"><span class="pre">/packages</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">init</span> <span class="o">--</span><span class="n">mpi</span> <span class="o">/</span><span class="n">packages</span><span class="o">/</span><span class="n">mpich</span> <span class="o">--</span><span class="n">profile</span> <span class="n">mpich</span>
+</pre></div>
 </div>
+</section>
+</section>
+</section>
 
       </article>
       <footer>
@@ -246,7 +281,10 @@ It is good practice to <a class="reference internal" href="../examples.html#init
 <li><a class="reference internal" href="#"><strong>init</strong> - Initialize the tool</a><ul>
 <li><a class="reference internal" href="#usage">Usage</a></li>
 <li><a class="reference internal" href="#options">Options</a></li>
-<li><a class="reference internal" href="#description">Description</a></li>
+<li><a class="reference internal" href="#module-e4s_cl.cli.commands.init">Description</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -258,10 +296,10 @@ It is good practice to <a class="reference internal" href="../examples.html#init
       
     </aside>
   </main>
-</div>
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
-    <script src="../_static/scripts/main.js?digest=e931d09b2a40c1bb82b542effe772014573baf67"></script></body>
+    <script src="../_static/scripts/main.js"></script>
+    </body>
 </html>

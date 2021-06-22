@@ -2,46 +2,63 @@
 <html class="no-js">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="edit - Edit a profile" href="edit.html" /><link rel="prev" title="copy - Copy a profile" href="copy.html" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="detect - Create a profile from a MPI library" href="detect.html" /><link rel="prev" title="create - Create a new profile" href="create.html" />
 
-    <meta name="generator" content="sphinx-3.5.2, furo 2021.03.19.beta29"/>
-        <title>delete - Delete a profile - E4S Container Launcher v1.0rc2 documentation</title>
-      <link rel="stylesheet" href="../../_static/styles/furo.css?digest=ca8f8ad188754d6c0133301b749e93f9e95aff28">
-    <link rel="stylesheet" href="../../_static/pygments.css">
-    <link media="(prefers-color-scheme: dark)" rel="stylesheet" href="../../_static/pygments_dark.css">
+    <meta name="generator" content="sphinx-4.0.2, furo 2021.06.24.beta37"/>
+        <title>delete - Delete a profile - E4S Container Launcher v1.0rc3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css" />
     
 
 
 <style>
   :root {
-    --color-code-background: #f8f8f8;
+    --color-code-background: #fbf1c7;
   --color-code-foreground: black;
-  --code-font-size: .9em;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
-  --code-font-size: .9em;
+      --color-code-background: #282828;
+  --color-code-foreground: white;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
     }
   }
 
   /* For allowing end-user-specific overrides */
   .override-light {
-    --color-code-background: #f8f8f8;
+    --color-code-background: #fbf1c7;
   --color-code-foreground: black;
-  --code-font-size: .9em;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
   }
   .override-dark {
-    --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
-  --code-font-size: .9em;
+    --color-code-background: #282828;
+  --color-code-foreground: white;
+  --code-font-size: 1em;
+  --admonition-title-font-size: 1em;
+  --admonition-font-size: .92em;
+  --font-size--small--2: .90em;
+  --font-size--small--3: .82em;
   
   }
-</style><link rel="stylesheet" href="../../_static/styles/furo-extensions.css?digest=d391b54134226e4196576da3bdb6dddb7e05ba2b"></head>
+</style><link media="(prefers-color-scheme: dark)" rel="stylesheet" href="../../_static/pygments_dark.css"></head>
   <body dir="">
     
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
@@ -90,7 +107,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">E4S Container Launcher v1.0rc2 documentation</div></a>
+      <a href="../../index.html"><div class="brand">E4S Container Launcher v1.0rc3 documentation</div></a>
     </div>
     <div class="header-right">
       <label class="toc-overlay-icon toc-header-icon" for="__toc">
@@ -104,7 +121,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
   
-  <span class="sidebar-brand-text">E4S Container Launcher v1.0rc2 documentation</span>
+  <span class="sidebar-brand-text">E4S Container Launcher v1.0rc3 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html">
   <input class="sidebar-search" placeholder=Search name="q">
@@ -118,16 +135,17 @@
 <li class="toctree-l2"><a class="reference internal" href="../init.html"><strong>init</strong> - Initialize the tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../launch.html"><strong>launch</strong> - Run MPI commands</a></li>
 <li class="toctree-l2 current has-children"><a class="reference internal" href="index.html"><strong>profile</strong> - Edit and manage profiles</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="create.html"><strong>create</strong> - Create a new profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="copy.html"><strong>copy</strong> - Copy a profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="create.html"><strong>create</strong> - Create a new profile</a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><strong>delete</strong> - Delete a profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="detect.html"><strong>detect</strong> - Create a profile from a MPI library</a></li>
+<li class="toctree-l3"><a class="reference internal" href="diff.html"><strong>diff</strong> - Compare profiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dump.html"><strong>dump</strong> - Print internal profile information</a></li>
 <li class="toctree-l3"><a class="reference internal" href="edit.html"><strong>edit</strong> - Edit a profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="list.html"><strong>list</strong> - List available profiles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="show.html"><strong>show</strong> - Detail a specific profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="select.html"><strong>select</strong> - Select a profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="show.html"><strong>show</strong> - Detail a specific profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="unselect.html"><strong>unselect</strong> - Unselect a profile</a></li>
-<li class="toctree-l3"><a class="reference internal" href="detect.html"><strong>detect</strong> - Create a profile from a MPI library</a></li>
-<li class="toctree-l3"><a class="reference internal" href="dump.html"><strong>dump</strong> - Print internal profile information</a></li>
 </ul>
 </li>
 </ul>
@@ -149,41 +167,41 @@
         <label class="toc-overlay-icon toc-content-icon" for="__toc">
           <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
         </label>
-        <div class="section" id="delete-delete-a-profile">
+        <section id="delete-delete-a-profile">
 <h1><strong>delete</strong> - Delete a profile<a class="headerlink" href="#delete-delete-a-profile" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="usage">
+<section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">profile</span> <span class="n">delete</span> <span class="o">&lt;</span><span class="n">NAME</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="description">
-<h2>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-e4s_cl.cli.commands.profile.delete">
+<span id="description"></span><h2>Description<a class="headerlink" href="#module-e4s_cl.cli.commands.profile.delete" title="Permalink to this headline">¶</a></h2>
 <p>Delete a profile associated with the name passed as an argument.</p>
-</div>
-</div>
+</section>
+</section>
 
       </article>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="edit.html">
+          <a class="next-page" href="detect.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title"><strong>edit</strong> - Edit a profile</div>
+                <div class="title"><strong>detect</strong> - Create a profile from a MPI library</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="copy.html">
+          <a class="prev-page" href="create.html">
               <svg><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title"><strong>copy</strong> - Copy a profile</div>
+                <div class="title"><strong>create</strong> - Create a new profile</div>
                 
               </div>
             </a>
@@ -219,7 +237,7 @@
             <ul>
 <li><a class="reference internal" href="#"><strong>delete</strong> - Delete a profile</a><ul>
 <li><a class="reference internal" href="#usage">Usage</a></li>
-<li><a class="reference internal" href="#description">Description</a></li>
+<li><a class="reference internal" href="#module-e4s_cl.cli.commands.profile.delete">Description</a></li>
 </ul>
 </li>
 </ul>
@@ -231,10 +249,10 @@
       
     </aside>
   </main>
-</div>
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+</div><script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
-    <script src="../../_static/scripts/main.js?digest=e931d09b2a40c1bb82b542effe772014573baf67"></script></body>
+    <script src="../../_static/scripts/main.js"></script>
+    </body>
 </html>
