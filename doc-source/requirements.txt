@@ -1,2 +1,2 @@
-sphinx~=3.0
-furo
+sphinx~=4.0
+furo==2021.6.24b37
