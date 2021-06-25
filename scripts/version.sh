@@ -11,7 +11,7 @@ commit=$(git rev-parse --short HEAD || echo "Unknown")
 
 if [ "$version" != "v0.0.0" ]; then
     #PEP 440 compliance
-    version=$(echo "$version" | cut -d- -f1,2 | sed -e 's/-/./')
+    version=$(echo "$version" | cut -d- -f1 | sed -e 's/-/./')
 fi
 
 echo $commit > $COMMIT_FILE
