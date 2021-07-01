@@ -26,7 +26,7 @@ def attributes():
         },
         'image': {
             'type': 'string',
-            'description': 'image file or location',
+            'description': 'image identifier',
         },
         'files': {
             'type': 'string',

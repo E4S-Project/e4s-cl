@@ -99,7 +99,7 @@ class LaunchCommand(AbstractCommand):
 
         parser.add_argument(
             '--image',
-            type=arguments.posix_path,
+            type=str,
             help="Path to the container image to run the program in",
             metavar='image')
 
@@ -134,7 +134,8 @@ class LaunchCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
-        if getattr(args, 'profile') and '--profile' not in argv:
+
+        if getattr(args, 'profile', None) and '--profile' not in argv:
             LOGGER.info("Using selected profile %s", args.profile.get('name'))
 
         if not args.cmd:

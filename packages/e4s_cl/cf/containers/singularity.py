@@ -28,8 +28,8 @@ class SingularityContainer(Container):
             {'SINGULARITYENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
         self.format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
-        container_cmd = [self.executable, 'exec'
-                         ] + nvidia_flag + [self.image.as_posix()] + command
+        container_cmd = [self.executable, 'exec'] + nvidia_flag + [self.image
+                                                                   ] + command
 
         return create_subprocess_exp(container_cmd,
                                      env=self.env,

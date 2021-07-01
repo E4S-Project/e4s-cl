@@ -148,7 +148,8 @@ class ExecuteCommand(AbstractCommand):
                             metavar='executable')
 
         parser.add_argument('--image',
-                            type=arguments.existing_posix_path,
+                            type=str,
+                            dest='image',
                             required=True,
                             help="Container image to use",
                             metavar='image')
