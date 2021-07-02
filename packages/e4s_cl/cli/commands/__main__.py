@@ -45,31 +45,38 @@ class MainCommand(AbstractCommand):
                                       usage=usage,
                                       description=self.summary,
                                       epilog=epilog)
+
         parser.add_argument('command',
                             help="See subcommand descriptions below",
                             choices=cli.commands_next(),
                             metavar='<subcommand>')
+
         parser.add_argument('options',
                             help="Options to be passed to <subcommand>",
                             metavar='[options]',
                             nargs=arguments.REMAINDER)
+
         parser.add_argument('-V',
                             '--version',
                             action='version',
                             version=e4s_cl.version_banner())
+
         group = parser.add_mutually_exclusive_group()
+
         group.add_argument('-v',
                            '--verbose',
                            help="show debugging messages",
                            const='DEBUG',
                            default=arguments.SUPPRESS,
                            action='store_const')
+
         group.add_argument('-q',
                            '--quiet',
                            help="suppress all output except error messages",
                            const='ERROR',
                            default=arguments.SUPPRESS,
                            action='store_const')
+
         parser.add_argument(
             '-d',
             '--dry-run',
@@ -93,7 +100,14 @@ class MainCommand(AbstractCommand):
         Returns:
             int: Process return code: non-zero if a problem occurred, 0 otherwise
         """
+
+        # Check for the presence of a e4s-cl command
+        if not (set(argv) & set(cli.commands_next())):
+            LOGGER.info("Inserting launch command")
+            argv = [argv[0], 'launch'] + argv[1:]
+
         args = self._parse_args(argv)
+
         cmd = args.command
         cmd_args = args.options
 
