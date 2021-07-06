@@ -101,12 +101,44 @@ class MainCommand(AbstractCommand):
             int: Process return code: non-zero if a problem occurred, 0 otherwise
         """
 
-        # Check for the presence of a e4s-cl command
-        if not (set(argv) & set(cli.commands_next())):
-            LOGGER.info("Inserting launch command")
-            argv = [argv[0], 'launch'] + argv[1:]
+        # Disable built-in error catching for this special case
+        self.parser.exit_on_error = False
 
-        args = self._parse_args(argv)
+        try:
+            args = self._parse_args(argv)
+        except arguments.ArgumentError as err:
+            # Debug is enabled below, so the debug statements here will have
+            # no effect
+            #LOGGER.debug("Argument parsing errored out with '%s'" % argv)
+
+            # Check for the presence of a e4s-cl command
+            empty = not len(argv)
+            command = set(argv) & set(cli.commands_next())
+
+            # If the error is not related to the omission of subcommand
+            if empty or command:
+                # Snippet coming from Lib/argparse.py:1853
+                err = sys.exc_info()[1]
+                self.parser.error(str(err))
+
+            # Disable error catching
+            self.parser.exit_on_error = True
+
+            # Get a list of valid option strings from the parser
+            option_strings = util.flatten(
+                map(lambda x: x.option_strings, self.parser.actions))
+
+            # Insert `launch` after any valid option string for e4s-cl
+            for arg in argv:
+                if arg in option_strings:
+                    continue
+                argv.insert(argv.index(arg), 'launch')
+                break
+
+            #LOGGER.debug("Running with '%s'" % argv)
+            args = self._parse_args(argv)
+
+        self.parser.exit_on_error = True
 
         cmd = args.command
         cmd_args = args.options
