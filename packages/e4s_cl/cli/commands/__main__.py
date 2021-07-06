@@ -107,9 +107,11 @@ class MainCommand(AbstractCommand):
         try:
             args = self._parse_args(argv)
         except arguments.ArgumentError as err:
-            # Debug is enabled below, so the debug statements here will have
-            # no effect
-            #LOGGER.debug("Argument parsing errored out with '%s'" % argv)
+            # Debug is enabled below, so the following statement enables
+            # it for this code block
+            if {'-v', '--verbose'} & set(argv):
+                logger.set_log_level('DEBUG')
+            LOGGER.debug("Argument parsing errored out with '%s'" % argv)
 
             # Check for the presence of a e4s-cl command
             empty = not len(argv)
@@ -135,7 +137,7 @@ class MainCommand(AbstractCommand):
                 argv.insert(argv.index(arg), 'launch')
                 break
 
-            #LOGGER.debug("Running with '%s'" % argv)
+            LOGGER.debug("Parsing updated arguments '%s'" % argv)
             args = self._parse_args(argv)
 
         self.parser.exit_on_error = True
