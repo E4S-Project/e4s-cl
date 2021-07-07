@@ -141,8 +141,16 @@ class LaunchCommand(AbstractCommand):
         if not args.cmd:
             self.parser.error("No command given")
 
+        # Merge profile and cli arguments to get a definitive list of arguments
+        parameters = _parameters(args)
+
+        # Ensure the minimum fields required for launch are present
+        for field in {'backend', 'image'}:
+            if not parameters.get(field, None):
+                self.parser.error("Missing field: '%s'. Specify it using the appropriate option or by selecting a profile." % field)
+
         launcher, program = interpret(args.cmd)
-        execute_command = _format_execute(_parameters(args))
+        execute_command = _format_execute(parameters)
 
         full_command = launcher + execute_command + program
 
