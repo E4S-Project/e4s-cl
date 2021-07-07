@@ -25,6 +25,12 @@ each of the above options.
 :code:`--profile` option is passed. Command line options have precedence \
 over profiles' fields.
 
+.. admonition:: Implicit sub-command
+
+    When **e4s-cl** is called without a proper sub-command (:code:`launch` or \
+:code:`profile`), the program will implicitly use the :code:`launch` \
+sub-command. This requires a complete profile to be selected as no launch \
+arguments can be passed.
 """
 
 import os
