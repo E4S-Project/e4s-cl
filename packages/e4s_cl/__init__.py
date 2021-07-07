@@ -25,10 +25,13 @@ EXIT_SUCCESS = 0
 """int: Process exit code indicating successful operation."""
 
 MIN_PYTHON_VERSION = (3, 6)
-"""tuple: Required Python version for E4S Comamnder.
+"""tuple: Required Python version for E4S Container Launcher.
 
 A tuple of at least (MAJOR, MINOR) directly comparible to :any:`sys.version_info`
 """
+
+PYTHON_VERSION = sys.version_info[0:3]
+"""list: Version of the running python interpreter"""
 
 if sys.version_info[0] < MIN_PYTHON_VERSION[0] or sys.version_info[
         1] < MIN_PYTHON_VERSION[1]:

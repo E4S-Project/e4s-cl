@@ -5,10 +5,12 @@ Entrypoint to the CLI
 import os
 import sys
 import e4s_cl
-from e4s_cl import cli, logger, util, E4S_CL_VERSION, E4S_CL_SCRIPT
+from e4s_cl import cli, logger, util, E4S_CL_VERSION, E4S_CL_SCRIPT, PYTHON_VERSION
 from e4s_cl.variables import SlaveAction, DryRunAction
+from e4s_cl.cf.version import Version
 from e4s_cl.cli import UnknownCommandError, arguments
 from e4s_cl.cli.command import AbstractCommand
+from e4s_cl.cli.commands.launch import COMMAND as LAUNCH_COMMAND
 
 LOGGER = logger.get_logger(__name__)
 
@@ -91,14 +93,40 @@ class MainCommand(AbstractCommand):
 
         return parser
 
-    def main(self, argv):
-        """Program entry point.
+    def _py38_parse(self, argv):
+        """
+        If a command is not detected, insert 'launch' in the argv array
+        """
 
-        Args:
-            argv (list): Command line arguments.
+        # Debug is not enabled until below, so the following statement
+        # enables it for this code block
+        if {'-v', '--verbose'} & set(argv):
+            logger.set_log_level('DEBUG')
 
-        Returns:
-            int: Process return code: non-zero if a problem occurred, 0 otherwise
+        empty = not len(argv)
+        command = set(argv) & set(cli.commands_next())
+
+        # Get a list of valid option strings from the parser
+        option_strings = util.flatten(
+            map(lambda x: x.option_strings, self.parser.actions))
+
+        # If the error is not related to the omission of subcommand
+        if not empty and not command:
+            # Insert `launch` after any valid option string for e4s-cl
+            for arg in argv:
+                if arg in option_strings:
+                    continue
+                argv.insert(argv.index(arg), LAUNCH_COMMAND.monicker)
+                break
+
+        LOGGER.debug("Parsing updated arguments '%s'" % argv)
+
+        return self._parse_args(argv)
+
+    def _py39_parse(self, argv):
+        """
+        Use the exit_on_error from python 3.9 to validate a command line,
+        and complete with 'launch' in case it misses a sub-command
         """
 
         # Disable built-in error catching for this special case
@@ -107,8 +135,8 @@ class MainCommand(AbstractCommand):
         try:
             args = self._parse_args(argv)
         except arguments.ArgumentError as err:
-            # Debug is enabled below, so the following statement enables
-            # it for this code block
+            # Debug is not enabled until below, so the following statement
+            # enables it for this code block
             if {'-v', '--verbose'} & set(argv):
                 logger.set_log_level('DEBUG')
             LOGGER.debug("Argument parsing errored out with '%s'" % argv)
@@ -134,13 +162,32 @@ class MainCommand(AbstractCommand):
             for arg in argv:
                 if arg in option_strings:
                     continue
-                argv.insert(argv.index(arg), 'launch')
+                argv.insert(argv.index(arg), LAUNCH_COMMAND.monicker)
                 break
 
             LOGGER.debug("Parsing updated arguments '%s'" % argv)
             args = self._parse_args(argv)
 
         self.parser.exit_on_error = True
+
+        return args
+
+    def main(self, argv):
+        """Program entry point.
+
+        Args:
+            argv (list): Command line arguments.
+
+        Returns:
+            int: Process return code: non-zero if a problem occurred, 0 otherwise
+        """
+
+        if Version('.'.join(map(str, PYTHON_VERSION))) < Version('3.9.0'):
+            parse_method = self._py38_parse
+        else:
+            parse_method = self._py39_parse
+
+        args = parse_method(argv)
 
         cmd = args.command
         cmd_args = args.options
