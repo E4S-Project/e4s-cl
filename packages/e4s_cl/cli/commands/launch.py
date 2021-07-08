@@ -44,7 +44,7 @@ from e4s_cl.cf.launchers import interpret
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
 
-from e4s_cl.cli.commands.__execute import COMMAND as execute_cmd
+from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
@@ -67,10 +67,9 @@ def _parameters(args):
 
 
 def _format_execute(parameters):
-    execute_command = str(execute_cmd).split()
+    execute_command = str(EXECUTE_COMMAND).split()
 
-    # Insert a top-level e4s option between the script name and the subcommand
-    execute_command = [E4S_CL_SCRIPT, '--slave'] + execute_command[1:]
+    execute_command = [E4S_CL_SCRIPT] + execute_command[1:]
 
     if logger.debug_mode():
         execute_command = [execute_command[0], '-v'] + execute_command[1:]
@@ -164,6 +163,7 @@ class LaunchCommand(AbstractCommand):
             print(' '.join(full_command))
             return EXIT_SUCCESS
 
+        variables.set_master()
         retval, _ = create_subprocess_exp(full_command)
 
         return retval
