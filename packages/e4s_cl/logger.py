@@ -14,7 +14,6 @@ import os
 import re
 import sys
 import time
-import errno
 import textwrap
 import socket
 import platform
@@ -28,32 +27,72 @@ from e4s_cl.variables import is_master
 from e4s_cl.cf.json_handler import JSONHandler
 import termcolor
 
-IDENTIFIER = "e4s-cl-slave-message"
-SLAVE_LOGGER = logging.getLogger("Child Processes")
+# Logger managing output from child processes
+_CHILD_LOGGER = logging.getLogger("Child Processes")
 
 STDOUT_COLOR = os.isatty(sys.stdout.fileno())
 STDERR_COLOR = os.isatty(sys.stderr.fileno())
 
 
+class RelayLogger(logging.Logger):
+    """
+    Logger allowing us to specify internal log fields. This is necessary as
+    log records are read from a stream with a delay, and the standard
+    implementation prevents setting the created time ourselves.
+    """
+
+    # from cpython:Lib/logging/__init__.py:1580 (ddd5f369)
+    def makeRecord(self,
+                   name,
+                   level,
+                   fn,
+                   lno,
+                   msg,
+                   args,
+                   exc_info,
+                   func=None,
+                   extra=None,
+                   sinfo=None):
+        """
+        A factory method which can be overridden in subclasses to create
+        specialized LogRecords.
+        """
+        from logging import _logRecordFactory
+        rv = _logRecordFactory(name, level, fn, lno, msg, args, exc_info, func,
+                               sinfo)
+        if extra is not None:
+            for key in extra:
+                rv.__dict__[key] = extra[key]
+        return rv
+
+
+# Ensure the custom class above is used when asking for a new logger
+_CHILD_LOGGER.manager.setLoggerClass(RelayLogger)
+
+
 def handle_error(line):
     try:
         data = json.loads(line)
+
+        if not data.get(JSONHandler.identifier):
+            raise ValueError
     except ValueError:
-        # Its not json, does not come from a slave
-        SLAVE_LOGGER.warning(line)
+        # Its not json, does not come from a child process
+        _CHILD_LOGGER.warning(line)
         return
 
-    if data.get('level') in ["error", "critical"]:
-        SLAVE_LOGGER.error("%d on %s: %s", data.get('process'),
-                           data.get('host'), data.get('message'))
+    extra = {
+        'name': data.get('name'),
+        'created': data.get('created'),
+        'process': data.get('process'),
+        'host': data.get('host'),
+    }
 
-    with open("{}.{}.log".format(data.get('host'), data.get('process')),
-              'a') as proc_log:
-        proc_log.write(
-            '[%(date)s] %(message)s\n' % {
-                'date': time.ctime(float(data.get('date'))),
-                'message': data.get('message')
-            })
+    process_logger = _CHILD_LOGGER.getChild(
+        "%s.%d" % (data.get('host'), data.get('process')))
+    process_logger.log(data.get('levelno', logging.NOTSET),
+                       data.get('msg'),
+                       extra=extra)
 
 
 def _prune_ansi(line):
@@ -324,18 +363,7 @@ class LogFormatter(logging.Formatter):
         return textwrap.indent("\n".join(output), header, lambda line: True)
 
 
-def get_logger(name):
-    """Returns a customized logging object.
-    
-    Multiple calls to with the same name will always return a reference to the same Logger object.
-    
-    Args:
-        name (str): Dot-separated hierarchical name for the logger.
-        
-    Returns:
-        Logger: An instance of :any:`logging.Logger`.
-    """
-    return logging.getLogger(name)
+get_logger = logging.getLogger
 
 
 def set_log_level(level):

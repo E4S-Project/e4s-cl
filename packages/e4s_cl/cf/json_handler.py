@@ -1,4 +1,3 @@
-import os
 import socket
 import logging
 import json
@@ -6,7 +5,7 @@ import json
 
 class JSONHandler(logging.StreamHandler):
     """
-    Class emitting record as a JSON object on stdout
+    Class emitting record as a JSON object on a stream
     """
 
     identifier = 'JSON_FORMATTED_RECORD'
@@ -14,11 +13,13 @@ class JSONHandler(logging.StreamHandler):
     def emit(self, record):
         try:
             template = {
-                'level': record.levelname.lower(),
-                'process': os.getpid(),
                 'host': socket.gethostname(),
-                'date': record.created,
-                'message': record.getMessage().strip(),
+                'name': record.name,
+                'levelno': record.levelno,
+                'process': record.process,
+                'created': record.created,
+                # We format the message now to avoid issues converting to JSON
+                'msg': record.getMessage(),
                 self.identifier: 1
             }
 
