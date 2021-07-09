@@ -20,7 +20,7 @@ import platform
 import string
 import logging
 import json
-from logging import handlers
+from logging import handlers, FileHandler
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
 from e4s_cl.variables import is_master
@@ -90,6 +90,14 @@ def handle_error(line):
 
     process_logger = _CHILD_LOGGER.getChild(
         "%s.%d" % (data.get('host'), data.get('process')))
+
+    # If the logger was created for the first time at the above step,
+    # Set it to output to a dedicated file
+    if not process_logger.handlers:
+        logname = "%s/%s.%s.log" % (_LOG_FILE_PREFIX, data.get('host'),
+                                    data.get('process'))
+        process_logger.addHandler(FileHandler(logname, delay=True))
+
     process_logger.log(data.get('levelno', logging.NOTSET),
                        data.get('msg'),
                        extra=extra)
