@@ -4,17 +4,12 @@ from argparse import Action
 # Status to decide if you have to handle the error messages
 CHILD_MARKER = "__E4S_CL_WORKER"
 
-# MASTER = True
-# SLAVE = False
-
-STATUS = not os.environ.get(CHILD_MARKER, False)
-
 # Dry run mode, print subprocesses instead of running them
 DRY_RUN = False
 
 
 def is_master():
-    return STATUS
+    return not os.environ.get(CHILD_MARKER, False)
 
 
 def set_master():

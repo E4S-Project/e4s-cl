@@ -191,16 +191,12 @@ def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
     if redirect_stdout and log:
         LOGGER.debug(output.strip())
 
-    for line in errors.split('\n'):
-        # If this is a master process, prettify the output; if not,
-        # format it for the master process to understand
-        if is_master() and line:
-            logger.handle_error(line)
-        elif line:
-            if retval:
-                LOGGER.error(line)
-            else:
-                LOGGER.warning(line)
+    level = logger.ERROR if retval else logger.WARNING
+
+    [
+        logger.handle_error(string, level)
+        for string in filter(None, errors.split('\n'))
+    ]
 
     LOGGER.debug("%s returned %d", cmd, retval)
 

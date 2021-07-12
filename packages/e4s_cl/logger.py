@@ -25,52 +25,30 @@ from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
 from e4s_cl.variables import is_master
 from e4s_cl.cf.json_handler import JSONHandler
+from e4s_cl.cf.relay_logger import RelayLogger
 import termcolor
 
-# Logger managing output from child processes
-_CHILD_LOGGER = logging.getLogger("Child Processes")
-
+# Use isatty to check if the stream supports color
 STDOUT_COLOR = os.isatty(sys.stdout.fileno())
 STDERR_COLOR = os.isatty(sys.stderr.fileno())
 
+# This is used all over the project, so name translation here
+get_logger = logging.getLogger
 
-class RelayLogger(logging.Logger):
+WARNING = logging.WARNING
+ERROR = logging.ERROR
+
+
+def handle_error(line: str, default_level: int = WARNING) -> bool:
     """
-    Logger allowing us to specify internal log fields. This is necessary as
-    log records are read from a stream with a delay, and the standard
-    implementation prevents setting the created time ourselves.
+    From a line of error stream, check if it has been generated from a
+    JSONHandler
+
+    line: string to parse
+    default_level: level to log with in case the line is not a record
+
+    Returns False in case the line is not a JSONrecord
     """
-
-    # from cpython:Lib/logging/__init__.py:1580 (ddd5f369)
-    def makeRecord(self,
-                   name,
-                   level,
-                   fn,
-                   lno,
-                   msg,
-                   args,
-                   exc_info,
-                   func=None,
-                   extra=None,
-                   sinfo=None):
-        """
-        A factory method which can be overridden in subclasses to create
-        specialized LogRecords.
-        """
-        from logging import _logRecordFactory
-        rv = _logRecordFactory(name, level, fn, lno, msg, args, exc_info, func,
-                               sinfo)
-        if extra is not None:
-            for key in extra:
-                rv.__dict__[key] = extra[key]
-        return rv
-
-
-# Ensure the custom class above is used when asking for a new logger
-_CHILD_LOGGER.manager.setLoggerClass(RelayLogger)
-
-
-def handle_error(line):
     try:
         data = json.loads(line)
 
@@ -78,7 +56,8 @@ def handle_error(line):
             raise ValueError
     except ValueError:
         # Its not json, does not come from a child process
-        _CHILD_LOGGER.warning(line)
+        # Log it with the requested level
+        _CHILD_LOGGER.log(default_level, line)
         return
 
     extra = {
@@ -102,8 +81,13 @@ def handle_error(line):
                        data.get('msg'),
                        extra=extra)
 
+    return True
 
-def _prune_ansi(line):
+
+def _prune_ansi(line: str) -> str:
+    """
+    Remove ANSI color codes from a string
+    """
     return re.sub(re.compile('\x1b[^m]+m'), '', line)
 
 
@@ -291,8 +275,11 @@ class LogFormatter(logging.Formatter):
                 (record.levelname.title(), record.name, record.lineno),
                 'yellow')
         else:
-            marker = self._colored("[%s]" % record.levelname.title(), 'cyan',
-                                   None, ['bold'])
+            marker = self._colored(
+                "[%s %s:%d]" %
+                (record.levelname.title(), getattr(
+                    record, 'host', 'localhost'), record.process), 'cyan',
+                None, ['bold'])
 
         return '%s %s' % (marker, message)
 
@@ -371,9 +358,6 @@ class LogFormatter(logging.Formatter):
         return textwrap.indent("\n".join(output), header, lambda line: True)
 
 
-get_logger = logging.getLogger
-
-
 def set_log_level(level):
     """Sets :any:`LOG_LEVEL`, the output level for stdout logging objects.
     
@@ -386,7 +370,7 @@ def set_log_level(level):
     # pylint: disable=global-statement
     global LOG_LEVEL
     LOG_LEVEL = level.upper()
-    _STDOUT_HANDLER.setLevel(LOG_LEVEL)
+    _STDERR_HANDLER.setLevel(LOG_LEVEL)
 
 
 def debug_mode():
@@ -420,15 +404,16 @@ if not _ROOT_LOGGER.handlers:
     # Use a different handler depending on the type of execution
     if is_master():
         # If top-level, output to stderr
-        _STDOUT_HANDLER = logging.StreamHandler(sys.stderr)
-        _STDOUT_HANDLER.setFormatter(
+        _STDERR_HANDLER = logging.StreamHandler(sys.stderr)
+        _STDERR_HANDLER.setFormatter(
             LogFormatter(line_width=LINE_WIDTH, printable_only=False))
-        _STDOUT_HANDLER.setLevel(LOG_LEVEL)
+        _STDERR_HANDLER.setLevel(LOG_LEVEL)
+
     else:
         # If post-launcher, use JSON records on stderr
-        _STDOUT_HANDLER = JSONHandler(sys.stderr)
+        _STDERR_HANDLER = JSONHandler(sys.stderr)
 
-    _ROOT_LOGGER.addHandler(_STDOUT_HANDLER)
+    _ROOT_LOGGER.addHandler(_STDERR_HANDLER)
 
     # Setup the file logging
     try:
@@ -447,27 +432,42 @@ if not _ROOT_LOGGER.handlers:
     except OSError as exc:
         _ROOT_LOGGER.debug("Failed to open file logger: %s", exc.strerror)
 
-    # pylint: disable=logging-not-lazy
-    _ROOT_LOGGER.debug(
-        ("\n%(bar)s\n"
-         "E4S CONTAINER LAUNCHER LOGGING INITIALIZED\n"
-         "\n"
-         "Timestamp         : %(timestamp)s\n"
-         "Hostname          : %(hostname)s\n"
-         "Platform          : %(platform)s\n"
-         "Version           : %(version)s\n"
-         "Python Version    : %(pyversion)s\n"
-         "Working Directory : %(cwd)s\n"
-         "Terminal Size     : %(termsize)s\n"
-         "Frozen            : %(frozen)s\n"
-         "%(bar)s\n") % {
-             'bar': '#' * LINE_WIDTH,
-             'timestamp': str(datetime.now()),
-             'hostname': socket.gethostname(),
-             'platform': platform.platform(),
-             'version': E4S_CL_VERSION,
-             'pyversion': platform.python_version(),
-             'cwd': os.getcwd(),
-             'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
-             'frozen': getattr(sys, 'frozen', False)
-         })
+    if is_master():
+        # pylint: disable=logging-not-lazy
+        _ROOT_LOGGER.debug(
+            ("\n%(bar)s\n"
+             "E4S CONTAINER LAUNCHER LOGGING INITIALIZED\n"
+             "\n"
+             "Timestamp         : %(timestamp)s\n"
+             "Hostname          : %(hostname)s\n"
+             "Platform          : %(platform)s\n"
+             "Version           : %(version)s\n"
+             "Python Version    : %(pyversion)s\n"
+             "Working Directory : %(cwd)s\n"
+             "Terminal Size     : %(termsize)s\n"
+             "Frozen            : %(frozen)s\n"
+             "%(bar)s\n") % {
+                 'bar': '#' * LINE_WIDTH,
+                 'timestamp': str(datetime.now()),
+                 'hostname': socket.gethostname(),
+                 'platform': platform.platform(),
+                 'version': E4S_CL_VERSION,
+                 'pyversion': platform.python_version(),
+                 'cwd': os.getcwd(),
+                 'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
+                 'frozen': getattr(sys, 'frozen', False)
+             })
+
+if is_master():
+    # Separate logger managing output from child processes
+    _CHILD_LOGGER = logging.getLogger("processes")
+    _CHILD_LOGGER.addHandler(_STDERR_HANDLER)
+
+    # Records passed to this tree of loggers will be written to specific files,
+    # no need to pass them along to the root logger and make a copy in the log file
+    _CHILD_LOGGER.propagate = False
+else:
+    _CHILD_LOGGER = logging.getLogger()
+
+# Ensure a custom, more permissive class is used when asking for a new logger
+_CHILD_LOGGER.manager.setLoggerClass(RelayLogger)
