@@ -104,8 +104,8 @@ class TestCase(unittest.TestCase):
         push_test_workdir()
         # Reset stdout logger handler to use buffered unittest stdout
         # pylint: disable=protected-access
-        cls._orig_stream = logger._STDOUT_HANDLER.stream
-        logger._STDOUT_HANDLER.stream = sys.stdout
+        cls._orig_stream = logger._STDERR_HANDLER.stream
+        logger._STDERR_HANDLER.stream = sys.stdout
 
         # Make sure the storage is clean before any test is performed
         cls.resetStorage()
@@ -114,14 +114,14 @@ class TestCase(unittest.TestCase):
     def tearDownClass(cls):
         # Reset stdout logger handler to use original stdout
         # pylint: disable=protected-access
-        logger._STDOUT_HANDLER.stream = cls._orig_stream
+        logger._STDERR_HANDLER.stream = cls._orig_stream
         pop_test_workdir()
 
     def run(self, result=None):
         # Whenever running a test, set the terminal size large enough to avoid any regex failures due to line wrap
         logger.TERM_SIZE = (150, 150)
         logger.LINE_WIDTH = logger.TERM_SIZE[0]
-        logger._STDOUT_HANDLER.setFormatter(
+        logger._STDERR_HANDLER.setFormatter(
             logger.LogFormatter(line_width=logger.LINE_WIDTH,
                                 printable_only=True))
         # Nasty hack to give us access to what sys.stderr becomes when unittest.TestRunner.buffered == True
@@ -146,7 +146,7 @@ class TestCase(unittest.TestCase):
         orig_stdout, orig_stderr = sys.stdout, sys.stderr
         try:
             sys.stdout, sys.stderr = stdout, stderr
-            logger._STDOUT_HANDLER.stream = stderr
+            logger._STDERR_HANDLER.stream = stderr
             try:
                 retval = cmd.main(argv)
             except SystemExit as err:
@@ -157,7 +157,7 @@ class TestCase(unittest.TestCase):
         finally:
             sys.stdout, sys.stderr = orig_stdout, orig_stderr
             stdout.close(), stderr.close()
-            logger._STDOUT_HANDLER.stream = orig_stdout
+            logger._STDERR_HANDLER.stream = orig_stdout
 
     def assertCommandReturnValue(self, return_value, cmd, argv):
         retval, stdout, stderr = self.exec_command(cmd, argv)
