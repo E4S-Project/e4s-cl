@@ -113,3 +113,8 @@ class LibraryTest(tests.TestCase):
         libset = LibrarySet.create_from([resolve('libm.so.6')])
 
         self.assertTrue(libset.complete)
+
+    def test_escape_soname(self):
+        libset = LibrarySet.create_from(['libm.so.6'])
+
+        self.assertFalse(libset.find('libc++'))
