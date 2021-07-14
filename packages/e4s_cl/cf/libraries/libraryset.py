@@ -307,7 +307,8 @@ class LibrarySet(set):
         -> Library or None
         Returns the matching library if found in self, else None
         """
-        matches = set(filter(lambda x: re.match(soname, x.soname), self))
+        query = re.escape(soname)
+        matches = set(filter(lambda x: re.match(query, x.soname), self))
 
         return matches.pop() if matches else None
 
