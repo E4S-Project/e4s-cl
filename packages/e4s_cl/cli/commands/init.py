@@ -44,7 +44,7 @@ import os
 import json
 import tempfile
 import subprocess
-import pathlib
+from pathlib import Path
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
@@ -170,27 +170,37 @@ class InitCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        compiler = util.which('mpicc')
-        launcher = util.which('mpirun')
         with tempfile.NamedTemporaryFile('w+', delete=False) as program_file:
             file_name = program_file.name
 
+        # Use the environment compiler per default
+        compiler = util.which('mpicc')
+        launcher = util.which('mpirun')
+
+        # If a library is specified, get the executables
         if getattr(args, 'mpi', None):
-            mpicc = pathlib.Path(args.mpi) / "bin" / "mpicc"
+            mpicc = Path(args.mpi) / "bin" / "mpicc"
             if mpicc.exists():
                 compiler = mpicc.as_posix()
-            mpirun = pathlib.Path(args.mpi) / "bin" / "mpirun"
+
+            mpirun = Path(args.mpi) / "bin" / "mpirun"
             if mpirun.exists():
                 launcher = mpirun.as_posix()
 
-        if not (compiler and launcher):
+        # Use the launcher passed as an argument in priority
+        launcher = util.which(getattr(args, 'launcher', launcher))
+
+        if not compiler:
             LOGGER.error(
-                "No MPI detected in PATH. Please load a module or use `--mpi`"
-                + " to specify the MPI installation to use.")
+                "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
+            )
             return EXIT_FAILURE
 
-        if getattr(args, 'launcher', None):
-            launcher = util.which(args.launcher)
+        if not launcher:
+            LOGGER.error(
+                "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
+            )
+            return EXIT_FAILURE
 
         LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
                      launcher)
