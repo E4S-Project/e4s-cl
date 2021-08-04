@@ -7,19 +7,16 @@ This command is used internally and thus cloaked from the UI
 """
 
 from pathlib import Path
-from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT, EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables
+from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT, CONTAINER_LIBRARY_DIR, EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
-from e4s_cl.cf.containers import Container, BackendError
+from e4s_cl.cf.containers import Container, BackendError, FileOptions
 from e4s_cl.cf.libraries import libc_version, resolve, LibrarySet, HostLibrary, library_links
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
-
-HOST_LIBS_DIR = Path(CONTAINER_DIR, 'hostlibs').as_posix()
-
 
 def import_library(shared_object, container):
     """
@@ -32,7 +29,7 @@ def import_library(shared_object, container):
     library is found down the line.
     """
     for file in library_links(shared_object):
-        container.bind_file(file, Path(HOST_LIBS_DIR, file.name))
+        container.bind_file(file, Path(CONTAINER_LIBRARY_DIR, file.name))
 
 
 # pylint: disable=unused-argument
@@ -84,10 +81,10 @@ def overlay_libraries(library_set, container, entrypoint):
                             len(library_set.linkers))
 
     for linker in library_set.linkers:
-        entrypoint.linker = Path(HOST_LIBS_DIR,
+        entrypoint.linker = Path(CONTAINER_LIBRARY_DIR,
                                  Path(linker.binary_path).name).as_posix()
         container.bind_file(linker.binary_path,
-                            dest=Path(HOST_LIBS_DIR,
+                            dest=Path(CONTAINER_LIBRARY_DIR,
                                       Path(linker.binary_path).name))
 
     return selected
@@ -186,19 +183,24 @@ class ExecuteCommand(AbstractCommand):
         except BackendError as err:
             return err.handle(type(err), err, None)
 
+        # Setup a entrypoint object that will later be bound as a bash script
         params = Entrypoint()
+
+        # Bind files to make the sourced script accessible
+        if args.files:
+            for path in args.files:
+                container.bind_file(path, option=FileOptions.READ_WRITE)
+
+        # This script is sourced before any other command in the container
         params.source_script_path = args.source
 
-        # Analyze the host to get a thorough set of libraries required
+        # The following is a set of all libraries referenced on the CLI. It
+        # is used in the container to check version mismatches
         libset = LibrarySet.create_from(args.libraries, member=HostLibrary)
 
         # Analyze the container to get library information from the environment
-        # it offers, using the entrypoint
+        # it offers, using the entrypoint and the above libraries
         container.get_data(params, library_set=libset)
-
-        params.command = args.cmd
-        params.debug = logger.debug_mode()
-        params.library_dir = HOST_LIBS_DIR
 
         if args.libraries:
             # Create a set of libraries to import
@@ -213,18 +215,19 @@ class ExecuteCommand(AbstractCommand):
 
             # Preload the roots of all the set's trees
             def _path(library: HostLibrary):
-                return Path(HOST_LIBS_DIR,
+                return Path(CONTAINER_LIBRARY_DIR,
                             Path(library.binary_path).name).as_posix()
 
             for import_path in map(_path, libset.top_level):
                 params.preload.append(import_path)
 
-        if args.files:
-            for path in args.files:
-                container.bind_file(path)
+        # Setup the final command and metadata relating to the execution
+        params.command = args.cmd
+        params.debug = logger.debug_mode()
+        params.library_dir = CONTAINER_LIBRARY_DIR
 
+        # Write the entry script to a file, then bind it to the container
         script_name = params.setup()
-
         container.bind_file(script_name, dest=CONTAINER_SCRIPT)
 
         command = [CONTAINER_SCRIPT]
