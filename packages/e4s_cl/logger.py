@@ -20,6 +20,7 @@ import platform
 import string
 import logging
 import json
+from pathlib import Path
 from logging import handlers, FileHandler
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
@@ -72,7 +73,7 @@ def handle_error(line: str, default_level: int = WARNING) -> bool:
 
     # If the logger was created for the first time at the above step,
     # Set it to output to a dedicated file
-    if not process_logger.handlers:
+    if FILE_LOGGING and not process_logger.handlers:
         logname = "%s/%s.%s.log" % (_LOG_FILE_PREFIX, data.get('host'),
                                     data.get('process'))
         process_logger.addHandler(FileHandler(logname, delay=True))
@@ -383,7 +384,7 @@ LOG_LEVEL = 'INFO'
 Don't change directly. May be changed via :any:`set_log_level`.  
 """
 
-LOG_FILE = os.path.join(USER_PREFIX, 'debug_log')
+LOG_FILE = Path(USER_PREFIX, 'debug_log')
 """str: Absolute path to a log file to receive all debugging output."""
 
 TERM_SIZE = get_terminal_size()
@@ -399,7 +400,7 @@ width cannot be determined, the default is 80.
 _ROOT_LOGGER = logging.getLogger()
 if not _ROOT_LOGGER.handlers:
     _ROOT_LOGGER.setLevel(logging.DEBUG)
-    _LOG_FILE_PREFIX = os.path.dirname(LOG_FILE)
+    _LOG_FILE_PREFIX = LOG_FILE.parent
 
     # Use a different handler depending on the type of execution
     if is_master():
@@ -416,10 +417,19 @@ if not _ROOT_LOGGER.handlers:
     _ROOT_LOGGER.addHandler(_STDERR_HANDLER)
 
     # Setup the file logging
+    FILE_LOGGING = True
+
     try:
         # Ensure the log file directory is accessible
-        os.makedirs(_LOG_FILE_PREFIX, exist_ok=True)
+        Path.mkdir(_LOG_FILE_PREFIX, exist_ok=True)
 
+        handle = open(LOG_FILE, 'w')
+        handle.close()
+    except OSError as exc:
+        _ROOT_LOGGER.debug("Failed to open file logger: %s", exc.strerror)
+        FILE_LOGGING = False
+
+    if FILE_LOGGING:
         _FILE_HANDLER = handlers.TimedRotatingFileHandler(LOG_FILE,
                                                           when='D',
                                                           interval=1,
@@ -428,9 +438,6 @@ if not _ROOT_LOGGER.handlers:
             LogFormatter(line_width=120, allow_colors=False))
         _FILE_HANDLER.setLevel(logging.DEBUG)
         _ROOT_LOGGER.addHandler(_FILE_HANDLER)
-
-    except OSError as exc:
-        _ROOT_LOGGER.debug("Failed to open file logger: %s", exc.strerror)
 
     if is_master():
         # pylint: disable=logging-not-lazy
