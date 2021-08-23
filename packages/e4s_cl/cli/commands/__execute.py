@@ -6,6 +6,7 @@ argument.
 This command is used internally and thus cloaked from the UI
 """
 
+import os
 from pathlib import Path
 from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT, CONTAINER_LIBRARY_DIR, EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
@@ -14,9 +15,11 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, BackendError, FileOptions
 from e4s_cl.cf.libraries import libc_version, resolve, LibrarySet, HostLibrary, library_links
+from e4s_cl.cf.wi4mpi import wi4mpi_enabled, wi4mpi_root, wi4mpi_import, wi4mpi_libraries, wi4mpi_libpath
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
+
 
 def import_library(shared_object, container):
     """
@@ -54,10 +57,6 @@ def filter_libraries(library_set, container, entrypoint):
     # Remove linkers from the import list
     for linker in guest_set.linkers:
         filtered_set.add(linker)
-
-    # Print details on selected libraries as a tree
-    for tree in filtered_set.trees(True):
-        LOGGER.debug(tree)
 
     return LibrarySet(
         filter(lambda x: isinstance(x, HostLibrary), filtered_set))
@@ -124,8 +123,8 @@ def select_libraries(library_set, container, entrypoint):
 
     host_precedence = host_libc > guest_libc
 
-    LOGGER.debug("Host libc: %s / Guest libc: %s", str(host_libc),
-                 str(guest_libc))
+    LOGGER.debug("Host libc: %s %s Guest libc: %s", str(host_libc),
+                 '>' if host_precedence else '<=', str(guest_libc))
 
     return methods[host_precedence](library_set, container, entrypoint)
 
@@ -194,15 +193,38 @@ class ExecuteCommand(AbstractCommand):
         # This script is sourced before any other command in the container
         params.source_script_path = args.source
 
-        # The following is a set of all libraries referenced on the CLI. It
+        # If WI4MPI is enabled, analyze the libraries it uses
+        required_libraries = args.libraries + wi4mpi_libraries(wi4mpi_root())
+
+        # The following is a set of all libraries required. It
         # is used in the container to check version mismatches
-        libset = LibrarySet.create_from(args.libraries, member=HostLibrary)
+        libset = LibrarySet.create_from(required_libraries, member=HostLibrary)
 
         # Analyze the container to get library information from the environment
         # it offers, using the entrypoint and the above libraries
         container.get_data(params, library_set=libset)
 
-        if args.libraries:
+        # Setup the final command and metadata relating to the execution
+        params.command = args.cmd
+        params.debug = logger.debug_mode()
+        params.library_dir = CONTAINER_LIBRARY_DIR
+
+        if wi4mpi_enabled():
+            linker_paths = [
+                x.as_posix() for x in wi4mpi_libpath(wi4mpi_root())
+            ]
+            params.library_dir = ':'.join(
+                [*linker_paths, CONTAINER_LIBRARY_DIR])
+
+        if wi4mpi_enabled():
+            # Import relevant files
+            wi4mpi_import(container, wi4mpi_root())
+
+            # Pass along the preloaded libraries from wi4mpi
+            for file in os.environ.get("LD_PRELOAD", "").split():
+                params.preload.append(file)
+
+        if libset:
             # Create a set of libraries to import
             libset = select_libraries(libset, container, params)
 
@@ -213,18 +235,14 @@ class ExecuteCommand(AbstractCommand):
             for shared_object in libset:
                 import_library(shared_object, container)
 
-            # Preload the roots of all the set's trees
-            def _path(library: HostLibrary):
-                return Path(CONTAINER_LIBRARY_DIR,
-                            Path(library.binary_path).name).as_posix()
+            if not wi4mpi_enabled():
+                # Preload the roots of all the set's trees
+                def _path(library: HostLibrary):
+                    return Path(CONTAINER_LIBRARY_DIR,
+                                Path(library.binary_path).name).as_posix()
 
-            for import_path in map(_path, libset.top_level):
-                params.preload.append(import_path)
-
-        # Setup the final command and metadata relating to the execution
-        params.command = args.cmd
-        params.debug = logger.debug_mode()
-        params.library_dir = CONTAINER_LIBRARY_DIR
+                for import_path in map(_path, libset.top_level):
+                    params.preload.append(import_path)
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()
