@@ -8,7 +8,7 @@ class JSONHandler(logging.StreamHandler):
     Class emitting record as a JSON object on a stream
     """
 
-    identifier = 'JSON_FORMATTED_RECORD'
+    identifier = '__JSONLOG'
 
     def emit(self, record):
         data = {

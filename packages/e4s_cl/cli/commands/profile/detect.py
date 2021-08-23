@@ -157,7 +157,7 @@ class ProfileDetectCommand(AbstractCliView):
 
         if returncode:
             if is_master():
-                LOGGER.error("Failed to determine necessary libraries.")
+                LOGGER.error("Failed to determine necessary libraries: program exited with code %d", returncode)
             return EXIT_FAILURE
 
         # There are two cases: this is a master process, in which case the output
