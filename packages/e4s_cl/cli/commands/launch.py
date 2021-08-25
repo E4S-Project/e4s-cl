@@ -153,7 +153,9 @@ class LaunchCommand(AbstractCommand):
         # Ensure the minimum fields required for launch are present
         for field in {'backend', 'image'}:
             if not parameters.get(field, None):
-                self.parser.error("Missing field: '%s'. Specify it using the appropriate option or by selecting a profile." % field)
+                self.parser.error(
+                    "Missing field: '%s'. Specify it using the appropriate option or by selecting a profile."
+                    % field)
 
         launcher, program = interpret(args.cmd)
         execute_command = _format_execute(parameters)

@@ -71,7 +71,7 @@ def wi4mpi_import(container: Container, install_dir: Path) -> None:
     config = wi4mpi_config(install_dir)
 
     for (key, value) in config.items():
-        if 'ROOT' in key:
+        if 'ROOT' in key and value:
             container.bind_file(value)
             container.add_ld_library_path(
                 Path(value).joinpath('lib').as_posix())
@@ -89,7 +89,7 @@ def wi4mpi_libraries(install_dir: Path):
         return []
 
     wrapper_lib = install_dir.joinpath('libexec', 'wi4mpi',
-                                    "libwi4mpi_%s_%s.so" % (source, target))
+                                       "libwi4mpi_%s_%s.so" % (source, target))
 
     def _get_lib(identifier: str) -> Path:
         root = Path(
@@ -100,6 +100,7 @@ def wi4mpi_libraries(install_dir: Path):
     target_lib = _get_lib(target)
 
     return [wrapper_lib, source_lib, target_lib]
+
 
 def wi4mpi_libpath(install_dir: Path):
     """

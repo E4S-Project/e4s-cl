@@ -10,6 +10,7 @@ import sys
 import json
 from importlib import import_module
 from pathlib import Path
+from typing import Union
 from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.util import walk_packages, which, json_loads
 from e4s_cl.cf.version import Version
@@ -209,7 +210,10 @@ class Container:
 
         return self.libraries
 
-    def bind_file(self, path, dest=None, option=FileOptions.READ_ONLY):
+    def bind_file(self,
+                  path: Union[Path, str],
+                  dest=None,
+                  option=FileOptions.READ_ONLY) -> None:
         """
         If there is no destination, handle files with relative paths.
         For instance on summit, some files are required as
@@ -218,6 +222,9 @@ class Container:
         having jsm_pmix/container && lib makes it error out
         unrelative returns a list of all the paths required for such a file
         """
+        if not path:
+            return
+
         def _unrelative(string):
             """
             Returns a list of all the directories referenced by a relative path
