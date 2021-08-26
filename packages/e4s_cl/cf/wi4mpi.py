@@ -111,3 +111,23 @@ def wi4mpi_libpath(install_dir: Path):
     for filename in ld_library_path:
         if install_dir.as_posix() in filename:
             yield Path(filename)
+
+
+#def wi4mpi_preload(install_dir: Path = wi4mpi_root()) -> list[str]:
+def wi4mpi_preload(install_dir: Path = wi4mpi_root()):
+    to_preload = []
+
+    # Pass along the preloaded libraries from wi4mpi
+    for file in os.environ.get("LD_PRELOAD", "").split():
+        to_preload.append(file)
+
+    source = os.environ.get("WI4MPI_FROM", "")
+
+    fakelib_dir = install_dir.joinpath('libexec', 'wi4mpi',
+                                       "fakelib%s" % source)
+
+    if fakelib_dir.exists():
+        for file in fakelib_dir.glob('lib*'):
+            to_preload.append(file.as_posix())
+
+    return to_preload

@@ -15,7 +15,7 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, BackendError, FileOptions
 from e4s_cl.cf.libraries import libc_version, resolve, LibrarySet, HostLibrary, library_links
-from e4s_cl.cf.wi4mpi import wi4mpi_enabled, wi4mpi_root, wi4mpi_import, wi4mpi_libraries, wi4mpi_libpath
+from e4s_cl.cf.wi4mpi import wi4mpi_enabled, wi4mpi_root, wi4mpi_import, wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -220,9 +220,7 @@ class ExecuteCommand(AbstractCommand):
             # Import relevant files
             wi4mpi_import(container, wi4mpi_root())
 
-            # Pass along the preloaded libraries from wi4mpi
-            for file in os.environ.get("LD_PRELOAD", "").split():
-                params.preload.append(file)
+            params.preload += wi4mpi_preload(wi4mpi_root())
 
         if libset:
             # Create a set of libraries to import
