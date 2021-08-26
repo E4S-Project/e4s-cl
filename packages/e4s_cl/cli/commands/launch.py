@@ -59,7 +59,7 @@ def _parameters(args):
 
     parameters = dict(args.get('profile', {}))
 
-    for attr in ['image', 'backend', 'libraries', 'files']:
+    for attr in ['image', 'backend', 'libraries', 'files', 'source']:
         if args.get(attr, None):
             parameters.update({attr: args[attr]})
 
