@@ -103,6 +103,12 @@ def create_profile(args, metadata):
     if getattr(args, 'source', None):
         data['source'] = args.source
 
+    if getattr(args, 'wi4mpi_options', None):
+        data['wi4mpi_options'] = args.wi4mpi_options
+    
+    if getattr(args, 'wi4mpi', None):
+        data['wi4mpi'] = args.wi4mpi
+
     profile_name = getattr(args, 'profile_name',
                            "default-%s" % util.hash256(json.dumps(metadata)))
 
@@ -129,6 +135,19 @@ class InitCommand(AbstractCommand):
             default=arguments.SUPPRESS,
             dest='launcher')
 
+        parser.add_argument(
+            '--wi4mpi',
+            help="TODO",
+            metavar="/path/to/wi4mpi",
+            default=arguments.SUPPRESS,
+            dest='wi4mpi')
+        
+        parser.add_argument(
+            '--wi4mpi_options',
+            help="TODO",
+            default='',
+            dest='wi4mpi_options')
+        
         parser.add_argument(
             '--mpi',
             type=arguments.posix_path,
