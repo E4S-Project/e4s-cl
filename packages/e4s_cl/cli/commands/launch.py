@@ -160,6 +160,10 @@ class LaunchCommand(AbstractCommand):
         launcher, program = interpret(args.cmd)
         execute_command = _format_execute(parameters)
 
+        if launcher and parameters.get('wi4mpi'):
+            launcher[0] = parameters['wi4mpi']
+            launcher.append(parameters.get('wi4mpi_options', None))
+
         full_command = launcher + execute_command + program
 
         if variables.is_dry_run():
