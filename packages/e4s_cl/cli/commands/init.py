@@ -103,6 +103,12 @@ def create_profile(args, metadata):
     if getattr(args, 'source', None):
         data['source'] = args.source
 
+    if getattr(args, 'wi4mpi', None):
+        data['wi4mpi'] = args.wi4mpi
+
+    if getattr(args, 'wi4mpi_options', None):
+        data['wi4mpi_options'] = args.wi4mpi_options
+
     profile_name = getattr(args, 'profile_name',
                            "default-%s" % util.hash256(json.dumps(metadata)))
 
@@ -165,13 +171,24 @@ class InitCommand(AbstractCommand):
             default=arguments.SUPPRESS,
             dest='profile_name')
 
+        parser.add_argument(
+            '--wi4mpi',
+            help="Path to the install directory of WI4MPI",
+            metavar='path',
+            default=arguments.SUPPRESS,
+            dest='wi4mpi')
+
+        parser.add_argument(
+            '--wi4mpi_options',
+            help="Options to use with WI4MPI",
+            metavar='opts',
+            default=arguments.SUPPRESS,
+            dest='wi4mpi_options')
+
         return parser
 
     def main(self, argv):
         args = self._parse_args(argv)
-
-        with tempfile.NamedTemporaryFile('w+', delete=False) as program_file:
-            file_name = program_file.name
 
         # Use the environment compiler per default
         compiler = util.which('mpicc')
@@ -190,6 +207,10 @@ class InitCommand(AbstractCommand):
         # Use the launcher passed as an argument in priority
         launcher = util.which(getattr(args, 'launcher', launcher))
 
+        if getattr(args, 'wi4mpi', None):
+            compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc')
+            launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun')
+
         if not compiler:
             LOGGER.error(
                 "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
@@ -202,14 +223,25 @@ class InitCommand(AbstractCommand):
             )
             return EXIT_FAILURE
 
-        LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
-                     launcher)
-        check_mpirun(launcher)
-        compile_sample(compiler, file_name)
-
         create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
-        detect_command.main([launcher, file_name])
+        if not getattr(args, 'wi4mpi', None):
+            LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
+                        launcher)
+            check_mpirun(launcher)
+
+            # Create a file to compile a sample program in
+            with tempfile.NamedTemporaryFile('w+', delete=False) as program_file:
+                file_name = program_file.name
+
+            # Compile a sample program using the compiler above
+            compile_sample(compiler, file_name)
+
+            # Run the program using the detect command and get a file list
+            detect_command.main([launcher, file_name])
+
+            # Delete the temporary file
+            os.unlink(file_name)
 
         return EXIT_SUCCESS
 
