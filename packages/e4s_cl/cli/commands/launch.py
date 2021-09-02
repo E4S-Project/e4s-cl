@@ -34,6 +34,7 @@ arguments can be passed.
 """
 
 import os
+from pathlib import Path
 from argparse import Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, variables
@@ -161,7 +162,7 @@ class LaunchCommand(AbstractCommand):
         execute_command = _format_execute(parameters)
 
         if launcher and parameters.get('wi4mpi'):
-            launcher[0] = parameters['wi4mpi']
+            launcher[0] = Path(parameters['wi4mpi']).joinpath('bin', 'mpirun').as_posix()
             launcher.append(parameters.get('wi4mpi_options', None))
 
         full_command = launcher + execute_command + program

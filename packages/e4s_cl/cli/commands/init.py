@@ -208,8 +208,8 @@ class InitCommand(AbstractCommand):
         launcher = util.which(getattr(args, 'launcher', launcher))
 
         if getattr(args, 'wi4mpi', None):
-            compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc')
-            launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun')
+            compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc').as_posix()
+            launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun').as_posix()
 
         if not compiler:
             LOGGER.error(
