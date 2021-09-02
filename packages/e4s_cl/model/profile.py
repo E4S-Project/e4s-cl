@@ -20,6 +20,14 @@ def attributes():
             'unique': True,
             'description': 'profile name',
         },
+        "wi4mpi": {
+            'type': 'boolean',
+            'description':'TODO',
+        },
+        "wi4mpi_options": {
+            'type': 'string',
+            'description':'TODO',
+        },
         'backend': {
             'type': 'string',
             'description': 'container backend technology',
