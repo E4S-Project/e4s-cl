@@ -19,7 +19,7 @@ def wi4mpi_root() -> Path:
     string = os.environ.get("WI4MPI_ROOT")
 
     if string is None:
-        LOGGER.error("Getting WI4MPI root failed")
+        LOGGER.debug("Getting WI4MPI root failed")
         return Path("")
 
     return Path(string)
