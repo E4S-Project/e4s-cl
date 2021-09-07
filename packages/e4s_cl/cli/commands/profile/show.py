@@ -37,6 +37,8 @@ class ProfileShowCommand(ShowCommand):
 %(field_image)s: %(image)s
 %(field_backend)s: %(backend)s
 %(field_script)s: %(script)s
+%(field_wi4mpi)s: %(wi4mpi)s
+%(field_wi4mpi_options)s: %(wi4mpi_options)s
 
 %(field_libs)s:
 %(libs)s
@@ -44,19 +46,25 @@ class ProfileShowCommand(ShowCommand):
 %(field_files)s:
 %(files)s"""
 
-        elements = {
+        headers = {
             'field_name': bold("Profile name"),
             'field_image': bold("Container image"),
             'field_backend': bold("Container tech"),
             'field_script': bold("Pre-execution script"),
             'field_libs': bold("Bound libraries"),
             'field_files': bold("Bound files"),
+            'field_wi4mpi': bold("WI4MPI"),
+            'field_wi4mpi_options': bold("WI4MPI options"),
         }
 
-        elements['name'] = profile_dict.get('name', 'Not found')
-        elements['image'] = profile_dict.get('image', 'Not found')
-        elements['backend'] = profile_dict.get('backend', 'Not found')
-        elements['script'] = profile_dict.get('source', 'None')
+        elements = {
+            'name': profile_dict.get('name', 'Not found'),
+            'image': profile_dict.get('image', 'Not found'),
+            'backend': profile_dict.get('backend', 'Not found'),
+            'script': profile_dict.get('source', 'None'),
+            'wi4mpi': profile_dict.get('wi4mpi', 'None'),
+            'wi4mpi_options': profile_dict.get('wi4mpi_options', 'None'),
+        }
 
         if profile_dict.get('libraries'):
             elements['libs'] = "\n".join([
@@ -72,7 +80,7 @@ class ProfileShowCommand(ShowCommand):
         else:
             elements['files'] = "None"
 
-        print(outline % elements)
+        print(outline % {**headers, **elements})
 
     def tree(self, profile_dict):
         cache = LibrarySet()
