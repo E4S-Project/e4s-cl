@@ -171,19 +171,17 @@ class InitCommand(AbstractCommand):
             default=arguments.SUPPRESS,
             dest='profile_name')
 
-        parser.add_argument(
-            '--wi4mpi',
-            help="Path to the install directory of WI4MPI",
-            metavar='path',
-            default=arguments.SUPPRESS,
-            dest='wi4mpi')
+        parser.add_argument('--wi4mpi',
+                            help="Path to the install directory of WI4MPI",
+                            metavar='path',
+                            default=arguments.SUPPRESS,
+                            dest='wi4mpi')
 
-        parser.add_argument(
-            '--wi4mpi_options',
-            help="Options to use with WI4MPI",
-            metavar='opts',
-            default=arguments.SUPPRESS,
-            dest='wi4mpi_options')
+        parser.add_argument('--wi4mpi_options',
+                            help="Options to use with WI4MPI",
+                            metavar='opts',
+                            default=arguments.SUPPRESS,
+                            dest='wi4mpi_options')
 
         return parser
 
@@ -227,11 +225,12 @@ class InitCommand(AbstractCommand):
 
         if not getattr(args, 'wi4mpi', None):
             LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
-                        launcher)
+                         launcher)
             check_mpirun(launcher)
 
             # Create a file to compile a sample program in
-            with tempfile.NamedTemporaryFile('w+', delete=False) as program_file:
+            with tempfile.NamedTemporaryFile('w+',
+                                             delete=False) as program_file:
                 file_name = program_file.name
 
             # Compile a sample program using the compiler above

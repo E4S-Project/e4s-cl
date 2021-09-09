@@ -22,11 +22,11 @@ def attributes():
         },
         "wi4mpi": {
             'type': 'boolean',
-            'description':'TODO',
+            'description': 'root of the wi4mpi to use, if any',
         },
         "wi4mpi_options": {
             'type': 'string',
-            'description':'TODO',
+            'description': 'options to use with wi4mpi, if any',
         },
         'backend': {
             'type': 'string',

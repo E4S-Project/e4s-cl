@@ -92,8 +92,9 @@ def wi4mpi_libraries(install_dir: Path):
                                        "libwi4mpi_%s_%s.so" % (source, target))
 
     def _get_lib(identifier: str) -> Path:
-        root = Path(
-            config.get("%s_DEFAULT_ROOT" % __TRANSLATE.get(identifier), ""))
+        config_value = config.get(
+            "%s_DEFAULT_ROOT" % __TRANSLATE.get(identifier), "")
+        root = Path()
         return root.joinpath('lib', 'libmpi.so')
 
     source_lib = _get_lib(source)
