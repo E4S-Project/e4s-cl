@@ -44,6 +44,7 @@ import os
 import json
 import tempfile
 import subprocess
+import ctypes
 from pathlib import Path
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
@@ -102,6 +103,26 @@ def create_profile(args, metadata):
 
     if getattr(args, 'source', None):
         data['source'] = args.source
+
+    if getattr(args, 'mpi', None):
+        lib_path = Path(args.mpi) / "lib" / "libmpi.so"
+        lib_path_ibm = Path(args.mpi) / "lib" / "libmpi_ibm.so"
+
+        handle = ctypes.CDLL(lib_path)
+        version_buffer= ctypes.create_string_buffer(2000)#MPI_MAX_LIBRARY_VERSION_STRING())
+        lenght=ctypes.c_int()
+
+        handle.MPI_Get_library_version(version_buffer, ctypes.byref(lenght))
+
+        print('-----------------------------------------------------------')    
+        print(version_buffer.value.decode("utf-8"))
+        print(lenght)
+
+        accepted_imp = ['Open MPI', 'IBM Spectrum MPI', 'MPICH']
+
+        filtered_buffer = list(filter(lambda x : x in version_buffer.value.decode("utf-8"), accepted_imp))
+        print(filtered_buffer)
+
 
     profile_name = getattr(args, 'profile_name',
                            "default-%s" % util.hash256(json.dumps(metadata)))
