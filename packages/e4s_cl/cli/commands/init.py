@@ -131,6 +131,7 @@ def create_profile(args, metadata):
 
         filtered_buffer = list(filter(lambda x : x in version_buffer.value.decode("utf-8"), accepted_imp))
         profile_name=filtered_buffer[-1]
+        profile_name = profile_name.replace(" ","")
     else:
         profile_name = getattr(args, 'profile_name',
                            "default-%s" % util.hash256(json.dumps(metadata)))
