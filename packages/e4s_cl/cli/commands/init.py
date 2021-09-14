@@ -108,8 +108,17 @@ def create_profile(args, metadata):
         lib_path = Path(args.mpi) / "lib" / "libmpi.so"
         lib_path_ibm = Path(args.mpi) / "lib" / "libmpi_ibm.so"
 
+        if not lib_path.exists():
+            lib_path = lib_path_ibm
+            if not lib_path.exists():
+                LOGGER.error(
+                    "MPI path provided doesn't lead to an MPI installation"
+                )
+                return EXIT_FAILURE
+
+
         handle = ctypes.CDLL(lib_path)
-        version_buffer= ctypes.create_string_buffer(2000)#MPI_MAX_LIBRARY_VERSION_STRING())
+        version_buffer= ctypes.create_string_buffer(2000)
         lenght=ctypes.c_int()
 
         handle.MPI_Get_library_version(version_buffer, ctypes.byref(lenght))
@@ -118,13 +127,12 @@ def create_profile(args, metadata):
         print(version_buffer.value.decode("utf-8"))
         print(lenght)
 
-        accepted_imp = ['Open MPI', 'IBM Spectrum MPI', 'MPICH']
+        accepted_imp = ['Open MPI', 'Spectrum MPI', 'MPICH']
 
         filtered_buffer = list(filter(lambda x : x in version_buffer.value.decode("utf-8"), accepted_imp))
-        print(filtered_buffer)
-
-
-    profile_name = getattr(args, 'profile_name',
+        profile_name=filtered_buffer[-1]
+    else:
+        profile_name = getattr(args, 'profile_name',
                            "default-%s" % util.hash256(json.dumps(metadata)))
 
     if controller.one({"name": profile_name}):
