@@ -104,35 +104,60 @@ def create_profile(args, metadata):
     if getattr(args, 'source', None):
         data['source'] = args.source
 
+    profile_name=""
+
     if getattr(args, 'mpi', None):
         lib_path = Path(args.mpi) / "lib" / "libmpi.so"
+        lib_path_mvapich = Path(args.mpi) / "lib64" / "libmpi.so"
         lib_path_ibm = Path(args.mpi) / "lib" / "libmpi_ibm.so"
 
         if not lib_path.exists():
-            lib_path = lib_path_ibm
+            lib_path = lib_path_mvapich
             if not lib_path.exists():
-                LOGGER.error(
-                    "MPI path provided doesn't lead to an MPI installation"
-                )
-                return EXIT_FAILURE
+                lib_path = lib_path_ibm
+                if not lib_path.exists():
+                    LOGGER.error(
+                        "MPI path provided doesn't lead to an MPI installation"
+                    )
+                    return EXIT_FAILURE
 
 
         handle = ctypes.CDLL(lib_path)
-        version_buffer= ctypes.create_string_buffer(2000)
+        version_buffer= ctypes.create_string_buffer(3000)
         lenght=ctypes.c_int()
 
         handle.MPI_Get_library_version(version_buffer, ctypes.byref(lenght))
 
+        version_buffer_str=version_buffer.value.decode("utf-8")
+        version_buffer_str=version_buffer_str[:500]
+
         print('-----------------------------------------------------------')    
-        print(version_buffer.value.decode("utf-8"))
+        print(version_buffer_str)
         print(lenght)
 
-        accepted_imp = ['Open MPI', 'Spectrum MPI', 'MPICH']
+        accepted_imp = ['Open MPI', 'Spectrum MPI', 'MPICH', 'MVAPICH']
 
-        filtered_buffer = list(filter(lambda x : x in version_buffer.value.decode("utf-8"), accepted_imp))
-        profile_name=filtered_buffer[-1]
-        profile_name = profile_name.replace(" ","")
-    else:
+        filtered_buffer = list(filter(lambda x : x in version_buffer_str, accepted_imp))
+        if not filtered_buffer:
+            LOGGER.error(
+                    "MPI implementation is not recognised: recognised implementations for automatic profile naming are Open MPI, Spectrum MPI, MPICH and MVAPICH"
+            )
+        else:
+            profile_name=filtered_buffer[-1]
+            
+            profile_name = profile_name.replace(" ","")
+            
+            dict = {'OpenMPI' : version_buffer_str.split("v",1)[1].split(",",1)[0],
+                    'SpectrumMPI' : version_buffer_str.split("v",1)[1].split(",",1)[0]
+                   # 'MPICH':
+                   # 'MVAPICH':
+                   }
+            profile_name = profile_name + "_" + dict[profile_name]
+            print(profile_name)
+
+
+
+    if not profile_name:
         profile_name = getattr(args, 'profile_name',
                            "default-%s" % util.hash256(json.dumps(metadata)))
 
@@ -142,7 +167,6 @@ def create_profile(args, metadata):
     data["name"] = profile_name
     profile = controller.create(data)
 
-    controller.select(profile)
 
 
 class InitCommand(AbstractCommand):
