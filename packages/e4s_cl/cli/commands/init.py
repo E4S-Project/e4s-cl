@@ -107,22 +107,23 @@ def create_profile(args, metadata):
     profile_name=""
 
     if getattr(args, 'mpi', None):
-        lib_path = Path(args.mpi) / "lib" / "libmpi.so"
-        lib_path_mvapich = Path(args.mpi) / "lib64" / "libmpi.so"
-        lib_path_ibm = Path(args.mpi) / "lib" / "libmpi_ibm.so"
+        lib_path = [Path(args.mpi) / "lib" / "libmpi.so",
+                Path(args.mpi) / "lib64" / "libmpi.so",
+                Path(args.mpi) / "lib" / "libmpi_ibm.so"]
 
-        if not lib_path.exists():
-            lib_path = lib_path_mvapich
-            if not lib_path.exists():
-                lib_path = lib_path_ibm
-                if not lib_path.exists():
-                    LOGGER.error(
-                        "MPI path provided doesn't lead to an MPI installation"
-                    )
-                    return EXIT_FAILURE
+        final_path=""
+        for path in lib_path:
+            if path.exists():
+                final_path = path
+
+        if not final_path:
+            LOGGER.error(
+                "MPI path provided doesn't lead to an MPI installation"
+            )
+            return EXIT_FAILURE
 
 
-        handle = ctypes.CDLL(lib_path)
+        handle = ctypes.CDLL(final_path)
         version_buffer= ctypes.create_string_buffer(3000)
         lenght=ctypes.c_int()
 
