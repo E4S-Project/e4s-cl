@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import List
 
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
-from e4s_cl.variables import is_master
+from e4s_cl import variables
 from e4s_cl.util import opened_files, create_subprocess_exp, flatten, json_dumps, json_loads
 from e4s_cl.cf.libraries import is_elf, resolve
 from e4s_cl.cf.launchers import interpret
@@ -130,9 +130,10 @@ class ProfileDetectCommand(AbstractCliView):
         launcher, program = interpret(args.cmd)
 
         if launcher:
-            # If a launcher is present, act as a launcher
-            returncode, json_data = create_subprocess_exp(
-                launcher + [E4S_CL_SCRIPT, "--slave", "profile", "detect"] +
+            with variables.ParentStatus():
+                # If a launcher is present, act as a launcher
+                returncode, json_data = create_subprocess_exp(
+                launcher + [E4S_CL_SCRIPT, "profile", "detect"] +
                 program,
                 redirect_stdout=True)
 
@@ -156,14 +157,14 @@ class ProfileDetectCommand(AbstractCliView):
             libs, files = filter_files(accessed_files)
 
         if returncode:
-            if is_master():
+            if variables.is_master():
                 LOGGER.error("Failed to determine necessary libraries: program exited with code %d", returncode)
             return EXIT_FAILURE
 
         # There are two cases: this is a master process, in which case the output
         # must be processed, or this is a slave process, where we just print it
         # all on stdout in a format the master process will understand
-        if not is_master():
+        if not variables.is_master():
             print(json_dumps({
                 'files': files,
                 'libraries': libs,
@@ -179,9 +180,8 @@ class ProfileDetectCommand(AbstractCliView):
             if not profile:
                 try:
                     profile = controller.create(identifier)
-                except Exception as err:  #TODO check what errors can be handled here
-                    LOGGER.debug(str(err))
-                    LOGGER.error("Profile creation failed.")
+                except Exception as err:  #TODO check what errors can arise
+                    LOGGER.error("Profile creation failed: %s", str(err))
                     return EXIT_FAILURE
         else:
             profile = controller.selected()
@@ -197,8 +197,7 @@ class ProfileDetectCommand(AbstractCliView):
         try:
             controller.update(data, identifier)
         except Exception as err:  # TODO same as above
-            LOGGER.debug(str(err))
-            LOGGER.error("Profile update failed.")
+            LOGGER.error("Profile update failed: %s", str(err))
             return EXIT_FAILURE
 
         return EXIT_SUCCESS

@@ -163,8 +163,8 @@ class LaunchCommand(AbstractCommand):
             print(' '.join(full_command))
             return EXIT_SUCCESS
 
-        variables.set_master()
-        retval, _ = create_subprocess_exp(full_command)
+        with variables.ParentStatus():
+            retval, _ = create_subprocess_exp(full_command)
 
         return retval
 

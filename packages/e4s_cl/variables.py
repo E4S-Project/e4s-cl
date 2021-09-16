@@ -15,6 +15,13 @@ def is_master():
 def set_master():
     os.environ[CHILD_MARKER] = str(1)
 
+class ParentStatus:
+    def __enter__(self):
+        set_master()
+
+    def __exit__(self, type, value, traceback):
+        os.environ.pop(CHILD_MARKER)
+
 
 def is_dry_run():
     return DRY_RUN

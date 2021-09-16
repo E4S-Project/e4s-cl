@@ -52,6 +52,7 @@ _global = {
     "--output-directory": 1,
     "--output-filename": 1,
     "--output-proctable": 1,
+    "--oversubscribe": 0,
     "--parsable": 0,
     "--parseable": 0,
     "--path": 1,
