@@ -91,6 +91,7 @@ def create_profile(args, metadata):
     """Populate profile record"""
     data = {}
 
+    print(metadata)
     controller = Profile.controller()
 
     if getattr(args, 'image', None):
@@ -105,12 +106,13 @@ def create_profile(args, metadata):
         data['source'] = args.source
 
     profile_name=""
-
-    if getattr(args, 'mpi', None):
-        lib_path = [Path(args.mpi) / "lib" / "libmpi.so",
-                Path(args.mpi) / "lib64" / "libmpi.so",
-                Path(args.mpi) / "lib" / "libmpi_ibm.so",
-                Path(args.mpi)/ "lib" / "debug" / "libmpi.so"]
+    final_path=""
+    if metadata['launcher']:
+        mpi_path = metadata['launcher'].rsplit('/',2)[0]
+        lib_path = [Path(mpi_path) / "lib" / "libmpi.so",
+                Path(mpi_path) / "lib64" / "libmpi.so",
+                Path(mpi_path) / "lib" / "libmpi_ibm.so",
+                Path(mpi_path)/ "lib" / "debug" / "libmpi.so"]
 
         final_path=""
         for path in lib_path:
@@ -122,7 +124,6 @@ def create_profile(args, metadata):
                 "MPI path provided doesn't lead to an MPI installation"
             )
             return EXIT_FAILURE
-
 
         handle = ctypes.CDLL(final_path)
         version_buffer= ctypes.create_string_buffer(3000)
