@@ -87,26 +87,8 @@ def check_mpirun(executable):
             str(detect_command))
 
 
-def create_profile(args, metadata):
-    """Populate profile record"""
-    data = {}
-
-    print(metadata)
-    controller = Profile.controller()
-
-    if getattr(args, 'image', None):
-        data['image'] = args.image
-
-    if getattr(args, 'backend', None):
-        data['backend'] = args.backend
-    elif getattr(args, 'image', None) and guess_backend(args.image):
-        data['backend'] = guess_backend(args.image)
-
-    if getattr(args, 'source', None):
-        data['source'] = args.source
-
-    profile_name=""
-    final_path=""
+def detect_name(metadata):
+    profile_name=''
     if metadata['launcher']:
         mpi_path = metadata['launcher'].rsplit('/',2)[0]
         lib_path = [Path(mpi_path) / "lib" / "libmpi.so",
@@ -134,22 +116,16 @@ def create_profile(args, metadata):
         version_buffer_str=version_buffer.value.decode("utf-8")
         version_buffer_str=version_buffer_str[:500]
 
-        print('-----------------------------------------------------------')    
-        print(version_buffer_str)
-        print(lenght)
-
         accepted_imp = ['Open MPI', 'Spectrum MPI', 'MPICH', 'MVAPICH', 'Intel(R) MPI']
 
         filtered_buffer = list(filter(lambda x : x in version_buffer_str, accepted_imp))
+        
         if not filtered_buffer:
             LOGGER.error(
                     "MPI implementation is not recognised: recognised implementations for automatic profile naming are Open MPI, Spectrum MPI, MPICH and MVAPICH"
             )
         else:
             profile_name=filtered_buffer[-1]
-            print(profile_name)
-            
-            
             dict = {
                     'Intel(R) MPI': (lambda x : x.split("e",2)[2].split("f",1)[0]), 
                     'Open MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
@@ -157,12 +133,29 @@ def create_profile(args, metadata):
                     'MPICH': (lambda x : x.split(":",1)[1].split("M",1)[0]),
                     'MVAPICH': (lambda x : x.split(":",1)[1].split("M",1)[0])
                    }
-
             profile_name = profile_name + "_" + dict[profile_name](version_buffer_str)
             profile_name = ''.join(profile_name.split())
-            print(profile_name)
+    
+    return profile_name
 
+def create_profile(args, metadata):
+    """Populate profile record"""
+    data = {}
 
+    controller = Profile.controller()
+
+    if getattr(args, 'image', None):
+        data['image'] = args.image
+
+    if getattr(args, 'backend', None):
+        data['backend'] = args.backend
+    elif getattr(args, 'image', None) and guess_backend(args.image):
+        data['backend'] = guess_backend(args.image)
+
+    if getattr(args, 'source', None):
+        data['source'] = args.source
+
+    profile_name = detect_name(metadata)
 
     if not profile_name:
         profile_name = getattr(args, 'profile_name',
