@@ -87,27 +87,11 @@ def check_mpirun(executable):
             str(detect_command))
 
 
-def detect_name(metadata):
+def detect_name(path):
     profile_name=''
-    if metadata['launcher']:
-        mpi_path = metadata['launcher'].rsplit('/',2)[0]
-        lib_path = [Path(mpi_path) / "lib" / "libmpi.so",
-                Path(mpi_path) / "lib64" / "libmpi.so",
-                Path(mpi_path) / "lib" / "libmpi_ibm.so",
-                Path(mpi_path)/ "lib" / "debug" / "libmpi.so"]
 
-        final_path=""
-        for path in lib_path:
-            if path.exists():
-                final_path = path
-
-        if not final_path:
-            LOGGER.error(
-                "MPI path provided doesn't lead to an MPI installation"
-            )
-            return EXIT_FAILURE
-
-        handle = ctypes.CDLL(final_path)
+    if Path(path).exists():
+        handle = ctypes.CDLL(path)
         version_buffer= ctypes.create_string_buffer(3000)
         lenght=ctypes.c_int()
 
@@ -135,7 +119,12 @@ def detect_name(metadata):
                    }
             profile_name = profile_name + "_" + dict[profile_name](version_buffer_str)
             profile_name = ''.join(profile_name.split())
-    
+    else:
+        LOGGER.error(
+            "MPI path provided doesn't lead to an MPI installation"
+        )
+        return EXIT_FAILURE
+
     return profile_name
 
 def create_profile(args, metadata):
@@ -155,19 +144,16 @@ def create_profile(args, metadata):
     if getattr(args, 'source', None):
         data['source'] = args.source
 
-    profile_name = detect_name(metadata)
 
-    if not profile_name:
-        profile_name = getattr(args, 'profile_name',
-                           "default-%s" % util.hash256(json.dumps(metadata)))
+    profile_name = getattr(args, 'profile_name',
+                       "default-%s" % util.hash256(json.dumps(metadata)))
 
     if controller.one({"name": profile_name}):
         controller.delete({"name": profile_name})
 
     data["name"] = profile_name
     profile = controller.create(data)
-
-
+    controller.select(profile)
 
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
@@ -265,6 +251,13 @@ class InitCommand(AbstractCommand):
 
         detect_command.main([launcher, file_name])
 
+        mpi_path = compiler.rsplit('/',2)[0]
+        libs_path = Profile.selected()['libraries']
+        libs_path = list(filter(lambda x : mpi_path in x, libs_path))
+        
+        profile_name = detect_name(libs_path[0])
+        Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
+        
         return EXIT_SUCCESS
 
 
