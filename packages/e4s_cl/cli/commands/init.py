@@ -254,6 +254,7 @@ class InitCommand(AbstractCommand):
         mpi_path = compiler.rsplit('/',2)[0]
         libs_path = Profile.selected()['libraries']
         libs_path = list(filter(lambda x : mpi_path in x, libs_path))
+        libs_path = list(filter(lambda x : "libmpi" in x,libs_path))
         
         profile_name = detect_name(libs_path[0])
         Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
