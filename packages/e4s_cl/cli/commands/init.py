@@ -38,6 +38,12 @@ Using a library installed on the system in :code:`/packages`:
 
     e4s-cl init --mpi /packages/mpich --profile mpich
 
+Using an installation of WI4MPI:
+
+.. code::
+
+    e4s-cl init --wi4mpi /packages/wi4mpi --wi4mpi_options "-T openmpi -F mpich"
+
 """
 
 import os

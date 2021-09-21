@@ -14,21 +14,25 @@ Contents
 
 A profile is a recorded collection of fields relating to a specific MPI library.
 
-+-------------+--------------------------------------------------------------+
-| Field       | Description                                                  |
-+=============+==============================================================+
-| `name`      | A name by which the profile is accessed and invoked          |
-+-------------+--------------------------------------------------------------+
-| `image`     | The path of a container image                                |
-+-------------+--------------------------------------------------------------+
-| `backend`   | Identifier for a technology to launch the container with     |
-+-------------+--------------------------------------------------------------+
-| `source`    | Path of a script to source in the container before execution |
-+-------------+--------------------------------------------------------------+
-| `files`     | List of files to make accessible to the running program      |
-+-------------+--------------------------------------------------------------+
-| `libraries` | List of libraries to overload in the running program         |
-+-------------+--------------------------------------------------------------+
++------------------+--------------------------------------------------------------+
+| Field            | Description                                                  |
++==================+==============================================================+
+| `name`           | A name by which the profile is accessed and invoked          |
++------------------+--------------------------------------------------------------+
+| `image`          | The path of a container image                                |
++------------------+--------------------------------------------------------------+
+| `backend`        | Identifier for a technology to launch the container with     |
++------------------+--------------------------------------------------------------+
+| `source`         | Path of a script to source in the container before execution |
++------------------+--------------------------------------------------------------+
+| `files`          | List of files to make accessible to the running program      |
++------------------+--------------------------------------------------------------+
+| `libraries`      | List of libraries to overload in the running program         |
++------------------+--------------------------------------------------------------+
+| `wi4mpi`         | WI4MPI installation to use (Optional)                        |
++------------------+--------------------------------------------------------------+
+| `wi4mpi_options` | WI4MPI options to pass to the launcher (Optional)            |
++------------------+--------------------------------------------------------------+
 
 Profile Creation
 ----------------
