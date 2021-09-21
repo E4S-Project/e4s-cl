@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="launch - Run MPI commands" href="launch.html" /><link rel="prev" title="Reference" href="index.html" />
 
-    <meta name="generator" content="sphinx-4.0.2, furo 2021.06.24.beta37"/>
+    <meta name="generator" content="sphinx-4.2.0, furo 2021.06.24.beta37"/>
         <title>init - Initialize the tool - E4S Container Launcher v1.0rc3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css" />
@@ -194,6 +194,12 @@
 <dt><kbd><span class="option">--profile</span></kbd></dt>
 <dd><p>Profile to create or overwrite</p>
 </dd>
+<dt><kbd><span class="option">--wi4mpi</span></kbd></dt>
+<dd><p>Path to a WI4MPI installation to use</p>
+</dd>
+<dt><kbd><span class="option">--wi4mpi_options</span></kbd></dt>
+<dd><p>String passed to the underlying WI4MPI launcher</p>
+</dd>
 </dl>
 </section>
 <section id="module-e4s_cl.cli.commands.init">
@@ -218,6 +224,10 @@ A message will appear in case some limitations were detected.</p>
 </div>
 <p>Using a library installed on the system in <code class="code docutils literal notranslate"><span class="pre">/packages</span></code>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">init</span> <span class="o">--</span><span class="n">mpi</span> <span class="o">/</span><span class="n">packages</span><span class="o">/</span><span class="n">mpich</span> <span class="o">--</span><span class="n">profile</span> <span class="n">mpich</span>
+</pre></div>
+</div>
+<p>Using an installation of WI4MPI:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e4s</span><span class="o">-</span><span class="n">cl</span> <span class="n">init</span> <span class="o">--</span><span class="n">wi4mpi</span> <span class="o">/</span><span class="n">packages</span><span class="o">/</span><span class="n">wi4mpi</span> <span class="o">--</span><span class="n">wi4mpi_options</span> <span class="s2">"-T openmpi -F mpich"</span>
 </pre></div>
 </div>
 </section>
