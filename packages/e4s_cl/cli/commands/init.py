@@ -87,41 +87,62 @@ def check_mpirun(executable):
             str(detect_command))
 
 
-def detect_name(path):
-    profile_name=''
+def detect_name(path_list):
+    profile_name, version_str='', ''
+    version_buffer= ctypes.create_string_buffer(3000)
+    lenght=ctypes.c_int()
 
-    if Path(path).exists():
-        handle = ctypes.CDLL(path)
-        version_buffer= ctypes.create_string_buffer(3000)
-        lenght=ctypes.c_int()
+    #if Path(path).exists():
+    if path_list:
+        for path in path_list:
+            try:
+                handle = ctypes.CDLL(path)
+                try:
+                    handle.MPI_Get_library_version(version_buffer, ctypes.byref(lenght))
+                except AttributeError:
+                    print("Name Detection: Lib file not supported - skipped")
+                break
+            except OSError:
+                print("Name Detection: Incorrect Path - skipped")
+            
+        if lenght:
+            version_buffer_str=version_buffer.value.decode("utf-8")
+            version_buffer_str=version_buffer_str[:500]
 
-        handle.MPI_Get_library_version(version_buffer, ctypes.byref(lenght))
+            accepted_imp = ['Open MPI', 'Spectrum MPI', 'MPICH', 'MVAPICH', 'Intel(R) MPI']
 
-        version_buffer_str=version_buffer.value.decode("utf-8")
-        version_buffer_str=version_buffer_str[:500]
-
-        accepted_imp = ['Open MPI', 'Spectrum MPI', 'MPICH', 'MVAPICH', 'Intel(R) MPI']
-
-        filtered_buffer = list(filter(lambda x : x in version_buffer_str, accepted_imp))
-        
-        if not filtered_buffer:
-            LOGGER.error(
-                    "MPI implementation is not recognised: recognised implementations for automatic profile naming are Open MPI, Spectrum MPI, MPICH and MVAPICH"
-            )
+            print(version_buffer_str)
+            filtered_buffer = list(filter(lambda x : x in version_buffer_str, accepted_imp))
+            
+            print(filtered_buffer)
+            if not filtered_buffer:
+                LOGGER.warning(
+                        "Name Detection: MPI implementation is not recognised: recognised implementations for automatic profile naming are Open MPI, Spectrum MPI, MPICH, MVAPICH and Intel MPI."
+                )
+            else:
+                profile_name=filtered_buffer[-1]
+                dict = {
+                        'Intel(R) MPI': (lambda x : x.split("Library",1)[1].split("for",1)[0]), 
+                        'Open MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
+                        'Spectrum MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
+                        'MPICH': (lambda x : x.split(":",1)[1].split("M",1)[0]),
+                        'MVAPICH': (lambda x : x.split(":",1)[1].split("M",1)[0])
+                       }
+                try:
+                    version_str = "_" + dict[profile_name](version_buffer_str)
+                except IndexError:
+                    LOGGER.warning(
+                            "Name Detection: MPI implementation version not detected: specific version ommited."
+                    )
+                profile_name = profile_name + version_str 
+                profile_name = ''.join(profile_name.split())
         else:
-            profile_name=filtered_buffer[-1]
-            dict = {
-                    'Intel(R) MPI': (lambda x : x.split("e",2)[2].split("f",1)[0]), 
-                    'Open MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
-                    'Spectrum MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
-                    'MPICH': (lambda x : x.split(":",1)[1].split("M",1)[0]),
-                    'MVAPICH': (lambda x : x.split(":",1)[1].split("M",1)[0])
-                   }
-            profile_name = profile_name + "_" + dict[profile_name](version_buffer_str)
-            profile_name = ''.join(profile_name.split())
+            LOGGER.warning(
+                    "Name Detection: Auto-name detection has failed, procedurally generated name will be kept."
+                    )
     else:
-        LOGGER.error(
-            "MPI path provided doesn't lead to an MPI installation"
+        LOGGER.warning(
+                "Name Detection: MPI path provided doesn't lead to an MPI installation."
         )
         return EXIT_FAILURE
 
@@ -250,15 +271,26 @@ class InitCommand(AbstractCommand):
         create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
         detect_command.main([launcher, file_name])
+        
 
         mpi_path = compiler.rsplit('/',2)[0]
+        print(mpi_path)
         libs_path = Profile.selected()['libraries']
+        print(json.dumps(libs_path, sort_keys=False, indent=4))
+        libs_path_alt = list(filter(lambda x : "libmpi" in x,libs_path)) 
         libs_path = list(filter(lambda x : mpi_path in x, libs_path))
-        libs_path = list(filter(lambda x : "libmpi" in x,libs_path))
+        libs_path = list(filter(lambda x : "libmpi" in x, libs_path))
+        libs_path_alt = list(filter(lambda x : x not in libs_path, libs_path_alt))
         
-        profile_name = detect_name(libs_path[0])
-        Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
+        print(json.dumps(libs_path_alt, sort_keys=False, indent=4))
+        print(json.dumps(libs_path, sort_keys=False, indent=4))
         
+        libs_path = libs_path + libs_path_alt
+        print(json.dumps(libs_path, sort_keys=False, indent=4))
+        profile_name = detect_name(libs_path)
+        if profile_name:
+            Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
+
         return EXIT_SUCCESS
 
 
