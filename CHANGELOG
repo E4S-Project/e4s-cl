@@ -1,0 +1,28 @@
+v1.0rc4
+---------------------
+
+- Added WI4MPI support
+
+v1.0rc3 (Jun 22 2021)
+---------------------
+
+- Refactored library handling to account for ELF header data
+
+v1.0rc2 (Mar 19 2021)
+---------------------
+
+- Automatic version detection and embed at install
+- Updated help strings
+
+v1.0rc1 (Jan 20 2021)
+---------------------
+
+- Added launch and execute command model
+- Added profile definiton and storage 
+- Added profile management commands
+- Added system-call tracing for dependency detection
+- Added initialization wrapper
+- Added tests
+- Added completion script
+- Added licence
+- Added documentation
