@@ -270,26 +270,26 @@ class InitCommand(AbstractCommand):
 
         create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
-        detect_command.main([launcher, file_name])
-        
+        returncode = detect_command.main([launcher, file_name])
 
-        mpi_path = compiler.rsplit('/',2)[0]
-        print(mpi_path)
-        libs_path = Profile.selected()['libraries']
-        print(json.dumps(libs_path, sort_keys=False, indent=4))
-        libs_path_alt = list(filter(lambda x : "libmpi" in x,libs_path)) 
-        libs_path = list(filter(lambda x : mpi_path in x, libs_path))
-        libs_path = list(filter(lambda x : "libmpi" in x, libs_path))
-        libs_path_alt = list(filter(lambda x : x not in libs_path, libs_path_alt))
-        
-        print(json.dumps(libs_path_alt, sort_keys=False, indent=4))
-        print(json.dumps(libs_path, sort_keys=False, indent=4))
-        
-        libs_path = libs_path + libs_path_alt
-        print(json.dumps(libs_path, sort_keys=False, indent=4))
-        profile_name = detect_name(libs_path)
-        if profile_name:
-            Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
+        if returncode == EXIT_SUCCESS:
+            mpi_path = compiler.rsplit('/',2)[0]
+            print(mpi_path)
+            libs_path = Profile.selected()['libraries']
+            print(json.dumps(libs_path, sort_keys=False, indent=4))
+            libs_path_alt = list(filter(lambda x : "libmpi" in x,libs_path)) 
+            libs_path = list(filter(lambda x : mpi_path in x, libs_path))
+            libs_path = list(filter(lambda x : "libmpi" in x, libs_path))
+            libs_path_alt = list(filter(lambda x : x not in libs_path, libs_path_alt))
+            
+            print(json.dumps(libs_path_alt, sort_keys=False, indent=4))
+            print(json.dumps(libs_path, sort_keys=False, indent=4))
+            
+            libs_path = libs_path + libs_path_alt
+            print(json.dumps(libs_path, sort_keys=False, indent=4))
+            profile_name = detect_name(libs_path)
+            if profile_name:
+                Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
 
         return EXIT_SUCCESS
 
