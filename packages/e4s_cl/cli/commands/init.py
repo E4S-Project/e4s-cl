@@ -288,6 +288,7 @@ class InitCommand(AbstractCommand):
             libs_path = libs_path + libs_path_alt
             print(json.dumps(libs_path, sort_keys=False, indent=4))
             profile_name = detect_name(libs_path)
+            Profile.controller()._check_unique({'name' : profile_name})
             if profile_name:
                 Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
 
