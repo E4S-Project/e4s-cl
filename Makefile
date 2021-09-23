@@ -130,9 +130,17 @@ $(CONDA_SRC):
 		echo "* ERROR: Unable to download $(CONDA_URL)." ; \
 		false)
 
+COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
+COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)
+COMPLETION_DEST=$(INSTALLDIR)/bin/__e4s_cl_completion.$(HOST_ARCH)
+
 completion:
-	@$(MKDIR) $(COMPLETION_DIR)
-	@$(COPY) scripts/e4s-cl-completion.bash $(COMPLETION_DIR)/e4s-cl
+	@$(call download,$(COMPLETION_BIN_URL),$(COMPLETION_DEST)) || \
+		(rm -f "$(COMPLETION_DEST)" ; \
+		echo "* ERROR: Unable to download $(COMPLETION_BIN_URL)." ; \
+		false)
+	@chmod +x $(COMPLETION_DEST)
+	@$(COMPLETION_DEST) > $(COMPLETION_DIR)/e4s-cl
 	@$(PYTHON) scripts/success.py "Please source '$(COMPLETION_DIR)/e4s-cl' to enable completion to the current shell."
 	@$(PYTHON) scripts/success.py "If the bash-completion package is installed, completion will be enabled on new sessions."
 
