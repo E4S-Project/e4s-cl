@@ -90,22 +90,23 @@ def check_mpirun(executable):
 def detect_name(path_list):
     profile_name, version_str='', ''
     version_buffer= ctypes.create_string_buffer(3000)
-    lenght=ctypes.c_int()
+    length=ctypes.c_int()
 
     #if Path(path).exists():
     if path_list:
         for path in path_list:
             try:
                 handle = ctypes.CDLL(path)
-                try:
-                    handle.MPI_Get_library_version(version_buffer, ctypes.byref(lenght))
-                except AttributeError:
-                    print("Name Detection: Lib file not supported - skipped")
+
+                if get_version := getattr(handle, 'MPI_Get_library_version', None):
+                    get_version(version_buffer, ctypes.byref(length))
+                else:
+                    LOGGER.warning("Name Detection: library file missing necessary symbol - skipped")
                 break
-            except OSError:
-                print("Name Detection: Incorrect Path - skipped")
+            except OSError as err:
+                LOGGER.warning("Name Detection: library file not loadable - skipped => %s", err)
             
-        if lenght:
+        if length:
             version_buffer_str=version_buffer.value.decode("utf-8")
             version_buffer_str=version_buffer_str[:500]
 
