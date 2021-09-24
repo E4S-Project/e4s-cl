@@ -40,6 +40,7 @@ Using a library installed on the system in :code:`/packages`:
 
 """
 
+import re
 import os
 import json
 import tempfile
@@ -50,6 +51,7 @@ from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
+from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
@@ -176,6 +178,38 @@ def create_profile(args, metadata):
     profile = controller.create(data)
     controller.select(profile)
 
+def _suffix_profile(profile_name: str) -> str:
+    """
+    Add a '-N' to a profile if it already exists
+    """
+    pattern = re.compile("%s.*" % profile_name)
+    matches = Profile.controller().match('name', regex=pattern)
+    names = set(filter(None, map(lambda x: x.get('name'), matches)))
+
+    if profile_name in names:
+        # An exact match exists, filter the occurences of 'name-N'
+        # and return name-max(N)+1
+        clones = set(
+            filter(
+                None,
+                map(
+                    lambda x: re.match("%s-(?P<ordinal>[0-9]*)" % profile_name,
+                                       x), names)))
+
+        profile_no = 1
+
+        if len(clones):
+            ordinal = max(map(lambda x: x.group('ordinal'), clones))
+
+            try:
+                profile_no = int(ordinal) + 1
+            except ValueError:
+                pass
+
+        return '%s-%d' % (profile_name, profile_no)
+
+    return profile_name
+
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
     def _construct_parser(self):
@@ -272,25 +306,19 @@ class InitCommand(AbstractCommand):
 
         returncode = detect_command.main([launcher, file_name])
 
-        if returncode == EXIT_SUCCESS:
-            mpi_path = compiler.rsplit('/',2)[0]
-            print(mpi_path)
-            libs_path = Profile.selected()['libraries']
-            print(json.dumps(libs_path, sort_keys=False, indent=4))
-            libs_path_alt = list(filter(lambda x : "libmpi" in x,libs_path)) 
-            libs_path = list(filter(lambda x : mpi_path in x, libs_path))
-            libs_path = list(filter(lambda x : "libmpi" in x, libs_path))
-            libs_path_alt = list(filter(lambda x : x not in libs_path, libs_path_alt))
-            
-            print(json.dumps(libs_path_alt, sort_keys=False, indent=4))
-            print(json.dumps(libs_path, sort_keys=False, indent=4))
-            
-            libs_path = libs_path + libs_path_alt
-            print(json.dumps(libs_path, sort_keys=False, indent=4))
-            profile_name = detect_name(libs_path)
-            Profile.controller()._check_unique({'name' : profile_name})
-            if profile_name:
-                Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
+        if returncode != EXIT_SUCCESS:
+            LOGGER.error("Failed detecting libraries !")
+            return EXIT_FAILURE
+
+        detected_libs = LibrarySet.create_from(Profile.selected()['libraries'])
+
+        mpi_libs = list(filter(lambda x: re.match(r'libmpi.*so.*', x.soname), detected_libs))
+
+        profile_name = detect_name([x.binary_path for x in mpi_libs])
+        profile_name = _suffix_profile(profile_name)
+
+        if profile_name:
+            Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
 
         return EXIT_SUCCESS
 
