@@ -92,29 +92,38 @@ def check_mpirun(executable):
 def detect_name(path_list):
     profile_name, version_str='', ''
     version_buffer= ctypes.create_string_buffer(3000)
-    lenght=ctypes.c_int()
+    length=ctypes.c_int()
 
     #if Path(path).exists():
     if path_list:
         for path in path_list:
             try:
                 handle = ctypes.CDLL(path)
-                try:
-                    handle.MPI_Get_library_version(version_buffer, ctypes.byref(lenght))
-                except AttributeError:
-                    print("Name Detection: Lib file not supported - skipped")
+
+                if get_version := getattr(handle, 'MPI_Get_library_version', None):
+                    get_version(version_buffer, ctypes.byref(length))
+                else:
+                    LOGGER.warning("Name Detection: library file missing necessary symbol - skipped")
                 break
-            except OSError:
-                print("Name Detection: Incorrect Path - skipped")
+            except OSError as err:
+                LOGGER.warning("Name Detection: library file not loadable - skipped => %s", err)
             
-        if lenght:
+        if length:
             version_buffer_str=version_buffer.value.decode("utf-8")
             version_buffer_str=version_buffer_str[:500]
-
+                
+            distro_dict = {
+                    'Intel(R) MPI': (lambda x : x.split("Library",1)[1].split("for",1)[0]), 
+                    'Open MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
+                    'Spectrum MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
+                    'MPICH': (lambda x : x.split(":",1)[1].split("M",1)[0]),
+                    'MVAPICH': (lambda x : x.split(":",1)[1].split("M",1)[0])
+                   }
+            
             accepted_imp = ['Open MPI', 'Spectrum MPI', 'MPICH', 'MVAPICH', 'Intel(R) MPI']
 
             print(version_buffer_str)
-            filtered_buffer = list(filter(lambda x : x in version_buffer_str, accepted_imp))
+            filtered_buffer = list(filter(lambda x : x in version_buffer_str, list(distro_dict)))
             
             print(filtered_buffer)
             if not filtered_buffer:
@@ -123,15 +132,8 @@ def detect_name(path_list):
                 )
             else:
                 profile_name=filtered_buffer[-1]
-                dict = {
-                        'Intel(R) MPI': (lambda x : x.split("Library",1)[1].split("for",1)[0]), 
-                        'Open MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
-                        'Spectrum MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
-                        'MPICH': (lambda x : x.split(":",1)[1].split("M",1)[0]),
-                        'MVAPICH': (lambda x : x.split(":",1)[1].split("M",1)[0])
-                       }
                 try:
-                    version_str = "_" + dict[profile_name](version_buffer_str)
+                    version_str = "_" + distro_dict[profile_name](version_buffer_str)
                 except IndexError:
                     LOGGER.warning(
                             "Name Detection: MPI implementation version not detected: specific version ommited."
