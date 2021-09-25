@@ -29,11 +29,11 @@ def attributes():
             'description': 'image identifier',
         },
         'files': {
-            'type': 'string',
+            'type': 'list',
             'description': 'files to bind in the container',
         },
         'libraries': {
-            'type': 'string',
+            'type': 'list',
             'description': 'libraries to bind in the container',
         },
         'source': {
@@ -47,8 +47,8 @@ def homogenize_files(data):
     if not isinstance(data, dict):
         return
 
-    files = data.get('files', [])
-    data['files'] = list({pathlib.Path(f).as_posix() for f in files})
+    if files := data.get('files', []):
+        data['files'] = list({pathlib.Path(f).as_posix() for f in files})
 
 
 class ProfileController(Controller):

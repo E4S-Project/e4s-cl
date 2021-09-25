@@ -316,11 +316,9 @@ class InitCommand(AbstractCommand):
 
         mpi_libs = list(filter(lambda x: re.match(r'libmpi.*so.*', x.soname), detected_libs))
 
-        profile_name = detect_name([x.binary_path for x in mpi_libs])
-        profile_name = _suffix_profile(profile_name)
-
-        if profile_name:
-            Profile.controller().update({'name' : profile_name }, Profile.selected().eid)
+        if profile_name := detect_name([x.binary_path for x in mpi_libs]):
+            profile_name = _suffix_profile(profile_name)
+            Profile.controller().update({'name': profile_name}, Profile.selected().eid)
 
         return EXIT_SUCCESS
 
