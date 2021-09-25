@@ -188,29 +188,33 @@ def _suffix_profile(profile_name: str) -> str:
     matches = Profile.controller().match('name', regex=pattern)
     names = set(filter(None, map(lambda x: x.get('name'), matches)))
 
-    if profile_name in names:
-        # An exact match exists, filter the occurences of 'name-N'
-        # and return name-max(N)+1
-        clones = set(
-            filter(
-                None,
-                map(
-                    lambda x: re.match("%s-(?P<ordinal>[0-9]*)" % profile_name,
-                                       x), names)))
+    # Do not append a suffix for the first unique profile
+    if not profile_name in names:
+        return profile_name
 
-        profile_no = 1
+    # An exact match exists, filter the occurences of 'name-N' (clones)
+    # and return name-max(N)+1
+    clones = set(
+        filter(
+            None,
+            map(lambda x: re.match("%s-(?P<ordinal>[0-9]*)" % profile_name, x),
+                names)))
 
-        if len(clones):
-            ordinal = max(map(lambda x: x.group('ordinal'), clones))
+    # Try to list all clones of this profile
+    ordinals = []
+    for clone in clones:
+        try:
+            ordinals.append(int(clone.group('ordinal')))
+        except ValueError:
+            pass
 
-            try:
-                profile_no = int(ordinal) + 1
-            except ValueError:
-                pass
+    # If there are no clones, this is the second profile, after the original
+    profile_no = 2
+    if len(ordinals):
+        profile_no = max(ordinals) + 1
 
-        return '%s-%d' % (profile_name, profile_no)
+    return '%s-%d' % (profile_name, profile_no)
 
-    return profile_name
 
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
