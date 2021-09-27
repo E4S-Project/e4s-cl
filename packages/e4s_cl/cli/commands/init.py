@@ -90,65 +90,71 @@ def check_mpirun(executable):
 
 
 def detect_name(path_list):
-    profile_name, version_str='', ''
-    version_buffer= ctypes.create_string_buffer(3000)
-    length=ctypes.c_int()
+    """
+    Given a list of shared objects, get an MPI library name and version
+    """
+    profile_name, version_str = '', ''
+    version_buffer = ctypes.create_string_buffer(3000)
+    length = ctypes.c_int()
 
-    #if Path(path).exists():
-    if path_list:
-        for path in path_list:
-            try:
-                handle = ctypes.CDLL(path)
+    distro_dict = {
+        'Intel(R) MPI':
+        (lambda x: x.split("Library", 1)[1].split("for", 1)[0]),
+        'Open MPI': (lambda x: x.split("v", 1)[1].split(",", 1)[0]),
+        'Spectrum MPI': (lambda x: x.split("v", 1)[1].split(",", 1)[0]),
+        'MPICH': (lambda x: x.split(":", 1)[1].split("M", 1)[0]),
+        'MVAPICH': (lambda x: x.split(":", 1)[1].split("M", 1)[0])
+    }
 
-                if get_version := getattr(handle, 'MPI_Get_library_version', None):
-                    get_version(version_buffer, ctypes.byref(length))
-                else:
-                    LOGGER.warning("Name Detection: library file missing necessary symbol - skipped")
-                break
-            except OSError as err:
-                LOGGER.warning("Name Detection: library file not loadable - skipped => %s", err)
-            
+    def _extract_vinfo(path: Path):
+        # Get the a handle to the MPI_Get_library_version function given
+        # a path to a shared object
+        if not path.exists():
+            return None
+
+        try:
+            handle = ctypes.CDLL(path)
+            return getattr(handle, 'MPI_Get_library_version', None)
+        except Exception as err:
+            LOGGER.debug("Error loading shared object {}: {}", path.as_posix(),
+                         str(err))
+            return None
+
+    # Handles found in the library list
+    version_f = list(filter(None, map(_extract_vinfo, path_list)))
+    # Container for the results
+    version_data = set()  # Set((Str, Version))
+
+    for f in version_f:
+        # Run every handle
+        f(version_buffer, ctypes.byref(length))
+
         if length:
-            version_buffer_str=version_buffer.value.decode("utf-8")
-            version_buffer_str=version_buffer_str[:500]
-                
-            distro_dict = {
-                    'Intel(R) MPI': (lambda x : x.split("Library",1)[1].split("for",1)[0]), 
-                    'Open MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
-                    'Spectrum MPI' : (lambda x : x.split("v",1)[1].split(",",1)[0]),
-                    'MPICH': (lambda x : x.split(":",1)[1].split("M",1)[0]),
-                    'MVAPICH': (lambda x : x.split(":",1)[1].split("M",1)[0])
-                   }
-            
-            accepted_imp = ['Open MPI', 'Spectrum MPI', 'MPICH', 'MVAPICH', 'Intel(R) MPI']
+            version_buffer_str = version_buffer.value.decode("utf-8")[:500]
 
-            print(version_buffer_str)
-            filtered_buffer = list(filter(lambda x : x in version_buffer_str, list(distro_dict)))
-            
-            print(filtered_buffer)
-            if not filtered_buffer:
-                LOGGER.warning(
-                        "Name Detection: MPI implementation is not recognised: recognised implementations for automatic profile naming are Open MPI, Spectrum MPI, MPICH, MVAPICH and Intel MPI."
-                )
-            else:
-                profile_name=filtered_buffer[-1]
-                try:
-                    version_str = "_" + distro_dict[profile_name](version_buffer_str)
-                except IndexError:
-                    LOGGER.warning(
-                            "Name Detection: MPI implementation version not detected: specific version ommited."
-                    )
-                profile_name = profile_name + version_str 
-                profile_name = ''.join(profile_name.split())
-        else:
-            LOGGER.warning(
-                    "Name Detection: Auto-name detection has failed, procedurally generated name will be kept."
-                    )
-    else:
-        LOGGER.warning(
-                "Name Detection: MPI path provided doesn't lead to an MPI installation."
-        )
-        return EXIT_FAILURE
+            # Check for keywords in the buffer
+            filtered_buffer = set(
+                filter(lambda x: x in version_buffer_str, distro_dict.keys()))
+
+            if len(filtered_buffer) != 1:
+                # If we found multiple vendors => error
+                continue
+
+            profile_name = filtered_buffer.pop()
+            # Run the corresponding function on the buffer
+            version_str = "_" + distro_dict.get(
+                profile_name, lambda x: None)(version_buffer_str)
+
+            # Add the result to the above container
+            version_data.add((profile_name, version_str))
+
+    found_vendors = set(map(lambda x: x[0], version_data))
+
+    if len(found_vendors) == 1:
+        # If one consistent vendor has been found
+        profile_name, version_str = version_data.pop()
+        profile_name = profile_name + version_str
+        profile_name = ''.join(profile_name.split())
 
     return profile_name
 
@@ -320,7 +326,7 @@ class InitCommand(AbstractCommand):
 
         mpi_libs = list(filter(lambda x: re.match(r'libmpi.*so.*', x.soname), detected_libs))
 
-        if profile_name := detect_name([x.binary_path for x in mpi_libs]):
+        if profile_name := detect_name([Path(x.binary_path) for x in mpi_libs]):
             profile_name = _suffix_profile(profile_name)
             Profile.controller().update({'name': profile_name}, Profile.selected().eid)
 
