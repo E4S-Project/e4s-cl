@@ -115,8 +115,8 @@ def detect_name(path_list):
         try:
             handle = ctypes.CDLL(path)
             return getattr(handle, 'MPI_Get_library_version', None)
-        except Exception as err:
-            LOGGER.debug("Error loading shared object {}: {}", path.as_posix(),
+        except OSError as err:
+            LOGGER.debug("Error loading shared object %s: %s", path.as_posix(),
                          str(err))
             return None
 
