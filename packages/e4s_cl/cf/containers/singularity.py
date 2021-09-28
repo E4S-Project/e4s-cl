@@ -2,6 +2,7 @@
 Module introducing singularity support
 """
 
+import os
 from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.util import create_subprocess_exp
@@ -21,6 +22,8 @@ class SingularityContainer(Container):
     """
     Class to use when formatting bound files for a singularity execution
     """
+    def _working_dir(self):
+        return ['--pwd', os.getcwd()]
 
     def __setup__(self):
         """
@@ -38,8 +41,10 @@ class SingularityContainer(Container):
             {'SINGULARITYENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
         self.format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
-        container_cmd = [self.executable, 'exec', '--contain'
-                         ] + nvidia_flag + [self.image] + command
+        container_cmd = [
+            self.executable, 'exec', '--contain', *self._working_dir(),
+            *nvidia_flag, self.image, *command
+        ]
 
         return create_subprocess_exp(container_cmd,
                                      env=self.env,
