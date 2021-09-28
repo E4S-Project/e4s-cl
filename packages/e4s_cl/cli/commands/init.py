@@ -190,7 +190,8 @@ def _suffix_profile(profile_name: str) -> str:
     """
     Add a '-N' to a profile if it already exists
     """
-    pattern = re.compile("%s.*" % profile_name)
+    escaped_profile_name = re.escape(profile_name)
+    pattern = re.compile("%s.*" % escaped_profile_name)
     matches = Profile.controller().match('name', regex=pattern)
     names = set(filter(None, map(lambda x: x.get('name'), matches)))
 
@@ -203,7 +204,7 @@ def _suffix_profile(profile_name: str) -> str:
     clones = set(
         filter(
             None,
-            map(lambda x: re.match("%s-(?P<ordinal>[0-9]*)" % profile_name, x),
+            map(lambda x: re.match("%s-(?P<ordinal>[0-9]*)" % escaped_profile_name, x),
                 names)))
 
     # Try to list all clones of this profile
