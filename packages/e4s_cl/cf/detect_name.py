@@ -51,18 +51,42 @@ def _suffix_profile(profile_name: str) -> str:
 
 
 def _extract_intel_mpi(version_buffer_str):
+    """
+    Parses the typical Intel MPI library version message, eg:
+    Intel(R) MPI Library 2019 Update 6 for Linux* OS
+    """
     return version_buffer_str.split("Library", 1)[1].split("for", 1)[0]
 
 def _extract_open_mpi(version_buffer_str):
+    """
+    Parses the typical OpenMPI library version message, eg:
+    Open MPI v4.0.1, package: Open MPI Distribution, ident: 4.0.1, repo rev: v4.0.1, Mar 26, 2019
+    """
     return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
 
 def _extract_spectrum_mpi(version_buffer_str):
+    """
+    Parses the typical Spectrum MPI library version message, eg:
+    Open MPI v4.0.1, package: Spectrum MPI Distribution, ident: 4.0.1, repo rev: v4.0.1, Mar 26, 2019
+    """
     return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
 
 def _extract_mpich(version_buffer_str):
+    """
+    Parses the typical MPICH library version message, eg:
+    MPICH Version:  3.3b2
+    MPICH Release date: Mon Apr  9 17:58:42 CDT 2018
+    [...]
+    """
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
 def _extract_mvapich(version_buffer_str):
+    """
+    Parses the typical MVAPICH library version message, eg:
+    MVAPICH Version:  3.3b2
+    MVAPICH Release date: Mon Apr  9 17:58:42 CDT 2018
+    [...]
+    """
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
 distro_dict = {
