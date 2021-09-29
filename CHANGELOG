@@ -2,6 +2,9 @@ v1.0rc4 (Sep 23 2021)
 ---------------------
 
 - Added WI4MPI support
+- Singularity features:
+    - Prevented system-specific rules from altering execution via --contain
+    - Ensured the PWD is conserved in containers (fixed #30)
 
 v1.0rc3 (Jun 22 2021)
 ---------------------

@@ -170,6 +170,9 @@ class Container:
         self.libc_v = Version('0.0.0')
         self.libraries = LibrarySet()
 
+        if hasattr(self, '__setup__'):
+            self.__setup__()
+
     def get_data(self, entrypoint, library_set=LibrarySet()):
         """
         Run the e4s-cl analyze command in the container to analyze the
