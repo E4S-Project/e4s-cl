@@ -85,7 +85,7 @@ def wi4mpi_libraries(install_dir: Path):
     target = os.environ.get("WI4MPI_TO", "")
 
     if not (source and target):
-        LOGGER.error("Missing environment variables ")
+        LOGGER.debug("Error getting WI4MPI libraries: Missing environment variables")
         return []
 
     wrapper_lib = install_dir.joinpath('libexec', 'wi4mpi',
