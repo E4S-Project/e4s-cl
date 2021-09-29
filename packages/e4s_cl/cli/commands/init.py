@@ -64,14 +64,30 @@ LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
-def compile_sample(compiler, destination):
-    command = "%s -o %s -lm -x c -" % (compiler, destination)
+def compile_sample(compiler) -> Path:
+    # Create a file to compile a sample program in
+    with tempfile.NamedTemporaryFile('w+', delete=False) as binary:
+        with tempfile.NamedTemporaryFile('w+', suffix='.c') as program:
+            program.write(PROGRAM)
+            program.seek(0)
 
-    with tempfile.TemporaryFile('w+') as std_in:
-        std_in.write(PROGRAM)
-        std_in.seek(0)
+            command = "%(compiler)s -o %(output)s -lm %(code)s" % {
+                'compiler': compiler,
+                'output': binary.name,
+                'code': program.name,
+            }
 
-        subprocess.Popen(command.split(), stdin=std_in).wait()
+            LOGGER.debug("Compiling with: '%s'" % command)
+            compilation_status = subprocess.Popen(command.split()).wait()
+
+    # Check for a non-zero return code
+    if compilation_status:
+        LOGGER.error(
+            "Failed to compile sample MPI program with the following compiler: %s",
+            compiler)
+        return None
+
+    return binary.name
 
 
 def check_mpirun(executable):
@@ -230,23 +246,18 @@ class InitCommand(AbstractCommand):
         create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
         if not getattr(args, 'wi4mpi', None):
+            # If WI4MPI is not in use, compile and analyze a program
             LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
                          launcher)
             check_mpirun(launcher)
 
-            # Create a file to compile a sample program in
-            with tempfile.NamedTemporaryFile('w+',
-                                             delete=False) as program_file:
-                file_name = program_file.name
-
             # Compile a sample program using the compiler above
-            compile_sample(compiler, file_name)
+            if binary := compile_sample(compiler):
+                # Run the program using the detect command and get a file list
+                detect_command.main([launcher, binary])
 
-            # Run the program using the detect command and get a file list
-            detect_command.main([launcher, file_name])
-
-            # Delete the temporary file
-            os.unlink(file_name)
+                # Delete the temporary file
+                os.unlink(binary)
 
         return EXIT_SUCCESS
 
