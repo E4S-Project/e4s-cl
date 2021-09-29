@@ -142,8 +142,12 @@ def detect_name(path_list):
 
             profile_name = filtered_buffer.pop()
             # Run the corresponding function on the buffer
-            version_str = "_" + distro_dict.get(
-                profile_name, lambda x: None)(version_buffer_str)
+            # In case of an error, skip this function
+            try:
+                version_str = "_" + distro_dict.get(
+                    profile_name, lambda x: None)(version_buffer_str)
+            except:
+                continue
 
             # Add the result to the above container
             version_data.add((profile_name, version_str))

@@ -225,8 +225,11 @@ class InitCommand(AbstractCommand):
         mpi_libs = list(filter(lambda x: re.match(r'libmpi.*so.*', x.soname), detected_libs))
 
         if profile_name := detect_name([Path(x.binary_path) for x in mpi_libs]):
+            LOGGER.debug("Found library %s", profile_name)
             profile_name = _suffix_profile(profile_name)
             Profile.controller().update({'name': profile_name}, Profile.selected().eid)
+        else:
+            LOGGER.debug("Profile naming failed")
 
         return EXIT_SUCCESS
 
