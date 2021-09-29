@@ -50,15 +50,27 @@ def _suffix_profile(profile_name: str) -> str:
     return '%s-%d' % (profile_name, profile_no)
 
 
-def _extract_intel_mpi(buffer):
-    x.split("Library", 1)[1].split("for", 1)[0]
+def _extract_intel_mpi(version_buffer_str):
+    return version_buffer_str.split("Library", 1)[1].split("for", 1)[0]
+
+def _extract_open_mpi(version_buffer_str):
+    return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
+
+def _extract_spectrum_mpi(version_buffer_str):
+    return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
+
+def _extract_mpich(version_buffer_str):
+    return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
+
+def _extract_mvapich(version_buffer_str):
+    return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
 distro_dict = {
     'Intel(R) MPI': _extract_intel_mpi,
-    'Open MPI': (lambda x: x.split("v", 1)[1].split(",", 1)[0]),
-    'Spectrum MPI': (lambda x: x.split("v", 1)[1].split(",", 1)[0]),
-    'MPICH': (lambda x: x.split(":", 1)[1].split("M", 1)[0]),
-    'MVAPICH': (lambda x: x.split(":", 1)[1].split("M", 1)[0])
+    'Open MPI': _extract_open_mpi,
+    'Spectrum MPI': _extract_spectrum_mpi,
+    'MPICH': _extract_mpich,
+    'MVAPICH': _extract_mvapich
 }
 
 
