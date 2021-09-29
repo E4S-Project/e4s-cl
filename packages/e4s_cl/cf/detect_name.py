@@ -10,6 +10,7 @@ from e4s_cl.model.profile import Profile
 
 LOGGER = logger.get_logger(__name__)
 
+
 def _suffix_profile(profile_name: str) -> str:
     """
     Add a '-N' to a profile if it already exists
@@ -28,7 +29,9 @@ def _suffix_profile(profile_name: str) -> str:
     clones = set(
         filter(
             None,
-            map(lambda x: re.match("%s-(?P<ordinal>[0-9]*)" % escaped_profile_name, x),
+            map(
+                lambda x: re.match(
+                    "%s-(?P<ordinal>[0-9]*)" % escaped_profile_name, x),
                 names)))
 
     # Try to list all clones of this profile
@@ -46,6 +49,19 @@ def _suffix_profile(profile_name: str) -> str:
 
     return '%s-%d' % (profile_name, profile_no)
 
+
+def _extract_intel_mpi(buffer):
+    x.split("Library", 1)[1].split("for", 1)[0]
+
+distro_dict = {
+    'Intel(R) MPI': _extract_intel_mpi,
+    'Open MPI': (lambda x: x.split("v", 1)[1].split(",", 1)[0]),
+    'Spectrum MPI': (lambda x: x.split("v", 1)[1].split(",", 1)[0]),
+    'MPICH': (lambda x: x.split(":", 1)[1].split("M", 1)[0]),
+    'MVAPICH': (lambda x: x.split(":", 1)[1].split("M", 1)[0])
+}
+
+
 def detect_name(path_list):
     """
     Given a list of shared objects, get an MPI library name and version
@@ -53,15 +69,6 @@ def detect_name(path_list):
     profile_name, version_str = '', ''
     version_buffer = ctypes.create_string_buffer(3000)
     length = ctypes.c_int()
-
-    distro_dict = {
-        'Intel(R) MPI':
-        (lambda x: x.split("Library", 1)[1].split("for", 1)[0]),
-        'Open MPI': (lambda x: x.split("v", 1)[1].split(",", 1)[0]),
-        'Spectrum MPI': (lambda x: x.split("v", 1)[1].split(",", 1)[0]),
-        'MPICH': (lambda x: x.split(":", 1)[1].split("M", 1)[0]),
-        'MVAPICH': (lambda x: x.split(":", 1)[1].split("M", 1)[0])
-    }
 
     def _extract_vinfo(path: Path):
         # Get the a handle to the MPI_Get_library_version function given
