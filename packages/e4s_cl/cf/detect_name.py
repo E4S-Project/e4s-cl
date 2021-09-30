@@ -7,6 +7,7 @@ import ctypes
 from pathlib import Path
 from e4s_cl import logger, util
 from e4s_cl.model.profile import Profile
+from e4s_cl.cf.libraries import LibrarySet
 
 LOGGER = logger.get_logger(__name__)
 
@@ -57,6 +58,7 @@ def _extract_intel_mpi(version_buffer_str):
     """
     return version_buffer_str.split("Library", 1)[1].split("for", 1)[0]
 
+
 def _extract_open_mpi(version_buffer_str):
     """
     Parses the typical OpenMPI library version message, eg:
@@ -64,12 +66,14 @@ def _extract_open_mpi(version_buffer_str):
     """
     return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
 
+
 def _extract_spectrum_mpi(version_buffer_str):
     """
     Parses the typical Spectrum MPI library version message, eg:
     Open MPI v4.0.1, package: Spectrum MPI Distribution, ident: 4.0.1, repo rev: v4.0.1, Mar 26, 2019
     """
     return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
+
 
 def _extract_mpich(version_buffer_str):
     """
@@ -80,6 +84,7 @@ def _extract_mpich(version_buffer_str):
     """
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
+
 def _extract_mvapich(version_buffer_str):
     """
     Parses the typical MVAPICH library version message, eg:
@@ -89,6 +94,7 @@ def _extract_mvapich(version_buffer_str):
     """
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
+
 distro_dict = {
     'Intel(R) MPI': _extract_intel_mpi,
     'Open MPI': _extract_open_mpi,
@@ -96,6 +102,23 @@ distro_dict = {
     'MPICH': _extract_mpich,
     'MVAPICH': _extract_mvapich
 }
+
+
+def _extract_vinfo(path: Path):
+    """
+    Get the a handle to the MPI_Get_library_version function given
+    a path to a shared object
+    """
+    if not path.exists():
+        return None
+
+    try:
+        handle = ctypes.CDLL(path)
+        return getattr(handle, 'MPI_Get_library_version', None)
+    except OSError as err:
+        LOGGER.debug("Error loading shared object %s: %s", path.as_posix(),
+                     str(err))
+        return None
 
 
 def detect_name(path_list):
@@ -126,7 +149,7 @@ def detect_name(path_list):
     # Handles found in the library list
     version_f = list(filter(None, map(_extract_vinfo, path_list)))
     # Container for the results
-    version_data = set()  # Set((Str, Version))
+    version_data = set()  # set((str, str))
 
     for f in version_f:
         # Run every handle
@@ -166,3 +189,22 @@ def detect_name(path_list):
         profile_name = ''.join(profile_name.split())
 
     return profile_name
+
+
+def try_rename(profile_id: str):
+    if not (data := Profile.controller().one({'name': profile_id})):
+        LOGGER.debug("Error renaming profile: profile '%s' not found",
+                     profile_id)
+        return
+
+    detected_libs = LibrarySet.create_from(data.get('libraries', []))
+    mpi_libs = list(
+        filter(lambda x: re.match(r'libmpi.*so.*', x.soname), detected_libs))
+
+    if new_name := detect_name([Path(x.binary_path) for x in mpi_libs]):
+        LOGGER.debug("Found library %s", new_name)
+        profile_name = _suffix_profile(new_name)
+        Profile.controller().update({'name': profile_name},
+                                    Profile.selected().eid)
+    else:
+        LOGGER.debug("Profile naming failed")
