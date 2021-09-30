@@ -120,6 +120,9 @@ def detect_name(path_list):
                          str(err))
             return None
 
+    def _check_spectrum(vendors_list):
+        return set(['Spectrum MPI','Open MPI']).issubset(set(vendors_list)) 
+
     # Handles found in the library list
     version_f = list(filter(None, map(_extract_vinfo, path_list)))
     # Container for the results
@@ -131,14 +134,16 @@ def detect_name(path_list):
 
         if length:
             version_buffer_str = version_buffer.value.decode("utf-8")[:500]
-
             # Check for keywords in the buffer
             filtered_buffer = set(
                 filter(lambda x: x in version_buffer_str, distro_dict.keys()))
 
             if len(filtered_buffer) != 1:
-                # If we found multiple vendors => error
-                continue
+                if _check_spectrum(filtered_buffer):
+                    filtered_buffer=['Spectrum MPI']
+                else:
+                    # If we found multiple vendors, without it being Spectrum MPI and OpenMPI => error
+                    continue
 
             profile_name = filtered_buffer.pop()
             # Run the corresponding function on the buffer
