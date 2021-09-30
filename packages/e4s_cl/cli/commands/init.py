@@ -46,6 +46,7 @@ Using an installation of WI4MPI:
 
 """
 
+import re
 import os
 import json
 import tempfile
@@ -54,6 +55,7 @@ from pathlib import Path
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
+from e4s_cl.cf.detect_name import try_rename
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
@@ -139,7 +141,6 @@ def create_profile(args, metadata):
 
     data["name"] = profile_name
     profile = controller.create(data)
-
     controller.select(profile)
 
 
@@ -254,10 +255,16 @@ class InitCommand(AbstractCommand):
             # Compile a sample program using the compiler above
             if binary := compile_sample(compiler):
                 # Run the program using the detect command and get a file list
-                detect_command.main([launcher, binary])
+                returncode = detect_command.main([launcher, binary])
 
                 # Delete the temporary file
                 os.unlink(binary)
+
+                if returncode != EXIT_SUCCESS:
+                    LOGGER.error("Failed detecting libraries !")
+                    return EXIT_FAILURE
+
+                try_rename(Profile.selected().get('name', ''))
 
         return EXIT_SUCCESS
 
