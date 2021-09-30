@@ -55,9 +55,8 @@ from pathlib import Path
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
-from e4s_cl.cf.detect_name import detect_name, _suffix_profile
+from e4s_cl.cf.detect_name import try_rename
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
-from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
@@ -111,7 +110,6 @@ def check_mpirun(executable):
             str(detect_command))
 
 
-
 def create_profile(args, metadata):
     """Populate profile record"""
     data = {}
@@ -136,7 +134,7 @@ def create_profile(args, metadata):
         data['wi4mpi_options'] = args.wi4mpi_options
 
     profile_name = getattr(args, 'profile_name',
-                       "default-%s" % util.hash256(json.dumps(metadata)))
+                           "default-%s" % util.hash256(json.dumps(metadata)))
 
     if controller.one({"name": profile_name}):
         controller.delete({"name": profile_name})
@@ -144,7 +142,6 @@ def create_profile(args, metadata):
     data["name"] = profile_name
     profile = controller.create(data)
     controller.select(profile)
-
 
 
 class InitCommand(AbstractCommand):
@@ -267,16 +264,7 @@ class InitCommand(AbstractCommand):
                     LOGGER.error("Failed detecting libraries !")
                     return EXIT_FAILURE
 
-                detected_libs = LibrarySet.create_from(Profile.selected()['libraries'])
-
-                mpi_libs = list(filter(lambda x: re.match(r'libmpi.*so.*', x.soname), detected_libs))
-
-                if profile_name := detect_name([Path(x.binary_path) for x in mpi_libs]):
-                    LOGGER.debug("Found library %s", profile_name)
-                    profile_name = _suffix_profile(profile_name)
-                    Profile.controller().update({'name': profile_name}, Profile.selected().eid)
-                else:
-                    LOGGER.debug("Profile naming failed")
+                try_rename(Profile.selected().get('name', ''))
 
         return EXIT_SUCCESS
 
