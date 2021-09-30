@@ -646,7 +646,7 @@ def get_model_identifier(model,
     """
     parser = get_parser(prog, usage, description, epilog)
 
-    model_name = model.name
+    model_name = model.name.lower()
     key_attr = model.key_attribute
 
     _default = SUPPRESS
@@ -654,12 +654,13 @@ def get_model_identifier(model,
         _default = model.selected().get(key_attr, UNSELECTED)
 
     parser.add_argument(
-        model_name.lower(),
+        model_name,
         nargs='?',
         type=defined_object(model, key_attr),
-        help="The target profile. If omitted, defaults to the selected profile",
+        help="The target %s. If omitted, defaults to the selected %s" %
+        (model_name, model_name),
         default=_default,
-        metavar="%s_%s" % (model_name.lower(), key_attr))
+        metavar="%s_%s" % (model_name, key_attr))
 
     return parser
 
@@ -741,7 +742,8 @@ def defined_object(model, field):
             raise argparse.ArgumentTypeError("no %s selected nor specified" %
                                              model.name)
 
-        objects = model.controller().match(field, regex=("^%s.*" % string))
+        objects = model.controller().match(field,
+                                           regex=("^%s.*" % re.escape(string)))
         exact_matches = list(filter(lambda x: x.get(field) == string, objects))
 
         if len(objects) != 1 and not len(exact_matches) == 1:
