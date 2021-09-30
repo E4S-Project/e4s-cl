@@ -65,6 +65,17 @@ class ProfileCreateCommand(CreateCommand):
             default=arguments.SUPPRESS,
             dest='source')
 
+        parser.add_argument('--wi4mpi',
+                            help="Root of the WI4MPI installation to use",
+                            metavar='<path>',
+                            type=arguments.posix_path,
+                            default=arguments.SUPPRESS)
+
+        parser.add_argument('--wi4mpi_options',
+                            help="Options to use with WI4MPI",
+                            metavar='<args>',
+                            default=arguments.SUPPRESS)
+
         return parser
 
 

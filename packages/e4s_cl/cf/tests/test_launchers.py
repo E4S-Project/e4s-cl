@@ -2,6 +2,7 @@ from shlex import split
 from e4s_cl import tests
 from e4s_cl.cf.launchers import interpret
 
+
 class LauncherTest(tests.TestCase):
     def test_standard(self):
         text = 'ls'

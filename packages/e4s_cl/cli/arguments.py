@@ -140,19 +140,6 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
         formatter.add_text(self.epilog)
         return formatter.format_help()
 
-    def _format_help_path(self):
-        """Format completion list"""
-        formatter = self._get_formatter()
-        formatter.start_section('')
-        args = []
-        for action_group in self._sorted_groups():
-            args.extend(
-                sorted(action_group._group_actions,
-                       key=attrgetter('option_strings')))
-        formatter.add_arguments(args)
-        formatter.end_section()
-        return formatter.format_help()
-
     def format_help(self):
         try:
             func = getattr(self, '_format_help_' + USAGE_FORMAT.lower())
@@ -490,31 +477,6 @@ class MarkdownHelpFormatter(HelpFormatter):
         for subaction in self._iter_indented_subactions(action):
             parts.append(self._format_action(subaction))
         return self._join_parts(parts)
-
-
-class PathHelpFormatter(HelpFormatter):
-    """Formatter generating a list of possible completion targets"""
-    class _Section(object):
-        def __init__(self, formatter, parent, heading=None):
-            self.formatter = formatter
-            self.parent = parent
-            self.heading = heading
-            self.items = []
-
-        def format_help(self):
-            return flatten([func(*args) for func, args in self.items])
-
-    def add_text(self, text):
-        pass
-
-    def add_usage(self, usage, actions, groups, prefix=None):
-        pass
-
-    def format_help(self):
-        return ' '.join(self._root_section.format_help()) + '\n'
-
-    def _format_action(self, action):
-        return filter(lambda x: not re.match(r'__.*', x), action.choices or [])
 
 
 class ParseBooleanAction(argparse.Action):

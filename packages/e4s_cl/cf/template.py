@@ -80,7 +80,7 @@ class Entrypoint:
 
     def __str__(self):
         # Convert to a set to remove duplicates, then as a list to get order
-        preload = list(set(self.preload))
+        preload = list(dict.fromkeys(self.preload))
 
         if self.linker:
             preload.append(self.linker)
