@@ -26,7 +26,14 @@ class ShifterContainer(Container):
         pass
 
     def run(self, command, redirect_stdout=False):
-        container_cmd = [self.executable, "--image=%s" % self.image, *command]
+        env_list=[]
+        env_list.append('--env=LD_PRELOAD=%s' % ":".join(self.ld_preload))
+        env_list.append('--env=LD_LIBRARY_PATH=%s' % ":".join(self.ld_lib_path))
+
+        for env_var in self.env.items():
+            env_list.append('--env=%s=%s' % env_var)
+
+        container_cmd = [self.executable, "--image=%s" % self.image, *env_list, *command]
         return create_subprocess_exp(container_cmd,
                                      env=self.env,
                                      redirect_stdout=redirect_stdout)
