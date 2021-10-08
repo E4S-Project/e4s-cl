@@ -38,6 +38,8 @@ class ShifterContainer(Container):
         LOGGER.debug("Generating import template in '%s'",
                      self.__shifter_e4s_dir.name)
 
+        volumes = [(self.__shifter_e4s_dir.name, CONTAINER_DIR)]
+
         for source, destination, options in self.bound:
             if destination.as_posix().startswith(CONTAINER_DIR):
                 rebased = destination.as_posix()[len(CONTAINER_DIR)+1:]
@@ -47,10 +49,17 @@ class ShifterContainer(Container):
                 os.makedirs(temporary.parent, exist_ok=True)
                 subprocess.Popen(['cp', '-r', source.as_posix(), temporary.as_posix()]).wait()
 
-            else:
-                LOGGER.warning("Backend Shifter does not support file binding. Performance may be impacted.")
+            elif source.is_dir():
+                if destination.as_posix().startswith('/etc'):
+                    LOGGER.error("Shifter: Backend does not support binding to '/etc'")
+                    continue
 
-        return '--volume=%s:%s' % (self.__shifter_e4s_dir.name, CONTAINER_DIR)
+                volumes.append((source.as_posix(), destination.as_posix()))
+
+            else:
+                LOGGER.warning("Shifter: Backend does not support file binding. Performance may be impacted.")
+
+        return [ '--volume=%s:%s' % t for t in volumes ]
 
     def run(self, command, redirect_stdout=False):
         env_list = []
@@ -63,10 +72,12 @@ class ShifterContainer(Container):
         for env_var in self.env.items():
             env_list.append('--env=%s=%s' % env_var)
 
+        volumes = self.__setup_import()
+
         container_cmd = [
             self.executable,
-            "--image=%s" % self.image, *env_list,
-            self.__setup_import(), *command
+            "--image=%s" % self.image, *env_list, *volumes
+            , *command
         ]
         return create_subprocess_exp(container_cmd,
                                      env=self.env,
