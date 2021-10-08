@@ -3,6 +3,8 @@ Module introducing shifter support
 """
 
 import os
+import subprocess
+import time
 import tempfile
 from shutil import copy2, copytree
 from pathlib import Path
@@ -38,15 +40,12 @@ class ShifterContainer(Container):
 
         for source, destination, options in self.bound:
             if destination.as_posix().startswith(CONTAINER_DIR):
-                temporary = Path(self.__shifter_e4s_dir.name, destination.name)
-                if source.is_dir():
-                    copy_op = copytree(source,
-                                       temporary,
-                                       symlinks=True,
-                                       ignore_dangling_symlinks=False,
-                                       dirs_exist_ok=True)
-                if source.is_file():
-                    copy_op = copy2(source, temporary)
+                rebased = destination.as_posix()[len(CONTAINER_DIR)+1:]
+                temporary = Path(self.__shifter_e4s_dir.name, rebased)
+
+                LOGGER.debug("Shifter: Creating %s for %s in %s" % (temporary.as_posix(), source.as_posix(), destination.as_posix()))
+                os.makedirs(temporary.parent, exist_ok=True)
+                subprocess.Popen(['cp', '-r', source.as_posix(), temporary.as_posix()]).wait()
 
         return '--volume=%s:%s' % (self.__shifter_e4s_dir.name, CONTAINER_DIR)
 
