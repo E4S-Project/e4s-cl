@@ -47,6 +47,9 @@ class ShifterContainer(Container):
                 os.makedirs(temporary.parent, exist_ok=True)
                 subprocess.Popen(['cp', '-r', source.as_posix(), temporary.as_posix()]).wait()
 
+            else:
+                LOGGER.warning("Backend Shifter does not support file binding. Performance may be impacted.")
+
         return '--volume=%s:%s' % (self.__shifter_e4s_dir.name, CONTAINER_DIR)
 
     def run(self, command, redirect_stdout=False):
