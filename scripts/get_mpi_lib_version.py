@@ -1,16 +1,24 @@
+#!/bin/env python3
+
 # Script that prints the given mpi's shared library version and distributor
 # libmpi.so or equivalent is expected.
 
-import ctypes
+import os
+import sys
 
-lib_path=raw_input("Enter library's path: ")
+if __name__ == '__main__':
+    if getattr(sys, 'frozen', False):
+        __file__ = sys.executable
 
-handle = ctypes.CDLL(lib_path)
+    here = os.path.realpath(os.path.dirname(__file__))
+    os.environ['__E4S_CL_HOME__'] = os.path.join(here, '..')
+    packages = os.path.join(here, '..', 'packages')
+    sys.path.insert(0, packages)
 
-version_buffer= ctypes.create_string_buffer(3000)
-lenght=ctypes.c_int()
+    if len(sys.argv) < 2:
+        print("Usage: %s <libmpi.so.x>" % sys.argv[0], file=sys.stderr)
+        sys.exit(1)
 
-handle.MPI_Get_library_version(version_buffer, ctypes.byref(lenght))
-version_buffer_str=version_buffer.value.decode("utf-8")[:500]
-print("This shared library belongs to this distribution: \n%s" % version_buffer_str)
+    from e4s_cl.cf.detect_name import version_info
 
+    print(version_info(sys.argv[1]))

@@ -121,11 +121,11 @@ def _extract_vinfo(path: Path):
         return None
 
 
-def detect_name(path_list):
-    """
-    Given a list of shared objects, get an MPI library name and version
-    """
-    profile_name, version_str = '', ''
+def version_info(path: Path):
+    if isinstance(path, str):
+        path = Path(path)
+
+    # C-compatible buffer to run a C handle with
     version_buffer = ctypes.create_string_buffer(3000)
     length = ctypes.c_int()
 
@@ -143,20 +143,35 @@ def detect_name(path_list):
                          str(err))
             return None
 
+    if not (handle := _extract_vinfo(path)):
+        LOGGER.debug("Extracting MPI_Get_library_version from %s failed", path.as_posix())
+        return None
+
+    handle(version_buffer, ctypes.byref(length))
+
+    if length:
+        return version_buffer.value.decode("utf-8")[:500]
+    return None
+
+
+def detect_name(path_list):
+    """
+    Given a list of shared objects, get an MPI library name and version
+    """
+    profile_name, version_str = '', ''
+    version_buffer = ctypes.create_string_buffer(3000)
+    length = ctypes.c_int()
+
     def _check_spectrum(vendors_list):
         return set(['Spectrum MPI','Open MPI']).issubset(set(vendors_list)) 
 
-    # Handles found in the library list
-    version_f = list(filter(None, map(_extract_vinfo, path_list)))
     # Container for the results
     version_data = set()  # set((str, str))
 
-    for f in version_f:
-        # Run every handle
-        f(version_buffer, ctypes.byref(length))
+    for path in path_list:
+        version_buffer_str = version_info(path)
 
-        if length:
-            version_buffer_str = version_buffer.value.decode("utf-8")[:500]
+        if version_buffer_str:
             # Check for keywords in the buffer
             filtered_buffer = set(
                 filter(lambda x: x in version_buffer_str, distro_dict.keys()))
