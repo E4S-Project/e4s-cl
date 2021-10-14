@@ -85,6 +85,16 @@ def _extract_mpich(version_buffer_str):
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
 
+def _extract_cray_mpich(version_buffer_str):
+    """
+    Parses the typical MPICH library version message, eg:
+    MPICH Version:  3.3b2
+    MPICH Release date: Mon Apr  9 17:58:42 CDT 2018
+    [...]
+    """
+    return version_buffer_str.split("version", 1)[1].split("(", 1)[0]
+
+
 def _extract_mvapich(version_buffer_str):
     """
     Parses the typical MVAPICH library version message, eg:
@@ -100,6 +110,7 @@ distro_dict = {
     'Open MPI': _extract_open_mpi,
     'Spectrum MPI': _extract_spectrum_mpi,
     'MPICH': _extract_mpich,
+    'CRAY MPICH': _extract_cray_mpich,
     'MVAPICH': _extract_mvapich
 }
 
