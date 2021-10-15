@@ -96,4 +96,10 @@ def library_links(shared_object: Library):
     if matches := match(r'(?P<prefix>lib[a-z_]+)-.+', prefix):
         _glob_links(matches.group('prefix'))
 
+    # If we encounter a special case of symlink presenting as another library,
+    # bind the symlink and the shared object being pointed to.
+    if shared_object.soname != libname:
+        cleared.add(Path(shared_object.binary_path))
+        cleared.add(Path(library_file))
+
     return cleared
