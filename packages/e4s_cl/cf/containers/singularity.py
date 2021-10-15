@@ -29,9 +29,12 @@ class SingularityContainer(Container):
         """
         Bind minimal directories stripped from the use of `--contain`
         """
+        # Ensure HOME is bound
         self.bind_file(Path.home(), option=FileOptions.READ_WRITE)
-        self.bind_file('/dev', option=FileOptions.READ_WRITE)
-        self.bind_file('/tmp', option=FileOptions.READ_WRITE)
+
+        # To use with --contain, but removed as it prevented PMI setup on Theta
+        #self.bind_file('/dev', option=FileOptions.READ_WRITE)
+        #self.bind_file('/tmp', option=FileOptions.READ_WRITE)
 
     def run(self, command, redirect_stdout=False):
         self.add_ld_library_path("/.singularity.d/libs")
@@ -42,7 +45,7 @@ class SingularityContainer(Container):
         self.format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
         container_cmd = [
-            self.executable, 'exec', '--contain', *self._working_dir(),
+            self.executable, 'exec', *self._working_dir(),
             *nvidia_flag, self.image, *command
         ]
 
