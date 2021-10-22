@@ -5,6 +5,10 @@ v1.0rc5
 - Singularity features:
     - Prevented system-specific rules from altering execution via --contain
     - Ensured the PWD is conserved in containers (fixed #30)
+- Added ALPS support
+    - aprun launcher now supported
+    - e4s-cl package resolving now bypasses ALPS quarantine
+- Added barebones module awareness
 
 
 v1.0rc4 (Sep 23 2021)
