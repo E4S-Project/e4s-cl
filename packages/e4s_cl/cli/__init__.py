@@ -20,12 +20,8 @@ USAGE_FORMAT = "console"
 """Specify usage formatting:
     console: colorized and formatted to fit current console dimensions.
     markdown: plain text markdown. 
-    path: list available commands from the current cli.
+    completion: list available commands from the current cli.
 """
-
-# Override if asked to print completion info
-if os.environ.get('E4S_COMPLETION') is not None:
-    USAGE_FORMAT = "path"
 
 _COMMANDS = {SCRIPT_COMMAND: {}}
 

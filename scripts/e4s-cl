@@ -1,5 +1,21 @@
 #!/bin/env python3
 
+from pathlib import Path
+
+
+def e4s_cl_home(candidates: list[Path]):
+    """
+    If the script has been relocated due to a scheduler (ALPS), try to find
+    the install directory from paths of interest
+    """
+    for path in candidates:
+        if Path(path, 'packages', 'e4s_cl').exists():
+            return path
+
+    print("The e4s_cl package could not be found.", file=sys.stderr)
+    sys.exit(1)
+
+
 if __name__ == '__main__':
     import os
     import sys
@@ -8,11 +24,13 @@ if __name__ == '__main__':
     if getattr(sys, 'frozen', False):
         __file__ = sys.executable
 
-    here = os.path.realpath(os.path.dirname(__file__))
-    os.environ['__E4S_CL_HOME__'] = os.path.join(here, '..')
-    packages = os.path.join(here, '..', 'packages')
-    sys.path.insert(0, packages)
+    # Look for the home in the parent of the script, then the parent of the interpreter
+    candidates = [Path(__file__).parents[1], Path(sys.executable).parents[2]]
+
+    install_dir = e4s_cl_home(candidates)
+    os.environ['__E4S_CL_HOME__'] = install_dir.as_posix()
+    packages = install_dir / 'packages'
+    sys.path.insert(0, packages.as_posix())
 
     from e4s_cl.cli.commands.__main__ import COMMAND as cli_main_cmd
     sys.exit(cli_main_cmd.main(sys.argv[1:]))
-

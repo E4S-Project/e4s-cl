@@ -38,16 +38,24 @@ Using a library installed on the system in :code:`/packages`:
 
     e4s-cl init --mpi /packages/mpich --profile mpich
 
+Using an installation of WI4MPI:
+
+.. code::
+
+    e4s-cl init --wi4mpi /packages/wi4mpi --wi4mpi_options "-T openmpi -F mpich"
+
 """
 
+import re
 import os
 import json
 import tempfile
 import subprocess
-import pathlib
+from pathlib import Path
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
+from e4s_cl.cf.detect_name import try_rename
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
@@ -58,14 +66,30 @@ LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
-def compile_sample(compiler, destination):
-    command = "%s -o %s -lm -x c -" % (compiler, destination)
+def compile_sample(compiler) -> Path:
+    # Create a file to compile a sample program in
+    with tempfile.NamedTemporaryFile('w+', delete=False) as binary:
+        with tempfile.NamedTemporaryFile('w+', suffix='.c') as program:
+            program.write(PROGRAM)
+            program.seek(0)
 
-    with tempfile.TemporaryFile('w+') as std_in:
-        std_in.write(PROGRAM)
-        std_in.seek(0)
+            command = "%(compiler)s -o %(output)s -lm %(code)s" % {
+                'compiler': compiler,
+                'output': binary.name,
+                'code': program.name,
+            }
 
-        subprocess.Popen(command.split(), stdin=std_in).wait()
+            LOGGER.debug("Compiling with: '%s'" % command)
+            compilation_status = subprocess.Popen(command.split()).wait()
+
+    # Check for a non-zero return code
+    if compilation_status:
+        LOGGER.error(
+            "Failed to compile sample MPI program with the following compiler: %s",
+            compiler)
+        return None
+
+    return binary.name
 
 
 def check_mpirun(executable):
@@ -103,6 +127,12 @@ def create_profile(args, metadata):
     if getattr(args, 'source', None):
         data['source'] = args.source
 
+    if getattr(args, 'wi4mpi', None):
+        data['wi4mpi'] = args.wi4mpi
+
+    if getattr(args, 'wi4mpi_options', None):
+        data['wi4mpi_options'] = args.wi4mpi_options
+
     profile_name = getattr(args, 'profile_name',
                            "default-%s" % util.hash256(json.dumps(metadata)))
 
@@ -111,7 +141,6 @@ def create_profile(args, metadata):
 
     data["name"] = profile_name
     profile = controller.create(data)
-
     controller.select(profile)
 
 
@@ -165,41 +194,77 @@ class InitCommand(AbstractCommand):
             default=arguments.SUPPRESS,
             dest='profile_name')
 
+        parser.add_argument('--wi4mpi',
+                            help="Path to the install directory of WI4MPI",
+                            metavar='path',
+                            default=arguments.SUPPRESS,
+                            dest='wi4mpi')
+
+        parser.add_argument('--wi4mpi_options',
+                            help="Options to use with WI4MPI",
+                            metavar='opts',
+                            default=arguments.SUPPRESS,
+                            dest='wi4mpi_options')
+
         return parser
 
     def main(self, argv):
         args = self._parse_args(argv)
 
+        # Use the environment compiler per default
         compiler = util.which('mpicc')
         launcher = util.which('mpirun')
-        with tempfile.NamedTemporaryFile('w+', delete=False) as program_file:
-            file_name = program_file.name
 
+        # If a library is specified, get the executables
         if getattr(args, 'mpi', None):
-            mpicc = pathlib.Path(args.mpi) / "bin" / "mpicc"
+            mpicc = Path(args.mpi) / "bin" / "mpicc"
             if mpicc.exists():
                 compiler = mpicc.as_posix()
-            mpirun = pathlib.Path(args.mpi) / "bin" / "mpirun"
+
+            mpirun = Path(args.mpi) / "bin" / "mpirun"
             if mpirun.exists():
                 launcher = mpirun.as_posix()
 
-        if not (compiler and launcher):
+        # Use the launcher passed as an argument in priority
+        launcher = util.which(getattr(args, 'launcher', launcher))
+
+        if getattr(args, 'wi4mpi', None):
+            compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc').as_posix()
+            launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun').as_posix()
+
+        if not compiler:
             LOGGER.error(
-                "No MPI detected in PATH. Please load a module or use `--mpi`"
-                + " to specify the MPI installation to use.")
+                "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
+            )
             return EXIT_FAILURE
 
-        if getattr(args, 'launcher', None):
-            launcher = util.which(args.launcher)
-
-        LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
-                     launcher)
-        check_mpirun(launcher)
-        compile_sample(compiler, file_name)
+        if not launcher:
+            LOGGER.error(
+                "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
+            )
+            return EXIT_FAILURE
 
         create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
-        detect_command.main([launcher, file_name])
+        if not getattr(args, 'wi4mpi', None):
+            # If WI4MPI is not in use, compile and analyze a program
+            LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
+                         launcher)
+            check_mpirun(launcher)
+
+            # Compile a sample program using the compiler above
+            if binary := compile_sample(compiler):
+                # Run the program using the detect command and get a file list
+                returncode = detect_command.main([launcher, binary])
+
+                # Delete the temporary file
+                os.unlink(binary)
+
+                if returncode != EXIT_SUCCESS:
+                    LOGGER.error("Failed detecting libraries !")
+                    return EXIT_FAILURE
+
+                try_rename(Profile.selected().get('name', ''))
 
         return EXIT_SUCCESS
 

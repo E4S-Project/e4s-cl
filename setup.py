@@ -6,10 +6,13 @@ from setuptools.command.install import install as InstallCommand
 PACKAGE_TOPDIR = os.path.realpath(os.path.abspath(os.path.dirname(__file__)))
 sys.path.insert(0, os.path.join(PACKAGE_TOPDIR, 'packages'))
 
+METADATA_MODULE = """\"\"\"File generated during install\"\"\"
+__version__ = '%(version)s'
+__commit__ = '%(commit)s'
+"""
+
 
 def _version():
-    docstring = """\"\"\"Module generated at install-time\"\"\"
-    """
     version_file = os.path.join(PACKAGE_TOPDIR, "VERSION")
     commit_file = os.path.join(PACKAGE_TOPDIR, "COMMIT")
 
@@ -28,11 +31,15 @@ def _version():
     else:
         commit = "Unknown"
 
-    with open(os.path.join(PACKAGE_TOPDIR, 'packages', 'e4s_cl', 'version.py'),
-              'w') as embedded_version_file:
+    metadata_destination = os.path.join(PACKAGE_TOPDIR, 'packages', 'e4s_cl',
+                                        'version.py')
+
+    with open(metadata_destination, 'w') as embedded_version_file:
         embedded_version_file.write(
-            "%s\n__version__ = '%s'\n__commit__ = '%s'\n" %
-            (docstring, version.strip(), commit.strip()))
+            METADATA_MODULE % {
+                'version': version.strip(),
+                'commit': commit.strip(),
+            })
 
     return version.strip()
 
@@ -82,7 +89,7 @@ CLASSIFIERS = [
     # Specify the Python versions you support here. In particular, ensure
     # that you indicate whether you support Python 2, Python 3 or both.
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.9',
 ]
 
 

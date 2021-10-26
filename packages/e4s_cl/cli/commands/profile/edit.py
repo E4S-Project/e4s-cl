@@ -83,6 +83,17 @@ class ProfileEditCommand(EditCommand):
                             nargs='+',
                             type=arguments.posix_path,
                             default=arguments.SUPPRESS)
+
+        parser.add_argument('--wi4mpi',
+                            help="Root of the WI4MPI installation to use",
+                            metavar='<path>',
+                            type=arguments.posix_path,
+                            default=arguments.SUPPRESS)
+
+        parser.add_argument('--wi4mpi_options',
+                            help="Options to use with WI4MPI",
+                            metavar='<args>',
+                            default=arguments.SUPPRESS)
         return parser
 
     def _parse_add_args(self, args, prof):
@@ -122,10 +133,15 @@ class ProfileEditCommand(EditCommand):
         profile_name = profile.get('name')
 
         updates = dict(profile)
-        updates['name'] = getattr(args, 'new_name', profile_name)
-        updates['backend'] = getattr(args, 'backend', profile.get('backend'))
-        updates['image'] = getattr(args, 'image', profile.get('image'))
-        updates['source'] = getattr(args, 'source', profile.get('source'))
+
+        fields = {
+            'name', 'backend', 'image', 'source', 'wi4mpi', 'wi4mpi_options'
+        }
+        special_fields = {'name': 'new_name'}
+
+        for field in fields:
+            field_arg = special_fields.get(field, field)
+            updates[field] = getattr(args, field_arg, profile.get(field))
 
         for data in self._parse_add_args(args, updates):
             self.logger.info("Added %s to profile configuration '%s'.", data,

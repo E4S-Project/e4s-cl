@@ -33,4 +33,20 @@ argument will be launched using the desired library.
 
 .. code::
 
-   e4s-cl launch mpirun -np 4 -hosts node1,node2 ./executable
+   $ e4s-cl launch mpirun -np 4 -hosts node1,node2 /path/to/executable
+
+Machine-specific execution
+------------------------------
+
+Cori at NERSC with Shifter
+===========================
+
+Shifter container backend lacks the file import capabilities Docker and \
+Singularity allow, but integrates modules to import MPI libraries.
+To use these modules alongside of e4s-cl's, creating a profile with no files \
+nor libraries is encouraged.
+
+.. code::
+   $ e4s-cl profile create cori --backend shifter --image <Your image>
+   $ e4s-cl profile select cori
+   $ e4s-cl srun -n X /path/to/executable

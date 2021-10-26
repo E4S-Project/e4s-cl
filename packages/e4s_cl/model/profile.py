@@ -20,6 +20,14 @@ def attributes():
             'unique': True,
             'description': 'profile name',
         },
+        "wi4mpi": {
+            'type': 'boolean',
+            'description': 'root of the wi4mpi to use, if any',
+        },
+        "wi4mpi_options": {
+            'type': 'string',
+            'description': 'options to use with wi4mpi, if any',
+        },
         'backend': {
             'type': 'string',
             'description': 'container backend technology',
@@ -29,11 +37,11 @@ def attributes():
             'description': 'image identifier',
         },
         'files': {
-            'type': 'string',
+            'type': 'list',
             'description': 'files to bind in the container',
         },
         'libraries': {
-            'type': 'string',
+            'type': 'list',
             'description': 'libraries to bind in the container',
         },
         'source': {
@@ -47,8 +55,8 @@ def homogenize_files(data):
     if not isinstance(data, dict):
         return
 
-    files = data.get('files', [])
-    data['files'] = list({pathlib.Path(f).as_posix() for f in files})
+    if files := data.get('files', []):
+        data['files'] = list({pathlib.Path(f).as_posix() for f in files})
 
 
 class ProfileController(Controller):

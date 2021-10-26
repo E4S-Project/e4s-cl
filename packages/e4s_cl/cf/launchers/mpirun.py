@@ -155,6 +155,38 @@ _hydra_options = {
     "-verbose": 0,
 }
 
-PARSER = Parser({**_global, **_intel_options, **_hydra_options})
+_wi4mpi_options = {
+    # TODO decide if -E | -extra | --extra is supported
+    "--from": 1,
+    "--help": 0,
+    "--hostfile": 1,
+    "--pm": 1,
+    "--to": 1,
+    "--verbose": 0,
+    "--version": 0,
+    "-F": 1,
+    "-T": 1,
+    "-V": 0,
+    "-f": 1,
+    "-from": 1,
+    "-h": 0,
+    "-help": 0,
+    "-hostfile": 1,
+    "-n": 1,
+    "-np": 1,
+    "-p": 1,
+    "-pm": 1,
+    "-to": 1,
+    "-v": 0,
+    "-verbose": 0,
+    "-version": 0,
+}
+
+PARSER = Parser({
+    **_global,
+    **_intel_options,
+    **_hydra_options,
+    **_wi4mpi_options
+})
 # Uncomment when py39 comes around
 # PARSER = Parser(_global | _intel_options | _hydra_options)

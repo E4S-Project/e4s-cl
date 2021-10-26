@@ -8,13 +8,13 @@ Pass option **-s** to print only the names and disable formatting.
     $ e4s-cl profile list s
     == Profile Configurations (/home/user/.local/e4s_cl/user.json) ========
 
-    +----------+--------+---------+-------+-----------+-------+
-    | Selected |  Name  | Backend | Image | Libraries | Files |
-    +==========+========+=========+=======+===========+=======+
-    |          | single |    None |  None |     1     |   0   |
-    +----------+--------+---------+-------+-----------+-------+
-    |          | sparse |    None |  None |     7     |  71   |
-    +----------+--------+---------+-------+-----------+-------+
+    +----------+--------+---------+-------+-----------+-------+--------+
+    | Selected |  Name  | Backend | Image | Libraries | Files | WI4MPI |
+    +==========+========+=========+=======+===========+=======+========+
+    |          | single |    None |  None |     1     |   0   |   Yes  |
+    +----------+--------+---------+-------+-----------+-------+--------+
+    |          | sparse |    None |  None |     7     |  71   |   No   |
+    +----------+--------+---------+-------+-----------+-------+--------+
 
 """
 
@@ -34,6 +34,14 @@ class ProfileListCommand(ListCommand):
         def _selected(attr):
             return lambda x: '*' if Profile.selected().get(attr) == x[
                 attr] else ' '
+
+        def _wi4mpi():
+            def __defined(x):
+                if x.get('wi4mpi') and x.get('wi4mpi_options'):
+                    return "Yes"
+                return "No"
+
+            return __defined
 
         dashboard_columns = [{
             'header': 'Selected',
@@ -56,6 +64,9 @@ class ProfileListCommand(ListCommand):
         }, {
             'header': 'Files',
             'function': _count('files')
+        }, {
+            'header': 'WI4MPI',
+            'function': _wi4mpi()
         }]
 
         super().__init__(Profile,

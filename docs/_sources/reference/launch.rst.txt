@@ -80,3 +80,9 @@ A launch command using a local :code:`mpich` library without profile:
         --libraries /home/user/spack/opt/spack/linux-arch-skylake_avx512/gcc-10.2.0/mpich-3.4.1-yjx3whq2g2mrzrws4xhoxyjt7hl6wvb5/lib/libmpi.so.12 \
         --files /usr/share/hwdata/pci.ids \
             mpirun -np 2 ./ping-pong
+
+A implicit launch command (parameters implicitly passed via selected profile):
+
+.. code::
+
+   e4s-cl mpirun -np 2 ./ping-pong

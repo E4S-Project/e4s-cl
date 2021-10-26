@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="profile - Edit and manage profiles" href="profiles/index.html" /><link rel="prev" title="init - Initialize the tool" href="init.html" />
 
-    <meta name="generator" content="sphinx-4.0.2, furo 2021.06.24.beta37"/>
+    <meta name="generator" content="sphinx-4.2.0, furo 2021.06.24.beta37"/>
         <title>launch - Run MPI commands - E4S Container Launcher v1.0rc3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css" />
@@ -225,6 +225,10 @@ The fields of the target <a class="reference internal" href="profiles/index.html
 <p class="admonition-title">Using a <a class="reference internal" href="profiles/select.html#profile-select"><span class="std std-ref">selected profile</span></a></p>
 <p>When a <a class="reference internal" href="profiles/index.html#profile"><span class="std std-ref">profile</span></a> is selected, it will be used if no <code class="code docutils literal notranslate"><span class="pre">--profile</span></code> option is passed. Command line options have precedence over profiles’ fields.</p>
 </div>
+<div class="admonition-implicit-sub-command admonition">
+<p class="admonition-title">Implicit sub-command</p>
+<p>When <strong>e4s-cl</strong> is called without a proper sub-command (<code class="code docutils literal notranslate"><span class="pre">launch</span></code> or <code class="code docutils literal notranslate"><span class="pre">profile</span></code>), the program will implicitly use the <code class="code docutils literal notranslate"><span class="pre">launch</span></code> sub-command. This requires a complete profile to be selected as no launch arguments can be passed.</p>
+</div>
 </section>
 <section id="examples">
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
@@ -255,6 +259,10 @@ The fields of the target <a class="reference internal" href="profiles/index.html
      --libraries /home/user/spack/opt/spack/linux-arch-skylake_avx512/gcc-10.2.0/mpich-3.4.1-yjx3whq2g2mrzrws4xhoxyjt7hl6wvb5/lib/libmpi.so.12 <span class="se">\</span>
      --files /usr/share/hwdata/pci.ids <span class="se">\</span>
          mpirun -np <span class="m">2</span> ./ping-pong
+</pre></div>
+</div>
+<p>A implicit launch command (parameters implicitly passed via selected profile):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>e4s-cl mpirun -np <span class="m">2</span> ./ping-pong
 </pre></div>
 </div>
 </section>

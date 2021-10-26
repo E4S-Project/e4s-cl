@@ -140,19 +140,6 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
         formatter.add_text(self.epilog)
         return formatter.format_help()
 
-    def _format_help_path(self):
-        """Format completion list"""
-        formatter = self._get_formatter()
-        formatter.start_section('')
-        args = []
-        for action_group in self._sorted_groups():
-            args.extend(
-                sorted(action_group._group_actions,
-                       key=attrgetter('option_strings')))
-        formatter.add_arguments(args)
-        formatter.end_section()
-        return formatter.format_help()
-
     def format_help(self):
         try:
             func = getattr(self, '_format_help_' + USAGE_FORMAT.lower())
@@ -492,31 +479,6 @@ class MarkdownHelpFormatter(HelpFormatter):
         return self._join_parts(parts)
 
 
-class PathHelpFormatter(HelpFormatter):
-    """Formatter generating a list of possible completion targets"""
-    class _Section(object):
-        def __init__(self, formatter, parent, heading=None):
-            self.formatter = formatter
-            self.parent = parent
-            self.heading = heading
-            self.items = []
-
-        def format_help(self):
-            return flatten([func(*args) for func, args in self.items])
-
-    def add_text(self, text):
-        pass
-
-    def add_usage(self, usage, actions, groups, prefix=None):
-        pass
-
-    def format_help(self):
-        return ' '.join(self._root_section.format_help()) + '\n'
-
-    def _format_action(self, action):
-        return filter(lambda x: not re.match(r'__.*', x), action.choices or [])
-
-
 class ParseBooleanAction(argparse.Action):
     """Argument parser action for boolean values.
     
@@ -684,7 +646,7 @@ def get_model_identifier(model,
     """
     parser = get_parser(prog, usage, description, epilog)
 
-    model_name = model.name
+    model_name = model.name.lower()
     key_attr = model.key_attribute
 
     _default = SUPPRESS
@@ -692,12 +654,13 @@ def get_model_identifier(model,
         _default = model.selected().get(key_attr, UNSELECTED)
 
     parser.add_argument(
-        model_name.lower(),
+        model_name,
         nargs='?',
         type=defined_object(model, key_attr),
-        help="The target profile. If omitted, defaults to the selected profile",
+        help="The target %s. If omitted, defaults to the selected %s" %
+        (model_name, model_name),
         default=_default,
-        metavar="%s_%s" % (model_name.lower(), key_attr))
+        metavar="%s_%s" % (model_name, key_attr))
 
     return parser
 
@@ -779,7 +742,8 @@ def defined_object(model, field):
             raise argparse.ArgumentTypeError("no %s selected nor specified" %
                                              model.name)
 
-        objects = model.controller().match(field, regex=("^%s.*" % string))
+        objects = model.controller().match(field,
+                                           regex=("^%s.*" % re.escape(string)))
         exact_matches = list(filter(lambda x: x.get(field) == string, objects))
 
         if len(objects) != 1 and not len(exact_matches) == 1:
