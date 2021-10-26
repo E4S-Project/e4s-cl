@@ -26,7 +26,7 @@ class LinkingError(Error):
 
 
 @lru_cache
-def host_libraries():
+def host_libraries(regen_cache=False):
     """
     Output a dict containing all the host's linker cache in x86_64 format
     under the format {soname: path}
@@ -40,14 +40,19 @@ def host_libraries():
         LOGGER.error("ldconfig executable not found")
         return {}
 
-    with NamedTemporaryFile('r+') as custom:
-        generation, _ = create_subprocess_exp(
-            [ldconfig_path, '-C', custom.name], redirect_stdout=True)
+    custom = NamedTemporaryFile('r+')
+    cache_args = []
+    generation = False
 
-        parsing, output = create_subprocess_exp(
-            [ldconfig_path, '-C', custom.name, '-p'],
-            log=False,
-            redirect_stdout=True)
+    if regen_cache:
+        cache_args = ['-C', custom.name]
+        generation, _ = create_subprocess_exp(
+            [ldconfig_path, *cache_args], redirect_stdout=True)
+
+    parsing, output = create_subprocess_exp(
+        [ldconfig_path, *cache_args, '-p'],
+        log=False,
+        redirect_stdout=True)
 
     if generation or parsing:
         LOGGER.error("Error getting libraries using %s", ldconfig_path)
