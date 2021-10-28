@@ -198,7 +198,8 @@ class ExecuteCommand(AbstractCommand):
 
         # The following is a set of all libraries required. It
         # is used in the container to check version mismatches
-        if libset := LibrarySet.create_from(required_libraries, member=HostLibrary):
+        if libset := LibrarySet.create_from(required_libraries,
+                                            member=HostLibrary):
             # Analyze the container to get library information from the environment
             # it offers, using the entrypoint and the above libraries
             container.get_data(params, library_set=libset)

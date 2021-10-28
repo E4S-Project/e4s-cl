@@ -155,7 +155,8 @@ def version_info(path: Path):
             return None
 
     if not (handle := _extract_vinfo(path)):
-        LOGGER.debug("Extracting MPI_Get_library_version from %s failed", path.as_posix())
+        LOGGER.debug("Extracting MPI_Get_library_version from %s failed",
+                     path.as_posix())
         return None
 
     handle(version_buffer, ctypes.byref(length))
@@ -174,7 +175,7 @@ def detect_name(path_list):
     length = ctypes.c_int()
 
     def _check_spectrum(vendors_list):
-        return set(['Spectrum MPI','Open MPI']).issubset(set(vendors_list)) 
+        return set(['Spectrum MPI', 'Open MPI']).issubset(set(vendors_list))
 
     # Container for the results
     version_data = set()  # set((str, str))
@@ -189,7 +190,7 @@ def detect_name(path_list):
 
             if len(filtered_buffer) != 1:
                 if _check_spectrum(filtered_buffer):
-                    filtered_buffer=['Spectrum MPI']
+                    filtered_buffer = ['Spectrum MPI']
                 else:
                     # If we found multiple vendors, without it being Spectrum MPI and OpenMPI => error
                     continue

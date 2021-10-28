@@ -42,24 +42,32 @@ class ShifterContainer(Container):
 
         for source, destination, options in self.bound:
             if destination.as_posix().startswith(CONTAINER_DIR):
-                rebased = destination.as_posix()[len(CONTAINER_DIR)+1:]
+                rebased = destination.as_posix()[len(CONTAINER_DIR) + 1:]
                 temporary = Path(self.__shifter_e4s_dir.name, rebased)
 
-                LOGGER.debug("Shifter: Creating %s for %s in %s" % (temporary.as_posix(), source.as_posix(), destination.as_posix()))
+                LOGGER.debug("Shifter: Creating %s for %s in %s" %
+                             (temporary.as_posix(), source.as_posix(),
+                              destination.as_posix()))
                 os.makedirs(temporary.parent, exist_ok=True)
-                subprocess.Popen(['cp', '-r', source.as_posix(), temporary.as_posix()]).wait()
+                subprocess.Popen(
+                    ['cp', '-r',
+                     source.as_posix(),
+                     temporary.as_posix()]).wait()
 
             elif source.is_dir():
                 if destination.as_posix().startswith('/etc'):
-                    LOGGER.error("Shifter: Backend does not support binding to '/etc'")
+                    LOGGER.error(
+                        "Shifter: Backend does not support binding to '/etc'")
                     continue
 
                 volumes.append((source.as_posix(), destination.as_posix()))
 
             else:
-                LOGGER.warning("Shifter: Backend does not support file binding. Performance may be impacted.")
+                LOGGER.warning(
+                    "Shifter: Backend does not support file binding. Performance may be impacted."
+                )
 
-        return [ '--volume=%s:%s' % t for t in volumes ]
+        return ['--volume=%s:%s' % t for t in volumes]
 
     def run(self, command, redirect_stdout=False):
         env_list = []
@@ -76,8 +84,7 @@ class ShifterContainer(Container):
 
         container_cmd = [
             self.executable,
-            "--image=%s" % self.image, *env_list, *volumes
-            , *command
+            "--image=%s" % self.image, *env_list, *volumes, *command
         ]
         return create_subprocess_exp(container_cmd,
                                      env=self.env,
