@@ -56,6 +56,7 @@ from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
 from e4s_cl.cf.detect_name import try_rename
+from e4s_cl.cf.detect_binary import select_binary
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
@@ -64,6 +65,7 @@ from e4s_cl.model.profile import Profile
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
+
 
 
 def compile_sample(compiler) -> Path:
@@ -144,6 +146,7 @@ def create_profile(args, metadata):
     controller.select(profile)
 
 
+
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
     def _construct_parser(self):
@@ -208,12 +211,18 @@ class InitCommand(AbstractCommand):
 
         return parser
 
+
     def main(self, argv):
         args = self._parse_args(argv)
 
-        # Use the environment compiler per default
-        compiler = util.which('mpicc')
-        launcher = util.which('mpirun')
+        binary = select_binary()
+
+        launcher = "test"
+        compiler = "test"
+
+    #    # Use the environment compiler per default
+    #    compiler = util.which('mpicc')
+    #    launcher = util.which('mpirun')
 
         # If a library is specified, get the executables
         if getattr(args, 'mpi', None):
@@ -228,21 +237,21 @@ class InitCommand(AbstractCommand):
         # Use the launcher passed as an argument in priority
         launcher = util.which(getattr(args, 'launcher', launcher))
 
-        if getattr(args, 'wi4mpi', None):
-            compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc').as_posix()
-            launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun').as_posix()
+       # if getattr(args, 'wi4mpi', None):
+       #     compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc').as_posix()
+       #     launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun').as_posix()
 
-        if not compiler:
-            LOGGER.error(
-                "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
-            )
-            return EXIT_FAILURE
+       # if not compiler:
+       #     LOGGER.error(
+       #         "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
+       #     )
+       #     return EXIT_FAILURE
 
-        if not launcher:
-            LOGGER.error(
-                "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
-            )
-            return EXIT_FAILURE
+       # if not launcher:
+       #     LOGGER.error(
+       #         "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
+       #     )
+       #     return EXIT_FAILURE
 
         create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
@@ -253,12 +262,13 @@ class InitCommand(AbstractCommand):
             check_mpirun(launcher)
 
             # Compile a sample program using the compiler above
-            if binary := compile_sample(compiler):
+            #if binary := compile_sample(compiler):
+            if binary:
                 # Run the program using the detect command and get a file list
                 returncode = detect_command.main([launcher, binary])
 
                 # Delete the temporary file
-                os.unlink(binary)
+                #os.unlink(binary)
 
                 if returncode != EXIT_SUCCESS:
                     LOGGER.error("Failed detecting libraries !")

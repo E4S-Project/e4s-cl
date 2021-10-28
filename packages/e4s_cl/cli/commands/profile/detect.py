@@ -195,6 +195,8 @@ class ProfileDetectCommand(AbstractCliView):
 
         data = {'libraries': libs, 'files': files}
         try:
+            print(identifier)
+            print(data)
             controller.update(data, identifier)
         except Exception as err:  # TODO same as above
             LOGGER.debug(str(err))
