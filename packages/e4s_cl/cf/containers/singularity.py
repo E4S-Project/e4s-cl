@@ -59,13 +59,12 @@ class SingularityContainer(Container):
         """
         def _format():
             for source, dest, options_val in self.bound:
-                yield "%s:%s:%s" % (source, dest, OPTION_STRINGS[options_val])
+                yield f"{source}:{dest}:{OPTION_STRINGS[options_val]}"
 
         self.env.update({"SINGULARITY_BIND": ','.join(_format())})
 
     def bind_env_var(self, key, value):
-        new_key = "SINGULARITYENV_{}".format(key)
-        self.env.update({new_key: value})
+        self.env.update({f"SINGULARITYENV_{key}": value})
 
     def _has_nvidia(self):
         if 'nvidia' not in " ".join(host_libraries().keys()):

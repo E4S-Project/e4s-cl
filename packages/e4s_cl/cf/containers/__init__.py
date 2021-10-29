@@ -46,7 +46,7 @@ class BackendError(ConfigurationError):
     """Error raised when the requested container tech is not available"""
     def __init__(self, backend_name):
         self.offending = backend_name
-        self._message = "An error has been encountered setting up the container technology backend %s." % backend_name
+        self._message = f"An error has been encountered setting up the container technology backend {backend_name}."
         super().__init__(self._message)
 
     def handle(self, etype, value, tb):
@@ -58,7 +58,7 @@ class BackendNotAvailableError(BackendError):
     """Error raised when the requested backend is not found on the system"""
     def __init__(self, backend_name):
         super().__init__(backend_name)
-        self._message = "Backend %s not found. Is the module loaded ?" % self.offending
+        self._message = f"Backend {self.offending} not found. Is the module loaded ?"
 
 
 class BackendUnsupported(BackendError):
@@ -66,16 +66,16 @@ class BackendUnsupported(BackendError):
     def __init__(self, backend_name):
         super().__init__(backend_name)
         pretty = 's are' if len(EXPOSED_BACKENDS) > 1 else ' is'
-        self._message = """Backend %s not supported at this time. The available backend%s: %s.
-Please create a GitHub issue if support is required.""" % (
-            self.offending, pretty, ", ".join(EXPOSED_BACKENDS))
+        self._message = f"""Backend {self.offending} not supported at this time.
+The available backend{pretty}: {", ".join(EXPOSED_BACKENDS)}.
+Please create a GitHub issue if support is required."""
 
 
 class AnalysisError(ConfigurationError):
     """Generic error for container analysis failure"""
     def __init__(self, returncode):
         self.code = returncode
-        super().__init__("Container analysis failed ! (%d)" % self.code)
+        super().__init__(f"Container analysis failed ! ({self.code})")
 
     def handle(self, etype, value, tb):
         LOGGER.critical("Container analysis failed ! (%d)", self.code)
@@ -162,7 +162,7 @@ class Container:
         # User-set parameters
         # Files to bind: dict(guest_path -> (host_path, options))
         # dict[Path, Container._bound_file]
-        self.__bound_files = dict()
+        self.__bound_files = {}
         self.env = {}  # Environment
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
@@ -244,8 +244,8 @@ class Container:
             visited = {path, path.resolve()}
             deps = set()
 
-            for i in range(0, len(path.parts)):
-                if path.parts[i] == '..':
+            for i, part in enumerate(path.parts):
+                if part == '..':
                     visited.add(Path(*path.parts[:i]).resolve())
 
             for element in visited:
@@ -310,24 +310,24 @@ class Container:
         It should return a tuple the process' returncode and output
         """
         raise NotImplementedError(
-            "`run` method not implemented for container module %s" %
-            self.__class__.__name__)
+            f"`run` method not implemented for container module {self.__class__.__name__}"
+        )
 
     def __str__(self):
         out = []
-        out.append("%s object:" % self.__class__.__name__)
+        out.append(f"{self.__class__.__name__} object:")
         if self.image:
-            out.append("- image: %s" % self.image)
+            out.append(f"- image: {self.image}")
         out.append("- bound:\n%s" %
                    "\n".join(["\t%s -> %s (%d)" % v for v in self.bound]))
         if self.env:
-            out.append("- env: %s" % json.dumps(self.env, indent=2))
+            out.append(f"- env: { json.dumps(self.env, indent=2)}")
         if self.ld_preload:
-            out.append("- LD_PRELOAD: %s" %
-                       json.dumps(self.ld_preload, indent=2))
+            out.append(
+                f"- LD_PRELOAD: {json.dumps(self.ld_preload, indent=2)}")
         if self.ld_lib_path:
-            out.append("- LD_LIBRARY_PATH: %s" %
-                       json.dumps(self.ld_lib_path, indent=2))
+            out.append(
+                f"- LD_LIBRARY_PATH: {json.dumps(self.ld_lib_path, indent=2)}")
         return '\n'.join(out)
 
 

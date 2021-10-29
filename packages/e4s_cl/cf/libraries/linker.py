@@ -97,8 +97,8 @@ def resolve(soname, rpath=None, runpath=None):
     """
 
     found = None
-    rpath = rpath or list()
-    runpath = runpath or list()
+    rpath = rpath or []
+    runpath = runpath or []
 
     def _valid(path):
         return os.path.exists(path) and os.path.isdir(path)
