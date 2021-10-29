@@ -1,6 +1,9 @@
 import re
+from e4s_cl import logger
 from functools import lru_cache
 from e4s_cl.util import create_subprocess_exp
+
+LOGGER = logger.get_logger(__name__)
 
 
 class Module:

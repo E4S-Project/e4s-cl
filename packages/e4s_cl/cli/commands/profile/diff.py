@@ -51,7 +51,7 @@ class DiffCommand(AbstractCliView):
         rhs = getattr(args, self.model_name + '_rhs')
 
         if not (lhs and rhs):
-            raise self.parser.error("Missing profile argument")
+            self.parser.error("Missing profile argument")
 
         _order_r = lambda x, y: (list(set(x) - set(y)), '<')
         _order_l = lambda x, y: (list(set(y) - set(x)), '>')
