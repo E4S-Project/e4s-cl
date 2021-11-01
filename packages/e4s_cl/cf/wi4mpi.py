@@ -1,3 +1,7 @@
+"""
+Module housing support for WI4MPI compatibility
+"""
+
 import os
 from pathlib import Path
 from functools import lru_cache
@@ -45,7 +49,6 @@ def __read_cfg(cfg_file: Path):
     except OSError as err:
         LOGGER.debug("Error accessing configuration %s: %s",
                      cfg_file.as_posix(), str(err))
-        pass
 
     return config
 
@@ -79,6 +82,9 @@ def wi4mpi_import(container: Container, install_dir: Path) -> None:
 
 #def wi4mpi_libraries() -> list[Path]:
 def wi4mpi_libraries(install_dir: Path):
+    """
+    Use the environment to output a list of libraries required by wi4mpi
+    """
     config = wi4mpi_config(install_dir)
 
     source = os.environ.get("WI4MPI_FROM", "")
@@ -90,12 +96,12 @@ def wi4mpi_libraries(install_dir: Path):
         return []
 
     wrapper_lib = install_dir.joinpath('libexec', 'wi4mpi',
-                                       "libwi4mpi_%s_%s.so" % (source, target))
+                                       f"libwi4mpi_{source}_{target}.so")
 
     def _get_lib(identifier: str) -> Path:
         config_value = config.get(
-            "%s_DEFAULT_ROOT" % __TRANSLATE.get(identifier), "")
-        root = Path()
+            f"{__TRANSLATE.get(identifier)}_DEFAULT_ROOT", "")
+        root = Path(config_value)
         return root.joinpath('lib', 'libmpi.so')
 
     source_lib = _get_lib(source)
@@ -117,6 +123,9 @@ def wi4mpi_libpath(install_dir: Path):
 
 #def wi4mpi_preload(install_dir: Path = wi4mpi_root()) -> list[str]:
 def wi4mpi_preload(install_dir: Path = wi4mpi_root()):
+    """
+    Returns a list of libraries to preload for WI4MPI
+    """
     to_preload = []
 
     # Pass along the preloaded libraries from wi4mpi
@@ -125,8 +134,7 @@ def wi4mpi_preload(install_dir: Path = wi4mpi_root()):
 
     source = os.environ.get("WI4MPI_FROM", "")
 
-    fakelib_dir = install_dir.joinpath('libexec', 'wi4mpi',
-                                       "fakelib%s" % source)
+    fakelib_dir = install_dir.joinpath('libexec', 'wi4mpi', f"fakelib{source}")
 
     if fakelib_dir.exists():
         for file in fakelib_dir.glob('lib*'):
