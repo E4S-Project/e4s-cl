@@ -205,9 +205,8 @@ def detect_name(path_list):
 
             # Add the result to the above container
             version_data.add((profile_name, version_str))
-
+    
     found_vendors = set(map(lambda x: x[0], version_data))
-
     if len(found_vendors) == 1:
         # If one consistent vendor has been found
         profile_name, version_str = version_data.pop()
@@ -222,11 +221,10 @@ def try_rename(profile_id: str):
         LOGGER.debug("Error renaming profile: profile '%s' not found",
                      profile_id)
         return
-
     detected_libs = LibrarySet.create_from(data.get('libraries', []))
     mpi_libs = list(
         filter(lambda x: re.match(r'libmpi.*so.*', x.soname), detected_libs))
-
+    
     if new_name := detect_name([Path(x.binary_path) for x in mpi_libs]):
         LOGGER.debug("Found library %s", new_name)
         profile_name = _suffix_profile(new_name)

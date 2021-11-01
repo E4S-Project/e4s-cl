@@ -215,10 +215,12 @@ class InitCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        binary = select_binary()
+        paths = select_binary()
 
-        launcher = "test"
-        compiler = "test"
+        binary = paths[0]
+        launcher = paths[1]
+        compiler = paths[2]
+
 
     #    # Use the environment compiler per default
     #    compiler = util.which('mpicc')

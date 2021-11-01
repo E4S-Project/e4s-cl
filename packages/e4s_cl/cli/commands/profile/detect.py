@@ -133,7 +133,7 @@ class ProfileDetectCommand(AbstractCliView):
             # If a launcher is present, act as a launcher
             returncode, json_data = create_subprocess_exp(
                 launcher + [E4S_CL_SCRIPT, "--slave", "profile", "detect"] +
-                program,
+                program + ["4"],
                 redirect_stdout=True)
 
             if not returncode:
@@ -195,8 +195,6 @@ class ProfileDetectCommand(AbstractCliView):
 
         data = {'libraries': libs, 'files': files}
         try:
-            print(identifier)
-            print(data)
             controller.update(data, identifier)
         except Exception as err:  # TODO same as above
             LOGGER.debug(str(err))
