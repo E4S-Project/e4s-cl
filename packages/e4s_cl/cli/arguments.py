@@ -1,3 +1,7 @@
+"""
+Module home of the argument parser methods and helpers
+"""
+
 import sys
 import re
 import copy
@@ -747,7 +751,8 @@ def defined_object(model, field):
 
         if len(objects) != 1 and not len(exact_matches) == 1:
             raise argparse.ArgumentTypeError(
-                f"Pattern '{string}' does not identify a single {model.name.lower()}: {len(objects)} {model.name.lower()}s match"
+                f"Pattern '{string}' does not identify a single {model.name.lower()}: \
+                        {len(objects)} {model.name.lower()}s match"
             )
 
         if exact_matches:

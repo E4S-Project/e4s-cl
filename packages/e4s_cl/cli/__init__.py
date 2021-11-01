@@ -37,10 +37,10 @@ class AmbiguousCommandError(ConfigurationError):
 
     def __init__(self, value, matches, *hints):
         parts = [
-            "Did you mean `%s %s`?" % (SCRIPT_COMMAND, match)
+            f"Did you mean `{SCRIPT_COMMAND} {match}`?"
             for match in matches
         ]
-        parts.append("Try `%s --help`" % SCRIPT_COMMAND)
+        parts.append(f"Try `{SCRIPT_COMMAND} --help`")
         super().__init__(value, *hints + tuple(parts))
 
 
@@ -172,11 +172,10 @@ def commands_description(package_name=COMMANDS_PACKAGE_NAME):
         group = command_obj.group
 
         if usage_fmt == 'console':
-            line = '  %s%s' % (util.color_text('{:<14}'.format(cmd),
-                                               'green'), descr)
+            command = util.color_text(f'{cmd:<14}', 'green')
+            line = f"  {command}{descr}"
         elif usage_fmt == 'markdown':
-            line = '  %s | %s' % ('{:<28}'.format(cmd), descr)
-
+            line = f"  {cmd:<28} | {descr}"
         else:
             line = ''
 
@@ -192,8 +191,8 @@ def commands_description(package_name=COMMANDS_PACKAGE_NAME):
 
         elif usage_fmt == 'markdown':
             parts.extend([
-                '', ' ', '{:<30}'.format(title) + ' | Description',
-                '%s:| %s' % ('-' * 30, '-' * len('Description'))
+                '', ' ', f'{title:<30}' + ' | Description',
+                f"{'-' * 30}:| {'-' * len('Description')}"
             ])
 
         parts.extend(members)
@@ -221,7 +220,7 @@ def get_all_commands(package_name=COMMANDS_PACKAGE_NAME):
             elif isinstance(mod, ModuleType):
                 all_commands.append(mod.__name__)
             else:
-                raise InternalError("%s is an invalid module." % mod)
+                raise InternalError(f"{mod} is an invalid module.")
     return all_commands
 
 
@@ -268,7 +267,7 @@ def find_command(cmd):
         LOGGER.debug('Resolved ambiguous command %r to %r', cmd, resolved)
         return find_command(resolved)
     except AttributeError as a_err:
-        raise InternalError("'COMMAND' undefined in %r" % cmd) from a_err
+        raise InternalError(f"'COMMAND' undefined in {cmd}") from a_err
 
 
 def _permute(cmd, cmd_args):
