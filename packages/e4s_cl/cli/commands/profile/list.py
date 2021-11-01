@@ -36,8 +36,8 @@ class ProfileListCommand(ListCommand):
                 attr] else ' '
 
         def _wi4mpi():
-            def __defined(x):
-                if x.get('wi4mpi') and x.get('wi4mpi_options'):
+            def __defined(profile):
+                if profile.get('wi4mpi') and profile.get('wi4mpi_options'):
                     return "Yes"
                 return "No"
 

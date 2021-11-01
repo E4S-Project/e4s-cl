@@ -21,7 +21,7 @@ from e4s_cl.cf.containers import EXPOSED_BACKENDS
 class ProfileCreateCommand(CreateCommand):
     """``profile create`` subcommand."""
     def _construct_parser(self):
-        usage = "%s <profile_name>" % self.command
+        usage = f"{self.command} <profile_name>"
         parser = arguments.get_parser_from_model(self.model,
                                                  prog=self.command,
                                                  usage=usage,
@@ -45,7 +45,7 @@ class ProfileCreateCommand(CreateCommand):
         parser.add_argument(
             '--backend',
             help="Container backend for this profile" +
-            " Available backends are: %s" % ", ".join(EXPOSED_BACKENDS),
+            f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
             metavar='technology',
             default=arguments.SUPPRESS,
             dest='backend')

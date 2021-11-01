@@ -22,14 +22,16 @@ from e4s_cl.model.profile import Profile
 
 
 class DiffCommand(AbstractCliView):
+    """
+    Command outlining differences between models
+    """
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt', "Compare %(model_name)ss.")
         super().__init__(*args, **kwargs)
 
     def _construct_parser(self):
         key_attr = self.model.key_attribute
-        usage = ("%s <%s_%s> <other_%s>" %
-                 (self.command, self.model_name, key_attr, key_attr))
+        usage = (f"{self.command} <{self.model_name}_{key_attr}> <other_{key_attr}>")
         parser = arguments.get_model_identifier(self.model,
                                                 prog=self.command,
                                                 usage=usage,
@@ -40,7 +42,7 @@ class DiffCommand(AbstractCliView):
                             type=arguments.defined_object(
                                 self.model, key_attr),
                             help="The profile to compare with",
-                            metavar="%s_%s" % (self.model_name, key_attr))
+                            metavar=f"{self.model_name}_{key_attr}")
 
         return parser
 
@@ -60,8 +62,8 @@ class DiffCommand(AbstractCliView):
             diff, sign = order(lhs[attr], rhs[attr])
             diff.sort()
 
-            for el in diff:
-                print('%s %s' % (sign, el))
+            for element in diff:
+                print(f"{sign} {element}")
 
         _diff_member('libraries', _order_r)
         _diff_member('files', _order_r)
