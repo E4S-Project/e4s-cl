@@ -31,7 +31,9 @@ class DiffCommand(AbstractCliView):
 
     def _construct_parser(self):
         key_attr = self.model.key_attribute
-        usage = (f"{self.command} <{self.model_name}_{key_attr}> <other_{key_attr}>")
+        usage = (
+            f"{self.command} <{self.model_name}_{key_attr}> <other_{key_attr}>"
+        )
         parser = arguments.get_model_identifier(self.model,
                                                 prog=self.command,
                                                 usage=usage,

@@ -77,7 +77,9 @@ def overlay_libraries(library_set, container, entrypoint):
 
     # Figure out what to if multiple linkers are required
     if len(library_set.linkers) != 1:
-        raise InternalError(f"{len(library_set.linkers)} linkers detected. This should not happen.")
+        raise InternalError(
+            f"{len(library_set.linkers)} linkers detected. This should not happen."
+        )
 
     for linker in library_set.linkers:
         entrypoint.linker = Path(CONTAINER_LIBRARY_DIR,

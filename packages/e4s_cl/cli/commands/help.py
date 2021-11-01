@@ -137,7 +137,8 @@ class HelpCommand(AbstractCommand):
 
             # Get the filetype and try to be helpful.
             filetype, encoding = _guess_filetype(cmd)
-            self.logger.debug("'%s' has filetype (%s, %s)", cmd, filetype, encoding)
+            self.logger.debug("'%s' has filetype (%s, %s)", cmd, filetype,
+                              encoding)
             if filetype:
                 filetype, subtype = filetype.split('/')
                 try:

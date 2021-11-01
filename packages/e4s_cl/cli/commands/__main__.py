@@ -21,7 +21,7 @@ class MainCommand(AbstractCommand):
     """Main entry point to the command line interface."""
     def __init__(self):
         summary_parts = [
-            util.color_text(f"E4S Container Launcher {E4S_CL_VERSION}" ,
+            util.color_text(f"E4S Container Launcher {E4S_CL_VERSION}",
                             'red',
                             attrs=['bold'])
         ]

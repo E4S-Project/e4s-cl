@@ -37,8 +37,7 @@ class AmbiguousCommandError(ConfigurationError):
 
     def __init__(self, value, matches, *hints):
         parts = [
-            f"Did you mean `{SCRIPT_COMMAND} {match}`?"
-            for match in matches
+            f"Did you mean `{SCRIPT_COMMAND} {match}`?" for match in matches
         ]
         parts.append(f"Try `{SCRIPT_COMMAND} --help`")
         super().__init__(value, *hints + tuple(parts))

@@ -752,8 +752,7 @@ def defined_object(model, field):
         if len(objects) != 1 and not len(exact_matches) == 1:
             raise argparse.ArgumentTypeError(
                 f"Pattern '{string}' does not identify a single {model.name.lower()}: \
-                        {len(objects)} {model.name.lower()}s match"
-            )
+                        {len(objects)} {model.name.lower()}s match")
 
         if exact_matches:
             return exact_matches[0]

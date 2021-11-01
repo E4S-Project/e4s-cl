@@ -83,9 +83,7 @@ def _format_execute(parameters):
 
     for attr in ['libraries', 'files']:
         if parameters.get(attr, None):
-            execute_command += [
-                f"--{attr}", ",".join(parameters[attr])
-            ]
+            execute_command += [f"--{attr}", ",".join(parameters[attr])]
 
     return execute_command
 
@@ -156,7 +154,8 @@ class LaunchCommand(AbstractCommand):
         for field in ['backend', 'image']:
             if not parameters.get(field, None):
                 self.parser.error(
-                    f"Missing field: '{field}'. Specify it using the appropriate option or by selecting a profile.")
+                    f"Missing field: '{field}'. Specify it using the appropriate option or by selecting a profile."
+                )
 
         launcher, program = interpret(args.cmd)
         execute_command = _format_execute(parameters)

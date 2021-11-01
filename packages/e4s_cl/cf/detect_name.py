@@ -130,6 +130,7 @@ def _extract_vinfo(path: Path):
                      str(err))
         return None
 
+
 def version_info(shared_object: Path):
     """
     Return the output of the MPI_Get_library_version in the shared object passed as an argument
@@ -172,7 +173,8 @@ def detect_name(path_list):
         if version_buffer_str:
             # Check for keywords in the buffer
             filtered_buffer = set(
-                filter(lambda x, buf=version_buffer_str: x in buf, distro_dict.keys()))
+                filter(lambda x, buf=version_buffer_str: x in buf,
+                       distro_dict.keys()))
 
             if len(filtered_buffer) != 1:
                 if _check_spectrum(filtered_buffer):
