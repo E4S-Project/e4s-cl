@@ -79,12 +79,12 @@ def _format_execute(parameters):
 
     for attr in ['image', 'backend', 'source']:
         if parameters.get(attr, None):
-            execute_command += ["--{}".format(attr), parameters[attr]]
+            execute_command += [f"--{attr}", parameters[attr]]
 
     for attr in ['libraries', 'files']:
         if parameters.get(attr, None):
             execute_command += [
-                "--{}".format(attr), ",".join(parameters[attr])
+                f"--{attr}", ",".join(parameters[attr])
             ]
 
     return execute_command
@@ -93,7 +93,7 @@ def _format_execute(parameters):
 class LaunchCommand(AbstractCommand):
     """``launch`` subcommand."""
     def _construct_parser(self):
-        usage = "%s [arguments] [launcher] [launcher_arguments] [--] <command> [command_arguments]" % self.command
+        usage = f"{self.command} [arguments] [launcher] [launcher_arguments] [--] <command> [command_arguments]"
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
@@ -130,7 +130,7 @@ class LaunchCommand(AbstractCommand):
         parser.add_argument(
             '--backend',
             help="Container backend to use to launch the image." +
-            " Available backends are: %s" % ", ".join(EXPOSED_BACKENDS),
+            f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
             metavar='technology',
             dest='backend')
 
@@ -153,11 +153,10 @@ class LaunchCommand(AbstractCommand):
         parameters = _parameters(args)
 
         # Ensure the minimum fields required for launch are present
-        for field in {'backend', 'image'}:
+        for field in ['backend', 'image']:
             if not parameters.get(field, None):
                 self.parser.error(
-                    "Missing field: '%s'. Specify it using the appropriate option or by selecting a profile."
-                    % field)
+                    f"Missing field: '{field}'. Specify it using the appropriate option or by selecting a profile.")
 
         launcher, program = interpret(args.cmd)
         execute_command = _format_execute(parameters)

@@ -21,7 +21,7 @@ class MainCommand(AbstractCommand):
     """Main entry point to the command line interface."""
     def __init__(self):
         summary_parts = [
-            util.color_text("E4S Container Launcher %s" % E4S_CL_VERSION,
+            util.color_text(f"E4S Container Launcher {E4S_CL_VERSION}" ,
                             'red',
                             attrs=['bold'])
         ]
@@ -33,7 +33,7 @@ class MainCommand(AbstractCommand):
         self.command = os.path.basename(E4S_CL_SCRIPT)
 
     def _construct_parser(self):
-        usage = "%s [arguments] <subcommand> [options]" % self.command
+        usage = f"{self.command} [arguments] <subcommand> [options]"
         epilog_parts = [
             "",
             cli.commands_description(), "",
@@ -103,7 +103,7 @@ class MainCommand(AbstractCommand):
         if {'-v', '--verbose'} & set(argv):
             logger.set_log_level('DEBUG')
 
-        empty = not len(argv)
+        empty = len(argv) == 0
         command = set(argv) & set(cli.commands_next())
 
         # Get a list of valid option strings from the parser
@@ -119,7 +119,7 @@ class MainCommand(AbstractCommand):
                 argv.insert(argv.index(arg), LAUNCH_COMMAND.monicker)
                 break
 
-        LOGGER.debug("Parsing updated arguments '%s'" % argv)
+        LOGGER.debug("Parsing updated arguments '%s'", argv)
 
         return self._parse_args(argv)
 
@@ -139,10 +139,10 @@ class MainCommand(AbstractCommand):
             # enables it for this code block
             if {'-v', '--verbose'} & set(argv):
                 logger.set_log_level('DEBUG')
-            LOGGER.debug("Argument parsing errored out with '%s'" % argv)
+            LOGGER.debug("Argument parsing errored out with '%s'", argv)
 
             # Check for the presence of a e4s-cl command
-            empty = not len(argv)
+            empty = len(argv) == 0
             command = set(argv) & set(cli.commands_next())
 
             # If the error is not related to the omission of subcommand
@@ -165,7 +165,7 @@ class MainCommand(AbstractCommand):
                 argv.insert(argv.index(arg), LAUNCH_COMMAND.monicker)
                 break
 
-            LOGGER.debug("Parsing updated arguments '%s'" % argv)
+            LOGGER.debug("Parsing updated arguments '%s'", argv)
             args = self._parse_args(argv)
 
         self.parser.exit_on_error = True

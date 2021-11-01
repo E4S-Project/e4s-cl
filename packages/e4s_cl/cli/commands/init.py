@@ -46,7 +46,6 @@ Using an installation of WI4MPI:
 
 """
 
-import re
 import os
 import json
 import tempfile
@@ -67,6 +66,9 @@ _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
 def compile_sample(compiler) -> Path:
+    """
+    Compile a sample MPI binary to analyze execution
+    """
     # Create a file to compile a sample program in
     with tempfile.NamedTemporaryFile('w+', delete=False) as binary:
         with tempfile.NamedTemporaryFile('w+', suffix='.c') as program:
@@ -79,8 +81,9 @@ def compile_sample(compiler) -> Path:
                 'code': program.name,
             }
 
-            LOGGER.debug("Compiling with: '%s'" % command)
-            compilation_status = subprocess.Popen(command.split()).wait()
+            LOGGER.debug("Compiling with: '%s'", command)
+            with subprocess.Popen(command.split()) as compilation:
+                compilation_status = compilation.wait()
 
     # Check for a non-zero return code
     if compilation_status:
@@ -93,6 +96,9 @@ def compile_sample(compiler) -> Path:
 
 
 def check_mpirun(executable):
+    """
+    Run hostname with the launcher and list the affected nodes
+    """
     if not (hostname_bin := util.which('hostname')):
         return
 
@@ -134,7 +140,7 @@ def create_profile(args, metadata):
         data['wi4mpi_options'] = args.wi4mpi_options
 
     profile_name = getattr(args, 'profile_name',
-                           "default-%s" % util.hash256(json.dumps(metadata)))
+                           f"default-{util.hash256(json.dumps(metadata))}")
 
     if controller.one({"name": profile_name}):
         controller.delete({"name": profile_name})
@@ -147,7 +153,7 @@ def create_profile(args, metadata):
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
     def _construct_parser(self):
-        usage = "%s <image>" % self.command
+        usage = f"{self.command} <image>"
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
@@ -182,7 +188,7 @@ class InitCommand(AbstractCommand):
         parser.add_argument(
             '--backend',
             help="Container backend to use by default with this profile." +
-            " Available backends are: %s" % ", ".join(EXPOSED_BACKENDS),
+            f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
             metavar='technology',
             default=arguments.SUPPRESS,
             dest='backend')
@@ -234,14 +240,14 @@ class InitCommand(AbstractCommand):
 
         if not compiler:
             LOGGER.error(
-                "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
-            )
+                "No MPI compiler detected. Please load a module or use the `--mpi` \
+option to specify the MPI installation to use.")
             return EXIT_FAILURE
 
         if not launcher:
             LOGGER.error(
-                "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
-            )
+                "No launcher detected. Please load a module, use the `--mpi` \
+or `--launcher` options to specify the launcher program to use.")
             return EXIT_FAILURE
 
         create_profile(args, {'compiler': compiler, 'launcher': launcher})

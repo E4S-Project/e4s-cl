@@ -6,16 +6,17 @@ argument.
 This command is used internally and thus cloaked from the UI
 """
 
-import os
 from pathlib import Path
-from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT, CONTAINER_LIBRARY_DIR, EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables
+from e4s_cl import CONTAINER_SCRIPT, CONTAINER_LIBRARY_DIR, \
+        EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, BackendError, FileOptions
-from e4s_cl.cf.libraries import libc_version, resolve, LibrarySet, HostLibrary, library_links
-from e4s_cl.cf.wi4mpi import wi4mpi_enabled, wi4mpi_root, wi4mpi_import, wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload
+from e4s_cl.cf.libraries import libc_version, LibrarySet, HostLibrary, library_links
+from e4s_cl.cf.wi4mpi import wi4mpi_enabled, wi4mpi_root, wi4mpi_import, \
+        wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -76,8 +77,7 @@ def overlay_libraries(library_set, container, entrypoint):
 
     # Figure out what to if multiple linkers are required
     if len(library_set.linkers) != 1:
-        raise InternalError("%d linkers detected. This should not happen." %
-                            len(library_set.linkers))
+        raise InternalError(f"{len(library_set.linkers)} linkers detected. This should not happen.")
 
     for linker in library_set.linkers:
         entrypoint.linker = Path(CONTAINER_LIBRARY_DIR,
@@ -132,7 +132,7 @@ def select_libraries(library_set, container, entrypoint):
 class ExecuteCommand(AbstractCommand):
     """``execute`` subcommand."""
     def _construct_parser(self):
-        usage = "%s [arguments] <command> [command_arguments]" % self.command
+        usage = f"{self.command} [arguments] <command> [command_arguments]"
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
