@@ -166,7 +166,7 @@ html: python_check
 clean:
 	rm -fr build/ COMMIT VERSION
 
-test: python_check
+test: install python_check
 	$(PYTHON) -m tox tox.ini
 
 format:
