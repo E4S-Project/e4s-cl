@@ -220,22 +220,23 @@ class LibrarySet(set):
     def linkers(self):
         """
         -> LibrarySet, subset of self
-        Returns a set of all linkers present in the set
+        Returns a set of all linkers present in the set.
+        The linker is identified by its static-ness and definition of private GLIB symbols.
         """
-        return LibrarySet(filter(lambda x: not x.dyn_dependencies, self))
+        return LibrarySet(filter(lambda x: not x.dyn_dependencies and x in self.glib, self))
 
     @property
     def glib(self):
         """
         -> LibrarySet, subset of self
         Returns a set with all libraries tied to the available libc,
-        recognizable by the GLIBC_PRIVATE dependency. Using these with any
-        other libc will trigger a symbol error
+        recognizable by the GLIBC_PRIVATE symbols. Using these with any
+        other libc will trigger a symbol error.
         """
-        def needs_private(lib):
-            return 'GLIBC_PRIVATE' in flatten(lib.required_versions.values())
+        def references_private(lib):
+            return 'GLIBC_PRIVATE' in flatten(lib.required_versions.values()) or 'GLIBC_PRIVATE' in lib.defined_versions
 
-        return LibrarySet(filter(needs_private, self))
+        return LibrarySet(filter(references_private, self))
 
     @property
     def required_libraries(self):
