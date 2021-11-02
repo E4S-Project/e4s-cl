@@ -16,11 +16,14 @@ binary_dict = {
 
 def select_binary():
     libso_path = resolve("libmpi.so")
-    launcher_path = os.path.join(libso_path.split("lib",1)[0], 'bin/mpirun')
-    compiler_path = os.path.join(libso_path.split("lib",1)[0], 'bin/mpicc')
 
-    libso_vers = libso_path.split(".so.",1)[1].split(".",1)[0]
-    binary_path = os.path.join(BINARY_DIR, binary_dict[libso_vers][1])
+    (launcher_path, compiler_path, libso_vers, binary_path) = ("", "", "", "")
+    if libso_path is not None:
+        launcher_path = os.path.join(libso_path.split("lib",1)[0], 'bin/mpirun')
+        compiler_path = os.path.join(libso_path.split("lib",1)[0], 'bin/mpicc')
+        libso_vers = libso_path.split(".so.",1)[1].split(".",1)[0]
+        binary_path = os.path.join(BINARY_DIR, binary_dict[libso_vers][1])
+
     paths = [binary_path, launcher_path, compiler_path]
 
     return paths

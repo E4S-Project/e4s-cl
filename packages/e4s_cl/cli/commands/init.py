@@ -242,18 +242,18 @@ class InitCommand(AbstractCommand):
        # if getattr(args, 'wi4mpi', None):
        #     compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc').as_posix()
        #     launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun').as_posix()
+        if not binary:
+            if not compiler:
+                LOGGER.error(
+                    "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
+                )
+                return EXIT_FAILURE
 
-       # if not compiler:
-       #     LOGGER.error(
-       #         "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
-       #     )
-       #     return EXIT_FAILURE
-
-       # if not launcher:
-       #     LOGGER.error(
-       #         "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
-       #     )
-       #     return EXIT_FAILURE
+            if not launcher:
+                LOGGER.error(
+                    "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
+                )
+                return EXIT_FAILURE
 
         create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
