@@ -1,6 +1,10 @@
 import os
+from pathlib import Path
 from e4s_cl import USER_PREFIX
+from e4s_cl import logger, util
 from e4s_cl.cf.libraries.linker import resolve
+
+LOGGER = logger.get_logger(__name__)
 
 BINARY_DIR = os.path.join(USER_PREFIX, 'compiled_binaries')
 
@@ -22,8 +26,14 @@ def select_binary():
         launcher_path = os.path.join(libso_path.split("lib",1)[0], 'bin/mpirun')
         compiler_path = os.path.join(libso_path.split("lib",1)[0], 'bin/mpicc')
         libso_vers = libso_path.split(".so.",1)[1].split(".",1)[0]
+    
+    if libso_vers in binary_dict.keys():
         binary_path = os.path.join(BINARY_DIR, binary_dict[libso_vers][1])
-
+    else:
+        LOGGER.debug("MPI vendor not supported by precompiled binary initialisation\nProceeding with legacy initialisation")
+    
+    if not Path(binary_path).exists():
+        binary_path = ""
+    
     paths = [binary_path, launcher_path, compiler_path]
-
     return paths

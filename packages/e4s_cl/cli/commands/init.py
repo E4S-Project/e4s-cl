@@ -239,9 +239,9 @@ class InitCommand(AbstractCommand):
         # Use the launcher passed as an argument in priority
         launcher = util.which(getattr(args, 'launcher', launcher))
 
-       # if getattr(args, 'wi4mpi', None):
-       #     compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc').as_posix()
-       #     launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun').as_posix()
+        if getattr(args, 'wi4mpi', None):
+            compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc').as_posix()
+            launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun').as_posix()
         if not binary:
             if not compiler:
                 LOGGER.error(
@@ -265,6 +265,8 @@ class InitCommand(AbstractCommand):
 
             # Compile a sample program using the compiler above
             #if binary := compile_sample(compiler):
+            if not binary:
+                binary = compile_sample(compiler)
             if binary:
                 # Run the program using the detect command and get a file list
                 returncode = detect_command.main([launcher, binary])
