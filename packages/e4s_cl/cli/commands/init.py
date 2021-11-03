@@ -215,16 +215,20 @@ class InitCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        paths = select_binary()
+        # Use the environment compiler per default
+        compiler = util.which('mpicc')
+        launcher = util.which('mpirun')
 
-        binary = paths[0]
-        launcher = paths[1]
-        compiler = paths[2]
+        resolved_paths = select_binary()
 
+        binary = resolved_paths[0]
 
-    #    # Use the environment compiler per default
-    #    compiler = util.which('mpicc')
-    #    launcher = util.which('mpirun')
+        # If select_binary() functionned, replace the compiler/launcher
+        if resolved_paths[1]:
+            launcher = resolved_paths[1]
+        if resolved_paths[2]:
+            compiler = resolved_paths[2]
+
 
         # If a library is specified, get the executables
         if getattr(args, 'mpi', None):
@@ -242,18 +246,7 @@ class InitCommand(AbstractCommand):
         if getattr(args, 'wi4mpi', None):
             compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc').as_posix()
             launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun').as_posix()
-        if not binary:
-            if not compiler:
-                LOGGER.error(
-                    "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
-                )
-                return EXIT_FAILURE
 
-            if not launcher:
-                LOGGER.error(
-                    "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
-                )
-                return EXIT_FAILURE
 
         create_profile(args, {'compiler': compiler, 'launcher': launcher})
 
@@ -263,11 +256,21 @@ class InitCommand(AbstractCommand):
                          launcher)
             check_mpirun(launcher)
 
-            # Compile a sample program using the compiler above
-            #if binary := compile_sample(compiler):
+            # If no binary, check for compiler and compile a binary
             if not binary:
+                if not compiler:
+                    LOGGER.error(
+                        "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
+                    )
+                return EXIT_FAILURE
                 binary = compile_sample(compiler)
+            
             if binary:
+                if not launcher:
+                    LOGGER.error(
+                        "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
+                    )
+                return EXIT_FAILURE
                 # Run the program using the detect command and get a file list
                 returncode = detect_command.main([launcher, binary])
 
