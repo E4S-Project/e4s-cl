@@ -26,8 +26,8 @@ def select_binary():
 
     # Builds the different paths for laucher/compiler for the profile data
     if libso_path is not None:
-        launcher_path = os.path.join(libso_path.split("lib",1)[0], 'bin/mpirun')
-        compiler_path = os.path.join(libso_path.split("lib",1)[0], 'bin/mpicc')
+        launcher_path = os.path.join(libso_path.rsplit("lib",2)[0], 'bin/mpirun')
+        compiler_path = os.path.join(libso_path.rsplit("lib",2)[0], 'bin/mpicc')
         libso_vers = libso_path.split(".so.",1)[1].split(".",1)[0]
     
     # Update binary path if version is supported
