@@ -62,9 +62,13 @@ from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
 from e4s_cl.model.profile import Profile
+from e4s_cl.cf.assets import binaries#, profile
+from e4s_cl.cf.libraries.linker import resolve
+from e4s_cl import USER_PREFIX
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
+BINARY_DIR = os.path.join(USER_PREFIX, 'compiled_binaries')
 
 
 
@@ -145,6 +149,13 @@ def create_profile(args, metadata):
     profile = controller.create(data)
     controller.select(profile)
 
+def select_binary(binary_dict):
+    # Selects an available mpi vendor
+    for libso in binary_dict.keys():
+        if resolve("libso") is not None:
+            return binary_dict[libso][0]
+    LOGGER.debug("MPI vendor not supported by precompiled binary initialisation\nProceeding with legacy initialisation")
+    return None
 
 
 class InitCommand(AbstractCommand):
@@ -219,16 +230,7 @@ class InitCommand(AbstractCommand):
         compiler = util.which('mpicc')
         launcher = util.which('mpirun')
 
-        resolved_paths = select_binary()
-
-        binary = resolved_paths[0]
-
-        # If select_binary() functionned, replace the compiler/launcher
-        if resolved_paths[1]:
-            launcher = resolved_paths[1]
-        if resolved_paths[2]:
-            compiler = resolved_paths[2]
-
+        binary = select_binary(binaries())
 
         # If a library is specified, get the executables
         if getattr(args, 'mpi', None):
