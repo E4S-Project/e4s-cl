@@ -109,12 +109,15 @@ COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
 COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)
 COMPLETION_DEST=$(INSTALLDIR)/bin/__e4s_cl_completion.$(HOST_ARCH)
 
+BINARIES_URL=https://oaciss.uoregon.edu/e4s/e4s-cl 
+
 all: install completion man
 
 install: python_check
 	$(PYTHON) setup.py build -b "$(BUILDDIR)"
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
+	$(PYTHON) ./scripts/download_assets.py  $(BINARIES_URL) $(HOST_ARCH)
 	@$(COPY) assets/compiled_binaries $(INSTALLDIR)/e4s_cl
 	@$(PYTHON) scripts/success.py "Installation succeded. Please add '$(INSTALLDIR)/bin' to your PATH."
 
