@@ -56,7 +56,6 @@ from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
 from e4s_cl.cf.detect_name import try_rename
-from e4s_cl.cf.detect_binary import select_binary
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
