@@ -59,23 +59,28 @@ def secure_binaries(url, available):
         json.dump(downloaded, index_json)
 
 
-def secure_profiles(url, available):
+def secure_profiles(url, available, system):
     """
     If a profile url is returned, download and put its JSON file in the profile directory
     """
-    if not available:
+    if not available or not available.get(system):
         return
 
-    profile_url = f"{url}/{available}"
-    destination = Path(PROFILE_DIR, Path(available).name).as_posix()
+    suffix = available.get(system)
+
+    profile_url = f"{url}/{suffix}"
+    destination = Path(PROFILE_DIR, Path(suffix).name).as_posix()
     r = requests.get(profile_url)
 
     if not r.ok:
-        LOGGER.warn(f"Failed to access {bin_url}")
+        LOGGER.warn(f"Failed to access {profile_url}")
         return
 
     with open(destination, "w") as profile:
         json.dump(r.json(), profile)
+
+    with open(PROFILE_INDEX, "w") as index:
+        json.dump({system: destination}, index)
 
 
 if __name__ == '__main__':
@@ -102,4 +107,4 @@ if __name__ == '__main__':
     available = index.json()
 
     secure_binaries(url, available.get('binaries', {}).get(architecture, {}))
-    secure_profiles(url, available.get('profiles', {}).get(system, ""))
+    secure_profiles(url, available.get('profiles', {}), system)
