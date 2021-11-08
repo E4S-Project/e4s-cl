@@ -152,8 +152,8 @@ def create_profile(args, metadata):
 def select_binary(binary_dict):
     # Selects an available mpi vendor
     for libso in binary_dict.keys():
-        if resolve("libso") is not None:
-            return binary_dict[libso][0]
+        if resolve(libso) is not None:
+            return str(binary_dict[libso])
     LOGGER.debug("MPI vendor not supported by precompiled binary initialisation\nProceeding with legacy initialisation")
     return None
 
