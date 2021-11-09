@@ -1,11 +1,16 @@
-import os
+"""
+This modules parses data in the asset dirs to list all assets available during execution
+"""
+
 import json
 from pathlib import Path
+from functools import lru_cache
 from e4s_cl import USER_PREFIX, SYSTEM_PREFIX, logger
 
 LOGGER = logger.get_logger(__name__)
 
-BINARY_DIR = os.path.join(USER_PREFIX, 'compiled_binaries')
+BINARY_DIR = "binaries"
+PROFILE_DIR = "profiles"
 
 
 def _load_index(index: Path) -> dict:
@@ -14,7 +19,7 @@ def _load_index(index: Path) -> dict:
 
     data = {}
 
-    with open(index.as_posix(), 'r') as index_file:
+    with open(index.as_posix(), 'r', encoding="utf8") as index_file:
         try:
             data = json.load(index_file)
         except json.JSONDecodeError as err:
@@ -23,14 +28,25 @@ def _load_index(index: Path) -> dict:
     return data
 
 
+def _get_available(asset_dir: str) -> dict:
+    user_assets = Path(USER_PREFIX, asset_dir, "index.json")
+    system_assets = Path(SYSTEM_PREFIX, asset_dir, "index.json")
+
+    # User assets have priority over system's
+    available = _load_index(system_assets) | _load_index(user_assets)
+
+    assets = {}
+    for id_, path_ in available.items():
+        assets[id_] = Path(path_)
+
+    return assets
+
+
+@lru_cache
 def binaries() -> dict:
-    user_binaries = Path(USER_PREFIX, "binaries", "index.json")
-    system_binaries = Path(SYSTEM_PREFIX, "binaries", "index.json")
+    return _get_available(BINARY_DIR)
 
-    available = _load_index(user_binaries) | _load_index(system_binaries)
 
-    binaries = {}
-    for soname, location in available.items():
-        binaries[soname] = Path(location)
-
-    return binaries
+@lru_cache
+def profiles() -> dict:
+    return _get_available(PROFILE_DIR)

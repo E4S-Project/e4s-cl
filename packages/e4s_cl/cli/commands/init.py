@@ -46,7 +46,6 @@ Using an installation of WI4MPI:
 
 """
 
-import re
 import os
 import json
 import tempfile
@@ -61,7 +60,7 @@ from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
 from e4s_cl.model.profile import Profile
-from e4s_cl.cf.assets import binaries#, profile
+from e4s_cl.cf.assets import binaries, profiles
 from e4s_cl.cf.libraries.linker import resolve
 from e4s_cl import USER_PREFIX
 
@@ -70,8 +69,10 @@ _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 BINARY_DIR = os.path.join(USER_PREFIX, 'compiled_binaries')
 
 
-
 def compile_sample(compiler) -> Path:
+    """
+    Compile a sample MPI program that can be used with the profile detect command
+    """
     # Create a file to compile a sample program in
     with tempfile.NamedTemporaryFile('w+', delete=False) as binary:
         with tempfile.NamedTemporaryFile('w+', suffix='.c') as program:
@@ -84,8 +85,9 @@ def compile_sample(compiler) -> Path:
                 'code': program.name,
             }
 
-            LOGGER.debug("Compiling with: '%s'" % command)
-            compilation_status = subprocess.Popen(command.split()).wait()
+            LOGGER.debug("Compiling with: '%s'", command)
+            with subprocess.Popen(command.split()) as proc:
+                compilation_status = proc.wait()
 
     # Check for a non-zero return code
     if compilation_status:
@@ -115,45 +117,37 @@ def check_mpirun(executable):
             str(detect_command))
 
 
-def create_profile(args, metadata):
-    """Populate profile record"""
+def profile_from_args(args) -> dict:
+    """
+    Create a dictionnary with all the profile related information passed as arguments
+    """
     data = {}
 
-    controller = Profile.controller()
+    for attr in ['image', 'backend', 'source', 'wi4mpi', 'wi4mpi_options']:
+        if value := getattr(args, attr, None):
+            data[attr] = value
 
-    if getattr(args, 'image', None):
-        data['image'] = args.image
-
-    if getattr(args, 'backend', None):
-        data['backend'] = args.backend
-    elif getattr(args, 'image', None) and guess_backend(args.image):
+    # Determine the backend if possible
+    if data.get('image') and not data.get('backend'):
         data['backend'] = guess_backend(args.image)
 
-    if getattr(args, 'source', None):
-        data['source'] = args.source
+    # Load data from assets if required
+    if system := getattr(args, 'system', None):
+        if location := profiles.get(system):
+            with open(location, 'r', encoding="utf8") as asset:
+                data = data | json.load(asset)
 
-    if getattr(args, 'wi4mpi', None):
-        data['wi4mpi'] = args.wi4mpi
+    return data
 
-    if getattr(args, 'wi4mpi_options', None):
-        data['wi4mpi_options'] = args.wi4mpi_options
-
-    profile_name = getattr(args, 'profile_name',
-                           "default-%s" % util.hash256(json.dumps(metadata)))
-
-    if controller.one({"name": profile_name}):
-        controller.delete({"name": profile_name})
-
-    data["name"] = profile_name
-    profile = controller.create(data)
-    controller.select(profile)
 
 def select_binary(binary_dict):
     # Selects an available mpi vendor
     for libso in binary_dict.keys():
         if resolve(libso) is not None:
             return str(binary_dict[libso])
-    LOGGER.debug("MPI vendor not supported by precompiled binary initialisation\nProceeding with legacy initialisation")
+    LOGGER.debug(
+        "MPI vendor not supported by precompiled binary initialisation\n"
+        "Proceeding with legacy initialisation")
     return None
 
 
@@ -164,12 +158,27 @@ class InitCommand(AbstractCommand):
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
+
+        parser.add_argument(
+            '--system',
+            help="Initialize e4s-cl for use on a specific system",
+            metavar='machine',
+            default=arguments.SUPPRESS,
+            choices=profiles().keys())
+
         parser.add_argument(
             '--launcher',
             help="MPI launcher required to run a sample program.",
             metavar='launcher',
             default=arguments.SUPPRESS,
             dest='launcher')
+
+        parser.add_argument(
+            '--launcher_args',
+            help="MPI launcher arguments required to run a sample program.",
+            metavar='launcher_args',
+            default=arguments.SUPPRESS,
+            dest='launcher_args')
 
         parser.add_argument(
             '--mpi',
@@ -221,56 +230,73 @@ class InitCommand(AbstractCommand):
 
         return parser
 
-
     def main(self, argv):
         args = self._parse_args(argv)
 
-        # Use the environment compiler per default
-        compiler = util.which('mpicc')
-        launcher = util.which('mpirun')
+        profile_data = profile_from_args(args)
 
-        binary = select_binary(binaries())
+        if getattr(args, 'system', None):
+            # If using the downloaded assets, they would be loaded above
+            pass
+        elif getattr(args, 'wi4mpi', None):
+            # If using wi4mpi, no need to profile a binary, as the installation
+            # will details the required binaries
+            profile_data['name'] = 'wi4mpi'
+        else:
+            profile_data['name'] = '__INIT_TEMP_PROFILE'
 
-        # If a library is specified, get the executables
-        if getattr(args, 'mpi', None):
-            mpicc = Path(args.mpi) / "bin" / "mpicc"
-            if mpicc.exists():
-                compiler = mpicc.as_posix()
+        controller = Profile.controller()
 
-            mpirun = Path(args.mpi) / "bin" / "mpirun"
-            if mpirun.exists():
-                launcher = mpirun.as_posix()
+        # Erase any potential existing profile
+        if controller.one({"name": profile_data.get('name')}):
+            controller.delete({"name": profile_data.get('name')})
 
-        # Use the launcher passed as an argument in priority
-        launcher = util.which(getattr(args, 'launcher', launcher))
+        profile = controller.create(profile_data)
+        controller.select(profile)
 
-        if getattr(args, 'wi4mpi', None):
-            compiler = Path(args.wi4mpi).joinpath('bin', 'mpicc').as_posix()
-            launcher = Path(args.wi4mpi).joinpath('bin', 'mpirun').as_posix()
+        if getattr(args, 'launcher', None):
+            # If using the launcher + mpi method, we need to analyze a binary to
+            # determine the dynamic dependencies of the library
 
+            # TODO take into account args.mpi here
+            binary = select_binary(binaries())
 
-        create_profile(args, {'compiler': compiler, 'launcher': launcher})
+            # Use the environment compiler per default
+            compiler = util.which('mpicc')
+            launcher = util.which('mpirun')
 
-        if not getattr(args, 'wi4mpi', None):
-            # If WI4MPI is not in use, compile a binary if needed and analyze a program
+            # If a library is specified, get the executables
+            if getattr(args, 'mpi', None):
+                mpicc = Path(args.mpi) / "bin" / "mpicc"
+                if mpicc.exists():
+                    compiler = mpicc.as_posix()
+
+                mpirun = Path(args.mpi) / "bin" / "mpirun"
+                if mpirun.exists():
+                    launcher = mpirun.as_posix()
+
+            # Use the launcher passed as an argument in priority
+            launcher = util.which(getattr(args, 'launcher', launcher))
 
             # If no binary, check for compiler and compile a binary
             if not binary:
                 if not compiler:
                     LOGGER.error(
-                        "No MPI compiler detected. Please load a module or use the `--mpi` option to specify the MPI installation to use."
+                        "No MPI compiler detected. Please load a module or "
+                        "use the `--mpi` option to specify the MPI installation to use."
                     )
                     return EXIT_FAILURE
                 binary = compile_sample(compiler)
-            
+
             # If binary, check for launcher and then launch the detect command
             if binary:
                 if not launcher:
                     LOGGER.error(
-                        "No launcher detected. Please load a module, use the `--mpi` or `--launcher` options to specify the launcher program to use."
+                        "No launcher detected. Please load a module, use the `--mpi` "
+                        "or `--launcher` options to specify the launcher program to use."
                     )
                     return EXIT_FAILURE
-                
+
                 LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
                              launcher)
                 check_mpirun(launcher)
