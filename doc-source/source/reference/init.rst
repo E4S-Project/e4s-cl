@@ -22,6 +22,7 @@ To tailor the initialization process, values can be specified by the user:
 --profile           Profile to create or overwrite
 --wi4mpi            Path to a WI4MPI installation to use
 --wi4mpi_options    String passed to the underlying WI4MPI launcher
+--system            Specific system to download profiles for 
 
 Description
 -----------

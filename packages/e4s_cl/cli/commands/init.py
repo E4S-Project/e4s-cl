@@ -2,9 +2,15 @@
 This command initializes E4S Container Launcher for the system's available MPI \
 library.
 
-During initialization, the available MPI library is parsed and analyzed to \
+Initialization can be achieved in multiple ways, depending on the arguments \
+passed. 
+
+Either the system is directly supported and a ready made profile can \
+be downloaded, a WI4MPI installation can be leveraged to bypass most of the \
+profile generation or simply the available MPI library is parsed and analyzed to \
 guess its running requirements.
-A :ref:`profile<profile>` is created with the collected results from the \
+
+In all cases a :ref:`profile<profile>` is created with the collected results from the \
 analysis, and made accessible for the next :ref:`launch command<launch>`.
 
 If no :ref:`profile<profile>` name is passed to :code:`--profile`, a profile \
@@ -43,6 +49,12 @@ Using an installation of WI4MPI:
 .. code::
 
     e4s-cl init --wi4mpi /packages/wi4mpi --wi4mpi_options "-T openmpi -F mpich"
+
+Using a specific system's profile:
+
+.. code::
+
+    e4s-cl init --system system_name
 
 """
 
