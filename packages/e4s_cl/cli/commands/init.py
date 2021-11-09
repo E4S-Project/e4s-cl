@@ -67,6 +67,7 @@ from e4s_cl import USER_PREFIX
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 BINARY_DIR = os.path.join(USER_PREFIX, 'compiled_binaries')
+INIT_TEMP_PROFILE_NAME = '__INIT_TEMP_PROFILE'
 
 
 def compile_sample(compiler) -> Path:
@@ -243,7 +244,7 @@ class InitCommand(AbstractCommand):
             # will details the required binaries
             profile_data['name'] = 'wi4mpi'
         else:
-            profile_data['name'] = '__INIT_TEMP_PROFILE'
+            profile_data['name'] = INIT_TEMP_PROFILE_NAME
 
         controller = Profile.controller()
 
@@ -254,8 +255,9 @@ class InitCommand(AbstractCommand):
         profile = controller.create(profile_data)
         controller.select(profile)
 
-        if getattr(args, 'launcher', None):
-            # If using the launcher + mpi method, we need to analyze a binary to
+        if profile_data['name'] == INIT_TEMP_PROFILE_NAME:
+            # If no profile has been loaded or wi4mpi is not used, then
+            # we need to analyze a binary to
             # determine the dynamic dependencies of the library
 
             # TODO take into account args.mpi here
