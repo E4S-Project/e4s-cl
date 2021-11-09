@@ -134,7 +134,7 @@ def profile_from_args(args) -> dict:
 
     # Load data from assets if required
     if system := getattr(args, 'system', None):
-        if location := profiles.get(system):
+        if location := profiles().get(system):
             with open(location, 'r', encoding="utf8") as asset:
                 data = data | json.load(asset)
 
@@ -234,12 +234,25 @@ class InitCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
+        system_args = getattr(args, 'system', False)
+        wi4mpi_args = getattr(args, 'wi4mpi', False) or getattr(
+            args, 'wi4mpi_options', False)
+        detect_args = getattr(args, 'mpi', False) or getattr(
+            args, 'launcher', False) or getattr(args, 'launcher_args', False)
+
+        if system_args and wi4mpi_args:
+            self.parser.error("--system and --wi4mpi options are mutually exclusive")
+        if system_args and detect_args:
+            self.parser.error("--system and --mpi | --launcher | --launcher_args options are mutually exclusive")
+        if detect_args and wi4mpi_args:
+            self.parser.error("--wi4mpi and --mpi | --launcher | --launcher_args options are mutually exclusive")
+
         profile_data = profile_from_args(args)
 
-        if getattr(args, 'system', None):
+        if system_args:
             # If using the downloaded assets, they would be loaded above
             pass
-        elif getattr(args, 'wi4mpi', None):
+        elif wi4mpi_args:
             # If using wi4mpi, no need to profile a binary, as the installation
             # will details the required binaries
             profile_data['name'] = 'wi4mpi'
