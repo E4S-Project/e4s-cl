@@ -134,7 +134,6 @@ install: python_check
 	$(PYTHON) setup.py build -b "$(BUILDDIR)"
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
-	@$(COPY) assets/compiled_binaries $(INSTALLDIR)/e4s_cl
 	@$(PYTHON) scripts/success.py "Installation succeded. Please add '$(INSTALLDIR)/bin' to your PATH."
 
 #>============================================================================<
