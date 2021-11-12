@@ -68,7 +68,7 @@ class ProfileShowCommand(ShowCommand):
 
         if profile_dict.get('libraries'):
             elements['libs'] = "\n".join([
-                " - %s (%s)" % (p.name, p.as_posix())
+                f" - {p.name} ({p.as_posix()})"
                 for p in map(Path, profile_dict['libraries'])
             ])
         else:
@@ -76,7 +76,7 @@ class ProfileShowCommand(ShowCommand):
 
         if profile_dict.get('files'):
             elements['files'] = "\n".join(
-                [" - %s" % p for p in profile_dict['files']])
+                [f" - {p}" for p in profile_dict['files']])
         else:
             elements['files'] = "None"
 
@@ -89,7 +89,7 @@ class ProfileShowCommand(ShowCommand):
             with open(path, 'rb') as shared_object:
                 cache.add(Library(shared_object))
 
-        print("%s:" % bold("\nLibrary dependencies"))
+        print(f"\n{bold('Library dependencies')}")
         for tree in cache.trees():
             print(tree)
 

@@ -89,7 +89,7 @@ def parse_cli(cmd):
 
     if module_name:
         return sys.modules[module_name].PARSER.parse(cmd)
-    raise NotImplementedError("Launcher %s is not supported" % script)
+    raise NotImplementedError(f"Launcher {script} is not supported")
 
 
 def interpret(cmd):

@@ -89,7 +89,8 @@ def filter_files(path_list: List[Path]):
         blacklist = ["/tmp", "/sys", "/proc", "/dev", "/run"]
         filtered = False
         for expr in blacklist:
-            if not filtered and re.match("^%s.*" % expr, path.as_posix()):
+            if not filtered and re.match(f"^{re.escape(expr)}.*",
+                                         path.as_posix()):
                 filtered = True
                 break
 
@@ -104,7 +105,7 @@ def filter_files(path_list: List[Path]):
 class ProfileDetectCommand(AbstractCliView):
     """``profile create`` subcommand."""
     def _construct_parser(self):
-        usage = "%s [-p profile] <mpi_launcher command>" % self.command
+        usage = f"{self.command} [-p profile] <mpi_launcher command>"
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)

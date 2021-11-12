@@ -116,8 +116,8 @@ def compile_sample(compiler) -> Path:
             }
 
             LOGGER.debug("Compiling with: '%s'", command)
-            with subprocess.Popen(command.split()) as proc:
-                compilation_status = proc.wait()
+            with subprocess.Popen(command.split()) as compilation:
+                compilation_status = compilation.wait()
 
     # Check for a non-zero return code
     if compilation_status:
@@ -130,6 +130,9 @@ def compile_sample(compiler) -> Path:
 
 
 def check_mpirun(executable):
+    """
+    Run hostname with the launcher and list the affected nodes
+    """
     if not (hostname_bin := util.which('hostname')):
         return
 
@@ -184,7 +187,7 @@ def select_binary(binary_dict):
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
     def _construct_parser(self):
-        usage = "%s <image>" % self.command
+        usage = f"{self.command} <image>"
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)
@@ -235,7 +238,7 @@ class InitCommand(AbstractCommand):
         parser.add_argument(
             '--backend',
             help="Container backend to use by default with this profile."
-            " Available backends are: %s" % ", ".join(EXPOSED_BACKENDS),
+            f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
             metavar='technology',
             default=arguments.SUPPRESS,
             dest='backend')

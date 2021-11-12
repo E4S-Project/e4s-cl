@@ -21,7 +21,6 @@ ARGUMENTS = {
     "--gpu_per_rs": 1,
     "--help": 0,
     "--immediate": 0,
-    "--immediate": 1,
     "--latency_priority": 1,
     "--launch_distribution": 1,
     "--launch_node_task": 1,

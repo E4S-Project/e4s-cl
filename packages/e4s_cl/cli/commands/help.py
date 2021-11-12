@@ -13,8 +13,7 @@ LOGGER = logger.get_logger(__name__)
 
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
-_GENERIC_HELP = "See '%s --help' or raise an issue on Github for assistance" % (
-    _SCRIPT_CMD)
+_GENERIC_HELP = f"See '{_SCRIPT_CMD} --help' or raise an issue on Github for assistance"
 
 _KNOWN_FILES = {}
 
@@ -100,7 +99,7 @@ class HelpCommand(AbstractCommand):
         return EXIT_SUCCESS
 
     def _construct_parser(self):
-        usage_head = "%s <command>|<file>|all [arguments]" % self.command
+        usage_head = f"{self.command} <command>|<file>|all [arguments]"
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage_head,
                                       description=self.summary)
@@ -133,7 +132,7 @@ class HelpCommand(AbstractCommand):
                 pass
             else:
                 article = 'an' if desc[0] in 'aeiou' else 'a'
-                hint = "'%s' is %s %s.\n%s." % (cmd, article, desc, hint)
+                hint = f"'{cmd}' is {article} {desc}.\n{hint}."
                 raise UnknownCommandError(cmd, hint)
 
             # Get the filetype and try to be helpful.
@@ -145,17 +144,16 @@ class HelpCommand(AbstractCommand):
                 try:
                     type_hints = _MIME_HINTS[filetype]
                 except KeyError:
-                    hint = "E4S doesn't recognize '%s'.\nSee '%s --help'" \
-                    "and use the appropriate subcommand." % cmd, argv[
-                        0]
+                    hint = f"E4S doesn't recognize '{cmd}'.\nSee '{argv[0]} --help'" \
+                    "and use the appropriate subcommand."
                 else:
                     desc, hint = _fuzzy_index(type_hints, subtype)
                     article = 'an' if desc[0] in 'aeiou' else 'a'
-                    hint = "'%s' is %s %s.\n%s." % (cmd, article, desc, hint)
+                    hint = f"'{cmd}' is {article} {desc}.\n{hint}."
                 raise UnknownCommandError(cmd, hint)
             raise UnknownCommandError(cmd)
 
-        LOGGER.error("Cannot identify '%s' as a command or filename.")
+        LOGGER.error("Cannot identify '%s' as a command or filename.", cmd)
         return self.exit_with_help('__main__')
 
 

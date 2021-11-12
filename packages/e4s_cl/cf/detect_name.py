@@ -5,7 +5,7 @@ Automatic name detector based on mpi vendor
 import re
 import ctypes
 from pathlib import Path
-from e4s_cl import logger, util
+from e4s_cl import logger
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.libraries import LibrarySet
 
@@ -16,9 +16,8 @@ def _suffix_profile(profile_name: str) -> str:
     """
     Add a '-N' to a profile if it already exists
     """
-    escaped_profile_name = re.escape(profile_name)
-    pattern = re.compile("%s.*" % escaped_profile_name)
-    matches = Profile.controller().match('name', regex=pattern)
+    matches = Profile.controller().match('name',
+                                         regex=f"{re.escape(profile_name)}.*")
     names = set(filter(None, map(lambda x: x.get('name'), matches)))
 
     # Do not append a suffix for the first unique profile
@@ -32,7 +31,7 @@ def _suffix_profile(profile_name: str) -> str:
             None,
             map(
                 lambda x: re.match(
-                    "%s-(?P<ordinal>[0-9]*)" % escaped_profile_name, x),
+                    f"{re.escape(profile_name)}-(?P<ordinal>[0-9]*)", x),
                 names)))
 
     # Try to list all clones of this profile
@@ -45,10 +44,10 @@ def _suffix_profile(profile_name: str) -> str:
 
     # If there are no clones, this is the second profile, after the original
     profile_no = 2
-    if len(ordinals):
+    if len(ordinals) != 0:
         profile_no = max(ordinals) + 1
 
-    return '%s-%d' % (profile_name, profile_no)
+    return f"{profile_name}-{profile_no}"
 
 
 def _extract_intel_mpi(version_buffer_str):
@@ -132,30 +131,21 @@ def _extract_vinfo(path: Path):
         return None
 
 
-def version_info(path: Path):
-    if isinstance(path, str):
-        path = Path(path)
+def version_info(shared_object: Path):
+    """
+    Return the output of the MPI_Get_library_version in the shared object passed as an argument
+    """
+
+    if isinstance(shared_object, str):
+        shared_object = Path(shared_object)
 
     # C-compatible buffer to run a C handle with
     version_buffer = ctypes.create_string_buffer(3000)
     length = ctypes.c_int()
 
-    def _extract_vinfo(path: Path):
-        # Get the a handle to the MPI_Get_library_version function given
-        # a path to a shared object
-        if not path.exists():
-            return None
-
-        try:
-            handle = ctypes.CDLL(path)
-            return getattr(handle, 'MPI_Get_library_version', None)
-        except OSError as err:
-            LOGGER.debug("Error loading shared object %s: %s", path.as_posix(),
-                         str(err))
-            return None
-
-    if not (handle := _extract_vinfo(path)):
-        LOGGER.debug("Extracting MPI_Get_library_version from %s failed", path.as_posix())
+    if not (handle := _extract_vinfo(shared_object)):
+        LOGGER.debug("Extracting MPI_Get_library_version from %s failed",
+                     shared_object.as_posix())
         return None
 
     handle(version_buffer, ctypes.byref(length))
@@ -170,11 +160,9 @@ def detect_name(path_list):
     Given a list of shared objects, get an MPI library name and version
     """
     profile_name, version_str = '', ''
-    version_buffer = ctypes.create_string_buffer(3000)
-    length = ctypes.c_int()
 
     def _check_spectrum(vendors_list):
-        return set(['Spectrum MPI','Open MPI']).issubset(set(vendors_list)) 
+        return set(['Spectrum MPI', 'Open MPI']).issubset(set(vendors_list))
 
     # Container for the results
     version_data = set()  # set((str, str))
@@ -185,11 +173,12 @@ def detect_name(path_list):
         if version_buffer_str:
             # Check for keywords in the buffer
             filtered_buffer = set(
-                filter(lambda x: x in version_buffer_str, distro_dict.keys()))
+                filter(lambda x, buf=version_buffer_str: x in buf,
+                       distro_dict.keys()))
 
             if len(filtered_buffer) != 1:
                 if _check_spectrum(filtered_buffer):
-                    filtered_buffer=['Spectrum MPI']
+                    filtered_buffer = ['Spectrum MPI']
                 else:
                     # If we found multiple vendors, without it being Spectrum MPI and OpenMPI => error
                     continue
@@ -217,6 +206,9 @@ def detect_name(path_list):
 
 
 def try_rename(profile_id: str):
+    """
+    Analyze a profile for MPI libraries and rename it according to the vendor/version
+    """
     if not (data := Profile.controller().one({'name': profile_id})):
         LOGGER.debug("Error renaming profile: profile '%s' not found",
                      profile_id)

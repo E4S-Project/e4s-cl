@@ -161,11 +161,15 @@ class TestCase(unittest.TestCase):
 
     def assertCommandReturnValue(self, return_value, cmd, argv):
         retval, stdout, stderr = self.exec_command(cmd, argv)
+        if retval != return_value:
+            print(stderr, file=sys.stderr)
         self.assertEqual(retval, return_value)
         return stdout, stderr
 
     def assertNotCommandReturnValue(self, return_value, cmd, argv):
         retval, stdout, stderr = self.exec_command(cmd, argv)
+        if retval == return_value:
+            print(stderr, file=sys.stderr)
         self.assertNotEqual(retval, return_value)
         return stdout, stderr
 

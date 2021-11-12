@@ -11,7 +11,7 @@ from e4s_cl.cli.command import AbstractCommand
 class ProfileUnselectCommand(AbstractCommand):
     """``profile unselect`` subcommand."""
     def _construct_parser(self):
-        usage = "%s" % self.command
+        usage = f"{self.command}"
         parser = arguments.get_model_identifier(Profile,
                                                 prog=self.command,
                                                 usage=usage,
@@ -22,7 +22,7 @@ class ProfileUnselectCommand(AbstractCommand):
         profile_name = self._parse_args(argv).profile.get('name')
 
         if profile_name != Profile.selected().get('name'):
-            self.parser.error("Profile %s is not selected." % profile_name)
+            self.parser.error(f"Profile {profile_name} is not selected.")
 
         Profile.controller().unselect()
         return EXIT_SUCCESS
