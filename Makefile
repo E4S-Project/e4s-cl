@@ -195,12 +195,12 @@ test: install python_check
 format:
 	bash ./scripts/format.sh packages/e4s_cl
 
-ifeq ($(LINT),)
-	LINT=packages/e4s_cl
+ifeq ($(LINT_FILE),)
+LINT_FILE=packages/e4s_cl
 endif
 
 lint:
 	@$(PYTHON) -m pip install pylint
-	$(PYTHON) -m pylint --rcfile pylintrc --output-format=colorized -r n $(LINT)
+	$(PYTHON) -m pylint --rcfile pylintrc --output-format=colorized -r n $(LINT_FILE)
 
 #>============================================================================<
