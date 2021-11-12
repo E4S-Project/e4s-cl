@@ -10,18 +10,33 @@ To install a version from the sources, first clone the repository or download a 
 
     $ git clone https://github.com/E4S-Project/e4s-cl
 
-Script
+Default installation
 ************
 
-Install the script using :code:`make install`. The installation directory can be modified using the :code:`INSTALLDIR` variable:
+Install **e4s-cl** using :code:`make install`. The installation directory can be modified using the :code:`INSTALLDIR` variable:
 
 .. code-block:: bash
 
-    $ make INSTALLDIR=<prefix> install
+    $ make INSTALLDIR=<prefix> install [SYSTEM=<machine_name>]
 
 The **e4s-cl** program will be copied over to :code:`<prefix>/bin`. On success, a message will be printed with the full path to add to your :code:`PATH`.
 
 A python interpreter will be downloaded to ensure a compatible Python 3 version is available.
+
+.. admonition:: Installing on specific machine
+
+   Some machines have been tested for e4s-cl to work with, and profiles tailored \
+   for those systems have been created. The resulting profiles can be downloaded \
+   at install time to ease the initialisation step.
+
+   To enable such profiles, use the :code:`SYSTEM` argument when calling \
+   :code:`make` or :code:`make install`.
+
+   The following systems are supported:
+
+   * Theta at ALCF. Use machine name :code:`theta`;
+   * Spock at ORNL. Use machine name :code:`spock`.
+   
 
 Completion
 ************
