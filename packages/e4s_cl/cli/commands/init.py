@@ -2,19 +2,40 @@
 This command initializes E4S Container Launcher for the system's available MPI \
 library.
 
+A :ref:`profile<profile>` will be created with the collected results from the \
+initialization, and made accessible for the next :ref:`launch command<launch>`.
+This effectively simplifies execution, by implicitly targeting the right \
+libraries to be imported.
+
 Initialization can be achieved in multiple ways, depending on the arguments \
-passed. 
+passed to the command.
 
-Either the system is directly supported and a ready made profile can \
-be downloaded, a WI4MPI installation can be leveraged to bypass most of the \
-profile generation or simply the available MPI library is parsed and analyzed to \
-guess its running requirements.
+Using the system name
+-----------------------
 
-In all cases a :ref:`profile<profile>` is created with the collected results from the \
-analysis, and made accessible for the next :ref:`launch command<launch>`.
+If the current system is supported, use the :code:`--system` argument to \
+flag its use. The available values are listed when using :code:`e4s-cl init -h`.
 
-If no :ref:`profile<profile>` name is passed to :code:`--profile`, a profile \
-name will be generated from the parameters of the initialization.
+Using a WI4MPI installation
+----------------------------
+
+If an WI4MPI installation is present on the system, one can link a profile \
+to it using the :code:`--wi4mpi` and :code:`--wi4mpi_options` arguments. The \
+profile will contain this information and the installation will be used during launch.
+
+Using an installed MPI library
+--------------------------------
+
+This initialization method will create a profile from the execution analysis \
+of a sample MPI program. A program will be compiled from the library's compiler, \
+then run using a provided launcher. The opened files and libraries will be detected \
+using the :code:`ptrace` system call, and added to the resulting profile.
+
+The :code:`--mpi`, :code:`--launcher` and :code:`launcher_args` options can be \
+used to influence the initialization process. It is highly encouraged to load the \
+MPI library beforehand using the module system available \
+(:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the paths and dependencies \
+are valid and loaded as well.
 
 .. admonition:: The importance of inter-process communication
 
@@ -27,6 +48,9 @@ them from being detected.
     In case of error, it is good practice to \
 :ref:`perform this process manually<init_override>` to ensure the network \
 stack is used and exposed to **e4s-cl**.
+
+If no :ref:`profile<profile>` name is passed to :code:`--profile`, a profile \
+name will be generated from the version of the found MPI library.
 
 Examples
 ----------
@@ -49,13 +73,6 @@ Using an installation of WI4MPI:
 .. code::
 
     e4s-cl init --wi4mpi /packages/wi4mpi --wi4mpi_options "-T openmpi -F mpich"
-
-Using a specific system's profile:
-
-.. code::
-
-    e4s-cl init --system system_name
-
 """
 
 import os
@@ -174,7 +191,8 @@ class InitCommand(AbstractCommand):
 
         parser.add_argument(
             '--system',
-            help="Initialize e4s-cl for use on a specific system",
+            help="Initialize e4s-cl for use on a specific system"
+            " Available systems are: %s" % ", ".join(profiles().keys()),
             metavar='machine',
             default=arguments.SUPPRESS,
             choices=profiles().keys())
@@ -216,7 +234,7 @@ class InitCommand(AbstractCommand):
 
         parser.add_argument(
             '--backend',
-            help="Container backend to use by default with this profile." +
+            help="Container backend to use by default with this profile."
             " Available backends are: %s" % ", ".join(EXPOSED_BACKENDS),
             metavar='technology',
             default=arguments.SUPPRESS,
@@ -253,11 +271,16 @@ class InitCommand(AbstractCommand):
             args, 'launcher', False) or getattr(args, 'launcher_args', False)
 
         if system_args and wi4mpi_args:
-            self.parser.error("--system and --wi4mpi options are mutually exclusive")
+            self.parser.error(
+                "--system and --wi4mpi options are mutually exclusive")
         if system_args and detect_args:
-            self.parser.error("--system and --mpi | --launcher | --launcher_args options are mutually exclusive")
+            self.parser.error(
+                "--system and --mpi | --launcher | --launcher_args options are mutually exclusive"
+            )
         if detect_args and wi4mpi_args:
-            self.parser.error("--wi4mpi and --mpi | --launcher | --launcher_args options are mutually exclusive")
+            self.parser.error(
+                "--wi4mpi and --mpi | --launcher | --launcher_args options are mutually exclusive"
+            )
 
         profile_data = profile_from_args(args)
 
