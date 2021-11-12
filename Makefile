@@ -130,7 +130,7 @@ $(CONDA_SRC):
 #>============================================================================<
 # Main installation target
 
-install: python_check
+install: python_check download_assets
 	$(PYTHON) setup.py build -b "$(BUILDDIR)"
 	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
 	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
