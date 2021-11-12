@@ -166,8 +166,12 @@ html: python_check
 clean:
 	rm -fr build/ COMMIT VERSION
 
+ifeq ($(TEST_ENV),)
+TEST_ENV = shallow_test
+endif
+
 test: install python_check
-	$(PYTHON) -m tox tox.ini
+	$(PYTHON) -m tox tox.ini -e $(TEST_ENV)
 
 format:
 	bash ./scripts/format.sh packages/e4s_cl
