@@ -183,6 +183,11 @@ def select_binary(binary_dict):
         "Proceeding with legacy initialisation")
     return None
 
+def update_ld_path(posixpath):
+    os.environ["LD_LIBRARY_PATH"] = str(Path(posixpath) / "lib") + os.pathsep + os.environ["LD_LIBRARY_PATH"]
+    return os.environ["LD_LIBRARY_PATH"] 
+            
+
 
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
@@ -311,8 +316,6 @@ class InitCommand(AbstractCommand):
             # we need to analyze a binary to
             # determine the dynamic dependencies of the library
 
-            # TODO take into account args.mpi here
-            binary = select_binary(binaries())
 
             # Use the environment compiler per default
             compiler = util.which('mpicc')
@@ -327,6 +330,14 @@ class InitCommand(AbstractCommand):
                 mpirun = Path(args.mpi) / "bin" / "mpirun"
                 if mpirun.exists():
                     launcher = mpirun.as_posix()
+
+                # Update LD_LIBRARY_PATH if provided path exist
+                mpi_lib = Path(args.mpi) / "lib"
+                if mpi_lib.exists():
+                    os.environ["LD_LIBRARY_PATH"] = mpi_lib.as_posix()
+
+            # Select binary depending on available library
+            binary = select_binary(binaries())
 
             # Use the launcher passed as an argument in priority
             launcher = util.which(getattr(args, 'launcher', launcher))
