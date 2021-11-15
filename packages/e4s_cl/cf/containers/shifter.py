@@ -67,7 +67,7 @@ class ShifterContainer(Container):
                     "Shifter: Backend does not support file binding. Performance may be impacted."
                 )
 
-        return [f"--volume={t}:{t}" for t in volumes]
+        return [f"--volume={source}:{dest}" for (source, dest) in volumes]
 
     def run(self, command, redirect_stdout=False):
         env_list = []
