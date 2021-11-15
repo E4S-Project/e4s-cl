@@ -232,32 +232,30 @@ def _analyze_binary(args):
             return EXIT_FAILURE
         binary = compile_sample(compiler)
 
-    # If binary, check for launcher and then launch the detect command
-    if binary:
-        if not launcher:
-            LOGGER.error(
-                "No launcher detected. Please load a module, use the `--mpi` "
-                "or `--launcher` options to specify the launcher program to use."
-            )
+        # Exit now if we failed producing a compatible binary
+        if not binary:
             return EXIT_FAILURE
 
-        LOGGER.warning(
-            "Simulating MPI execution using:\nCompiler: %s\nLauncher %s",
-            compiler, " ".join([launcher, *launcher_args]))
-        check_mpirun(launcher)
+    # Check for launcher and then launch the detect command
+    if not launcher:
+        LOGGER.error(
+            "No launcher detected. Please load a module, use the `--mpi` "
+            "or `--launcher` options to specify the launcher program to use.")
+        return EXIT_FAILURE
 
-        # Run the program using the detect command and get a file list
+    LOGGER.warning(
+        "Simulating MPI execution using:\nCompiler: %s\nLauncher %s", compiler,
+        " ".join([launcher, *launcher_args]))
+    check_mpirun(launcher)
 
-        returncode = detect_command.main([launcher, *launcher_args, binary])
+    # Run the program using the detect command and get a file list
+    returncode = detect_command.main([launcher, *launcher_args, binary])
 
-        # Delete the temporary file
-        #os.unlink(binary)
+    if returncode != EXIT_SUCCESS:
+        LOGGER.error("MPI execution failed.")
+        return EXIT_FAILURE
 
-        if returncode != EXIT_SUCCESS:
-            LOGGER.error("Failed detecting libraries !")
-            return EXIT_FAILURE
-
-        try_rename(Profile.selected().get('name', ''))
+    try_rename(Profile.selected().get('name', ''))
 
     return EXIT_SUCCESS
 
@@ -384,10 +382,15 @@ class InitCommand(AbstractCommand):
         profile = controller.create(profile_data)
         controller.select(profile)
 
-        if profile_data['name'] == INIT_TEMP_PROFILE_NAME:
-            return _analyze_binary(args)
+        status = EXIT_SUCCESS
 
-        return EXIT_SUCCESS
+        if profile_data['name'] == INIT_TEMP_PROFILE_NAME:
+            status = _analyze_binary(args)
+
+            if status == EXIT_FAILURE:
+                controller.delete({"name": INIT_TEMP_PROFILE_NAME})
+
+        return status
 
 
 SUMMARY = "Initialize %(prog)s with the accessible MPI library, and create a profile with the results."
