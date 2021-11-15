@@ -79,6 +79,7 @@ import os
 import json
 import tempfile
 import subprocess
+import shlex
 from pathlib import Path
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
@@ -183,10 +184,82 @@ def select_binary(binary_dict):
         "Proceeding with legacy initialisation")
     return None
 
+
 def update_ld_path(posixpath):
-    os.environ["LD_LIBRARY_PATH"] = str(Path(posixpath) / "lib") + os.pathsep + os.environ["LD_LIBRARY_PATH"]
-    return os.environ["LD_LIBRARY_PATH"] 
-            
+    os.environ["LD_LIBRARY_PATH"] = str(
+        Path(posixpath) / "lib") + os.pathsep + os.environ["LD_LIBRARY_PATH"]
+    return os.environ["LD_LIBRARY_PATH"]
+
+
+def _analyze_binary(args):
+    # If no profile has been loaded or wi4mpi is not used, then
+    # we need to analyze a binary to
+    # determine the dynamic dependencies of the library
+
+    # Use the environment compiler per default
+    compiler = util.which('mpicc')
+    launcher = util.which('mpirun')
+
+    # If a library is specified, get the executables
+    if getattr(args, 'mpi', None):
+        mpicc = Path(args.mpi) / "bin" / "mpicc"
+        if mpicc.exists():
+            compiler = mpicc.as_posix()
+
+        mpirun = Path(args.mpi) / "bin" / "mpirun"
+        if mpirun.exists():
+            launcher = mpirun.as_posix()
+
+        # Update LD_LIBRARY_PATH if provided path exist
+        mpi_lib = Path(args.mpi) / "lib"
+        if mpi_lib.exists():
+            os.environ["LD_LIBRARY_PATH"] = mpi_lib.as_posix()
+
+    # Select binary depending on available library
+    binary = select_binary(binaries())
+
+    # Use the launcher passed as an argument in priority
+    launcher = util.which(getattr(args, 'launcher', launcher))
+    launcher_args = shlex.split(getattr(args, 'launcher_args', ''))
+
+    # If no binary, check for compiler and compile a binary
+    if not binary:
+        if not compiler:
+            LOGGER.error(
+                "No MPI compiler detected. Please load a module or "
+                "use the `--mpi` option to specify the MPI installation to use."
+            )
+            return EXIT_FAILURE
+        binary = compile_sample(compiler)
+
+    # If binary, check for launcher and then launch the detect command
+    if binary:
+        if not launcher:
+            LOGGER.error(
+                "No launcher detected. Please load a module, use the `--mpi` "
+                "or `--launcher` options to specify the launcher program to use."
+            )
+            return EXIT_FAILURE
+
+        LOGGER.warning(
+            "Simulating MPI execution using:\nCompiler: %s\nLauncher %s",
+            compiler, " ".join([launcher, *launcher_args]))
+        check_mpirun(launcher)
+
+        # Run the program using the detect command and get a file list
+
+        returncode = detect_command.main([launcher, *launcher_args, binary])
+
+        # Delete the temporary file
+        #os.unlink(binary)
+
+        if returncode != EXIT_SUCCESS:
+            LOGGER.error("Failed detecting libraries !")
+            return EXIT_FAILURE
+
+        try_rename(Profile.selected().get('name', ''))
+
+    return EXIT_SUCCESS
 
 
 class InitCommand(AbstractCommand):
@@ -200,7 +273,7 @@ class InitCommand(AbstractCommand):
         parser.add_argument(
             '--system',
             help="Initialize e4s-cl for use on a specific system"
-            " Available systems are: %s" % ", ".join(profiles().keys()),
+            f" Available systems are: {', '.join(profiles().keys())}",
             metavar='machine',
             default=arguments.SUPPRESS,
             choices=profiles().keys())
@@ -312,70 +385,7 @@ class InitCommand(AbstractCommand):
         controller.select(profile)
 
         if profile_data['name'] == INIT_TEMP_PROFILE_NAME:
-            # If no profile has been loaded or wi4mpi is not used, then
-            # we need to analyze a binary to
-            # determine the dynamic dependencies of the library
-
-
-            # Use the environment compiler per default
-            compiler = util.which('mpicc')
-            launcher = util.which('mpirun')
-
-            # If a library is specified, get the executables
-            if getattr(args, 'mpi', None):
-                mpicc = Path(args.mpi) / "bin" / "mpicc"
-                if mpicc.exists():
-                    compiler = mpicc.as_posix()
-
-                mpirun = Path(args.mpi) / "bin" / "mpirun"
-                if mpirun.exists():
-                    launcher = mpirun.as_posix()
-
-                # Update LD_LIBRARY_PATH if provided path exist
-                mpi_lib = Path(args.mpi) / "lib"
-                if mpi_lib.exists():
-                    os.environ["LD_LIBRARY_PATH"] = mpi_lib.as_posix()
-
-            # Select binary depending on available library
-            binary = select_binary(binaries())
-
-            # Use the launcher passed as an argument in priority
-            launcher = util.which(getattr(args, 'launcher', launcher))
-
-            # If no binary, check for compiler and compile a binary
-            if not binary:
-                if not compiler:
-                    LOGGER.error(
-                        "No MPI compiler detected. Please load a module or "
-                        "use the `--mpi` option to specify the MPI installation to use."
-                    )
-                    return EXIT_FAILURE
-                binary = compile_sample(compiler)
-
-            # If binary, check for launcher and then launch the detect command
-            if binary:
-                if not launcher:
-                    LOGGER.error(
-                        "No launcher detected. Please load a module, use the `--mpi` "
-                        "or `--launcher` options to specify the launcher program to use."
-                    )
-                    return EXIT_FAILURE
-
-                LOGGER.debug("Using MPI:\nCompiler: %s\nLauncher %s", compiler,
-                             launcher)
-                check_mpirun(launcher)
-
-                # Run the program using the detect command and get a file list
-                returncode = detect_command.main([launcher, binary])
-
-                # Delete the temporary file
-                #os.unlink(binary)
-
-                if returncode != EXIT_SUCCESS:
-                    LOGGER.error("Failed detecting libraries !")
-                    return EXIT_FAILURE
-
-                try_rename(Profile.selected().get('name', ''))
+            return _analyze_binary(args)
 
         return EXIT_SUCCESS
 
