@@ -254,13 +254,13 @@ def _analyze_binary(args):
     return EXIT_SUCCESS
 
 
-def _special_clauses(arguments) -> bool:
+def _special_clauses(args) -> bool:
     """
     Skip analysis step when certain conditions are met
     """
 
     # If using shifter, do not try to profile a library
-    if getattr(arguments, 'backend', '') == 'shifter':
+    if getattr(args, 'backend', '') == 'shifter':
         return False
 
     return True
@@ -381,6 +381,10 @@ class InitCommand(AbstractCommand):
 
         controller = Profile.controller()
 
+        # Erase any leftover temporary profiles
+        if controller.one({"name": INIT_TEMP_PROFILE_NAME}):
+            controller.delete({"name": INIT_TEMP_PROFILE_NAME})
+
         # Create and select a profile for use
         profile = controller.create(profile_data)
         controller.select(profile)
@@ -389,10 +393,18 @@ class InitCommand(AbstractCommand):
 
         if profile_data['name'] == INIT_TEMP_PROFILE_NAME and _special_clauses(
                 args):
-            status = _analyze_binary(args)
+            try:
+                status = _analyze_binary(args)
 
-            if status == EXIT_FAILURE:
+                if status == EXIT_FAILURE:
+                    controller.delete({"name": INIT_TEMP_PROFILE_NAME})
+            except KeyboardInterrupt:
                 controller.delete({"name": INIT_TEMP_PROFILE_NAME})
+
+        if Profile.selected().get('name') == INIT_TEMP_PROFILE_NAME:
+            hash_ = util.hash256(json.dumps(Profile.selected()))
+            controller.update({'name': f"default-{hash_[:16]}"},
+                              Profile.selected().eid)
 
         # Rename the profile to the name passed as an argument
         if requested_name := getattr(args, 'profile_name', ''):
@@ -400,8 +412,7 @@ class InitCommand(AbstractCommand):
             if controller.one({"name": requested_name}):
                 controller.delete({"name": requested_name})
             # Rename the profile created and selected above
-            Profile.controller().update({'name': requested_name},
-                                        Profile.selected().eid)
+            controller.update({'name': requested_name}, Profile.selected().eid)
 
         return status
 
