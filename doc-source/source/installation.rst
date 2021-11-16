@@ -35,7 +35,9 @@ A python interpreter will be downloaded to ensure a compatible Python 3 version 
    The following systems are supported:
 
    * Theta at ALCF. Use machine name :code:`theta`;
-   * Spock at ORNL. Use machine name :code:`spock`.
+   * Spock at ORNL. Use machine name :code:`spock`;
+   * Cori at NERSC. Use machine name :code:`cori`;
+   * Perlmutter at NERSC. Use machine name :code:`perlmutter`.
    
 
 Completion
