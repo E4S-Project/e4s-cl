@@ -2,6 +2,8 @@ v1.0rc5
 ---------------------
 
 - Added automatic profile naming based on used MPI vendor and version 
+- Added built-in profiles
+- Added sample binaries to profile distribution without compilers
 - Singularity features:
     - Prevented system-specific rules from altering execution via --contain
     - Ensured the PWD is conserved in containers (fixed #30)
