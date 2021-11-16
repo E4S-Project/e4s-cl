@@ -28,8 +28,8 @@ class Version(list):
 
     def __gt__(self, rhs):
         if not isinstance(rhs, Version):
-            raise InternalError("Invalid operation > with object of type %s" %
-                                type(rhs))
+            raise InternalError(
+                f"Invalid operation > with object of type {type(rhs)}")
 
         for lhs_d, rhs_d in zip(self, rhs):
             if lhs_d != rhs_d:

@@ -1,9 +1,12 @@
 """
 Modify the profile associated to the name passed as an argument.
 
-Passing a value to the options **--new_name**, **--backend**, **--image**, **--source** will overwrite the profile's corresponding field.
+Passing a value to the options **--new_name**, **--backend**, \
+**--image**, **--source** will overwrite the profile's corresponding field.
 
-Passing a value to **--add-files**, **--remove-files**, **--add-libraries**, **--remove-libraries** will add or remove elements from the list of files or libraries, accordingly.
+Passing a value to **--add-files**, **--remove-files**, **--add-libraries**, \
+**--remove-libraries** will add or remove elements from the list \
+of files or libraries, accordingly.
 
 The name argument can be omitted, in which case the selected profile is modified.
 """
@@ -22,7 +25,7 @@ LOGGER = get_logger(__name__)
 class ProfileEditCommand(EditCommand):
     """``profile edit`` subcommand."""
     def _construct_parser(self):
-        usage = "%s <profile_name> [arguments]" % self.command
+        usage = f"{self.command} <profile_name> [arguments]"
         parser = arguments.get_model_identifier(self.model,
                                                 prog=self.command,
                                                 usage=usage,
@@ -37,7 +40,7 @@ class ProfileEditCommand(EditCommand):
         parser.add_argument(
             '--backend',
             help="change the profile's container technology." +
-            " Available backends are: %s" % ", ".join(EXPOSED_BACKENDS),
+            f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
             metavar='<backend>',
             dest='backend',
             default=arguments.SUPPRESS)

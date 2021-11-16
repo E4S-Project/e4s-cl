@@ -1,3 +1,7 @@
+"""
+Module home of the argument parser methods and helpers
+"""
+
 import sys
 import re
 import copy
@@ -8,7 +12,7 @@ from gettext import gettext as _
 from operator import attrgetter
 from e4s_cl import logger, util
 from e4s_cl.cli import USAGE_FORMAT
-from e4s_cl.util import flatten, add_dot
+from e4s_cl.util import add_dot
 from e4s_cl.error import InternalError
 from e4s_cl.cf.storage.levels import ORDERED_LEVELS, STORAGE_LEVELS
 
@@ -70,7 +74,7 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
     def exit(self, status=0, message=None):
         if status and message:
             LOGGER.error(message)
-        exit(status)
+        sys.exit(status)
 
     def error(self, message):
         """From the sources of python 3.8:
@@ -143,8 +147,9 @@ class MutableArgumentGroupParser(argparse.ArgumentParser):
     def format_help(self):
         try:
             func = getattr(self, '_format_help_' + USAGE_FORMAT.lower())
-        except AttributeError:
-            raise InternalError("Invalid USAGE_FORMAT: %s" % USAGE_FORMAT)
+        except AttributeError as attr_err:
+            raise InternalError(
+                f"Invalid USAGE_FORMAT: {USAGE_FORMAT}") from attr_err
         return func()
 
     def _sorted_groups(self):
@@ -237,23 +242,22 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
         return parts
 
     def _get_help_string(self, action):
-        indent = ' ' * self._indent_increment
         helpstr = add_dot(action.help)
         helpstr = helpstr[0].upper() + helpstr[1:]
-        """Disabled in favour of per-help customization
-        if choices := getattr(action, 'choices', None)
-            helpstr += '\n%s- %s: %s' % (indent, action.metavar,
-                                         ', '.join(choices))
-        """
-        if '%(default)' not in action.help:
-            if action.default is not argparse.SUPPRESS:
-                defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
-                if action.option_strings or action.nargs in defaulting_nargs:
-                    if isinstance(action.default, list):
-                        default_str = ', '.join(action.default)
-                    else:
-                        default_str = str(action.default)
-                    #helpstr += '\n%s' % indent + '- default: %s' % default_str
+        # Disabled in favour of per-help customization
+        # indent = ' ' * self._indent_increment
+        # if choices := getattr(action, 'choices', None)
+        # helpstr += '\n%s- %s: %s' % (indent, action.metavar,
+        # ', '.join(choices))
+        # if '%(default)' not in action.help:
+        # if action.default is not argparse.SUPPRESS:
+        # defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
+        # if action.option_strings or action.nargs in defaulting_nargs:
+        # if isinstance(action.default, list):
+        # default_str = ', '.join(action.default)
+        # else:
+        # default_str = str(action.default)
+        #helpstr += '\n%s' % indent + '- default: %s' % default_str
         return helpstr
 
     def _format_positional(self, argstr):
@@ -274,21 +278,20 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
     def _format_args(self, action, default_metavar):
         get_metavar = self._metavar_formatter(action, default_metavar)
         if action.nargs is None:
-            result = self._format_requred_arg('%s' % get_metavar(1))
+            result = self._format_requred_arg(f'{get_metavar(1)}')
         elif action.nargs == argparse.OPTIONAL:
-            result = self._format_optional_arg('[%s]' % get_metavar(1))
+            result = self._format_optional_arg(f'[{get_metavar(1)}]')
         elif action.nargs == argparse.ZERO_OR_MORE:
             result = self._format_optional_arg('[%s [%s ...]]' %
                                                get_metavar(2))
         elif action.nargs == argparse.ONE_OR_MORE:
             tpl = get_metavar(2)
             result = self._format_requred_arg(
-                '%s' % tpl[0]) + self._format_optional_arg(
-                    ' [%s ...]' % tpl[1])
+                f'{tpl[0]}') + self._format_optional_arg(f' [{tpl[1]} ...]')
         elif action.nargs == argparse.REMAINDER:
             result = self._format_requred_arg('...')
         elif action.nargs == argparse.PARSER:
-            result = self._format_requred_arg('%s ...' % get_metavar(1))
+            result = self._format_requred_arg(f'{get_metavar(1)} ...')
         else:
             formats = ['%s' for _ in range(action.nargs)]
             result = ' '.join(formats) % get_metavar(action.nargs)
@@ -298,19 +301,18 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
         if not action.option_strings:
             metavar, = self._metavar_formatter(action, action.dest)(1)
             return self._format_positional(metavar)
+
+        parts = []
+        if action.nargs == 0:
+            parts.extend(
+                self._format_optional(x) for x in action.option_strings)
         else:
-            parts = []
-            if action.nargs == 0:
-                parts.extend(
-                    self._format_optional(x) for x in action.option_strings)
-            else:
-                default = action.dest.upper()
-                args_string = self._format_args(action, default)
-                for option_string in action.option_strings:
-                    parts.append(
-                        '%s %s' %
-                        (self._format_optional(option_string), args_string))
-            return ', '.join(parts)
+            default = action.dest.upper()
+            args_string = self._format_args(action, default)
+            for option_string in action.option_strings:
+                parts.append(
+                    f'{self._format_optional(option_string)} {args_string}')
+        return ', '.join(parts)
 
 
 class ConsoleHelpFormatter(HelpFormatter):
@@ -414,9 +416,8 @@ class MarkdownHelpFormatter(HelpFormatter):
             if self.heading is not SUPPRESS and self.heading is not None:
                 title = '{:<{}}'.format(self.heading,
                                         MarkdownHelpFormatter.first_col_width)
-                heading = ' \n%s | %s\n%s:| %s' % (title, 'Description',
-                                                   '-' * len(title),
-                                                   '-' * len('Description'))
+                heading = f" \n{title} | Description\n{'-' * len(title)}:| {'-' * len('Description')}"
+
             else:
                 heading = ''
             return join(['\n', heading, '\n', item_help, '\n'])
@@ -442,12 +443,12 @@ class MarkdownHelpFormatter(HelpFormatter):
         choices = getattr(action, 'choices', None)
         if choices:
             helpstr += self._escape_markdown(
-                '\n  - %s: %s' % (action.metavar, ', '.join(choices)))
+                f'\n  - {action.metavar}: {", ".join(choices)}')
         return helpstr
 
     def _format_usage(self, usage, actions, groups, prefix):
         usage = super()._format_usage(usage, actions, groups, "")
-        return "`%s`" % usage.strip() + '\n\n'
+        return f"`{usage.strip()}`" + '\n\n'
 
     def _format_action_invocation(self, action):
         invocation = super()._format_action_invocation(action)
@@ -482,7 +483,7 @@ class MarkdownHelpFormatter(HelpFormatter):
 class ParseBooleanAction(argparse.Action):
     """Argument parser action for boolean values.
     
-    Essentially a wrapper around :any:`taucmdr.util.parse_bool`.
+    Essentially a wrapper around :any:`e4s_cl.util.parse_bool`.
     """
 
     # pylint: disable=too-few-public-methods
@@ -490,7 +491,7 @@ class ParseBooleanAction(argparse.Action):
     def __call__(self, parser, namespace, value, unused_option_string=None):
         """Sets the `self.dest` attribute in `namespace` to the parsed value of `value`.
         
-        If `value` parses to a boolean via :any:`taucmdr.util.parse_bool` then the 
+        If `value` parses to a boolean via :any:`e4s_cl.util.parse_bool` then the 
         attribute value is that boolean value.
             
         Args:
@@ -500,8 +501,9 @@ class ParseBooleanAction(argparse.Action):
         """
         try:
             setattr(namespace, self.dest, util.parse_bool(value))
-        except TypeError:
-            raise argparse.ArgumentError(self, 'Boolean value required')
+        except TypeError as type_err:
+            raise argparse.ArgumentError(
+                self, 'Boolean value required') from type_err
 
 
 def get_parser(prog=None, usage=None, description=None, epilog=None):
@@ -522,8 +524,9 @@ def get_parser(prog=None, usage=None, description=None, epilog=None):
     try:
         formatter = getattr(sys.modules[__name__],
                             USAGE_FORMAT.capitalize() + 'HelpFormatter')
-    except AttributeError:
-        raise InternalError("Invalid USAGE_FORMAT: %s" % USAGE_FORMAT)
+    except AttributeError as attr_err:
+        raise InternalError(
+            f"Invalid USAGE_FORMAT: {USAGE_FORMAT}") from attr_err
     return MutableArgumentGroupParser(prog=prog,
                                       usage=usage,
                                       description=description,
@@ -584,7 +587,7 @@ def get_parser_from_model(model,
             options = dict(props['argparse'])
         except KeyError:
             if 'primary_key' in props:
-                options = {'metavar': '<%s_%s>' % (model.name.lower(), attr)}
+                options = {'metavar': f'<{model.name.lower()}_{attr}>'}
             else:
                 continue
         if use_defaults:
@@ -657,10 +660,10 @@ def get_model_identifier(model,
         model_name,
         nargs='?',
         type=defined_object(model, key_attr),
-        help="The target %s. If omitted, defaults to the selected %s" %
-        (model_name, model_name),
+        help=
+        f"The target {model_name}. If omitted, defaults to the selected {model_name}",
         default=_default,
-        metavar="%s_%s" % (model_name, key_attr))
+        metavar=f"{model_name}_{key_attr}")
 
     return parser
 
@@ -722,8 +725,8 @@ def existing_posix_path(string):
     path = pathlib.Path(string.strip())
 
     if not path.exists():
-        raise argparse.ArgumentTypeError("File {} does not exist".format(
-            path.as_posix()))
+        raise argparse.ArgumentTypeError(
+            f"File {path.as_posix()} does not exist")
 
     return path
 
@@ -739,21 +742,17 @@ def defined_object(model, field):
     Asserts that the string corresponds to an existing object."""
     def wrapper(string):
         if string == UNSELECTED:
-            raise argparse.ArgumentTypeError("no %s selected nor specified" %
-                                             model.name)
+            raise argparse.ArgumentTypeError(
+                f"no {model.name} selected nor specified")
 
         objects = model.controller().match(field,
-                                           regex=("^%s.*" % re.escape(string)))
+                                           regex=(f"^{re.escape(string)}.*"))
         exact_matches = list(filter(lambda x: x.get(field) == string, objects))
 
         if len(objects) != 1 and not len(exact_matches) == 1:
             raise argparse.ArgumentTypeError(
-                "Pattern '%(pattern)s' does not identify a single %(model)s: %(matches)s %(model)ss match"
-                % {
-                    "model": model.name.lower(),
-                    "pattern": string,
-                    "matches": len(objects)
-                })
+                f"Pattern '{string}' does not identify a single {model.name.lower()}: \
+                        {len(objects)} {model.name.lower()}s match")
 
         if exact_matches:
             return exact_matches[0]

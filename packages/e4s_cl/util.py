@@ -585,3 +585,10 @@ def add_dot(string: str) -> str:
     if string[-1] in ['.', '!', '?']:
         return string
     return string + '.'
+
+
+def update_ld_path(posixpath):
+    os.environ["LD_LIBRARY_PATH"] = Path(
+        posixpath,
+        "lib").as_posix() + os.pathsep + os.environ["LD_LIBRARY_PATH"]
+    return os.environ["LD_LIBRARY_PATH"]

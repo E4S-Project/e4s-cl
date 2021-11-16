@@ -2,6 +2,7 @@
 Command stubs, inherited from taucmdr
 """
 
+import re
 import json
 from texttable import Texttable
 from e4s_cl import EXIT_SUCCESS
@@ -48,12 +49,11 @@ class AbstractCliView(AbstractCommand):
 class RootCommand(AbstractCliView):
     """A command with subcommands for actions."""
     def _construct_parser(self):
-        usage = "%s <subcommand> [arguments]" % self.command
+        usage = f"{self.command} <subcommand> [arguments]"
         epilog = [
             '',
             cli.commands_description(self.module_name), '',
-            "See `%s <subcommand> --help` for more information on a subcommand."
-            % self.command
+            f"See `{self.command} <subcommand> --help` for more information on a subcommand."
         ]
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
@@ -83,8 +83,7 @@ class CreateCommand(AbstractCliView):
         super().__init__(*args, **kwargs)
 
     def _construct_parser(self):
-        usage = "%s <%s_%s> [arguments]" % (self.command, self.model_name,
-                                            self.model.key_attribute)
+        usage = f"{self.command} <{self.model_name}_{self.model.key_attribute}> [arguments]"
         parser = arguments.get_parser_from_model(self.model,
                                                  prog=self.command,
                                                  usage=usage,
@@ -112,8 +111,8 @@ class CreateCommand(AbstractCliView):
         try:
             ctrl.create(data)
         except UniqueAttributeError:
-            self.parser.error("A %s with %s='%s' already exists" %
-                              (self.model_name, key_attr, key))
+            self.parser.error(
+                f"A {self.model_name} with {key_attr}='{key}' already exists")
         return EXIT_SUCCESS
 
     def main(self, argv):
@@ -135,8 +134,7 @@ class DeleteCommand(AbstractCliView):
 
     def _construct_parser(self):
         key_attr = self.model.key_attribute
-        usage = "%s <%s_%s> [arguments]" % (self.command, self.model_name,
-                                            key_attr)
+        usage = f"{self.command} <{self.model_name}_{key_attr}> [arguments]"
         epilog = util.color_text("WARNING: THIS OPERATION IS NOT REVERSABLE!",
                                  'yellow',
                                  attrs=['bold'])
@@ -144,11 +142,12 @@ class DeleteCommand(AbstractCliView):
                                       usage=usage,
                                       description=self.summary,
                                       epilog=epilog)
-        parser.add_argument(key_attr,
-                            help="%s of %s configuration to delete" %
-                            (key_attr.capitalize(), self.model_name),
-                            nargs="+",
-                            metavar='<%s_%s>' % (self.model_name, key_attr))
+        parser.add_argument(
+            key_attr,
+            help=
+            f"{key_attr.capitalize()} of {self.model_name} configuration to delete",
+            nargs="+",
+            metavar=f"<{self.model_name}_{key_attr}>")
         if self.include_storage_flag:
             arguments.add_storage_flag(parser, "delete", self.model_name)
         return parser
@@ -157,8 +156,9 @@ class DeleteCommand(AbstractCliView):
         key_attr = self.model.key_attribute
         ctrl = self.model.controller(store)
         if not ctrl.exists({key_attr: key}):
-            self.parser.error("No %s-level %s with %s='%s'." %
-                              (store.name, self.model_name, key_attr, key))
+            self.parser.error(
+                f"No {store.name}-level {self.model_name} with {key_attr}='{key}'."
+            )
         ctrl.delete({key_attr: key})
         self.logger.info("Deleted %s '%s'", self.model_name, key)
         return EXIT_SUCCESS
@@ -182,18 +182,17 @@ class EditCommand(AbstractCliView):
 
     def _construct_parser(self):
         key_attr = self.model.key_attribute
-        usage = "%s <%s_%s> [arguments]" % (self.command, self.model_name,
-                                            key_attr)
+        usage = f"{self.command} <{self.model_name}_{key_attr}> [arguments]"
         parser = arguments.get_parser_from_model(self.model,
                                                  use_defaults=False,
                                                  prog=self.command,
                                                  usage=usage,
                                                  description=self.summary)
         if self.include_new_key_flag:
-            group = parser.add_argument_group('%s arguments' % self.model_name)
-            group.add_argument('--new-%s' % key_attr,
-                               help="change the configuration's %s" % key_attr,
-                               metavar='<new_%s>' % key_attr,
+            group = parser.add_argument_group(f'{self.model_name} arguments')
+            group.add_argument(f"--new-{key_attr}",
+                               help=f"change the configuration's {key_attr}",
+                               metavar=f"<new_{key_attr}>",
                                dest='new_key',
                                default=arguments.SUPPRESS)
         if self.include_storage_flag:
@@ -205,8 +204,8 @@ class EditCommand(AbstractCliView):
         key_attr = self.model.key_attribute
         if not ctrl.exists({key_attr: key}):
             self.parser.error(
-                "No %s-level %s with %s='%s'." %
-                (ctrl.storage.name, self.model_name, key_attr, key))
+                f"No {ctrl.storage.name}-level {self.model_name} with {key_attr}='{key}'."
+            )
         ctrl.update(data, {key_attr: key})
         self.logger.info("Updated %s '%s'", self.model_name, key)
         return EXIT_SUCCESS
@@ -294,7 +293,7 @@ class ListCommand(AbstractCliView):
                 elif 'function' in col:
                     cell = col['function'](populated)
                 else:
-                    raise InternalError("Invalid column definition: %s" % col)
+                    raise InternalError(f"Invalid column definition: {col}")
                 row.append(cell)
             rows.append(row)
         table = Texttable(logger.LINE_WIDTH)
@@ -329,7 +328,7 @@ class ListCommand(AbstractCliView):
             elif attrs['type'] != 'string':
                 val = str(val)
         else:
-            raise InternalError("Attribute has no type: %s, %s" % (attrs, val))
+            raise InternalError(f"Attribute has no type: {attrs}, {val}")
         description = attrs.get('description', 'No description')
         description = description[0].upper() + description[1:] + "."
         return [key, val, description]
@@ -367,10 +366,7 @@ class ListCommand(AbstractCliView):
     def _construct_parser(self):
         key_str = self.model_name + '_' + self.model.key_attribute
         usage_head = (
-            "%(command)s [%(key_str)s] [%(key_str)s] ... [arguments]" % {
-                'command': self.command,
-                'key_str': key_str
-            })
+            f"{self.command} [{key_str}] [{key_str}] ... [arguments]")
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage_head,
                                       description=self.summary)
@@ -470,13 +466,15 @@ class ListCommand(AbstractCliView):
         else:
             key_attr = self.model.key_attribute
             matches = [
-                ctrl.match(key_attr, regex=("^%s.*" % key)) for key in keys
+                ctrl.match(key_attr, regex=f"^{re.escape(key)}.*")
+                for key in keys
             ]
 
             for i, record in enumerate(matches):
                 if not record:
-                    self.parser.error("No %s with %s matching '%s'" %
-                                      (self.model_name, key_attr, keys[i]))
+                    self.parser.error(
+                        f"No {self.model_name} with {key_attr} matching '{keys[i]}'"
+                    )
 
             records = list(set(util.flatten(matches)))
 
@@ -500,7 +498,7 @@ class ListCommand(AbstractCliView):
         except StorageError:
             records = []
         if not records:
-            parts = ["No %ss." % self.model_name]
+            parts = [f"No {self.model_name}s."]
         else:
             formatter = getattr(self, style + '_format')
             parts = formatter(records)
@@ -601,14 +599,15 @@ class DumpCommand(AbstractCliView):
             if len(keys) == 1:
                 records = ctrl.search({key_attr: keys[0]})
                 if not records:
-                    self.parser.error("No %s with %s '%s'" %
-                                      (self.model_name, key_attr, keys[0]))
+                    self.parser.error(
+                        f"No {self.model_name} with {key_attr} '{keys[0]}'")
             else:
                 records = ctrl.search([{key_attr: key} for key in keys])
                 for i, record in enumerate(records):
                     if not record:
-                        self.parser.error("No %s with %s '%s'" %
-                                          (self.model_name, key_attr, keys[i]))
+                        self.parser.error(
+                            f"No {self.model_name} with {key_attr} '{keys[i]}'"
+                        )
         return records
 
     def _dump_records(self, storage_levels, keys):
@@ -680,18 +679,17 @@ class CopyCommand(CreateCommand):
 
     def _construct_parser(self):
         key_attr = self.model.key_attribute
-        usage = ("%s <%s_%s> <copy_%s> [arguments]" %
-                 (self.command, self.model_name, key_attr, key_attr))
+        usage = f"{self.command} <{self.model_name}_{key_attr}> <copy_{key_attr}> [arguments]"
         parser = arguments.get_model_identifier(self.model,
                                                 prog=self.command,
                                                 usage=usage,
                                                 description=self.summary)
-        group = parser.add_argument_group('%s arguments' % self.model_name)
-        group.add_argument('copy_%s' % key_attr,
-                           help="new %s configuration's %s" %
-                           (self.model_name, key_attr),
-                           metavar='<copy_%s>' % key_attr,
-                           default=arguments.SUPPRESS)
+        group = parser.add_argument_group(f'{self.model_name} arguments')
+        group.add_argument(
+            f'copy_{key_attr}',
+            help=f"new {self.model_name} configuration's {key_attr}",
+            metavar=f'<copy_{key_attr}>',
+            default=arguments.SUPPRESS)
         if self.include_storage_flag:
             arguments.add_storage_flag(parser, "copy", self.model_name)
         return parser
@@ -702,12 +700,12 @@ class CopyCommand(CreateCommand):
         matching = ctrl.search({key_attr: key})
         if not matching:
             self.parser.error(
-                "No %s-level %s with %s='%s'." %
-                (ctrl.storage.name, self.model_name, key_attr, key))
+                f"No {ctrl.storage.name}-level {self.model_name} with {key_attr}='{key}'."
+            )
         elif len(matching) > 1:
             raise InternalError(
-                "More than one %s-level %s with %s='%s' exists!" %
-                (ctrl.storage.name, self.model_name, key_attr, key))
+                f"More than one {ctrl.storage.name}-level {self.model_name} with {key_attr}='{key}' exists!"
+            )
         else:
             found = matching[0]
         data = dict(found)
@@ -724,7 +722,7 @@ class CopyCommand(CreateCommand):
         }
         key_attr = self.model.key_attribute
         try:
-            data[key_attr] = getattr(args, 'copy_%s' % key_attr)
+            data[key_attr] = getattr(args, f'copy_{key_attr}')
         except AttributeError:
             pass
         key = _object.get(key_attr)

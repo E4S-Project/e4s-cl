@@ -24,7 +24,7 @@ class AnalyzeCommand(AbstractCommand):
     composite environment.
     """
     def _construct_parser(self):
-        usage = "%s" % self.command
+        usage = f"{self.command}"
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage,
                                       description=self.summary)

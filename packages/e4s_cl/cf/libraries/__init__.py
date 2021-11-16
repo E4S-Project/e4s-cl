@@ -71,8 +71,8 @@ def library_links(shared_object: Library):
     returned.
     """
     if not isinstance(shared_object, Library):
-        raise InternalError("Wrong argument type for import_libraries: %s" %
-                            type(shared_object))
+        raise InternalError(
+            f"Wrong argument type for import_libraries: {type(shared_object)}")
 
     libname = Path(shared_object.binary_path).name
 
@@ -86,7 +86,7 @@ def library_links(shared_object: Library):
     library_file = realpath(shared_object.binary_path)
 
     def _glob_links(prefix_):
-        for file in list(Path(library_file).parent.glob("%s.so*" % prefix_)):
+        for file in list(Path(library_file).parent.glob(f"{prefix_}.so*")):
             if realpath(file) == library_file:
                 cleared.add(file)
 

@@ -46,13 +46,12 @@ def host_libraries(regen_cache=False):
 
     if regen_cache:
         cache_args = ['-C', custom.name]
-        generation, _ = create_subprocess_exp(
-            [ldconfig_path, *cache_args], redirect_stdout=True)
+        generation, _ = create_subprocess_exp([ldconfig_path, *cache_args],
+                                              redirect_stdout=True)
 
-    parsing, output = create_subprocess_exp(
-        [ldconfig_path, *cache_args, '-p'],
-        log=False,
-        redirect_stdout=True)
+    parsing, output = create_subprocess_exp([ldconfig_path, *cache_args, '-p'],
+                                            log=False,
+                                            redirect_stdout=True)
 
     if generation or parsing:
         LOGGER.error("Error getting libraries using %s", ldconfig_path)
@@ -98,8 +97,8 @@ def resolve(soname, rpath=None, runpath=None):
     """
 
     found = None
-    rpath = rpath or list()
-    runpath = runpath or list()
+    rpath = rpath or []
+    runpath = runpath or []
 
     def _valid(path):
         return os.path.exists(path) and os.path.isdir(path)
