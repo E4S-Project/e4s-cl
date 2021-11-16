@@ -254,6 +254,18 @@ def _analyze_binary(args):
     return EXIT_SUCCESS
 
 
+def _special_clauses(arguments) -> bool:
+    """
+    Skip analysis step when certain conditions are met
+    """
+
+    # If using shifter, do not try to profile a library
+    if getattr(arguments, 'backend', '') == 'shifter':
+        return False
+
+    return True
+
+
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
     def _construct_parser(self):
@@ -369,16 +381,14 @@ class InitCommand(AbstractCommand):
 
         controller = Profile.controller()
 
-        # Erase any potential existing profile
-        if controller.one({"name": profile_data.get('name')}):
-            controller.delete({"name": profile_data.get('name')})
-
+        # Create and select a profile for use
         profile = controller.create(profile_data)
         controller.select(profile)
 
         status = EXIT_SUCCESS
 
-        if profile_data['name'] == INIT_TEMP_PROFILE_NAME:
+        if profile_data['name'] == INIT_TEMP_PROFILE_NAME and _special_clauses(
+                args):
             status = _analyze_binary(args)
 
             if status == EXIT_FAILURE:
@@ -386,6 +396,10 @@ class InitCommand(AbstractCommand):
 
         # Rename the profile to the name passed as an argument
         if requested_name := getattr(args, 'profile_name', ''):
+            # Erase any potential existing profile
+            if controller.one({"name": requested_name}):
+                controller.delete({"name": requested_name})
+            # Rename the profile created and selected above
             Profile.controller().update({'name': requested_name},
                                         Profile.selected().eid)
 
