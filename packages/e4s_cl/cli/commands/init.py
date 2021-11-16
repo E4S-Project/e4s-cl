@@ -354,11 +354,11 @@ class InitCommand(AbstractCommand):
                 "--system and --wi4mpi options are mutually exclusive")
         if system_args and detect_args:
             self.parser.error(
-                "--system and --mpi | --launcher | --launcher_args options are mutually exclusive"
+                "--system and --mpi / --launcher / --launcher_args options are mutually exclusive"
             )
         if detect_args and wi4mpi_args:
             self.parser.error(
-                "--wi4mpi and --mpi | --launcher | --launcher_args options are mutually exclusive"
+                "--wi4mpi and --mpi / --launcher / --launcher_args options are mutually exclusive"
             )
 
         profile_data = profile_from_args(args)
@@ -389,6 +389,11 @@ class InitCommand(AbstractCommand):
 
             if status == EXIT_FAILURE:
                 controller.delete({"name": INIT_TEMP_PROFILE_NAME})
+
+        # Rename the profile to the name passed as an argument
+        if requested_name := getattr(args, 'profile_name', ''):
+            Profile.controller().update({'name': requested_name},
+                                    Profile.selected().eid)
 
         return status
 
