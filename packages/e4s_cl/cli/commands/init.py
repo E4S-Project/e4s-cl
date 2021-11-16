@@ -100,7 +100,7 @@ BINARY_DIR = os.path.join(USER_PREFIX, 'compiled_binaries')
 INIT_TEMP_PROFILE_NAME = '__INIT_TEMP_PROFILE'
 
 
-def compile_sample(compiler) -> Path:
+def _compile_sample(compiler) -> Path:
     """
     Compile a sample MPI program that can be used with the profile detect command
     """
@@ -130,7 +130,7 @@ def compile_sample(compiler) -> Path:
     return binary.name
 
 
-def check_mpirun(executable):
+def _check_mpirun(executable):
     """
     Run hostname with the launcher and list the affected nodes
     """
@@ -151,7 +151,7 @@ def check_mpirun(executable):
             str(detect_command))
 
 
-def profile_from_args(args) -> dict:
+def _profile_from_args(args) -> dict:
     """
     Create a dictionnary with all the profile related information passed as arguments
     """
@@ -174,7 +174,7 @@ def profile_from_args(args) -> dict:
     return data
 
 
-def select_binary(binary_dict):
+def _select_binary(binary_dict):
     # Selects an available mpi vendor
     for libso in binary_dict.keys():
         if resolve(libso) is not None:
@@ -183,12 +183,6 @@ def select_binary(binary_dict):
         "MPI vendor not supported by precompiled binary initialisation\n"
         "Proceeding with legacy initialisation")
     return None
-
-
-def update_ld_path(posixpath):
-    os.environ["LD_LIBRARY_PATH"] = str(
-        Path(posixpath) / "lib") + os.pathsep + os.environ["LD_LIBRARY_PATH"]
-    return os.environ["LD_LIBRARY_PATH"]
 
 
 def _analyze_binary(args):
@@ -216,7 +210,7 @@ def _analyze_binary(args):
             os.environ["LD_LIBRARY_PATH"] = mpi_lib.as_posix()
 
     # Select binary depending on available library
-    binary = select_binary(binaries())
+    binary = _select_binary(binaries())
 
     # Use the launcher passed as an argument in priority
     launcher = util.which(getattr(args, 'launcher', launcher))
@@ -230,7 +224,7 @@ def _analyze_binary(args):
                 "use the `--mpi` option to specify the MPI installation to use."
             )
             return EXIT_FAILURE
-        binary = compile_sample(compiler)
+        binary = _compile_sample(compiler)
 
         # Exit now if we failed producing a compatible binary
         if not binary:
@@ -246,7 +240,7 @@ def _analyze_binary(args):
     LOGGER.warning(
         "Simulating MPI execution using:\nCompiler: %s\nLauncher %s", compiler,
         " ".join([launcher, *launcher_args]))
-    check_mpirun(launcher)
+    _check_mpirun(launcher)
 
     # Run the program using the detect command and get a file list
     returncode = detect_command.main([launcher, *launcher_args, binary])
@@ -361,7 +355,7 @@ class InitCommand(AbstractCommand):
                 "--wi4mpi and --mpi / --launcher / --launcher_args options are mutually exclusive"
             )
 
-        profile_data = profile_from_args(args)
+        profile_data = _profile_from_args(args)
 
         if system_args:
             # If using the downloaded assets, they would be loaded above
@@ -393,7 +387,7 @@ class InitCommand(AbstractCommand):
         # Rename the profile to the name passed as an argument
         if requested_name := getattr(args, 'profile_name', ''):
             Profile.controller().update({'name': requested_name},
-                                    Profile.selected().eid)
+                                        Profile.selected().eid)
 
         return status
 
