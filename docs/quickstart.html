@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Installation" href="installation.html" /><link rel="prev" title="E4S Container Launcher’s v1.0rc3 documentation" href="index.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Installation" href="installation.html" /><link rel="prev" title="E4S Container Launcher’s v1.0rc4 documentation" href="index.html" />
 
-    <meta name="generator" content="sphinx-4.2.0, furo 2021.06.24.beta37"/>
-        <title>Quickstart - E4S Container Launcher v1.0rc3 documentation</title>
+    <meta name="generator" content="sphinx-4.3.0, furo 2021.06.24.beta37"/>
+        <title>Quickstart - E4S Container Launcher v1.0rc4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css" />
@@ -107,10 +107,10 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">E4S Container Launcher v1.0rc3 documentation</div></a>
+      <a href="index.html"><div class="brand">E4S Container Launcher v1.0rc4 documentation</div></a>
     </div>
     <div class="header-right">
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
     </div>
@@ -121,7 +121,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
   
   
-  <span class="sidebar-brand-text">E4S Container Launcher v1.0rc3 documentation</span>
+  <span class="sidebar-brand-text">E4S Container Launcher v1.0rc4 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html">
   <input class="sidebar-search" placeholder=Search name="q">
@@ -130,6 +130,7 @@
 </form><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#machine-specific-execution">Machine-specific execution</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="reference/index.html">Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="reference/init.html"><strong>init</strong> - Initialize the tool</a></li>
@@ -164,7 +165,7 @@
   <main class="main">
     <div class="content">
       <article role="main">
-        <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+        <label class="toc-overlay-icon toc-content-icon" for="__toc">
           <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
         </label>
         <section id="quickstart">
@@ -186,9 +187,22 @@ $ e4s-cl profile edit --backend singularity --image ./image.sif
 </div>
 <p>Once a profile has been created, it can be used to launch an MPI command !
 The <a class="reference internal" href="reference/profiles/select.html#profile-select"><span class="std std-ref">profile select</span></a> command marks a profile as the default. Using the <a class="reference internal" href="reference/launch.html#launch"><span class="std std-ref">launch</span></a> command, the program passed as an argument will be launched using the desired library.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>e4s-cl launch mpirun -np <span class="m">4</span> -hosts node1,node2 ./executable
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ e4s-cl launch mpirun -np <span class="m">4</span> -hosts node1,node2 /path/to/executable
 </pre></div>
 </div>
+</section>
+<section id="machine-specific-execution">
+<h1>Machine-specific execution<a class="headerlink" href="#machine-specific-execution" title="Permalink to this headline">¶</a></h1>
+<section id="cori-at-nersc-with-shifter">
+<h2>Cori at NERSC with Shifter<a class="headerlink" href="#cori-at-nersc-with-shifter" title="Permalink to this headline">¶</a></h2>
+<p>Shifter container backend lacks the file import capabilities Docker and Singularity allow, but integrates modules to import MPI libraries.
+To use these modules alongside of e4s-cl’s, creating a profile with no files nor libraries is encouraged.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ e4s-cl profile create cori --backend shifter --image &lt;Your image&gt;
+$ e4s-cl profile <span class="k">select</span> cori
+$ e4s-cl srun -n X /path/to/executable
+</pre></div>
+</div>
+</section>
 </section>
 
       </article>
@@ -233,8 +247,28 @@ The <a class="reference internal" href="reference/profiles/select.html#profile-s
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            Contents
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Quickstart</a></li>
+<li><a class="reference internal" href="#machine-specific-execution">Machine-specific execution</a><ul>
+<li><a class="reference internal" href="#cori-at-nersc-with-shifter">Cori at NERSC with Shifter</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

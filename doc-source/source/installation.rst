@@ -11,7 +11,7 @@ To install a version from the sources, first clone the repository or download a 
     $ git clone https://github.com/E4S-Project/e4s-cl
 
 Default installation
-************
+********************
 
 Install **e4s-cl** using :code:`make install`. The installation directory can be modified using the :code:`INSTALLDIR` variable:
 
