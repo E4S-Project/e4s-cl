@@ -31,7 +31,7 @@ of a sample MPI program. A program will be compiled from the library's compiler,
 then run using a provided launcher. The opened files and libraries will be detected \
 using the :code:`ptrace` system call, and added to the resulting profile.
 
-The :code:`--mpi`, :code:`--launcher` and :code:`launcher_args` options can be \
+The :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options can be \
 used to influence the initialization process. It is highly encouraged to load the \
 MPI library beforehand using the module system available \
 (:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the paths and dependencies \
@@ -269,14 +269,12 @@ def _special_clauses(args) -> bool:
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
     def _construct_parser(self):
-        usage = f"{self.command} <image>"
         parser = arguments.get_parser(prog=self.command,
-                                      usage=usage,
                                       description=self.summary)
 
         parser.add_argument(
             '--system',
-            help="Initialize e4s-cl for use on a specific system"
+            help="Initialize e4s-cl for use on a specific system."
             f" Available systems are: {', '.join(profiles().keys())}",
             metavar='machine',
             default=arguments.SUPPRESS,
