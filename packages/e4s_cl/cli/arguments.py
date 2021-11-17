@@ -260,22 +260,24 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
         return argstr
 
     def _format_args(self, action, default_metavar):
+        # pylint: disable=consider-using-f-string
         get_metavar = self._metavar_formatter(action, default_metavar)
         if action.nargs is None:
-            result = self._format_requred_arg(f'{get_metavar(1)}')
+            result = self._format_requred_arg('%s' % get_metavar(1))
         elif action.nargs == argparse.OPTIONAL:
-            result = self._format_optional_arg(f'[{get_metavar(1)}]')
+            result = self._format_optional_arg('[%s]' % get_metavar(1))
         elif action.nargs == argparse.ZERO_OR_MORE:
             result = self._format_optional_arg('[%s [%s ...]]' %
                                                get_metavar(2))
         elif action.nargs == argparse.ONE_OR_MORE:
             tpl = get_metavar(2)
             result = self._format_requred_arg(
-                f'{tpl[0]}') + self._format_optional_arg(f' [{tpl[1]} ...]')
+                '%s' % tpl[0]) + self._format_optional_arg(
+                    ' [%s ...]' % tpl[1])
         elif action.nargs == argparse.REMAINDER:
             result = self._format_requred_arg('...')
         elif action.nargs == argparse.PARSER:
-            result = self._format_requred_arg(f'{get_metavar(1)} ...')
+            result = self._format_requred_arg('%s ...' % get_metavar(1))
         else:
             formats = ['%s' for _ in range(action.nargs)]
             result = ' '.join(formats) % get_metavar(action.nargs)
@@ -330,6 +332,7 @@ class ConsoleHelpFormatter(HelpFormatter):
         return util.color_text(argstr, 'cyan')
 
     def _format_action(self, action):
+        # pylint: disable=consider-using-f-string
         help_position = min(self._action_max_length + 2,
                             self._max_help_position)
         help_width = max(self._width - help_position, 11)
