@@ -2,12 +2,14 @@
 Tests relating to MPI library version detection
 """
 
+from pathlib import Path
 from e4s_cl import tests
+from e4s_cl.cf.libraries import resolve
 from e4s_cl.cf.detect_name import (_suffix_name, _extract_mvapich_version,
                                    _extract_intel_mpi_version,
                                    _extract_mpich_version,
                                    _extract_cray_mpich_version,
-                                   _extract_open_mpi_version)
+                                   _extract_open_mpi_version, _extract_vinfo)
 
 
 class DetectNameTests(tests.TestCase):
@@ -62,3 +64,7 @@ MPI BUILD INFO : Built Tue May 19 13:54:36 2020 (git hash e25eab9) MT-G
         output_string = """Open MPI v4.1.1, package: Open MPI user@host Distribution, ident: 4.1.1, repo rev: v4.1.1, Apr 24, 2021"""
 
         self.assertEqual(_extract_open_mpi_version(output_string), '4.1.1')
+
+    @tests.skipIf(not resolve('libmpi.so'), "No library to test with")
+    def test_extract_handle(self):
+        self.assertIsNotNone(_extract_vinfo(Path(resolve('libmpi.so'))))
