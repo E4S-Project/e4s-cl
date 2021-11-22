@@ -46,7 +46,15 @@ def _suffix_name(name: str, existing_names: set) -> str:
     return f"{name}-{ordinal}"
 
 
-def _extract_intel_mpi(version_buffer_str):
+def strip(function):
+    def wrapper(version_buffer_str):
+        return function(version_buffer_str).strip()
+
+    return wrapper
+
+
+@strip
+def _extract_intel_mpi_version(version_buffer_str):
     """
     Parses the typical Intel MPI library version message, eg:
     Intel(R) MPI Library 2019 Update 6 for Linux* OS
@@ -54,7 +62,8 @@ def _extract_intel_mpi(version_buffer_str):
     return version_buffer_str.split("Library", 1)[1].split("for", 1)[0]
 
 
-def _extract_open_mpi(version_buffer_str):
+@strip
+def _extract_open_mpi_version(version_buffer_str):
     """
     Parses the typical OpenMPI library version message, eg:
     Open MPI v4.0.1, package: Open MPI Distribution, ident: 4.0.1, repo rev: v4.0.1, Mar 26, 2019
@@ -62,7 +71,8 @@ def _extract_open_mpi(version_buffer_str):
     return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
 
 
-def _extract_spectrum_mpi(version_buffer_str):
+@strip
+def _extract_spectrum_mpi_version(version_buffer_str):
     """
     Parses the typical Spectrum MPI library version message, eg:
     Open MPI v4.0.1, package: Spectrum MPI Distribution, ident: 4.0.1, repo rev: v4.0.1, Mar 26, 2019
@@ -70,7 +80,8 @@ def _extract_spectrum_mpi(version_buffer_str):
     return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
 
 
-def _extract_mpich(version_buffer_str):
+@strip
+def _extract_mpich_version(version_buffer_str):
     """
     Parses the typical MPICH library version message, eg:
     MPICH Version:  3.3b2
@@ -80,7 +91,8 @@ def _extract_mpich(version_buffer_str):
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
 
-def _extract_cray_mpich(version_buffer_str):
+@strip
+def _extract_cray_mpich_version(version_buffer_str):
     """
     Parses the typical MPICH library version message, eg:
     MPICH Version:  3.3b2
@@ -90,7 +102,8 @@ def _extract_cray_mpich(version_buffer_str):
     return version_buffer_str.split("version", 1)[1].split("(", 1)[0]
 
 
-def _extract_mvapich(version_buffer_str):
+@strip
+def _extract_mvapich_version(version_buffer_str):
     """
     Parses the typical MVAPICH library version message, eg:
     MVAPICH Version:  3.3b2
@@ -101,12 +114,12 @@ def _extract_mvapich(version_buffer_str):
 
 
 distro_dict = {
-    'Intel(R) MPI': _extract_intel_mpi,
-    'Open MPI': _extract_open_mpi,
-    'Spectrum MPI': _extract_spectrum_mpi,
-    'MPICH': _extract_mpich,
-    'CRAY MPICH': _extract_cray_mpich,
-    'MVAPICH': _extract_mvapich
+    'Intel(R) MPI': _extract_intel_mpi_version,
+    'Open MPI': _extract_open_mpi_version,
+    'Spectrum MPI': _extract_spectrum_mpi_version,
+    'MPICH': _extract_mpich_version,
+    'CRAY MPICH': _extract_cray_mpich_version,
+    'MVAPICH': _extract_mvapich_version
 }
 
 
