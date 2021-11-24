@@ -57,6 +57,13 @@ def add_builtin_profile(system, configuration, storage=USER_STORAGE):
     _import_asset('system', record, BUILTIN_PROFILE_ID, storage)
 
 
+def remove_builtin_profile(system, storage=USER_STORAGE):
+    """
+    Remove a configuration used as a built-in profile
+    """
+    with storage as database:
+        database.remove({'system': system})
+
 def add_precompiled_binary(soname, path, storage=USER_STORAGE):
     """
     Record a path towards a precompiled MPI binary

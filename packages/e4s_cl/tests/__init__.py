@@ -4,6 +4,7 @@ import os
 import sys
 import glob
 import shutil
+import shlex
 import atexit
 import tempfile
 import unittest
@@ -140,6 +141,10 @@ class TestCase(unittest.TestCase):
         Returns:
             tuple: (retval, stdout, stderr) results of running the command.
         """
+
+        if isinstance(argv, str):
+            argv = shlex.split(argv)
+
         # pylint: disable=protected-access
         stdout = tempfile.TemporaryFile(mode='w+', buffering=1)
         stderr = tempfile.TemporaryFile(mode='w+', buffering=1)

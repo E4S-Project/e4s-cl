@@ -165,9 +165,7 @@ def _profile_from_args(args) -> dict:
 
     # Load data from assets if required
     if system := getattr(args, 'system', None):
-        if location := builtin_profiles().get(system):
-            with open(location, 'r', encoding="utf8") as asset:
-                data = data | json.load(asset)
+        data = data | builtin_profiles().get(system, {})
 
     return data
 
@@ -378,8 +376,8 @@ class InitCommand(AbstractCommand):
         controller = Profile.controller()
 
         # Erase any leftover temporary profiles
-        if controller.one({"name": INIT_TEMP_PROFILE_NAME}):
-            controller.delete({"name": INIT_TEMP_PROFILE_NAME})
+        if controller.one({"name": profile_data['name']}):
+            controller.delete({"name": profile_data['name']})
 
         # Create and select a profile for use
         profile = controller.create(profile_data)
