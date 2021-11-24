@@ -14,6 +14,7 @@ packages = os.path.join(here, '..', 'packages')
 sys.path.insert(0, packages)
 
 from e4s_cl import logger, USER_PREFIX
+from e4s_cl.cf.assets import add_builtin_profile, add_precompiled_binary
 
 LOGGER = logger.get_logger(__name__)
 
@@ -53,10 +54,7 @@ def secure_binaries(url, available):
         st = os.stat(destination)
         os.chmod(destination, st.st_mode | stat.S_IEXEC)
 
-        downloaded[library] = destination
-
-    with open(BINARY_INDEX, "w") as index_json:
-        json.dump(downloaded, index_json)
+        add_precompiled_binary(library, destination)
 
 
 def secure_profiles(url, available, system):
@@ -76,11 +74,7 @@ def secure_profiles(url, available, system):
         LOGGER.warn(f"Failed to access {profile_url}")
         return
 
-    with open(destination, "w") as profile:
-        json.dump(r.json(), profile)
-
-    with open(PROFILE_INDEX, "w") as index:
-        json.dump({system: destination}, index)
+    add_builtin_profile(system, r.json())
 
 
 if __name__ == '__main__':

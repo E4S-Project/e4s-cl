@@ -141,7 +141,7 @@ install: python_check download_assets
 
 ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
 
-download_assets: $(CONDA_SRC)
+download_assets: python_check
 	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(SYSTEM)
 
 COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
