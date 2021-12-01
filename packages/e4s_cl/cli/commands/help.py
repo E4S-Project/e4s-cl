@@ -17,31 +17,6 @@ _GENERIC_HELP = f"See '{_SCRIPT_CMD} --help' or raise an issue on Github for ass
 
 _KNOWN_FILES = {}
 
-_MIME_HINTS = {
-    None: {
-        None: ("unknown file", _GENERIC_HELP),
-        'gzip': ("compressed file", "Please specify an executable file")
-    },
-    'application': {
-        None: ("unknown binary file", _GENERIC_HELP),
-        'sharedlib': ("shared library", "Please specify an executable file"),
-        'archive': ("archive file", "Please specify an executable file"),
-        'tar': ("archive file", "Please specify an executable file"),
-        'unknown': ("unknown binary file", _GENERIC_HELP)
-    },
-    'text': {
-        None: ("unknown text file", _GENERIC_HELP),
-        'src': ("source code file",
-                "See 'taucmdr build --help' for help compiling this file"),
-        'hdr': ("source header file",
-                "See 'taucmdr build --help' for help instrumenting this file"),
-        'fortran': ("fortran source code file",
-                    "See 'taucmdr build --help' for help compiling this file"),
-        'plain': ("text file", _GENERIC_HELP)
-    }
-}
-
-
 def _fuzzy_index(dct, full_key):
     """Return d[key] where ((key in k) == true) or return d[None]."""
     for key in dct:
@@ -116,7 +91,7 @@ class HelpCommand(AbstractCommand):
         if args.command[0] == 'all':
             return self.exit_with_fullhelp()
 
-        # Try to look up a Tau command's built-in help page
+        # Try to look up a e4s-cl command's built-in help page
         cmd = args.command
         try:
             return self.exit_with_help(cmd)
@@ -139,18 +114,6 @@ class HelpCommand(AbstractCommand):
             filetype, encoding = _guess_filetype(cmd)
             self.logger.debug("'%s' has filetype (%s, %s)", cmd, filetype,
                               encoding)
-            if filetype:
-                filetype, subtype = filetype.split('/')
-                try:
-                    type_hints = _MIME_HINTS[filetype]
-                except KeyError:
-                    hint = f"E4S doesn't recognize '{cmd}'.\nSee '{argv[0]} --help'" \
-                    "and use the appropriate subcommand."
-                else:
-                    desc, hint = _fuzzy_index(type_hints, subtype)
-                    article = 'an' if desc[0] in 'aeiou' else 'a'
-                    hint = f"'{cmd}' is {article} {desc}.\n{hint}."
-                raise UnknownCommandError(cmd, hint)
             raise UnknownCommandError(cmd)
 
         LOGGER.error("Cannot identify '%s' as a command or filename.", cmd)
