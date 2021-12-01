@@ -29,6 +29,16 @@ class InitTest(tests.TestCase):
         self.assertEqual(Profile.controller().selected().get('name'),
                          TEST_SYSTEM)
 
+    def test_system_overwrite(self):
+        self.assertCommandReturnValue(0, COMMAND, f"--system {TEST_SYSTEM}")
+        self.assertEqual(Profile.controller().selected().get('name'),
+                         TEST_SYSTEM)
+        self.assertEqual(Profile.controller().count(), 1)
+        self.assertCommandReturnValue(0, COMMAND, f"--system {TEST_SYSTEM}")
+        self.assertEqual(Profile.controller().selected().get('name'),
+                         TEST_SYSTEM)
+        self.assertEqual(Profile.controller().count(), 1)
+
     def test_wi4mpi(self):
         self.assertCommandReturnValue(
             0, COMMAND,
@@ -38,6 +48,16 @@ class InitTest(tests.TestCase):
         self.assertTrue(profile)
         self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
         self.assertEqual(profile.get('wi4mpi_options'), '-T to -F from')
+
+    def test_wi4mpi_overwrite(self):
+        self.assertCommandReturnValue(
+            0, COMMAND,
+            "--wi4mpi /path/to/installation --wi4mpi_options '-T to -F from'")
+        self.assertEqual(Profile.controller().count(), 1)
+        self.assertCommandReturnValue(
+            0, COMMAND,
+            "--wi4mpi /path/to/installation --wi4mpi_options '-T to -F from'")
+        self.assertEqual(Profile.controller().count(), 1)
 
     def test_rename_system(self):
         self.assertCommandReturnValue(0, COMMAND, f"--profile init_test_profile --system {TEST_SYSTEM}")
