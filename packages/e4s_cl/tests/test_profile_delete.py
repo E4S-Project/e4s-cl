@@ -1,20 +1,20 @@
-import e4s_cl
 from e4s_cl import tests
-from e4s_cl.cli.commands.profile.create import COMMAND as CreateCommand
-from e4s_cl.cli.commands.profile.delete import COMMAND as command
+from e4s_cl.model.profile import Profile
+from e4s_cl.cli.commands.profile.delete import COMMAND
 
 
 class ProfileDeleteTest(tests.TestCase):
-    def test_delete(self):
-        stdout, stderr = self.assertCommandReturnValue(0, CreateCommand,
-                                                       ['test01'])
-        stdout, stderr = self.assertCommandReturnValue(0, command, ['test01'])
-        self.assertIn('Deleted profile \'test01\'', stderr)
+    def tearDown(self):
+        Profile.controller().unselect()
         self.resetStorage()
 
+    def test_delete(self):
+        Profile.controller().create({'name': 'test01'})
+        _, stderr = self.assertCommandReturnValue(0, COMMAND, ['test01'])
+        self.assertIn('Deleted profile \'test01\'', stderr)
+
     def test_existence(self):
-        stdout, stderr = self.assertNotCommandReturnValue(
-            0, command, ['test01'])
+        _, stderr = self.assertNotCommandReturnValue(
+            0, COMMAND, ['test01'])
         self.assertIn('profile delete <profile_name>', stderr)
         self.assertIn('profile delete: error: No', stderr)
-        self.resetStorage()

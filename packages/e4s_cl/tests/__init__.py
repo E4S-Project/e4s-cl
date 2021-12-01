@@ -95,7 +95,7 @@ def _null_decorator(_):
 class TestCase(unittest.TestCase):
     """Base class for unit tests.
 
-    Performs tests in a temporary directory and reconfigures :any:`taucmdr.logger` to work with :any:`unittest`.
+    Performs tests in a temporary directory and reconfigures :any:`e4s_cl.logger` to work with :any:`unittest`.
     """
     # Follow the :any:`unittest` code style.
     # pylint: disable=invalid-name
@@ -132,7 +132,7 @@ class TestCase(unittest.TestCase):
         return super(TestCase, self).run(result)
 
     def exec_command(self, cmd, argv):
-        """Execute a tau command's main() routine and return the exit code, stdout, and stderr data.
+        """Execute a e4s_cl command's main() routine and return the exit code, stdout, and stderr data.
 
         Args:
             cmd (type): A command instance that has a `main` callable attribute.

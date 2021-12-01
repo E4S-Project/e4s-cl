@@ -1,18 +1,20 @@
-import e4s_cl
 from e4s_cl import tests
-from e4s_cl.cli.commands.profile.create import COMMAND as CreateCommand
-from e4s_cl.cli.commands.profile.copy import COMMAND as command
+from e4s_cl.model.profile import Profile
+from e4s_cl.cli.commands.profile.copy import COMMAND
 
 
 class ProfileCopyTest(tests.TestCase):
-    def test_copy(self):
-        stdout, stderr = self.assertCommandReturnValue(0, CreateCommand,
-                                                       ['test01'])
-        stdout, stderr = self.assertCommandReturnValue(0, command,
-                                                       ['test01', 'test02'])
+    def tearDown(self):
+        Profile.controller().unselect()
         self.resetStorage()
 
+    def test_copy(self):
+        Profile.controller().create({'name': 'test01'})
+        self.assertCommandReturnValue(0, COMMAND, ['test01', 'test02'])
+
+        copy = Profile.controller().one({'name': 'test02'})
+        self.assertTrue(copy)
+        self.assertEqual(copy.get('name'), 'test02')
+
     def test_existence(self):
-        stdout, stderr = self.assertNotCommandReturnValue(
-            0, command, ['test01', 'test02'])
-        self.resetStorage()
+        self.assertNotCommandReturnValue(0, COMMAND, ['test01', 'test02'])

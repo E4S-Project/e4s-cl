@@ -1,5 +1,5 @@
 """
-Tests asserting the correct results of the profile create function
+Tests asserting the correct behaviour of the profile create command
 """
 
 from e4s_cl import tests
