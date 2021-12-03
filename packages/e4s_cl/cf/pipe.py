@@ -9,6 +9,8 @@ ENV_VAR = '__E4SCL_PIPE_FD'
 
 OPEN_FD = int(os.environ.get(ENV_VAR, '-1'))
 
+OPENED_PIPE = (None, None)
+
 
 def attach():
     if OPEN_FD == -1:
@@ -22,9 +24,16 @@ def create():
     -> int
     returns a fd, the reading end of a pipe
     """
-    fdr, fdw = os.pipe()
-    os.set_inheritable(fdw, True)
+    OPENED_PIPE = os.pipe()
+    os.set_inheritable(OPENED_PIPE[1], True)
 
-    os.environ[ENV_VAR] = str(fdw)
+    os.environ[ENV_VAR] = str(OPENED_PIPE[1])
 
-    return fdr
+    return OPENED_PIPE[0]
+
+def close():
+    for fd in OPENED_PIPE:
+        if fd:
+            os.close(fd)
+
+    os.unsetenv(ENV_VAR)

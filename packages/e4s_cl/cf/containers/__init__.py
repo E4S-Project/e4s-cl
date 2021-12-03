@@ -211,6 +211,8 @@ class Container:
         self.libc_v = Version(data.get('libc_version', '0.0.0'))
         self.libraries = LibrarySet(data.get('libraries', set()))
 
+        pipe.close()
+
         return self.libraries
 
     def bind_file(self,
