@@ -9,8 +9,6 @@ ENV_VAR = '__E4SCL_PIPE_FD'
 
 OPEN_FD = int(os.environ.get(ENV_VAR, '-1'))
 
-OPENED_PIPE = (None, None)
-
 
 def attach():
     if OPEN_FD == -1:
@@ -19,21 +17,27 @@ def attach():
     return OPEN_FD
 
 
-def create():
+class Pipe():
     """
-    -> int
-    returns a fd, the reading end of a pipe
+    Context manager to open a pipe. Child processes will be able to access the
+    writing end by using pipe.attach()
     """
-    OPENED_PIPE = os.pipe()
-    os.set_inheritable(OPENED_PIPE[1], True)
+    def __init__(self):
+        """
+        -> int
+        returns a fd, the reading end of a pipe
+        """
+        self.opened_fds = os.pipe()
+        os.set_inheritable(self.opened_fds[1], True)
 
-    os.environ[ENV_VAR] = str(OPENED_PIPE[1])
+        os.environ[ENV_VAR] = str(self.opened_fds[1])
 
-    return OPENED_PIPE[0]
+    def __enter__(self):
+        return self.opened_fds[0]
 
-def close():
-    for fd in OPENED_PIPE:
-        if fd:
-            os.close(fd)
+    def __exit__(self, type_, value, traceback):
+        for fd in self.opened_fds:
+            if fd:
+                os.close(fd)
 
-    os.unsetenv(ENV_VAR)
+        del os.environ[ENV_VAR]
