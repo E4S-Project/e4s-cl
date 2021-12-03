@@ -33,4 +33,35 @@ class ProfileListTest(tests.TestCase):
         self.assertIn('test02', stdout)
         self.assertNotIn('otherName01', stdout)
 
+    def test_wi4mpi(self):
+        Profile.controller().create({"name": 'test01', "wi4mpi": '/usr/packages/wi4mpi', "wi4mpi_options": 'mpich'})
+        stdout, _ = self.assertCommandReturnValue(0, command, ['test01'])
+        self.assertIn('Yes', stdout)
 
+def wrapper(key, value, test_name):
+    """
+    Generate tests from a simple pattern to ensure all fields are correctly shown
+    """
+    def generated_test(self):
+        Profile.controller().create({'name': 'test01', key: value})
+        stdout, _ = self.assertCommandReturnValue(0, command, '')
+        if isinstance(value, list):
+            self.assertIn(str(len(value)), stdout)
+        else:
+            self.assertIn(value, stdout)
+
+    generated_test.__name__ = f"test_{test_name}"
+
+    return generated_test
+
+_fields = [
+        ('name', 'test_name', 'profile_list_name'),
+        ('backend', 'test_back', 'profile_list_backend'),
+        ('image', 'test_image', 'profile_list_image'),
+        ('libraries', ['test_libraries01', 'test_libraries02'], 'profile_list_libraries_count'),
+        ('files', ['test_files01', 'test_files02', 'test_files03'], 'profile_list_files_count')
+]
+
+for arguments in _fields:
+    test = wrapper(*arguments)
+    setattr(ProfileListTest, test.__name__, test)
