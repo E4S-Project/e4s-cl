@@ -17,14 +17,27 @@ def attach():
     return OPEN_FD
 
 
-def create():
+class Pipe():
     """
-    -> int
-    returns a fd, the reading end of a pipe
+    Context manager to open a pipe. Child processes will be able to access the
+    writing end by using pipe.attach()
     """
-    fdr, fdw = os.pipe()
-    os.set_inheritable(fdw, True)
+    def __init__(self):
+        """
+        -> int
+        returns a fd, the reading end of a pipe
+        """
+        self.opened_fds = os.pipe()
+        os.set_inheritable(self.opened_fds[1], True)
 
-    os.environ[ENV_VAR] = str(fdw)
+        os.environ[ENV_VAR] = str(self.opened_fds[1])
 
-    return fdr
+    def __enter__(self):
+        return self.opened_fds[0]
+
+    def __exit__(self, type_, value, traceback):
+        for fd in self.opened_fds:
+            if fd:
+                os.close(fd)
+
+        del os.environ[ENV_VAR]

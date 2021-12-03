@@ -14,7 +14,7 @@ from typing import Union
 from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.util import walk_packages, which, json_loads
 from e4s_cl.cf.version import Version
-from e4s_cl.cf import pipe
+from e4s_cl.cf.pipe import Pipe
 from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import ConfigurationError
 
@@ -186,9 +186,6 @@ class Container:
         # Import python and e4s-cl files
         brand(self)
 
-        # Setup a one-way communication channel
-        fdr = pipe.create()
-
         # Use the imported python interpreter with the imported e4s-cl
         entrypoint.command = [
             Path(CONTAINER_DIR, 'conda', 'bin', 'python3').as_posix(),
@@ -199,14 +196,16 @@ class Container:
         script_name = entrypoint.setup()
         self.bind_file(script_name, CONTAINER_SCRIPT)
 
-        code, _ = self.run([CONTAINER_SCRIPT], redirect_stdout=False)
+        # Setup a one-way communication channel
+        with Pipe() as fdr:
+            code, _ = self.run([CONTAINER_SCRIPT], redirect_stdout=False)
 
-        entrypoint.teardown()
+            entrypoint.teardown()
 
-        if code:
-            raise AnalysisError(code)
+            if code:
+                raise AnalysisError(code)
 
-        data = json_loads(os.read(fdr, 1024**3).decode())
+            data = json_loads(os.read(fdr, 1024**3).decode())
 
         self.libc_v = Version(data.get('libc_version', '0.0.0'))
         self.libraries = LibrarySet(data.get('libraries', set()))
