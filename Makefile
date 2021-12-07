@@ -186,10 +186,18 @@ clean:
 #>============================================================================<
 # Maintenance targets
 
-ifeq ($(TEST_ENV),)
+ifneq ($(TEST_ENV),)
+TEST_ENV = deep_test
+TEST_DEPENDENCIES = install python_check
+else
 TEST_ENV = shallow_test
+TEST_DEPENDENCIES =
 endif
-test: install python_check
+
+__E4S_CL_USER_PREFIX__ = /tmp/$(USER)/e4s_cl/user_test
+__E4S_CL_SYSTEM_PREFIX__ = /tmp/$(USER)/e4s_cl/system_test
+
+test: $(TEST_DEPENDENCIES)
 	$(PYTHON) -m tox tox.ini -e $(TEST_ENV)
 
 format:

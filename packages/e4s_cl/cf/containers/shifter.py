@@ -86,9 +86,7 @@ class ShifterContainer(Container):
             self.executable, f"--image={self.image}", *env_list, *volumes,
             *command
         ]
-        return create_subprocess_exp(container_cmd,
-                                     env=self.env,
-                                     redirect_stdout=redirect_stdout)
+        return (container_cmd, self.env)
 
 
 CLASS = ShifterContainer

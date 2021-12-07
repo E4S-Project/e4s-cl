@@ -48,10 +48,7 @@ class SingularityContainer(Container):
             self.executable, 'exec', *self._working_dir(), *nvidia_flag,
             self.image, *command
         ]
-
-        return create_subprocess_exp(container_cmd,
-                                     env=self.env,
-                                     redirect_stdout=redirect_stdout)
+        return (container_cmd, self.env)
 
     def format_bound(self):
         """

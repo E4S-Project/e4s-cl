@@ -12,7 +12,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Union
 from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
-from e4s_cl.util import walk_packages, which, json_loads
+from e4s_cl.util import walk_packages, which, json_loads, create_subprocess_exp
 from e4s_cl.cf.version import Version
 from e4s_cl.cf import pipe
 from e4s_cl.cf.libraries import LibrarySet
@@ -199,7 +199,11 @@ class Container:
         script_name = entrypoint.setup()
         self.bind_file(script_name, CONTAINER_SCRIPT)
 
-        code, _ = self.run([CONTAINER_SCRIPT], redirect_stdout=False)
+        container_cmd, env = self.run([CONTAINER_SCRIPT], redirect_stdout=False)
+        code, _ = create_subprocess_exp(container_cmd,
+                                     env=env,
+                                     redirect_stdout=False)
+
 
         entrypoint.teardown()
 
