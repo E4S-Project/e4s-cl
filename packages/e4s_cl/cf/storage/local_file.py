@@ -15,7 +15,7 @@ class _JsonRecord(StorageRecord):
     eid_type = int
 
     def __init__(self, database, element, eid=None):
-        super(_JsonRecord, self).__init__(database, eid or element.eid,
+        super().__init__(database, eid or element.doc_id,
                                           element)
 
     def __str__(self):
@@ -32,8 +32,10 @@ class _JsonFileStorage(tinydb.JSONStorage):
     This isn't the case for system-level storage and possibly others.
     """
     def __init__(self, path):
+        self.path = path
+
         try:
-            super(_JsonFileStorage, self).__init__(path)
+            super().__init__(path)
         except IOError:
             self.path = path
             self._handle = open(path, 'r')
@@ -47,7 +49,7 @@ class _JsonFileStorage(tinydb.JSONStorage):
         if self.readonly:
             raise ConfigurationError("Cannot write to '%s'" % self.path,
                                      "Check that you have `write` access.")
-        super(_JsonFileStorage, self).write(*args, **kwargs)
+        super().write(*args, **kwargs)
 
 
 class LocalFileStorage(AbstractStorage):
@@ -62,7 +64,7 @@ class LocalFileStorage(AbstractStorage):
     Record = _JsonRecord
 
     def __init__(self, name, prefix):
-        super(LocalFileStorage, self).__init__(name)
+        super().__init__(name)
         self._transaction_count = 0
         self._db_copy = None
         self._database = None
@@ -181,21 +183,23 @@ class LocalFileStorage(AbstractStorage):
     def __enter__(self):
         """Initiates the database transaction."""
         # Use protected methods to duplicate database in memory rather than on disk.
+        # TODO Figure out if this is needed
         # pylint: disable=protected-access
         if self._transaction_count == 0:
             self.connect_database()
-            self._db_copy = self._database._read()
+            #self._db_copy = self._database._read()
         self._transaction_count += 1
         return self
 
     def __exit__(self, ex_type, value, traceback):
         """Finalizes the database transaction."""
         # Use protected methods to duplicate database in memory rather than on disk.
+        # TODO Figure out if this is needed
         # pylint: disable=protected-access
         self._transaction_count -= 1
         if ex_type and self._transaction_count == 0:
-            self._database._write(self._db_copy)
-            self._db_copy = None
+            #self._database._write(self._db_copy)
+            #self._db_copy = None
             return False
 
     def table(self, table_name):
@@ -260,7 +264,7 @@ class LocalFileStorage(AbstractStorage):
             return None
         elif isinstance(keys, self.Record.eid_type):
             #LOGGER.debug("%s: get(eid=%r)", table_name, keys)
-            element = table.get(eid=keys)
+            element = table.get(doc_id=keys)
         elif isinstance(keys, dict) and keys:
             #LOGGER.debug("%s: get(keys=%r)", table_name, keys)
             element = table.get(self._query(keys, match_any))
@@ -306,7 +310,7 @@ class LocalFileStorage(AbstractStorage):
             ]
         elif isinstance(keys, self.Record.eid_type):
             #LOGGER.debug("%s: search(eid=%r)", table_name, keys)
-            element = table.get(eid=keys)
+            element = table.get(doc_id=keys)
             return [self.Record(self, element=element)] if element else []
         elif isinstance(keys, dict) and keys:
             #LOGGER.debug("%s: search(keys=%r)", table_name, keys)
@@ -442,13 +446,13 @@ class LocalFileStorage(AbstractStorage):
         table = self.table(table_name)
         if isinstance(keys, self.Record.eid_type):
             #LOGGER.debug("%s: update(%r, eid=%r)", table_name, fields, keys)
-            table.update(fields, eids=[keys])
+            table.update(fields, doc_ids=[keys])
         elif isinstance(keys, dict):
             #LOGGER.debug("%s: update(%r, keys=%r)", table_name, fields, keys)
             table.update(fields, self._query(keys, match_any))
         elif isinstance(keys, (list, tuple)):
             #LOGGER.debug("%s: update(%r, eids=%r)", table_name, fields, keys)
-            table.update(fields, eids=keys)
+            table.update(fields, doc_ids=keys)
         else:
             raise ValueError(keys)
 
@@ -477,7 +481,7 @@ class LocalFileStorage(AbstractStorage):
         if isinstance(keys, self.Record.eid_type):
             for field in fields:
                 #LOGGER.debug("%s: unset(%s, eid=%r)", table_name, field, keys)
-                table.update(operations.delete(field), eids=[keys])
+                table.update(operations.delete(field), doc_ids=[keys])
         elif isinstance(keys, dict):
             for field in fields:
                 #LOGGER.debug("%s: unset(%s, keys=%r)", table_name, field, keys)
@@ -486,7 +490,7 @@ class LocalFileStorage(AbstractStorage):
         elif isinstance(keys, (list, tuple)):
             for field in fields:
                 #LOGGER.debug("%s: unset(%s, eids=%r)", table_name, field, keys)
-                table.update(operations.delete(field), eids=keys)
+                table.update(operations.delete(field), doc_ids=keys)
         else:
             raise ValueError(keys)
 
@@ -527,4 +531,4 @@ class LocalFileStorage(AbstractStorage):
             table_name (str): Name of the table to operate on.  See :any:`AbstractDatabase.table`.
         """
         LOGGER.debug("%s: purge()", table_name)
-        self.table(table_name).purge()
+        self.table(table_name).truncate()
