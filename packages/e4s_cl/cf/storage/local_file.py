@@ -1,3 +1,7 @@
+"""
+Abstraction layer above `tinydb`
+"""
+
 import os
 import json
 import tempfile
@@ -15,8 +19,7 @@ class _JsonRecord(StorageRecord):
     eid_type = int
 
     def __init__(self, database, element, eid=None):
-        super().__init__(database, eid or element.doc_id,
-                                          element)
+        super().__init__(database, eid or element.doc_id, element)
 
     def __str__(self):
         return json.dumps(self)
@@ -31,14 +34,14 @@ class _JsonFileStorage(tinydb.JSONStorage):
     TinyDB's default storage (:any:`tinydb.JSONStorage`) assumes write access to the JSON file.
     This isn't the case for system-level storage and possibly others.
     """
-    def __init__(self, path):
+    def __init__(self, path, encoding=None):
         self.path = path
 
         try:
             super().__init__(path)
         except IOError:
             self.path = path
-            self._handle = open(path, 'r')
+            self._handle = open(path, 'r', encoding=encoding)  #pylint: disable=consider-using-with
             self.readonly = True
             LOGGER.debug("'%s' opened read-only", path)
         else:
@@ -47,7 +50,7 @@ class _JsonFileStorage(tinydb.JSONStorage):
 
     def write(self, *args, **kwargs):
         if self.readonly:
-            raise ConfigurationError("Cannot write to '%s'" % self.path,
+            raise ConfigurationError(f"Cannot write to '{self.path}'",
                                      "Check that you have `write` access.")
         super().write(*args, **kwargs)
 
@@ -119,10 +122,10 @@ class LocalFileStorage(AbstractStorage):
             bool: True if a file could be created and deleted in ``prefix``, False otherwise.
         """
         self.connect_filesystem()
-        if not os.access(self.prefix, os.W_OK):
+        if not os.access(self.prefix(), os.W_OK):
             return False
         try:
-            with tempfile.NamedTemporaryFile(dir=self.prefix,
+            with tempfile.NamedTemporaryFile(dir=self.prefix(),
                                              delete=True) as tmp_file:
                 tmp_file.write("Write test. Delete this file.")
         except (OSError, IOError):
@@ -136,8 +139,8 @@ class LocalFileStorage(AbstractStorage):
                 util.mkdirp(self._prefix)
             except Exception as err:
                 raise StorageError(
-                    "Failed to access %s filesystem prefix '%s': %s" %
-                    (self.name, self._prefix, err))
+                    f"Failed to access {self.name} filesystem prefix '{self._prefix}': {err}"
+                ) from err
             LOGGER.debug("Initialized %s filesystem prefix '%s'", self.name,
                          self._prefix)
 
@@ -148,20 +151,19 @@ class LocalFileStorage(AbstractStorage):
     def connect_database(self, *args, **kwargs):
         """Open the database for reading and writing."""
         if self._database is None:
-            util.mkdirp(self.prefix)
-            dbfile = os.path.join(self.prefix, self.name + '.json')
+            util.mkdirp(self.prefix())
+            dbfile = os.path.join(self.prefix(), self.name + '.json')
             try:
                 storage = CachingMiddleware(_JsonFileStorage)
                 storage.WRITE_CACHE_SIZE = 0
                 self._database = tinydb.TinyDB(dbfile, storage=storage)
             except IOError as err:
                 raise StorageError(
-                    "Failed to access %s database '%s': %s" %
-                    (self.name, dbfile, err),
-                    "Check that you have `write` access")
+                    f"Failed to access {self.name} database '{dbfile}': {err}"
+                    "Check that you have `write` access") from err
             if not util.path_accessible(dbfile):
                 raise StorageError(
-                    "Database file '%s' exists but cannot be read." % dbfile,
+                    f"Database file '{dbfile}' exists but cannot be read.",
                     "Check that you have `read` access")
             LOGGER.debug("Initialized %s database '%s'", self.name, dbfile)
 
@@ -171,7 +173,6 @@ class LocalFileStorage(AbstractStorage):
             self._database.close()
             self._database = None
 
-    @property
     def prefix(self):
         return self._prefix
 
@@ -201,6 +202,7 @@ class LocalFileStorage(AbstractStorage):
             #self._database._write(self._db_copy)
             #self._db_copy = None
             return False
+        return True
 
     def table(self, table_name):
         self.connect_database()
@@ -260,9 +262,11 @@ class LocalFileStorage(AbstractStorage):
             ValueError: Invalid value for `keys`.
         """
         table = self.table(table_name)
+
         if keys is None:
             return None
-        elif isinstance(keys, self.Record.eid_type):
+
+        if isinstance(keys, self.Record.eid_type):
             #LOGGER.debug("%s: get(eid=%r)", table_name, keys)
             element = table.get(doc_id=keys)
         elif isinstance(keys, dict) and keys:
@@ -308,17 +312,20 @@ class LocalFileStorage(AbstractStorage):
             return [
                 self.Record(self, element=element) for element in table.all()
             ]
-        elif isinstance(keys, self.Record.eid_type):
+
+        if isinstance(keys, self.Record.eid_type):
             #LOGGER.debug("%s: search(eid=%r)", table_name, keys)
             element = table.get(doc_id=keys)
             return [self.Record(self, element=element)] if element else []
-        elif isinstance(keys, dict) and keys:
+
+        if isinstance(keys, dict) and keys:
             #LOGGER.debug("%s: search(keys=%r)", table_name, keys)
             return [
                 self.Record(self, element=element)
                 for element in table.search(self._query(keys, match_any))
             ]
-        elif isinstance(keys, (list, tuple)):
+
+        if isinstance(keys, (list, tuple)):
             #LOGGER.debug("%s: search(keys=%r)", table_name, keys)
             result = []
             for key in keys:
@@ -327,8 +334,8 @@ class LocalFileStorage(AbstractStorage):
                                 table_name=table_name,
                                 match_any=match_any))
             return result
-        else:
-            raise ValueError(keys)
+
+        raise ValueError(keys)
 
     def match(self, field, table_name=None, regex=None, test=None):
         """Find records where `field` matches `regex` or `test`.
@@ -357,18 +364,19 @@ class LocalFileStorage(AbstractStorage):
                 self.Record(self, element=elem)
                 for elem in table.search(tinydb.where(field).test(test))
             ]
-        elif regex is not None:
+
+        if regex is not None:
             #LOGGER.debug('%s: search(where(%s).matches(%r))', table_name, field, regex)
             return [
                 self.Record(self, element=elem)
                 for elem in table.search(tinydb.where(field).matches(regex))
             ]
-        else:
-            #LOGGER.debug("%s: search(where(%s).matches('.*'))", table_name, field)
-            return [
-                self.Record(self, element=elem)
-                for elem in table.search(tinydb.where(field).matches(".*"))
-            ]
+
+        #LOGGER.debug("%s: search(where(%s).matches('.*'))", table_name, field)
+        return [
+            self.Record(self, element=elem)
+            for elem in table.search(tinydb.where(field).matches(".*"))
+        ]
 
     def contains(self, keys, table_name=None, match_any=False):
         """Check if the specified table contains at least one matching record.
@@ -394,20 +402,23 @@ class LocalFileStorage(AbstractStorage):
         table = self.table(table_name)
         if keys is None:
             return False
-        elif isinstance(keys, self.Record.eid_type):
+
+        if isinstance(keys, self.Record.eid_type):
             #LOGGER.debug("%s: contains(eid=%r)", table_name, keys)
             return table.contains(eid=keys)
-        elif isinstance(keys, dict) and keys:
+
+        if isinstance(keys, dict) and keys:
             #LOGGER.debug("%s: contains(keys=%r)", table_name, keys)
             return table.contains(self._query(keys, match_any))
-        elif isinstance(keys, (list, tuple)):
+
+        if isinstance(keys, (list, tuple)):
             return [
                 self.contains(keys=key,
                               table_name=table_name,
                               match_any=match_any) for key in keys
             ]
-        else:
-            raise ValueError(keys)
+
+        raise ValueError(keys)
 
     def insert(self, data, table_name=None):
         """Create a new record.
