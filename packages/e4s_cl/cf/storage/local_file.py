@@ -183,24 +183,20 @@ class LocalFileStorage(AbstractStorage):
 
     def __enter__(self):
         """Initiates the database transaction."""
-        # Use protected methods to duplicate database in memory rather than on disk.
-        # TODO Figure out if this is needed
         # pylint: disable=protected-access
         if self._transaction_count == 0:
             self.connect_database()
-            #self._db_copy = self._database._read()
+            self._db_copy = self._database._storage.read()
         self._transaction_count += 1
         return self
 
     def __exit__(self, ex_type, value, traceback):
         """Finalizes the database transaction."""
-        # Use protected methods to duplicate database in memory rather than on disk.
-        # TODO Figure out if this is needed
         # pylint: disable=protected-access
         self._transaction_count -= 1
         if ex_type and self._transaction_count == 0:
-            #self._database._write(self._db_copy)
-            #self._db_copy = None
+            self._database._storage.write(self._db_copy)
+            self._db_copy = None
             return False
         return True
 
