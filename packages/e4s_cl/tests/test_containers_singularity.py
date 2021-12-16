@@ -1,28 +1,37 @@
-import os
+from os import getenv
 from unittest import skipIf
 from pathlib import Path
 from e4s_cl import tests
+from e4s_cl.util import which
 from e4s_cl.cf.containers import Container, BackendUnsupported, FileOptions
 
 
 class ContainerTestSingularity(tests.TestCase):
+    def singularity_check():
+        return (not which('singularity') and (not Path('singularity').exists()))
+
+
+    @skipIf(singularity_check(), "Singularity absent from system")
     def test_create(self):
-        container = Container(executable='bash', image='test')
+        container = Container(executable='singularity', image='test')
         self.assertFalse(type(container) == Container)
         self.assertTrue(isinstance(container, Container))
 
+    @skipIf(singularity_check(), "Singularity absent from system")
     def test_run_backend(self):
         container = Container(executable='singularity')
         command = ['']
         container_cmd, env = container.run(command,redirect_stdout=False)
         self.assertIn('singularity',' '.join(map(str,container_cmd)))
     
+    @skipIf(singularity_check(), "Singularity absent from system")
     def test_run_image(self):
         container = Container(executable='singularity', image='imagenametest')
         command = ['']
         container_cmd, env = container.run(command,redirect_stdout=False)
         self.assertIn('imagenametest',' '.join(map(str,container_cmd)))
     
+    @skipIf(singularity_check(), "Singularity absent from system")
     def test_bind_file(self):
         container = Container(executable='singularity')
 
@@ -42,6 +51,7 @@ class ContainerTestSingularity(tests.TestCase):
         self.assertIn((target, dest, FileOptions.READ_WRITE),
                       list(container.bound))
 
+    @skipIf(singularity_check(), "Singularity absent from system")
     def test_bind_relative(self):
         container = Container(executable='singularity')
 
