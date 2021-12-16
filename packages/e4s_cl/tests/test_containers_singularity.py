@@ -1,4 +1,4 @@
-from os import getenv
+from os import getenv, getcwd
 from unittest import skipIf
 from pathlib import Path
 from e4s_cl import tests
@@ -31,6 +31,21 @@ class ContainerTestSingularity(tests.TestCase):
         container_cmd, env = container.run(command,redirect_stdout=False)
         self.assertIn('imagenametest',' '.join(map(str,container_cmd)))
     
+    @skipIf(singularity_check(), "Singularity absent from system")
+    def test_run_pwd(self):
+        container = Container(executable='singularity')
+        command = ['']
+        container_cmd, env = container.run(command,redirect_stdout=False)
+        pwd = getcwd()
+        self.assertIn(pwd,' '.join(map(str,container_cmd)))
+
+    @skipIf(singularity_check(), "Singularity absent from system")
+    def test_run_mpirun(self):
+        container = Container(executable='singularity', image='dummyimagename')
+        command = ['mpirun -n 2 ls']
+        container_cmd, env = container.run(command,redirect_stdout=False)
+        self.assertIn(command[0],' '.join(map(str,container_cmd)))
+
     @skipIf(singularity_check(), "Singularity absent from system")
     def test_bind_file(self):
         container = Container(executable='singularity')
