@@ -151,10 +151,8 @@ class Container:
         """
         Common class init: this code is run in the actual sub-classes
         """
+        
         self.executable = which(executable)
-
-        if not self.executable or (not Path(self.executable).exists()):
-            raise BackendNotAvailableError(executable)
 
         # Container image file on the host
         self.image = image

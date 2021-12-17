@@ -5,7 +5,7 @@ Module introducing singularity support
 import os
 from pathlib import Path
 from e4s_cl import logger
-from e4s_cl.util import create_subprocess_exp
+from e4s_cl.util import create_subprocess_exp, which
 from e4s_cl.cf.libraries import host_libraries
 from e4s_cl.cf.containers import Container, FileOptions
 
@@ -37,6 +37,10 @@ class SingularityContainer(Container):
         #self.bind_file('/tmp', option=FileOptions.READ_WRITE)
 
     def run(self, command, redirect_stdout=False):
+        
+        if not self.executable or (not Path(self.executable).exists()):
+            raise BackendNotAvailableError(executable)
+        
         self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
             {'SINGULARITYENV_LD_PRELOAD': ":".join(self.ld_preload)})
