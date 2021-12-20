@@ -7,7 +7,7 @@ from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.util import create_subprocess_exp, which
 from e4s_cl.cf.libraries import host_libraries
-from e4s_cl.cf.containers import Container, FileOptions
+from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
 LOGGER = logger.get_logger(__name__)
 
@@ -36,10 +36,10 @@ class SingularityContainer(Container):
         #self.bind_file('/dev', option=FileOptions.READ_WRITE)
         #self.bind_file('/tmp', option=FileOptions.READ_WRITE)
 
-    def run(self, command, redirect_stdout=False):
+    def run(self, command, redirect_stdout=False, test_run=False):
         
-        if not self.executable or (not Path(self.executable).exists()):
-            raise BackendNotAvailableError(executable)
+        if not test_run and (not self.executable or (not Path(self.executable).exists())):
+            raise BackendNotAvailableError(self.executable)
         
         self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
