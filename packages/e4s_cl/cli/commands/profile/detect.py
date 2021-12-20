@@ -38,7 +38,8 @@ from typing import List
 
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
 from e4s_cl.variables import is_master
-from e4s_cl.util import opened_files, create_subprocess_exp, flatten, json_dumps, json_loads
+from e4s_cl.util import create_subprocess_exp, flatten, json_dumps, json_loads
+from e4s_cl.cf.trace import opened_files
 from e4s_cl.cf.libraries import is_elf, resolve
 from e4s_cl.cf.launchers import interpret
 from e4s_cl.cli import arguments

@@ -2,51 +2,74 @@
 This modules parses data in the asset dirs to list all assets available during execution
 """
 
-import json
-from pathlib import Path
-from functools import lru_cache
-from e4s_cl import USER_PREFIX, SYSTEM_PREFIX, logger
+from e4s_cl import logger
+from e4s_cl.cf.storage.levels import USER_STORAGE
 
 LOGGER = logger.get_logger(__name__)
 
-BINARY_DIR = "binaries"
-PROFILE_DIR = "profiles"
+SAMPLE_BINARY_ID = "precompiled_binaries"
+BUILTIN_PROFILE_ID = "builtin_profiles"
 
 
-def _load_index(index: Path) -> dict:
-    if not index.exists():
-        return {}
+def precompiled_binaries(storage=USER_STORAGE) -> dict:
+    """
+    List all the precompiled binaries available
+    """
+    records = storage.search(table_name=SAMPLE_BINARY_ID)
+    transform = lambda r: (r['soname'], r['path'])
 
-    data = {}
-
-    with open(index.as_posix(), 'r', encoding="utf8") as index_file:
-        try:
-            data = json.load(index_file)
-        except json.JSONDecodeError as err:
-            LOGGER.debug("Error loading index: %s", err)
-
-    return data
+    return dict(map(transform, records))
 
 
-def _get_available(asset_dir: str) -> dict:
-    user_assets = Path(USER_PREFIX, asset_dir, "index.json")
-    system_assets = Path(SYSTEM_PREFIX, asset_dir, "index.json")
+def builtin_profiles(storage=USER_STORAGE) -> dict:
+    """
+    List all the builtin profiles available
+    """
+    records = storage.search(table_name=BUILTIN_PROFILE_ID)
+    transform = lambda r: (r['system'], r['configuration'])
 
-    # User assets have priority over system's
-    available = _load_index(system_assets) | _load_index(user_assets)
-
-    assets = {}
-    for id_, path_ in available.items():
-        assets[id_] = Path(path_)
-
-    return assets
+    return dict(map(transform, records))
 
 
-@lru_cache
-def binaries() -> dict:
-    return _get_available(BINARY_DIR)
+def _import_asset(key, data, table_name, storage=USER_STORAGE):
+    if key not in data.keys():
+        LOGGER.error("Asset data misses the %s key", key)
+        return
+
+    with storage as database:
+        if database.contains({key: data[key]}, table_name):
+            database.remove({key: data[key]}, table_name)
+        record = database.insert(data, table_name)
+
+    if not record:
+        LOGGER.error("Failed to import asset for %s %s in %s storage", key,
+                     data[key], storage.name)
 
 
-@lru_cache
-def profiles() -> dict:
-    return _get_available(PROFILE_DIR)
+def add_builtin_profile(system, configuration, storage=USER_STORAGE):
+    """
+    Record a configuration to be used as a built-in profile
+    """
+    record = {
+        'system': system,
+        'configuration': configuration,
+    }
+    _import_asset('system', record, BUILTIN_PROFILE_ID, storage)
+
+
+def remove_builtin_profile(system, storage=USER_STORAGE):
+    """
+    Remove a configuration used as a built-in profile
+    """
+    with storage as database:
+        database.remove({'system': system})
+
+def add_precompiled_binary(soname, path, storage=USER_STORAGE):
+    """
+    Record a path towards a precompiled MPI binary
+    """
+    record = {
+        'soname': soname,
+        'path': path,
+    }
+    _import_asset('soname', record, SAMPLE_BINARY_ID, storage)

@@ -3,7 +3,7 @@
 E4S Commander core software architecture.
 
 E4S Commander follows the `Model-View-Controller (MVC)`_ architectural pattern. 
-Packages in :py:mod:`taucmdr.model` define models and controllers.  The `model` module 
+Packages in :py:mod:`e4s_cl.model` define models and controllers.  The `model` module
 declares the model attributes as a dictionary named `ATTRIBUTES` in the form::
 
     <attribute>: {
@@ -30,7 +30,7 @@ that this model is being referened by one or more attributes of a foreign model.
 referenced model changes then the referencing model, i.e. the foreign model, will update all referencing 
 attributes. 
 
-Associations, references, and attributes are constructed when :py:mod:`taucmdr.model`  is imported.
+Associations, references, and attributes are constructed when :py:mod:`e4s_cl.model` is imported.
 
 Examples:
 

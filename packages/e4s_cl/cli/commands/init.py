@@ -31,7 +31,7 @@ of a sample MPI program. A program will be compiled from the library's compiler,
 then run using a provided launcher. The opened files and libraries will be detected \
 using the :code:`ptrace` system call, and added to the resulting profile.
 
-The :code:`--mpi`, :code:`--launcher` and :code:`launcher_args` options can be \
+The :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options can be \
 used to influence the initialization process. It is highly encouraged to load the \
 MPI library beforehand using the module system available \
 (:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the paths and dependencies \
@@ -90,13 +90,11 @@ from e4s_cl.sample import PROGRAM
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
 from e4s_cl.model.profile import Profile
-from e4s_cl.cf.assets import binaries, profiles
+from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.libraries.linker import resolve
-from e4s_cl import USER_PREFIX
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
-BINARY_DIR = os.path.join(USER_PREFIX, 'compiled_binaries')
 INIT_TEMP_PROFILE_NAME = '__INIT_TEMP_PROFILE'
 
 
@@ -167,9 +165,7 @@ def _profile_from_args(args) -> dict:
 
     # Load data from assets if required
     if system := getattr(args, 'system', None):
-        if location := profiles().get(system):
-            with open(location, 'r', encoding="utf8") as asset:
-                data = data | json.load(asset)
+        data = data | builtin_profiles().get(system, {})
 
     return data
 
@@ -210,7 +206,7 @@ def _analyze_binary(args):
             os.environ["LD_LIBRARY_PATH"] = mpi_lib.as_posix()
 
     # Select binary depending on available library
-    binary = _select_binary(binaries())
+    binary = _select_binary(precompiled_binaries())
 
     # Use the launcher passed as an argument in priority
     launcher = util.which(getattr(args, 'launcher', launcher))
@@ -269,18 +265,16 @@ def _special_clauses(args) -> bool:
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
     def _construct_parser(self):
-        usage = f"{self.command} <image>"
         parser = arguments.get_parser(prog=self.command,
-                                      usage=usage,
                                       description=self.summary)
 
         parser.add_argument(
             '--system',
-            help="Initialize e4s-cl for use on a specific system"
-            f" Available systems are: {', '.join(profiles().keys())}",
+            help="Initialize e4s-cl for use on a specific system."
+            f" Available systems are: {', '.join(builtin_profiles().keys())}",
             metavar='machine',
             default=arguments.SUPPRESS,
-            choices=profiles().keys())
+            choices=builtin_profiles().keys())
 
         parser.add_argument(
             '--launcher',
@@ -382,8 +376,8 @@ class InitCommand(AbstractCommand):
         controller = Profile.controller()
 
         # Erase any leftover temporary profiles
-        if controller.one({"name": INIT_TEMP_PROFILE_NAME}):
-            controller.delete({"name": INIT_TEMP_PROFILE_NAME})
+        if controller.one({"name": profile_data['name']}):
+            controller.delete({"name": profile_data['name']})
 
         # Create and select a profile for use
         profile = controller.create(profile_data)

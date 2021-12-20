@@ -8,7 +8,7 @@ from e4s_cl.cli.commands.help import COMMAND as help_command
 
 
 class HelpTest(tests.TestCase):
-    """Unit tests for `taucmdr help`"""
+    """Unit tests for `e4s-cl help`"""
     def test_help(self):
         argv = ['profile']
         self.assertCommandReturnValue(0, help_command, argv)

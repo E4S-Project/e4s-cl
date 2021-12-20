@@ -141,7 +141,7 @@ install: python_check download_assets
 
 ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
 
-download_assets: $(CONDA_SRC)
+download_assets: python_check
 	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(SYSTEM)
 
 COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
@@ -186,10 +186,18 @@ clean:
 #>============================================================================<
 # Maintenance targets
 
-ifeq ($(TEST_ENV),)
+ifneq ($(TEST_ENV),)
+TEST_ENV = deep_test
+TEST_DEPENDENCIES = install python_check
+else
 TEST_ENV = shallow_test
+TEST_DEPENDENCIES =
 endif
-test: install python_check
+
+__E4S_CL_USER_PREFIX__ = /tmp/$(USER)/e4s_cl/user_test
+__E4S_CL_SYSTEM_PREFIX__ = /tmp/$(USER)/e4s_cl/system_test
+
+test: $(TEST_DEPENDENCIES)
 	$(PYTHON) -m tox tox.ini -e $(TEST_ENV)
 
 format:

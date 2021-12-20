@@ -12,17 +12,13 @@ from e4s_cl.cf.libraries import LibrarySet
 LOGGER = logger.get_logger(__name__)
 
 
-def _suffix_profile(profile_name: str) -> str:
+def _suffix_name(name: str, existing_names: set) -> str:
     """
     Add a '-N' to a profile if it already exists
     """
-    matches = Profile.controller().match('name',
-                                         regex=f"{re.escape(profile_name)}.*")
-    names = set(filter(None, map(lambda x: x.get('name'), matches)))
-
     # Do not append a suffix for the first unique profile
-    if not profile_name in names:
-        return profile_name
+    if not name in existing_names:
+        return name
 
     # An exact match exists, filter the occurences of 'name-N' (clones)
     # and return name-max(N)+1
@@ -31,8 +27,8 @@ def _suffix_profile(profile_name: str) -> str:
             None,
             map(
                 lambda x: re.match(
-                    f"{re.escape(profile_name)}-(?P<ordinal>[0-9]*)", x),
-                names)))
+                    f"{re.escape(name)}-(?P<ordinal>[0-9]*)", x),
+                existing_names)))
 
     # Try to list all clones of this profile
     ordinals = []
@@ -43,14 +39,22 @@ def _suffix_profile(profile_name: str) -> str:
             pass
 
     # If there are no clones, this is the second profile, after the original
-    profile_no = 2
+    ordinal = 2
     if len(ordinals) != 0:
-        profile_no = max(ordinals) + 1
+        ordinal = max(ordinals) + 1
 
-    return f"{profile_name}-{profile_no}"
+    return f"{name}-{ordinal}"
 
 
-def _extract_intel_mpi(version_buffer_str):
+def strip(function):
+    def wrapper(version_buffer_str):
+        return function(version_buffer_str).strip()
+
+    return wrapper
+
+
+@strip
+def _extract_intel_mpi_version(version_buffer_str):
     """
     Parses the typical Intel MPI library version message, eg:
     Intel(R) MPI Library 2019 Update 6 for Linux* OS
@@ -58,7 +62,8 @@ def _extract_intel_mpi(version_buffer_str):
     return version_buffer_str.split("Library", 1)[1].split("for", 1)[0]
 
 
-def _extract_open_mpi(version_buffer_str):
+@strip
+def _extract_open_mpi_version(version_buffer_str):
     """
     Parses the typical OpenMPI library version message, eg:
     Open MPI v4.0.1, package: Open MPI Distribution, ident: 4.0.1, repo rev: v4.0.1, Mar 26, 2019
@@ -66,7 +71,8 @@ def _extract_open_mpi(version_buffer_str):
     return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
 
 
-def _extract_spectrum_mpi(version_buffer_str):
+@strip
+def _extract_spectrum_mpi_version(version_buffer_str):
     """
     Parses the typical Spectrum MPI library version message, eg:
     Open MPI v4.0.1, package: Spectrum MPI Distribution, ident: 4.0.1, repo rev: v4.0.1, Mar 26, 2019
@@ -74,7 +80,8 @@ def _extract_spectrum_mpi(version_buffer_str):
     return version_buffer_str.split("v", 1)[1].split(",", 1)[0]
 
 
-def _extract_mpich(version_buffer_str):
+@strip
+def _extract_mpich_version(version_buffer_str):
     """
     Parses the typical MPICH library version message, eg:
     MPICH Version:  3.3b2
@@ -84,7 +91,8 @@ def _extract_mpich(version_buffer_str):
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
 
-def _extract_cray_mpich(version_buffer_str):
+@strip
+def _extract_cray_mpich_version(version_buffer_str):
     """
     Parses the typical MPICH library version message, eg:
     MPICH Version:  3.3b2
@@ -94,7 +102,8 @@ def _extract_cray_mpich(version_buffer_str):
     return version_buffer_str.split("version", 1)[1].split("(", 1)[0]
 
 
-def _extract_mvapich(version_buffer_str):
+@strip
+def _extract_mvapich_version(version_buffer_str):
     """
     Parses the typical MVAPICH library version message, eg:
     MVAPICH Version:  3.3b2
@@ -105,12 +114,12 @@ def _extract_mvapich(version_buffer_str):
 
 
 distro_dict = {
-    'Intel(R) MPI': _extract_intel_mpi,
-    'Open MPI': _extract_open_mpi,
-    'Spectrum MPI': _extract_spectrum_mpi,
-    'MPICH': _extract_mpich,
-    'CRAY MPICH': _extract_cray_mpich,
-    'MVAPICH': _extract_mvapich
+    'Intel(R) MPI': _extract_intel_mpi_version,
+    'Open MPI': _extract_open_mpi_version,
+    'Spectrum MPI': _extract_spectrum_mpi_version,
+    'MPICH': _extract_mpich_version,
+    'CRAY MPICH': _extract_cray_mpich_version,
+    'MVAPICH': _extract_mvapich_version
 }
 
 
@@ -194,7 +203,7 @@ def detect_name(path_list):
 
             # Add the result to the above container
             version_data.add((profile_name, version_str))
-    
+
     found_vendors = set(map(lambda x: x[0], version_data))
     if len(found_vendors) == 1:
         # If one consistent vendor has been found
@@ -205,22 +214,38 @@ def detect_name(path_list):
     return profile_name
 
 
-def try_rename(profile_id: str):
+def try_rename(profile_id: str) -> None:
     """
-    Analyze a profile for MPI libraries and rename it according to the vendor/version
+    Analyze the selected profile for MPI libraries and rename it according
+    to the vendor/version info in the shared object
     """
+
     if not (data := Profile.controller().one({'name': profile_id})):
         LOGGER.debug("Error renaming profile: profile '%s' not found",
                      profile_id)
         return
+
+    # Extract all libmpi* libraries from the profile
     detected_libs = LibrarySet.create_from(data.get('libraries', []))
     mpi_libs = list(
         filter(lambda x: re.match(r'libmpi.*so.*', x.soname), detected_libs))
-    
-    if new_name := detect_name([Path(x.binary_path) for x in mpi_libs]):
-        LOGGER.debug("Found library %s", new_name)
-        profile_name = _suffix_profile(new_name)
-        Profile.controller().update({'name': profile_name},
-                                    Profile.selected().eid)
-    else:
+
+    # Run the methods in the libraries to get a version
+    new_name = detect_name([Path(x.binary_path) for x in mpi_libs])
+
+    if not new_name:
         LOGGER.debug("Profile naming failed")
+        return
+
+    LOGGER.debug("Found library %s", new_name)
+
+    # Get all profiles matching the new name
+    matches = Profile.controller().match('name',
+                                         regex=f"{re.escape(new_name)}.*")
+    names = set(filter(None, map(lambda x: x.get('name'), matches)))
+
+    # Add a suffix to the name to avoid conflict
+    profile_name = _suffix_name(new_name, names)
+
+    # Update the profile name
+    Profile.controller().update({'name': profile_name}, Profile.selected().eid)

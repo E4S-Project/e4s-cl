@@ -1,12 +1,12 @@
 import os
 import pathlib
 from e4s_cl import tests
-from e4s_cl.cf.assets import binaries, profiles
+from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 
 
 class AssetsTest(tests.TestCase):
     def test_binaries(self):
-        self.assertTrue(isinstance(binaries(), dict))
+        self.assertTrue(isinstance(precompiled_binaries(), dict))
 
     def test_profiles(self):
-        self.assertTrue(isinstance(profiles(), dict))
+        self.assertTrue(isinstance(builtin_profiles(), dict))

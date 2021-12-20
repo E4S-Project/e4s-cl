@@ -13,15 +13,13 @@ import pathlib
 import hashlib
 import json
 from collections import deque
+from time import perf_counter
+from contextlib import contextmanager
 from e4s_cl import logger
 from e4s_cl.variables import is_master
 from e4s_cl.error import InternalError
 import termcolor
 
-from ptrace.debugger import (PtraceDebugger, ProcessExit, ProcessSignal,
-                             NewProcessEvent, ProcessExecution, child)
-from ptrace.func_call import FunctionCallOptions
-from ptrace.tools import locateProgram
 
 LOGGER = logger.get_logger(__name__)
 
@@ -444,71 +442,6 @@ def _iter_modules(paths, prefix):
             yield importer, name, ispkg
 
 
-def opened_files(command):
-    """
-    Use python-ptrace to list open syscalls from the command.
-    """
-    files = []
-    debugger = PtraceDebugger()
-    command[0] = locateProgram(command[0])
-
-    try:
-        pid = child.createChild(command, no_stdout=False, close_fds=False)
-    except child.ChildError as err:
-        LOGGER.error("Failed to list opened files of %s: %s", command[0],
-                     str(err))
-        return -1, []
-
-    # Debugger.addProcess also uses logging, setting the level to warning
-    # mutes info messages
-    bkp_level = logger.LOG_LEVEL
-    logger.set_log_level('WARNING')
-    process = debugger.addProcess(pid, is_attached=True)
-    logger.set_log_level(bkp_level)
-
-    returncode = 0
-
-    def list_syscalls():
-        # Access the returncode above - Python 3 only
-        nonlocal returncode
-        process.syscall()
-
-        while debugger:
-            # Wait until next syscall enter
-            try:
-                event = debugger.waitSyscall()
-            except ProcessExit as event:
-                returncode = event.exitcode
-                continue
-            except ProcessSignal as event:
-                event.process.syscall(event.signum)
-                continue
-            except NewProcessEvent as event:
-                continue
-            except ProcessExecution as event:
-                print(event)
-                continue
-
-            # Process syscall enter or exit
-            syscall = event.process.syscall_state.event(FunctionCallOptions())
-            if syscall and (syscall.result is not None):
-                yield syscall
-
-            # Break at next syscall
-            event.process.syscall()
-
-    for syscall in list_syscalls():
-        if syscall.result < 0:
-            continue
-        if syscall.name == "open":
-            files.append(syscall.arguments[0].getText())
-        if syscall.name == "openat":
-            files.append(syscall.arguments[1].getText())
-
-    paths = {name.strip("'") for name in files}
-    return returncode, [pathlib.Path(p) for p in paths]
-
-
 def flatten(nested_list):
     """Flatten a nested list."""
     return [item for sublist in nested_list for item in sublist]
@@ -536,10 +469,8 @@ def _json_serializer(obj):
     return obj
 
 
-"""
-Dict of methods to use when decoding e4s-cl json. Keys correspond to values
-of the `__type` field.
-"""
+# Dict of methods to use when decoding e4s-cl json. Keys correspond to values
+# of the `__type` field.
 JSON_HOOKS = {}
 
 
@@ -588,7 +519,12 @@ def add_dot(string: str) -> str:
 
 
 def update_ld_path(posixpath):
-    os.environ["LD_LIBRARY_PATH"] = Path(
+    os.environ["LD_LIBRARY_PATH"] = pathlib.Path(
         posixpath,
         "lib").as_posix() + os.pathsep + os.environ["LD_LIBRARY_PATH"]
     return os.environ["LD_LIBRARY_PATH"]
+
+@contextmanager
+def catchtime() -> float:
+    start = perf_counter()
+    yield lambda: perf_counter() - start
