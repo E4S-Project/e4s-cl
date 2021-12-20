@@ -13,6 +13,8 @@ import pathlib
 import hashlib
 import json
 from collections import deque
+from time import perf_counter
+from contextlib import contextmanager
 from e4s_cl import logger
 from e4s_cl.variables import is_master
 from e4s_cl.error import InternalError
@@ -467,10 +469,8 @@ def _json_serializer(obj):
     return obj
 
 
-"""
-Dict of methods to use when decoding e4s-cl json. Keys correspond to values
-of the `__type` field.
-"""
+# Dict of methods to use when decoding e4s-cl json. Keys correspond to values
+# of the `__type` field.
 JSON_HOOKS = {}
 
 
@@ -523,3 +523,8 @@ def update_ld_path(posixpath):
         posixpath,
         "lib").as_posix() + os.pathsep + os.environ["LD_LIBRARY_PATH"]
     return os.environ["LD_LIBRARY_PATH"]
+
+@contextmanager
+def catchtime() -> float:
+    start = perf_counter()
+    yield lambda: perf_counter() - start
