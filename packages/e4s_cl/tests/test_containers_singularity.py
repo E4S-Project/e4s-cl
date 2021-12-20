@@ -11,7 +11,6 @@ class ContainerTestSingularity(tests.TestCase):
         return (not which('singularity') and (not Path('singularity').exists()))
 
 
-    @skipIf(singularity_check(), "Singularity absent from system")
     def test_create(self):
         container = Container(executable='singularity', image='test')
         self.assertFalse(type(container) == Container)
@@ -24,29 +23,25 @@ class ContainerTestSingularity(tests.TestCase):
         container_cmd, env = container.run(command,redirect_stdout=False)
         self.assertIn('singularity',' '.join(map(str,container_cmd)))
     
-    @skipIf(singularity_check(), "Singularity absent from system")
     def test_run_image(self):
         container = Container(executable='singularity', image='imagenametest')
         command = ['']
-        container_cmd, env = container.run(command,redirect_stdout=False)
+        container_cmd, env = container.run(command,redirect_stdout=False, test_run=True)
         self.assertIn('imagenametest',' '.join(map(str,container_cmd)))
     
-    @skipIf(singularity_check(), "Singularity absent from system")
     def test_run_pwd(self):
         container = Container(executable='singularity')
         command = ['']
-        container_cmd, env = container.run(command,redirect_stdout=False)
+        container_cmd, env = container.run(command,redirect_stdout=False, test_run=True)
         pwd = getcwd()
         self.assertIn(pwd,' '.join(map(str,container_cmd)))
 
-    @skipIf(singularity_check(), "Singularity absent from system")
     def test_run_mpirun(self):
         container = Container(executable='singularity', image='dummyimagename')
         command = ['mpirun -n 2 ls']
-        container_cmd, env = container.run(command,redirect_stdout=False)
+        container_cmd, env = container.run(command,redirect_stdout=False, test_run=True)
         self.assertIn(command[0],' '.join(map(str,container_cmd)))
 
-    @skipIf(singularity_check(), "Singularity absent from system")
     def test_bind_file(self):
         container = Container(executable='singularity')
 
@@ -66,7 +61,6 @@ class ContainerTestSingularity(tests.TestCase):
         self.assertIn((target, dest, FileOptions.READ_WRITE),
                       list(container.bound))
 
-    @skipIf(singularity_check(), "Singularity absent from system")
     def test_bind_relative(self):
         container = Container(executable='singularity')
 
