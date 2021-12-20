@@ -8,3 +8,9 @@ class TraceTest(tests.TestCase):
         returncode, files = opened_files(['cat', '/dev/null'])
         self.assertEqual(returncode, 0)
         self.assertIn(Path('/dev/null'), files)
+
+    def test_return(self):
+        returncode, files = opened_files(['cat', '/dev/null'])
+        self.assertEqual(returncode, 0)
+        for element in files:
+            self.assertTrue(isinstance(element, Path))
