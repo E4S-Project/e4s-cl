@@ -146,7 +146,7 @@ class ProfileDetectCommand(AbstractCliView):
                         data = json_loads(line)
                         file_paths.append(data['files'])
                         library_paths.append(data['libraries'])
-                    except JSONDecodeError:
+                    except (JSONDecodeError, TypeError):
                         pass
 
                 files = list(set(flatten(file_paths)))
