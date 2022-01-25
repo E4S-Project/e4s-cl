@@ -17,6 +17,7 @@ endif
 ifeq ($(INSTALLDIR),)
 	INSTALLDIR=$(shell pwd)/e4s-cl-$(VERSION)
 endif
+INSTALL_BIN_DIR=$(INSTALLDIR)/bin
 
 # Get target OS and architecture
 ifeq ($(HOST_OS),)
@@ -149,6 +150,7 @@ COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COM
 COMPLETION_DEST=$(INSTALLDIR)/bin/__e4s_cl_completion.$(HOST_ARCH)
 
 completion:
+	@$(MKDIR) $(INSTALL_BIN_DIR)
 	@$(call download,$(COMPLETION_BIN_URL),$(COMPLETION_DEST)) || \
 		(rm -f "$(COMPLETION_DEST)" ; \
 		echo "* ERROR: Unable to download $(COMPLETION_BIN_URL)." ; \
