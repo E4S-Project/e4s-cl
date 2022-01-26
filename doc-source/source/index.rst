@@ -17,5 +17,6 @@ This is useful when the binary has been compiled using a different library than 
    installation
    reference/index
    compatibility/index
+   specificmachines
    examples
    authors

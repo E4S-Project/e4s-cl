@@ -23,22 +23,9 @@ The **e4s-cl** program will be copied over to :code:`<prefix>/bin`. On success, 
 
 A python interpreter will be downloaded to ensure a compatible Python 3 version is available.
 
-.. admonition:: Installing on specific machine
-
-   Some machines have been tested for e4s-cl to work with, and profiles tailored \
-   for those systems have been created. The resulting profiles can be downloaded \
-   at install time to ease the initialisation step.
-
-   To enable such profiles, use the :code:`SYSTEM` argument when calling \
-   :code:`make` or :code:`make install`.
-
-   The following systems are supported:
-
-   * Theta at ALCF. Use machine name :code:`theta`;
-   * Spock at ORNL. Use machine name :code:`spock`;
-   * Cori at NERSC. Use machine name :code:`cori`;
-   * Perlmutter at NERSC. Use machine name :code:`perlmutter`.
-   
+.. admonition:: SYSTEM parameter
+    
+    Some machines have specific e4s-cl profiles tailored for them, these machines are listed `here <./specificmachines.html>`_.
 
 Completion
 ************
