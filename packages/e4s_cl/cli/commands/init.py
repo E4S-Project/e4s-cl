@@ -271,7 +271,10 @@ class InitCommand(AbstractCommand):
         parser.add_argument(
             '--system',
             help="Initialize e4s-cl for use on a specific system."
-            f" Available systems are: {', '.join(builtin_profiles().keys())}",
+            f" Available systems: {', '.join(builtin_profiles().keys())}"\
+                    if builtin_profiles().keys() else \
+                    "Initialize e4s-cl for use on a specific system."
+                    f" Use 'make install SYSTEM=<system>' to have the associated profile available.",
             metavar='machine',
             default=arguments.SUPPRESS,
             choices=builtin_profiles().keys())
