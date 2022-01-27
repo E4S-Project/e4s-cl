@@ -17,6 +17,7 @@ endif
 ifeq ($(INSTALLDIR),)
 	INSTALLDIR=$(shell pwd)/e4s-cl-$(VERSION)
 endif
+INSTALL_BIN_DIR=$(INSTALLDIR)/bin
 
 # Get target OS and architecture
 ifeq ($(HOST_OS),)
@@ -105,17 +106,10 @@ else
 	COMPLETION_DIR = $(BASH_COMPLETION_USER_DIR)/completions
 endif
 
-COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
-COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)
-COMPLETION_DEST=$(INSTALLDIR)/bin/__e4s_cl_completion.$(HOST_ARCH)
-
 all: install completion man
 
-install: python_check
-	$(PYTHON) setup.py build -b "$(BUILDDIR)"
-	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
-	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
-	@$(PYTHON) scripts/success.py "Installation succeded. Please add '$(INSTALLDIR)/bin' to your PATH."
+#>============================================================================<
+# Conda setup and fetch target
 
 python_check: $(PYTHON_EXE)
 	@$(PYTHON) -c "import sys; import setuptools;" || (echo "ERROR: setuptools is required." && false)
@@ -134,7 +128,29 @@ $(CONDA_SRC):
 		echo "* ERROR: Unable to download $(CONDA_URL)." ; \
 		false)
 
+#>============================================================================<
+# Main installation target
+
+install: python_check download_assets
+	$(PYTHON) setup.py build -b "$(BUILDDIR)"
+	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
+	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
+	@$(PYTHON) scripts/success.py "Installation succeded. Please add '$(INSTALLDIR)/bin' to your PATH."
+
+#>============================================================================<
+# Data fetching targets
+
+ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
+
+download_assets: python_check
+	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(SYSTEM)
+
+COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
+COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)
+COMPLETION_DEST=$(INSTALLDIR)/bin/__e4s_cl_completion.$(HOST_ARCH)
+
 completion:
+	@$(MKDIR) $(INSTALL_BIN_DIR)
 	@$(call download,$(COMPLETION_BIN_URL),$(COMPLETION_DEST)) || \
 		(rm -f "$(COMPLETION_DEST)" ; \
 		echo "* ERROR: Unable to download $(COMPLETION_BIN_URL)." ; \
@@ -144,6 +160,9 @@ completion:
 	@$(COMPLETION_DEST) > $(COMPLETION_DIR)/e4s-cl
 	@$(PYTHON) scripts/success.py "Please source '$(COMPLETION_DIR)/e4s-cl' to enable completion to the current shell."
 	@$(PYTHON) scripts/success.py "If the bash-completion package is installed, completion will be enabled on new sessions."
+
+#>============================================================================<
+# Documentation targets and variables
 
 PROJECT=.
 DOCS=$(PROJECT)/doc-source
@@ -166,12 +185,32 @@ html: python_check
 clean:
 	rm -fr build/ COMMIT VERSION
 
-test: python_check
-	$(PYTHON) -m tox tox.ini
+#>============================================================================<
+# Maintenance targets
+
+ifneq ($(TEST_ENV),)
+TEST_ENV = deep_test
+TEST_DEPENDENCIES = install python_check
+else
+TEST_ENV = shallow_test
+TEST_DEPENDENCIES =
+endif
+
+__E4S_CL_USER_PREFIX__ = /tmp/$(USER)/e4s_cl/user_test
+__E4S_CL_SYSTEM_PREFIX__ = /tmp/$(USER)/e4s_cl/system_test
+
+test: $(TEST_DEPENDENCIES)
+	$(PYTHON) -m tox tox.ini -e $(TEST_ENV)
 
 format:
 	bash ./scripts/format.sh packages/e4s_cl
 
+ifeq ($(LINT_FILE),)
+LINT_FILE=packages/e4s_cl
+endif
+
 lint:
 	@$(PYTHON) -m pip install pylint
-	$(PYTHON) -m pylint --rcfile pylintrc packages/e4s_cl --output-format=colorized
+	$(PYTHON) -m pylint --rcfile pylintrc --output-format=colorized -r n $(LINT_FILE)
+
+#>============================================================================<

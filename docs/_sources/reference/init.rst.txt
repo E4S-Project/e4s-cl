@@ -8,7 +8,7 @@ Usage
 
 .. code-block::
 
-    e4s-cl init [ OPTIONS ]
+    e4s-cl init < --system | --wi4mpi [--wi4mpi_options] | [--mpi] [--launcher] [--launcher_args] > [OPTIONS]
 
 Options
 -------
@@ -22,6 +22,7 @@ To tailor the initialization process, values can be specified by the user:
 --profile           Profile to create or overwrite
 --wi4mpi            Path to a WI4MPI installation to use
 --wi4mpi_options    String passed to the underlying WI4MPI launcher
+--system            System name, used to look up built-in profiles
 
 Description
 -----------

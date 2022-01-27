@@ -47,16 +47,6 @@ local.properties
 .ptp-sync
 .ptp-sync-folder
 
-# TAU Commander registry files
-registry
-installed
-system
-.tau
-
-# TAU intermediate compilation files
-*.inst.*
-*.pdb
-
 # Misc
 *~
 .DS_Store
@@ -65,6 +55,7 @@ benchmarks
 *.output
 *.error
 *.
+system
 
 # Python coverage data
 .coverage
@@ -75,7 +66,7 @@ benchmarks
 /COMMIT
 /build
 /dist
-/taucmdr-*
+
 packages/*.sh
 packages/*.tgz
 packages/*.tar.*

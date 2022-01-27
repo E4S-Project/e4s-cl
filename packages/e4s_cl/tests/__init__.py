@@ -4,6 +4,7 @@ import os
 import sys
 import glob
 import shutil
+import shlex
 import atexit
 import tempfile
 import unittest
@@ -94,7 +95,7 @@ def _null_decorator(_):
 class TestCase(unittest.TestCase):
     """Base class for unit tests.
 
-    Performs tests in a temporary directory and reconfigures :any:`taucmdr.logger` to work with :any:`unittest`.
+    Performs tests in a temporary directory and reconfigures :any:`e4s_cl.logger` to work with :any:`unittest`.
     """
     # Follow the :any:`unittest` code style.
     # pylint: disable=invalid-name
@@ -131,7 +132,7 @@ class TestCase(unittest.TestCase):
         return super(TestCase, self).run(result)
 
     def exec_command(self, cmd, argv):
-        """Execute a tau command's main() routine and return the exit code, stdout, and stderr data.
+        """Execute a e4s_cl command's main() routine and return the exit code, stdout, and stderr data.
 
         Args:
             cmd (type): A command instance that has a `main` callable attribute.
@@ -140,6 +141,10 @@ class TestCase(unittest.TestCase):
         Returns:
             tuple: (retval, stdout, stderr) results of running the command.
         """
+
+        if isinstance(argv, str):
+            argv = shlex.split(argv)
+
         # pylint: disable=protected-access
         stdout = tempfile.TemporaryFile(mode='w+', buffering=1)
         stderr = tempfile.TemporaryFile(mode='w+', buffering=1)
@@ -161,11 +166,15 @@ class TestCase(unittest.TestCase):
 
     def assertCommandReturnValue(self, return_value, cmd, argv):
         retval, stdout, stderr = self.exec_command(cmd, argv)
+        if retval != return_value:
+            print(stderr, file=sys.stderr)
         self.assertEqual(retval, return_value)
         return stdout, stderr
 
     def assertNotCommandReturnValue(self, return_value, cmd, argv):
         retval, stdout, stderr = self.exec_command(cmd, argv)
+        if retval == return_value:
+            print(stderr, file=sys.stderr)
         self.assertNotEqual(retval, return_value)
         return stdout, stderr
 

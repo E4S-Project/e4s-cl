@@ -13,35 +13,9 @@ LOGGER = logger.get_logger(__name__)
 
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
-_GENERIC_HELP = "See '%s --help' or raise an issue on Github for assistance" % (
-    _SCRIPT_CMD)
+_GENERIC_HELP = f"See '{_SCRIPT_CMD} --help' or raise an issue on Github for assistance"
 
 _KNOWN_FILES = {}
-
-_MIME_HINTS = {
-    None: {
-        None: ("unknown file", _GENERIC_HELP),
-        'gzip': ("compressed file", "Please specify an executable file")
-    },
-    'application': {
-        None: ("unknown binary file", _GENERIC_HELP),
-        'sharedlib': ("shared library", "Please specify an executable file"),
-        'archive': ("archive file", "Please specify an executable file"),
-        'tar': ("archive file", "Please specify an executable file"),
-        'unknown': ("unknown binary file", _GENERIC_HELP)
-    },
-    'text': {
-        None: ("unknown text file", _GENERIC_HELP),
-        'src': ("source code file",
-                "See 'taucmdr build --help' for help compiling this file"),
-        'hdr': ("source header file",
-                "See 'taucmdr build --help' for help instrumenting this file"),
-        'fortran': ("fortran source code file",
-                    "See 'taucmdr build --help' for help compiling this file"),
-        'plain': ("text file", _GENERIC_HELP)
-    }
-}
-
 
 def _fuzzy_index(dct, full_key):
     """Return d[key] where ((key in k) == true) or return d[None]."""
@@ -100,7 +74,7 @@ class HelpCommand(AbstractCommand):
         return EXIT_SUCCESS
 
     def _construct_parser(self):
-        usage_head = "%s <command>|<file>|all [arguments]" % self.command
+        usage_head = f"{self.command} <command>|<file>|all [arguments]"
         parser = arguments.get_parser(prog=self.command,
                                       usage=usage_head,
                                       description=self.summary)
@@ -117,7 +91,7 @@ class HelpCommand(AbstractCommand):
         if args.command[0] == 'all':
             return self.exit_with_fullhelp()
 
-        # Try to look up a Tau command's built-in help page
+        # Try to look up a e4s-cl command's built-in help page
         cmd = args.command
         try:
             return self.exit_with_help(cmd)
@@ -133,29 +107,16 @@ class HelpCommand(AbstractCommand):
                 pass
             else:
                 article = 'an' if desc[0] in 'aeiou' else 'a'
-                hint = "'%s' is %s %s.\n%s." % (cmd, article, desc, hint)
+                hint = f"'{cmd}' is {article} {desc}.\n{hint}."
                 raise UnknownCommandError(cmd, hint)
 
             # Get the filetype and try to be helpful.
             filetype, encoding = _guess_filetype(cmd)
             self.logger.debug("'%s' has filetype (%s, %s)", cmd, filetype,
                               encoding)
-            if filetype:
-                filetype, subtype = filetype.split('/')
-                try:
-                    type_hints = _MIME_HINTS[filetype]
-                except KeyError:
-                    hint = "E4S doesn't recognize '%s'.\nSee '%s --help'" \
-                    "and use the appropriate subcommand." % cmd, argv[
-                        0]
-                else:
-                    desc, hint = _fuzzy_index(type_hints, subtype)
-                    article = 'an' if desc[0] in 'aeiou' else 'a'
-                    hint = "'%s' is %s %s.\n%s." % (cmd, article, desc, hint)
-                raise UnknownCommandError(cmd, hint)
             raise UnknownCommandError(cmd)
 
-        LOGGER.error("Cannot identify '%s' as a command or filename.")
+        LOGGER.error("Cannot identify '%s' as a command or filename.", cmd)
         return self.exit_with_help('__main__')
 
 

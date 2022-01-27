@@ -69,13 +69,13 @@ class Entrypoint:
         elif isinstance(rhs, list):
             self.__command = rhs
         else:
-            raise InternalError("Invalid format for entrypoint command: %s" %
-                                repr(rhs))
+            raise InternalError(
+                f"Invalid format for entrypoint command: {repr(rhs)}")
 
     @property
     def source_script(self):
         if self.source_script_path:
-            return ". %s" % self.source_script_path
+            return f". {self.source_script_path}"
         return ""
 
     def __str__(self):

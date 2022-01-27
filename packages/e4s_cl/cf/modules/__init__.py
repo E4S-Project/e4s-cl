@@ -1,9 +1,21 @@
+"""
+Access loaded modules from e4s-cl
+As the `module` command is often a bash function, modifying modules from
+python is tricky. The following is read only.
+"""
+
 import re
 from functools import lru_cache
+from e4s_cl import logger
 from e4s_cl.util import create_subprocess_exp
+
+LOGGER = logger.get_logger(__name__)
 
 
 class Module:
+    """
+    Class with a name, version and boolean default flag
+    """
     def __init__(self, string: str):
         self.name = None
         self.version = None
@@ -20,7 +32,7 @@ class Module:
         string = str(self.name)
 
         if self.version:
-            string = "%s/%s" % (string, str(self.version))
+            string = f"{string}/{str(self.version)}"
 
         return string
 

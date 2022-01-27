@@ -5,9 +5,9 @@ Module introducing singularity support
 import os
 from pathlib import Path
 from e4s_cl import logger
-from e4s_cl.util import create_subprocess_exp
+from e4s_cl.util import create_subprocess_exp, which
 from e4s_cl.cf.libraries import host_libraries
-from e4s_cl.cf.containers import Container, FileOptions
+from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
 LOGGER = logger.get_logger(__name__)
 
@@ -36,7 +36,11 @@ class SingularityContainer(Container):
         #self.bind_file('/dev', option=FileOptions.READ_WRITE)
         #self.bind_file('/tmp', option=FileOptions.READ_WRITE)
 
-    def run(self, command, redirect_stdout=False):
+    def run(self, command, redirect_stdout=False, test_run=False):
+        
+        if not test_run and (not self.executable or (not Path(self.executable).exists())):
+            raise BackendNotAvailableError(self.executable)
+        
         self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
             {'SINGULARITYENV_LD_PRELOAD': ":".join(self.ld_preload)})
@@ -45,13 +49,10 @@ class SingularityContainer(Container):
         self.format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
         container_cmd = [
-            self.executable, 'exec', *self._working_dir(),
-            *nvidia_flag, self.image, *command
+            self.executable, 'exec', *self._working_dir(), *nvidia_flag,
+            self.image, *command
         ]
-
-        return create_subprocess_exp(container_cmd,
-                                     env=self.env,
-                                     redirect_stdout=redirect_stdout)
+        return (container_cmd, self.env)
 
     def format_bound(self):
         """
@@ -59,13 +60,12 @@ class SingularityContainer(Container):
         """
         def _format():
             for source, dest, options_val in self.bound:
-                yield "%s:%s:%s" % (source, dest, OPTION_STRINGS[options_val])
+                yield f"{source}:{dest}:{OPTION_STRINGS[options_val]}"
 
         self.env.update({"SINGULARITY_BIND": ','.join(_format())})
 
     def bind_env_var(self, key, value):
-        new_key = "SINGULARITYENV_{}".format(key)
-        self.env.update({new_key: value})
+        self.env.update({f"SINGULARITYENV_{key}": value})
 
     def _has_nvidia(self):
         if 'nvidia' not in " ".join(host_libraries().keys()):

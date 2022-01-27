@@ -2,6 +2,7 @@
 ldd wrapper
 """
 
+import shlex
 from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.util import which, create_subprocess_exp
@@ -41,8 +42,7 @@ def _parse_line(line):
     if '=>' in line:
         if len(parts) != 4:
             raise InternalError(
-                "Expected 4 parts in the line but found {}: {}".format(
-                    len(parts), line))
+                f"Expected 4 parts in the line but found {len(parts)}: {line}")
 
         soname = None
         dep_path = None
@@ -67,8 +67,7 @@ def _parse_line(line):
 
     if len(parts) != 2:
         raise InternalError(
-            "Expected 2 parts in the line but found {}: {}".format(
-                len(parts), line))
+            f"Expected 2 parts in the line but found {len(parts)}: {line}")
 
     # In this case, no soname was available
     return {}
@@ -81,9 +80,9 @@ def ldd(binary):
     """
     binary = Path(binary).as_posix()
 
-    command = "%(ldd)s %(binary)s" % {'ldd': which('ldd'), 'binary': binary}
+    command = f"{which('ldd')} {binary}"
 
-    returncode, output = create_subprocess_exp(command.split(),
+    returncode, output = create_subprocess_exp(shlex.split(command),
                                                redirect_stdout=True)
 
     if returncode:

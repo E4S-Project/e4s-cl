@@ -47,6 +47,7 @@ To use these modules alongside of e4s-cl's, creating a profile with no files \
 nor libraries is encouraged.
 
 .. code::
+
    $ e4s-cl profile create cori --backend shifter --image <Your image>
    $ e4s-cl profile select cori
    $ e4s-cl srun -n X /path/to/executable

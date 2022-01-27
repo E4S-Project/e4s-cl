@@ -31,7 +31,7 @@ class Library:
     def __init__(self, file=None, soname=""):
         self.soname = soname
         self.dyn_dependencies = set()
-        self.required_versions = dict()
+        self.required_versions = {}
         self.defined_versions = set()
 
         self.rpath = []
@@ -80,7 +80,7 @@ class Library:
         }
 
     def __parse_ver_need(self, section):
-        needed = dict()
+        needed = {}
 
         for ver, v_iter in section.iter_versions():
             needed[ver.name] = {ver.name for ver in v_iter}
@@ -142,8 +142,7 @@ class LibrarySet(set):
                                    runpath=cache.runpath)
             else:
                 raise InternalError(
-                    "Wrong type for LibrarySet.create_from: %s" %
-                    type(element))
+                    f"Wrong type for LibrarySet.create_from: {type(element)}")
 
             if not path:
                 raise LinkingError(element)
@@ -172,8 +171,8 @@ class LibrarySet(set):
         """
         if not isinstance(elem, Library):
             raise InternalError(
-                "Adding object of incompatible type %s to LibrarySet !" %
-                type(elem))
+                f"Adding object of incompatible type {type(elem)} to LibrarySet !"
+            )
 
         conflict = list(filter(lambda x: hash(x) == hash(elem), self))
 
@@ -221,22 +220,23 @@ class LibrarySet(set):
     def linkers(self):
         """
         -> LibrarySet, subset of self
-        Returns a set of all linkers present in the set
+        Returns a set of all linkers present in the set.
+        The linker is identified by its static-ness and definition of private GLIB symbols.
         """
-        return LibrarySet(filter(lambda x: not x.dyn_dependencies, self))
+        return LibrarySet(filter(lambda x: not x.dyn_dependencies and x in self.glib, self))
 
     @property
     def glib(self):
         """
         -> LibrarySet, subset of self
         Returns a set with all libraries tied to the available libc,
-        recognizable by the GLIBC_PRIVATE dependency. Using these with any
-        other libc will trigger a symbol error
+        recognizable by the GLIBC_PRIVATE symbols. Using these with any
+        other libc will trigger a symbol error.
         """
-        def needs_private(lib):
-            return 'GLIBC_PRIVATE' in flatten(lib.required_versions.values())
+        def references_private(lib):
+            return 'GLIBC_PRIVATE' in flatten(lib.required_versions.values()) or 'GLIBC_PRIVATE' in lib.defined_versions
 
-        return LibrarySet(filter(needs_private, self))
+        return LibrarySet(filter(references_private, self))
 
     @property
     def required_libraries(self):
@@ -322,8 +322,8 @@ class LibrarySet(set):
         be found by e4s-cl
         """
         superset = LibrarySet(self)
-        rpath = rpath or list()
-        runpath = runpath or list()
+        rpath = rpath or []
+        runpath = runpath or []
 
         missing = superset.missing_libraries
         change = True
@@ -356,7 +356,7 @@ class LibrarySet(set):
                     {'origin': lib.__class__.__name__.lower()})
 
                 return "%(soname)s => %(binary_path)s (%(origin)s)" % format_fields
-            return "%s => not found" % soname
+            return f"{soname} => not found"
 
         return list(map(line, set.union(self.sonames, self.missing_libraries)))
 
@@ -371,23 +371,23 @@ class LibrarySet(set):
             header = color_text(elem.soname, 'red', None, ['bold'])
 
             if elem.binary_path:
-                header = "%s (%s)" % (elem.soname, elem.binary_path)
+                header = f"{elem.soname} ({elem.binary_path})"
 
             if isinstance(elem, GuestLibrary):
-                header += " %s" % color_text("(GUEST)", 'green', None,
-                                             ['bold'])
+                header += f" {color_text('(GUEST)', 'green', None, ['bold'])}"
             if isinstance(elem, HostLibrary):
-                header += " %s" % color_text("(HOST)", 'blue', None, ['bold'])
+                header += f" {color_text('(HOST)', 'blue', None, ['bold'])}"
 
             sections = []
             for soname, versions in elem.required_versions.items():
                 for version in versions:
                     if not version in self.defined_versions:
                         version = color_text(version, 'red', None, ['bold'])
-                    sections.append("├ %s (from %s)" % (version, soname))
+                    sections.append(f"├ {version} (from {soname})")
 
             if sections and show_versions:
-                header = "%s\n%s" % (header, "\n".join(sections))
+                lines = "\n".join(sections)
+                header = f"{header}\n{lines}"
 
             return header
 

@@ -12,7 +12,7 @@ from e4s_cl.cli.command import AbstractCommand
 class ProfileSelectCommand(AbstractCommand):
     """``profile select`` subcommand."""
     def _construct_parser(self):
-        usage = "%s <profile_name>" % self.command
+        usage = f"{self.command} <profile_name>"
         parser = arguments.get_model_identifier(Profile,
                                                 prog=self.command,
                                                 usage=usage,

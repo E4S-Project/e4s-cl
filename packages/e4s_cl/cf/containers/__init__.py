@@ -12,9 +12,9 @@ from importlib import import_module
 from pathlib import Path
 from typing import Union
 from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
-from e4s_cl.util import walk_packages, which, json_loads
+from e4s_cl.util import walk_packages, which, json_loads, create_subprocess_exp
 from e4s_cl.cf.version import Version
-from e4s_cl.cf import pipe
+from e4s_cl.cf.pipe import Pipe
 from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import ConfigurationError
 
@@ -46,7 +46,7 @@ class BackendError(ConfigurationError):
     """Error raised when the requested container tech is not available"""
     def __init__(self, backend_name):
         self.offending = backend_name
-        self._message = "An error has been encountered setting up the container technology backend %s." % backend_name
+        self._message = f"An error has been encountered setting up the container technology backend {backend_name}."
         super().__init__(self._message)
 
     def handle(self, etype, value, tb):
@@ -58,7 +58,7 @@ class BackendNotAvailableError(BackendError):
     """Error raised when the requested backend is not found on the system"""
     def __init__(self, backend_name):
         super().__init__(backend_name)
-        self._message = "Backend %s not found. Is the module loaded ?" % self.offending
+        self._message = f"Backend {self.offending} not found. Is the module loaded ?"
 
 
 class BackendUnsupported(BackendError):
@@ -66,16 +66,16 @@ class BackendUnsupported(BackendError):
     def __init__(self, backend_name):
         super().__init__(backend_name)
         pretty = 's are' if len(EXPOSED_BACKENDS) > 1 else ' is'
-        self._message = """Backend %s not supported at this time. The available backend%s: %s.
-Please create a GitHub issue if support is required.""" % (
-            self.offending, pretty, ", ".join(EXPOSED_BACKENDS))
+        self._message = f"""Backend {self.offending} not supported at this time.
+The available backend{pretty}: {", ".join(EXPOSED_BACKENDS)}.
+Please create a GitHub issue if support is required."""
 
 
 class AnalysisError(ConfigurationError):
     """Generic error for container analysis failure"""
     def __init__(self, returncode):
         self.code = returncode
-        super().__init__("Container analysis failed ! (%d)" % self.code)
+        super().__init__(f"Container analysis failed ! ({self.code})")
 
     def handle(self, etype, value, tb):
         LOGGER.critical("Container analysis failed ! (%d)", self.code)
@@ -151,10 +151,8 @@ class Container:
         """
         Common class init: this code is run in the actual sub-classes
         """
-        self.executable = which(executable)
 
-        if not self.executable or (not Path(self.executable).exists()):
-            raise BackendNotAvailableError(executable)
+        self.executable = which(executable)
 
         # Container image file on the host
         self.image = image
@@ -162,7 +160,7 @@ class Container:
         # User-set parameters
         # Files to bind: dict(guest_path -> (host_path, options))
         # dict[Path, Container._bound_file]
-        self.__bound_files = dict()
+        self.__bound_files = {}
         self.env = {}  # Environment
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
@@ -186,9 +184,6 @@ class Container:
         # Import python and e4s-cl files
         brand(self)
 
-        # Setup a one-way communication channel
-        fdr = pipe.create()
-
         # Use the imported python interpreter with the imported e4s-cl
         entrypoint.command = [
             Path(CONTAINER_DIR, 'conda', 'bin', 'python3').as_posix(),
@@ -199,14 +194,20 @@ class Container:
         script_name = entrypoint.setup()
         self.bind_file(script_name, CONTAINER_SCRIPT)
 
-        code, _ = self.run([CONTAINER_SCRIPT], redirect_stdout=False)
+        container_cmd, env = self.run([CONTAINER_SCRIPT],
+                                      redirect_stdout=False)
 
+        # Setup a one-way communication channel
+        with Pipe() as fdr:
+            code, _ = create_subprocess_exp(container_cmd,
+                                            env=env,
+                                            redirect_stdout=False)
+
+            if code:
+                raise AnalysisError(code)
+
+            data = json_loads(os.read(fdr, 1024**3).decode())
         entrypoint.teardown()
-
-        if code:
-            raise AnalysisError(code)
-
-        data = json_loads(os.read(fdr, 1024**3).decode())
 
         self.libc_v = Version(data.get('libc_version', '0.0.0'))
         self.libraries = LibrarySet(data.get('libraries', set()))
@@ -244,8 +245,8 @@ class Container:
             visited = {path, path.resolve()}
             deps = set()
 
-            for i in range(0, len(path.parts)):
-                if path.parts[i] == '..':
+            for i, part in enumerate(path.parts):
+                if part == '..':
                     visited.add(Path(*path.parts[:i]).resolve())
 
             for element in visited:
@@ -310,24 +311,24 @@ class Container:
         It should return a tuple the process' returncode and output
         """
         raise NotImplementedError(
-            "`run` method not implemented for container module %s" %
-            self.__class__.__name__)
+            f"`run` method not implemented for container module {self.__class__.__name__}"
+        )
 
     def __str__(self):
         out = []
-        out.append("%s object:" % self.__class__.__name__)
+        out.append(f"{self.__class__.__name__} object:")
         if self.image:
-            out.append("- image: %s" % self.image)
+            out.append(f"- image: {self.image}")
         out.append("- bound:\n%s" %
                    "\n".join(["\t%s -> %s (%d)" % v for v in self.bound]))
         if self.env:
-            out.append("- env: %s" % json.dumps(self.env, indent=2))
+            out.append(f"- env: { json.dumps(self.env, indent=2)}")
         if self.ld_preload:
-            out.append("- LD_PRELOAD: %s" %
-                       json.dumps(self.ld_preload, indent=2))
+            out.append(
+                f"- LD_PRELOAD: {json.dumps(self.ld_preload, indent=2)}")
         if self.ld_lib_path:
-            out.append("- LD_LIBRARY_PATH: %s" %
-                       json.dumps(self.ld_lib_path, indent=2))
+            out.append(
+                f"- LD_LIBRARY_PATH: {json.dumps(self.ld_lib_path, indent=2)}")
         return '\n'.join(out)
 
 
