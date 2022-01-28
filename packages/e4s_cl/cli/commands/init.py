@@ -15,6 +15,8 @@ Using the system name
 
 If the current system is supported, use the :code:`--system` argument to \
 flag its use. The available values are listed when using :code:`e4s-cl init -h`.
+In order to have the system-specific profiles available (and listed as available),\
+ the :code:`SYSTEM=<system>` flag needs to be used when building the project.
 
 Using a WI4MPI installation
 ----------------------------
