@@ -1,5 +1,8 @@
-Specific machines
-=================
+System Compatibility
+========================
+
+.. csv-table::
+   :file: system.csv
 
 Installation
 -------------
