@@ -25,7 +25,7 @@ A python interpreter will be downloaded to ensure a compatible Python 3 version 
 
 .. admonition:: SYSTEM parameter
     
-    Some machines have specific e4s-cl profiles tailored for them, these machines are listed `here <./specificmachines.html>`_.
+    Some machines have specific e4s-cl profiles tailored for them that can be downloaded and later accessed as builtin profiles. Refer to the :ref:`system compatibility<system_compat>` page for details.
 
 Completion
 ************
