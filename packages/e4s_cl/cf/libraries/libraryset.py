@@ -9,7 +9,7 @@ from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.error import InternalError
 from e4s_cl.cf.libraries.linker import resolve, LinkingError
-from e4s_cl.util import flatten, color_text, JSON_HOOKS
+from e4s_cl.util import flatten
 
 from elftools.common.exceptions import ELFError
 from elftools.elf.elffile import ELFFile
@@ -18,8 +18,6 @@ from elftools.elf.gnuversions import (
     GNUVerDefSection,
     GNUVerNeedSection,
 )
-
-from tree_format import format_tree
 
 LOGGER = logger.get_logger(__name__)
 
@@ -359,75 +357,3 @@ class LibrarySet(set):
             return f"{soname} => not found"
 
         return list(map(line, set.union(self.sonames, self.missing_libraries)))
-
-    def trees(self, show_versions=False):
-        """
-        -> list(list(str))
-        Returns a list of string lists. Each list contains lines that, when
-        printed in succession, describe a dependency tree. Trees are calculated
-        for every library in self.top_level.
-        """
-        def get_name(elem):
-            header = color_text(elem.soname, 'red', None, ['bold'])
-
-            if elem.binary_path:
-                header = f"{elem.soname} ({elem.binary_path})"
-
-            if isinstance(elem, GuestLibrary):
-                header += f" {color_text('(GUEST)', 'green', None, ['bold'])}"
-            if isinstance(elem, HostLibrary):
-                header += f" {color_text('(HOST)', 'blue', None, ['bold'])}"
-
-            sections = []
-            for soname, versions in elem.required_versions.items():
-                for version in versions:
-                    if not version in self.defined_versions:
-                        version = color_text(version, 'red', None, ['bold'])
-                    sections.append(f"├ {version} (from {soname})")
-
-            if sections and show_versions:
-                lines = "\n".join(sections)
-                header = f"{header}\n{lines}"
-
-            return header
-
-        def get_children(elem):
-            found = LibrarySet(
-                filter(lambda x: x.soname in elem.dyn_dependencies, self))
-
-            not_found = elem.dyn_dependencies - found.sonames
-
-            for name in not_found:
-                if not re.match(r'^ld.*', name):
-                    found.add(Library(soname=name))
-
-            found = list(found)
-            found.sort()
-            return found
-
-        roots = list(self.top_level)
-        roots.sort()
-
-        def _format(obj):
-            return format_tree(obj,
-                               format_node=get_name,
-                               get_children=get_children)
-
-        return list(map(_format, roots))
-
-
-def __library_decoder(_type):
-    def __l_decoder(obj):
-        out = _type()
-
-        for key, value in obj.items():
-            setattr(out, key, value)
-
-        return out
-
-    return __l_decoder
-
-
-JSON_HOOKS['Library'] = __library_decoder(Library)
-JSON_HOOKS['HostLibrary'] = __library_decoder(HostLibrary)
-JSON_HOOKS['GuestLibrary'] = __library_decoder(GuestLibrary)
