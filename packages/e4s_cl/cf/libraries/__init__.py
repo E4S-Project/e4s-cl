@@ -9,6 +9,7 @@ from functools import lru_cache
 from e4s_cl.error import InternalError
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.version import Version
+from e4s_cl.util import JSON_HOOKS
 
 # Symbols imported for ease of use
 from e4s_cl.cf.libraries.ldd import ldd
@@ -103,3 +104,20 @@ def library_links(shared_object: Library):
         cleared.add(Path(library_file))
 
     return cleared
+
+
+def __library_decoder(_type):
+    def __l_decoder(obj):
+        out = _type()
+
+        for key, value in obj.items():
+            setattr(out, key, value)
+
+        return out
+
+    return __l_decoder
+
+
+JSON_HOOKS['Library'] = __library_decoder(Library)
+JSON_HOOKS['HostLibrary'] = __library_decoder(HostLibrary)
+JSON_HOOKS['GuestLibrary'] = __library_decoder(GuestLibrary)
