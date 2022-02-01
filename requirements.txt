@@ -5,3 +5,4 @@ python-ptrace>=0.9.7
 pyelftools==0.27
 requests==2.26.0
 tinydb==4.5.2
+python-sotools>=0.0.1
