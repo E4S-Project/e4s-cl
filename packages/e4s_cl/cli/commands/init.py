@@ -29,8 +29,8 @@ Using an installed MPI library
 --------------------------------
 
 This initialization method will create a profile from the execution analysis \
-of a sample MPI program. A program will be compiled from the library's compiler, \
-then run using a provided launcher. The opened files and libraries will be detected \
+of a sample MPI program. A program compiled with the MPI library's compiler \
+will run using a provided launcher. The opened files and libraries will be detected \
 using the :code:`ptrace` system call, and added to the resulting profile.
 
 The :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options can be \
