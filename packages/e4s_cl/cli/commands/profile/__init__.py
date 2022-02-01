@@ -5,7 +5,7 @@ chosen arguments.
 
 Instead of listing all necessary files and libraries to use for every command, \
 passing a profile containing those files as an argument vastly improves \
-readability.
+readability and efficiency.
 
 Profiles are accessed and edited using the `profile` sub-commands.
 
@@ -62,7 +62,7 @@ A profile can be selected using the :ref:`profile select<profile_select>` \
 command. The target profile is then implicitly used for most of the commands \
 taking a profile as an argument.
 
-A unique profile can be selected at a time. Switching selection is done by \
+Only one profile can be selected at a time. Switching selection is done by \
 selecting another profile. A selection can also be canceled by using \
 :ref:`profile unselect<profile_unselect>`.
 """
