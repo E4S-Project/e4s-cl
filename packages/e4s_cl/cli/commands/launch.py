@@ -3,7 +3,21 @@ E4S Container Launcher is a accessory launcher to ensure host MPI libraries \
 are used in containers. It wraps around a valid MPI launch command \
 to work.
 
-The minimal options that must be given in order to run are:
+The prefered way of launching a command is by using a selected or specified profile. \
+That way, the fields of the target profile are implicitly used, bypassing the \
+need to specify any of the options manually.
+
+If the user intends to use a modified version of an existing profile, specifying \
+the difference as a command line option can be efficient as command line options \
+have precedence over profiles' fields.
+
+.. admonition:: Using a :ref:`selected profile<profile_select>`
+
+    When a :ref:`profile<profile>` is selected, it will be used if no \
+:code:`--profile` option is passed.
+
+The minimal options that must be given in order to run without a selected \
+or specified profile are:
 
 * A container image;
 * A container technology to run the image with.
@@ -15,15 +29,6 @@ Other options then influence the execution:
 * A script passed to :code:`--source` will be run in the container before any \
 other command.
 
-All of these options can be bypassed by passing a :ref:`profile<profile>`.
-The fields of the target :ref:`profile<profile>` are then implicitly used for \
-each of the above options.
-
-.. admonition:: Using a :ref:`selected profile<profile_select>`
-
-    When a :ref:`profile<profile>` is selected, it will be used if no \
-:code:`--profile` option is passed. Command line options have precedence \
-over profiles' fields.
 
 .. admonition:: Implicit sub-command
 
