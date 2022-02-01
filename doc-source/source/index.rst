@@ -16,7 +16,7 @@ This is useful when the binary has been compiled using a different library than 
    quickstart
    installation
    reference/index
-   compatibility/index
-   specificmachines
+   compatibility/software
+   compatibility/system
    examples
    authors
