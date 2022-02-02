@@ -24,7 +24,7 @@ The **e4s-cl** program will be copied over to :code:`<prefix>/bin`. On success, 
 A python interpreter will be downloaded to ensure a compatible Python 3 version is available.
 
 .. admonition:: SYSTEM parameter
-    
+
     Some machines have specific e4s-cl profiles tailored for them that can be downloaded and later accessed as builtin profiles. Refer to the :ref:`system compatibility<system_compat>` page for details.
 
 Completion
