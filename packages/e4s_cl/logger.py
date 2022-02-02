@@ -50,36 +50,33 @@ def handle_error(line: str, default_level: int = WARNING) -> bool:
 
     Returns False in case the line is not a JSONrecord
     """
-    try:
-        data = json.loads(line)
+    logging_data = JSONHandler.validate(line)
 
-        if not data.get(JSONHandler.identifier):
-            raise ValueError
-    except ValueError:
-        # Its not json, does not come from a child process
+    if not logging_data:
+        # Its does not come from a child e4s-cl process
         # Log it with the requested level
         _CHILD_LOGGER.log(default_level, line)
         return
 
     extra = {
-        'name': data.get('name'),
-        'created': data.get('created'),
-        'process': data.get('process'),
-        'host': data.get('host'),
+        'name': logging_data.get('name'),
+        'created': logging_data.get('created'),
+        'process': logging_data.get('process'),
+        'host': logging_data.get('host'),
     }
 
     process_logger = _CHILD_LOGGER.getChild(
-        "%s.%d" % (data.get('host'), data.get('process')))
+        "%s.%d" % (logging_data.get('host'), logging_data.get('process')))
 
     # If the logger was created for the first time at the above step,
     # Set it to output to a dedicated file
     if FILE_LOGGING and not process_logger.handlers:
-        logname = "%s/%s.%s.log" % (_LOG_FILE_PREFIX, data.get('host'),
-                                    data.get('process'))
+        logname = "%s/%s.%s.log" % (_LOG_FILE_PREFIX, logging_data.get('host'),
+                                    logging_data.get('process'))
         process_logger.addHandler(FileHandler(logname, delay=True))
 
-    process_logger.log(data.get('levelno', logging.NOTSET),
-                       data.get('msg'),
+    process_logger.log(logging_data.get('levelno', logging.NOTSET),
+                       logging_data.get('msg'),
                        extra=extra)
 
     return True
@@ -201,6 +198,7 @@ def _get_term_size_env():
 
 
 def on_stdout(function):
+
     def wrapper(obj, record):
         text = function(obj, record)
         if STDOUT_COLOR:
@@ -211,6 +209,7 @@ def on_stdout(function):
 
 
 def on_stderr(function):
+
     def wrapper(obj, record):
         text = function(obj, record)
         if STDERR_COLOR:
