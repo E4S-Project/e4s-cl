@@ -166,14 +166,14 @@ completion:
 
 PROJECT=.
 DOCS=$(PROJECT)/docs
-MAN=$(PROJECT)/docs/build/man
+MANBUILDDIR=$(PROJECT)/docs/build/man
 USER_MAN=$(HOME)/.local/share/man
 
 man: python_check
 	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	@$(MKDIR) $(USER_MAN)/man1
-	@$(COPY) $(MAN)/* $(USER_MAN)/man1
+	@$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1
 	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
 	@$(PYTHON) scripts/success.py "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
