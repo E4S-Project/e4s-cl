@@ -165,8 +165,8 @@ completion:
 # Documentation targets and variables
 
 PROJECT=.
-DOCS=$(PROJECT)/doc-source
-MAN=$(PROJECT)/doc-source/build/man
+DOCS=$(PROJECT)/docs
+MAN=$(PROJECT)/docs/build/man
 USER_MAN=$(HOME)/.local/share/man
 
 man: python_check

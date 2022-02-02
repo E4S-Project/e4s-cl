@@ -7,7 +7,6 @@ SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
-HTMLDIR       = ../docs
 
 VERSION       ?= "Not set"
 VERSION_CONF  = -Dversion=v$(VERSION) -Drelease=v$(VERSION)
@@ -20,7 +19,6 @@ help:
 
 html: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(VERSION_CONF) $(O)
-	cp -rv "$(BUILDDIR)"/$@/* $(HTMLDIR)
 
 man: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(VERSION_CONF) -Dexclude_patterns=*installation* $(O)
