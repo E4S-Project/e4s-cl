@@ -69,7 +69,7 @@ def _parameters(args):
 
 
 def _format_execute(parameters):
-    execute_command = str(EXECUTE_COMMAND).split()
+    execute_command = shlex.split(str(EXECUTE_COMMAND))
 
     execute_command = [E4S_CL_SCRIPT] + execute_command[1:]
 
