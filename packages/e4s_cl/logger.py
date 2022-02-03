@@ -22,7 +22,7 @@ import logging
 import hashlib
 from pathlib import Path
 from time import time
-from logging import handlers, FileHandler
+from logging import handlers
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
 from e4s_cl.variables import is_master
@@ -87,15 +87,15 @@ def _get_term_size_tput():
     """
     try:
         import subprocess
-        proc = subprocess.Popen(["tput", "cols"],
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
-        output = proc.communicate(input=None)
+        with subprocess.Popen(["tput", "cols"],
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE) as proc:
+            output = proc.communicate(input=None)
         cols = int(output[0])
-        proc = subprocess.Popen(["tput", "lines"],
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
-        output = proc.communicate(input=None)
+        with subprocess.Popen(["tput", "lines"],
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE) as proc:
+            output = proc.communicate(input=None)
         rows = int(output[0])
         return (cols, rows)
     except:  # pylint: disable=bare-except
@@ -221,6 +221,9 @@ class LogFormatter(logging.Formatter):
 
     @on_stderr
     def DEBUG(self, record):
+        """
+        Print a debug message with a neat little header
+        """
         message = record.getMessage()
         if self.printable_only and (not set(message).issubset(
                 self._printable_chars)):
@@ -228,17 +231,14 @@ class LogFormatter(logging.Formatter):
 
         if __debug__:
             marker = self._colored(
-                "[%s %s:%s]" %
-                (record.levelname.title(), record.name, record.lineno),
+                f"[{record.levelname.title()} {record.name}:{record.lineno}]",
                 'yellow')
         else:
             marker = self._colored(
-                "[%s %s:%d]" %
-                (record.levelname.title(), getattr(
-                    record, 'host', 'localhost'), record.process), 'cyan',
-                None, ['bold'])
+                f"[{record.levelname.title()} {getattr(record, 'host', 'localhost')}:{record.process}]",
+                'cyan', None, ['bold'])
 
-        return '%s %s' % (marker, message)
+        return f"{marker} {message}"
 
     def format(self, record):
         """Formats a log record.
@@ -254,9 +254,8 @@ class LogFormatter(logging.Formatter):
         """
         try:
             return getattr(self, record.levelname)(record)
-        except AttributeError:
-            raise RuntimeError('Unknown record level (name: %s)' %
-                               record.levelname)
+        except AttributeError as exc:
+            raise RuntimeError(f"Unknown record level (name: {record.levelname})") from exc
 
     def _colored(self, text, *color_args):
         """Insert ANSII color formatting via `termcolor`_.
@@ -361,6 +360,10 @@ group debug logs in folders
 
 
 def setup_process_logger(name: str) -> logging.Logger:
+    """
+    Create and setup handlers of a Logger object meant to log errors of
+    a subprocess
+    """
     # Locate and ensure the log file is writeable
     log_file = Path(_LOG_FILE_PREFIX, LOGID, name)
     Path.mkdir(log_file.parent, parents=True, exist_ok=True)
@@ -385,24 +388,29 @@ def setup_process_logger(name: str) -> logging.Logger:
 
 
 def add_file_handler(log_file: Path, logger: logging.Logger) -> bool:
+    """
+    Add a file handler to a Logger object
+    """
     try:
         # Ensure the log file directory is accessible
         Path.mkdir(log_file.parent, parents=True, exist_ok=True)
 
-        handle = open(log_file, 'w')
-        handle.close()
+        with open(log_file, 'w', encoding='utf-8') as _:
+            pass
     except OSError as exc:
-        _ROOT_LOGGER.debug("Failed to open file %s for logging: %s", log_file.as_posix(), exc.strerror)
+        _ROOT_LOGGER.debug("Failed to open file %s for logging: %s",
+                           log_file.as_posix(), exc.strerror)
         return False
 
     file_handler = handlers.TimedRotatingFileHandler(log_file,
-                                                      when='D',
-                                                      interval=1,
-                                                      backupCount=3)
-    file_handler.setFormatter(
-        LogFormatter(line_width=120, allow_colors=False))
+                                                     when='D',
+                                                     interval=1,
+                                                     backupCount=3)
+    file_handler.setFormatter(LogFormatter(line_width=120, allow_colors=False))
     file_handler.setLevel(logging.DEBUG)
     logger.addHandler(file_handler)
+
+    return True
 
 
 if is_master():
@@ -431,8 +439,8 @@ if not _ROOT_LOGGER.handlers:
     if is_master():
         add_file_handler(LOG_FILE, _ROOT_LOGGER)
     else:
-        log_file = Path(_LOG_FILE_PREFIX, LOGID, f"e4s_cl.{os.getpid()}")
-        add_file_handler(log_file, _ROOT_LOGGER)
+        _log_file = Path(_LOG_FILE_PREFIX, LOGID, f"e4s_cl.{os.getpid()}")
+        add_file_handler(_log_file, _ROOT_LOGGER)
 
 if is_master():
     # pylint: disable=logging-not-lazy

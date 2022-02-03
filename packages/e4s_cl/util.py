@@ -12,11 +12,11 @@ import pkgutil
 import pathlib
 import hashlib
 import json
-from collections import deque
+from typing import Optional
 from time import perf_counter
 from contextlib import contextmanager
 from e4s_cl import logger
-from e4s_cl.variables import is_master, ParentStatus
+from e4s_cl.variables import ParentStatus
 from e4s_cl.error import InternalError
 import termcolor
 
@@ -132,9 +132,9 @@ def path_accessible(path, mode='r'):
             modebits |= os.W_OK | os.X_OK
         return os.access(path, modebits)
 
-    handle = None
     try:
-        handle = open(path, mode)
+        with open(path, mode, encoding='utf-8') as _:
+            pass
     except IOError as err:
         if err.errno == errno.EACCES:
             return False
@@ -142,16 +142,12 @@ def path_accessible(path, mode='r'):
         raise
     else:
         return True
-    finally:
-        if handle:
-            handle.close()
     return False
 
 
-from typing import Optional
-
-
-def run_subprocess(cmd: list[str], cwd=None, env: Optional[dict] = None) -> int:
+def run_subprocess(cmd: list[str],
+                   cwd=None,
+                   env: Optional[dict] = None) -> int:
     subproc_env = os.environ
     if env:
         for key, val in env.items():
@@ -162,27 +158,29 @@ def run_subprocess(cmd: list[str], cwd=None, env: Optional[dict] = None) -> int:
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
 
-    proc = subprocess.Popen(cmd,
-                            cwd=cwd,
-                            env=subproc_env,
-                            stdout=sys.stdout,
-                            stderr=subprocess.PIPE,
-                            close_fds=False,
-                            universal_newlines=True,
-                            bufsize=1)
+    with subprocess.Popen(cmd,
+                          cwd=cwd,
+                          env=subproc_env,
+                          stdout=sys.stdout,
+                          stderr=subprocess.PIPE,
+                          close_fds=False,
+                          universal_newlines=True,
+                          bufsize=1) as proc:
+        process_logger = logger.setup_process_logger(f"process.{proc.pid}")
+        with proc.stderr:
+            # Use iter to avoid hidden read-ahead buffer bug in named pipes:
+            # http://bugs.python.org/issue3907
+            for line in proc.stderr.readlines():
+                process_logger.error(line[:-1])
+        returncode = proc.wait()
 
-    process_logger = logger.setup_process_logger(f"process.{proc.pid}")
+    return returncode
 
-    with proc.stderr:
-        # Use iter to avoid hidden read-ahead buffer bug in named pipes:
-        # http://bugs.python.org/issue3907
-        for line in proc.stderr.readlines():
-            process_logger.error(line[:-1])
-    proc.wait()
 
-    return proc.returncode
-
-def run_e4scl_subprocess(cmd: list[str], cwd=None, env: Optional[dict] = None, capture_output:bool=False) -> int:
+def run_e4scl_subprocess(cmd: list[str],
+                         cwd=None,
+                         env: Optional[dict] = None,
+                         capture_output: bool = False) -> int:
     with ParentStatus():
         subproc_env = os.environ
         if env:
@@ -194,20 +192,23 @@ def run_e4scl_subprocess(cmd: list[str], cwd=None, env: Optional[dict] = None, c
                     subproc_env[key] = val
                     _heavy_debug("%s=%s", key, val)
 
-        proc = subprocess.Popen(cmd,
-                            cwd=cwd,
-                            env=subproc_env,
-                            stdout=subprocess.PIPE if capture_output else sys.stdout,
-                            stderr=sys.stderr,
-                            close_fds=False,
-                            universal_newlines=True,
-                            bufsize=1)
+        with subprocess.Popen(
+                cmd,
+                cwd=cwd,
+                env=subproc_env,
+                stdout=subprocess.PIPE if capture_output else sys.stdout,
+                stderr=sys.stderr,
+                close_fds=False,
+                universal_newlines=True,
+                bufsize=1) as proc:
 
-        proc.wait()
+            returncode = proc.wait()
+            if capture_output:
+                output = proc.stdout.read()
 
     if capture_output:
-        return proc.returncode, proc.stdout.read()
-    return proc.returncode
+        return returncode, output
+    return returncode
 
 
 def get_command_output(cmd):
@@ -416,7 +417,7 @@ def _json_decoder(obj):
         if obj['__type'] == 'set':
             return set(obj['__list'])
 
-        if obj['__type'] in JSON_HOOKS.keys():
+        if obj['__type'] in JSON_HOOKS:
             return JSON_HOOKS[obj['__type']](obj['__dict'])
 
     return obj

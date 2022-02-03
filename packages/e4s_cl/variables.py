@@ -1,6 +1,7 @@
+"""
+Module defining state-altering methods
+"""
 import os
-import hashlib
-from time import time
 from argparse import Action
 
 # Status to decide if you have to handle the error messages
@@ -17,11 +18,13 @@ def is_master():
 def set_master():
     os.environ[CHILD_MARKER] = str(1)
 
+
 class ParentStatus:
+
     def __enter__(self):
         set_master()
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type_, value, traceback):
         if os.environ.get(CHILD_MARKER):
             os.environ.pop(CHILD_MARKER)
 
@@ -36,5 +39,6 @@ def set_dry_run(value):
 
 
 class DryRunAction(Action):
+
     def __call__(self, parser, namespace, values, option_string=None):
         set_dry_run(True)
