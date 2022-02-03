@@ -352,6 +352,27 @@ Uses system specific methods to determine console line width.  If the line
 width cannot be determined, the default is 80.
 """
 
+
+def setup_process_logger(name: str) -> logging.Logger:
+    # Create a logger in debug mode
+    process_logger = logging.getLogger(name)
+    process_logger.setLevel(logging.DEBUG)
+
+    # Log process data to file in the log directory
+    handler = logging.FileHandler(Path(_LOG_FILE_PREFIX, name).as_posix(),
+                                  mode='a',
+                                  encoding='utf-8',
+                                  delay=True)
+    handler.setFormatter(LogFormatter(line_width=120, allow_colors=False))
+    process_logger.addHandler(handler)
+
+    # This disables the propagation along the logger tree, to avoid getting
+    # everything on stderr
+    process_logger.propagate = False
+
+    return process_logger
+
+
 _ROOT_LOGGER = logging.getLogger()
 if not _ROOT_LOGGER.handlers:
     _ROOT_LOGGER.setLevel(logging.DEBUG)
@@ -361,7 +382,6 @@ if not _ROOT_LOGGER.handlers:
     _STDERR_HANDLER.setFormatter(
         LogFormatter(line_width=LINE_WIDTH, printable_only=False))
     _STDERR_HANDLER.setLevel(LOG_LEVEL)
-
 
     _ROOT_LOGGER.addHandler(_STDERR_HANDLER)
 

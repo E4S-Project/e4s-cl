@@ -171,7 +171,7 @@ def run_subprocess(cmd: list[str], cwd=None, env: Optional[dict] = None) -> int:
                             universal_newlines=True,
                             bufsize=1)
 
-    process_logger = logger.get_logger(f"process.{proc.pid}")
+    process_logger = logger.setup_process_logger(f"process.{proc.pid}")
 
     with proc.stderr:
         # Use iter to avoid hidden read-ahead buffer bug in named pipes:
