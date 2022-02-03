@@ -25,8 +25,6 @@ from logging import handlers, FileHandler
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
 from e4s_cl.variables import is_master
-from e4s_cl.cf.json_handler import JSONHandler
-from e4s_cl.cf.relay_logger import RelayLogger
 import termcolor
 
 # Use isatty to check if the stream supports color
@@ -38,48 +36,6 @@ get_logger = logging.getLogger
 
 WARNING = logging.WARNING
 ERROR = logging.ERROR
-
-
-def handle_error(line: str, default_level: int = WARNING) -> bool:
-    """
-    From a line of error stream, check if it has been generated from a
-    JSONHandler
-
-    line: string to parse
-    default_level: level to log with in case the line is not a record
-
-    Returns False in case the line is not a JSONrecord
-    """
-    logging_data = JSONHandler.validate(line)
-
-    if not logging_data:
-        # Its does not come from a child e4s-cl process
-        # Log it with the requested level
-        _CHILD_LOGGER.log(default_level, line)
-        return
-
-    extra = {
-        'name': logging_data.get('name'),
-        'created': logging_data.get('created'),
-        'process': logging_data.get('process'),
-        'host': logging_data.get('host'),
-    }
-
-    process_logger = _CHILD_LOGGER.getChild(
-        "%s.%d" % (logging_data.get('host'), logging_data.get('process')))
-
-    # If the logger was created for the first time at the above step,
-    # Set it to output to a dedicated file
-    if FILE_LOGGING and not process_logger.handlers:
-        logname = "%s/%s.%s.log" % (_LOG_FILE_PREFIX, logging_data.get('host'),
-                                    logging_data.get('process'))
-        process_logger.addHandler(FileHandler(logname, delay=True))
-
-    process_logger.log(logging_data.get('levelno', logging.NOTSET),
-                       logging_data.get('msg'),
-                       extra=extra)
-
-    return True
 
 
 def _prune_ansi(line: str) -> str:
@@ -401,17 +357,11 @@ if not _ROOT_LOGGER.handlers:
     _ROOT_LOGGER.setLevel(logging.DEBUG)
     _LOG_FILE_PREFIX = LOG_FILE.parent
 
-    # Use a different handler depending on the type of execution
-    if is_master():
-        # If top-level, output to stderr
-        _STDERR_HANDLER = logging.StreamHandler(sys.stderr)
-        _STDERR_HANDLER.setFormatter(
-            LogFormatter(line_width=LINE_WIDTH, printable_only=False))
-        _STDERR_HANDLER.setLevel(LOG_LEVEL)
+    _STDERR_HANDLER = logging.StreamHandler(sys.stderr)
+    _STDERR_HANDLER.setFormatter(
+        LogFormatter(line_width=LINE_WIDTH, printable_only=False))
+    _STDERR_HANDLER.setLevel(LOG_LEVEL)
 
-    else:
-        # If post-launcher, use JSON records on stderr
-        _STDERR_HANDLER = JSONHandler(sys.stderr)
 
     _ROOT_LOGGER.addHandler(_STDERR_HANDLER)
 
@@ -474,6 +424,3 @@ if is_master():
     _CHILD_LOGGER.propagate = False
 else:
     _CHILD_LOGGER = logging.getLogger()
-
-# Ensure a custom, more permissive class is used when asking for a new logger
-_CHILD_LOGGER.manager.setLoggerClass(RelayLogger)
