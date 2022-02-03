@@ -327,7 +327,7 @@ def set_log_level(level):
     # pylint: disable=global-statement
     global LOG_LEVEL
     LOG_LEVEL = level.upper()
-    _ROOT_LOGGER.setLevel(LOG_LEVEL)
+    _STDERR_HANDLER.setLevel(LOG_LEVEL)
 
 
 def debug_mode():
