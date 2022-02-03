@@ -1,4 +1,6 @@
 import os
+import hashlib
+from time import time
 from argparse import Action
 
 # Status to decide if you have to handle the error messages

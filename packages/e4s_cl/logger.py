@@ -19,8 +19,9 @@ import socket
 import platform
 import string
 import logging
-import json
+import hashlib
 from pathlib import Path
+from time import time
 from logging import handlers, FileHandler
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
@@ -352,6 +353,12 @@ Uses system specific methods to determine console line width.  If the line
 width cannot be determined, the default is 80.
 """
 
+LOGID_MARKER = "__E4S_CL_LOGID"
+"""
+Environment variable name: set by the parent for every execution, is used to
+group debug logs in folders
+"""
+
 
 def setup_process_logger(name: str) -> logging.Logger:
     # Create a logger in debug mode
@@ -371,6 +378,16 @@ def setup_process_logger(name: str) -> logging.Logger:
     process_logger.propagate = False
 
     return process_logger
+
+if is_master():
+    # Create a hash for the execution ID
+    grinder = hashlib.sha256()
+    grinder.update(str(time()).encode())
+
+    LOGID = grinder.hexdigest()
+    os.environ[LOGID_MARKER] = LOGID
+else:
+    LOGID = os.environ.get(LOGID_MARKER)
 
 
 _ROOT_LOGGER = logging.getLogger()
@@ -408,31 +425,33 @@ if not _ROOT_LOGGER.handlers:
         _FILE_HANDLER.setLevel(logging.DEBUG)
         _ROOT_LOGGER.addHandler(_FILE_HANDLER)
 
-    if is_master():
-        # pylint: disable=logging-not-lazy
-        _ROOT_LOGGER.debug(
-            ("\n%(bar)s\n"
-             "E4S CONTAINER LAUNCHER LOGGING INITIALIZED\n"
-             "\n"
-             "Timestamp         : %(timestamp)s\n"
-             "Hostname          : %(hostname)s\n"
-             "Platform          : %(platform)s\n"
-             "Version           : %(version)s\n"
-             "Python Version    : %(pyversion)s\n"
-             "Working Directory : %(cwd)s\n"
-             "Terminal Size     : %(termsize)s\n"
-             "Frozen            : %(frozen)s\n"
-             "%(bar)s\n") % {
-                 'bar': '#' * LINE_WIDTH,
-                 'timestamp': str(datetime.now()),
-                 'hostname': socket.gethostname(),
-                 'platform': platform.platform(),
-                 'version': E4S_CL_VERSION,
-                 'pyversion': platform.python_version(),
-                 'cwd': os.getcwd(),
-                 'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
-                 'frozen': getattr(sys, 'frozen', False)
-             })
+if is_master():
+    # pylint: disable=logging-not-lazy
+    _ROOT_LOGGER.debug(
+        ("\n%(bar)s\n"
+         "E4S CONTAINER LAUNCHER LOGGING INITIALIZED\n"
+         "\n"
+         "Timestamp         : %(timestamp)s\n"
+         "Hostname          : %(hostname)s\n"
+         "Platform          : %(platform)s\n"
+         "Version           : %(version)s\n"
+         "Python Version    : %(pyversion)s\n"
+         "Working Directory : %(cwd)s\n"
+         "Terminal Size     : %(termsize)s\n"
+         "Frozen            : %(frozen)s\n"
+         "Log ID            : %(logid)s\n"
+         "%(bar)s\n") % {
+             'bar': '#' * LINE_WIDTH,
+             'timestamp': str(datetime.now()),
+             'hostname': socket.gethostname(),
+             'platform': platform.platform(),
+             'version': E4S_CL_VERSION,
+             'pyversion': platform.python_version(),
+             'cwd': os.getcwd(),
+             'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
+             'frozen': getattr(sys, 'frozen', False),
+             'logid': LOGID,
+         })
 
 if is_master():
     # Separate logger managing output from child processes
