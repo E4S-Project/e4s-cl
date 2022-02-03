@@ -327,7 +327,7 @@ def set_log_level(level):
     # pylint: disable=global-statement
     global LOG_LEVEL
     LOG_LEVEL = level.upper()
-    _STDERR_HANDLER.setLevel(LOG_LEVEL)
+    _ROOT_LOGGER.setLevel(LOG_LEVEL)
 
 
 def debug_mode():
@@ -340,7 +340,7 @@ LOG_LEVEL = 'INFO'
 Don't change directly. May be changed via :any:`set_log_level`.  
 """
 
-LOG_FILE = Path(USER_PREFIX, 'debug_log')
+LOG_FILE = Path(USER_PREFIX, 'logs', 'debug_log')
 """str: Absolute path to a log file to receive all debugging output."""
 
 TERM_SIZE = get_terminal_size()
@@ -361,12 +361,16 @@ group debug logs in folders
 
 
 def setup_process_logger(name: str) -> logging.Logger:
+    # Locate and ensure the log file is writeable
+    log_file = Path(_LOG_FILE_PREFIX, LOGID, name)
+    Path.mkdir(log_file.parent, parents=True, exist_ok=True)
+
     # Create a logger in debug mode
     process_logger = logging.getLogger(name)
     process_logger.setLevel(logging.DEBUG)
 
-    # Log process data to file in the log directory
-    handler = logging.FileHandler(Path(_LOG_FILE_PREFIX, name).as_posix(),
+    # Log process data to file
+    handler = logging.FileHandler(log_file,
                                   mode='a',
                                   encoding='utf-8',
                                   delay=True)
@@ -379,6 +383,28 @@ def setup_process_logger(name: str) -> logging.Logger:
 
     return process_logger
 
+
+def add_file_handler(log_file: Path, logger: logging.Logger) -> bool:
+    try:
+        # Ensure the log file directory is accessible
+        Path.mkdir(log_file.parent, parents=True, exist_ok=True)
+
+        handle = open(log_file, 'w')
+        handle.close()
+    except OSError as exc:
+        _ROOT_LOGGER.debug("Failed to open file %s for logging: %s", log_file.as_posix(), exc.strerror)
+        return False
+
+    file_handler = handlers.TimedRotatingFileHandler(log_file,
+                                                      when='D',
+                                                      interval=1,
+                                                      backupCount=3)
+    file_handler.setFormatter(
+        LogFormatter(line_width=120, allow_colors=False))
+    file_handler.setLevel(logging.DEBUG)
+    logger.addHandler(file_handler)
+
+
 if is_master():
     # Create a hash for the execution ID
     grinder = hashlib.sha256()
@@ -389,12 +415,12 @@ if is_master():
 else:
     LOGID = os.environ.get(LOGID_MARKER)
 
-
 _ROOT_LOGGER = logging.getLogger()
 if not _ROOT_LOGGER.handlers:
     _ROOT_LOGGER.setLevel(logging.DEBUG)
     _LOG_FILE_PREFIX = LOG_FILE.parent
 
+    # Setup output on stderr
     _STDERR_HANDLER = logging.StreamHandler(sys.stderr)
     _STDERR_HANDLER.setFormatter(
         LogFormatter(line_width=LINE_WIDTH, printable_only=False))
@@ -402,28 +428,11 @@ if not _ROOT_LOGGER.handlers:
 
     _ROOT_LOGGER.addHandler(_STDERR_HANDLER)
 
-    # Setup the file logging
-    FILE_LOGGING = True
-
-    try:
-        # Ensure the log file directory is accessible
-        Path.mkdir(_LOG_FILE_PREFIX, exist_ok=True)
-
-        handle = open(LOG_FILE, 'w')
-        handle.close()
-    except OSError as exc:
-        _ROOT_LOGGER.debug("Failed to open file logger: %s", exc.strerror)
-        FILE_LOGGING = False
-
-    if FILE_LOGGING:
-        _FILE_HANDLER = handlers.TimedRotatingFileHandler(LOG_FILE,
-                                                          when='D',
-                                                          interval=1,
-                                                          backupCount=3)
-        _FILE_HANDLER.setFormatter(
-            LogFormatter(line_width=120, allow_colors=False))
-        _FILE_HANDLER.setLevel(logging.DEBUG)
-        _ROOT_LOGGER.addHandler(_FILE_HANDLER)
+    if is_master():
+        add_file_handler(LOG_FILE, _ROOT_LOGGER)
+    else:
+        log_file = Path(_LOG_FILE_PREFIX, LOGID, f"e4s_cl.{os.getpid()}")
+        add_file_handler(log_file, _ROOT_LOGGER)
 
 if is_master():
     # pylint: disable=logging-not-lazy
@@ -452,14 +461,3 @@ if is_master():
              'frozen': getattr(sys, 'frozen', False),
              'logid': LOGID,
          })
-
-if is_master():
-    # Separate logger managing output from child processes
-    _CHILD_LOGGER = logging.getLogger("processes")
-    _CHILD_LOGGER.addHandler(_STDERR_HANDLER)
-
-    # Records passed to this tree of loggers will be written to specific files,
-    # no need to pass them along to the root logger and make a copy in the log file
-    _CHILD_LOGGER.propagate = False
-else:
-    _CHILD_LOGGER = logging.getLogger()
