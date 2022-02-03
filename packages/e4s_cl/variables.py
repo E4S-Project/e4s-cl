@@ -20,7 +20,8 @@ class ParentStatus:
         set_master()
 
     def __exit__(self, type, value, traceback):
-        os.environ.pop(CHILD_MARKER)
+        if os.environ.get(CHILD_MARKER):
+            os.environ.pop(CHILD_MARKER)
 
 
 def is_dry_run():

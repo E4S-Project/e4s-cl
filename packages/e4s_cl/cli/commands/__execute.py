@@ -10,7 +10,7 @@ from pathlib import Path
 from e4s_cl import CONTAINER_SCRIPT, CONTAINER_LIBRARY_DIR, \
         EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
-from e4s_cl.util import create_subprocess_exp
+from e4s_cl.util import run_subprocess
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
@@ -257,9 +257,7 @@ class ExecuteCommand(AbstractCommand):
             return EXIT_SUCCESS
 
         container_cmd, env = container.run(command, redirect_stdout=False)
-        code, _ = create_subprocess_exp(container_cmd,
-                                     env=env,
-                                     redirect_stdout=False)
+        code = run_subprocess(container_cmd, env=env)
 
         params.teardown()
 

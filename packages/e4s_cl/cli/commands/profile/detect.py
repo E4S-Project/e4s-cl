@@ -38,7 +38,7 @@ from typing import List
 
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
 from e4s_cl import variables
-from e4s_cl.util import create_subprocess_exp, flatten, json_dumps, json_loads
+from e4s_cl.util import run_e4scl_subprocess, flatten, json_dumps, json_loads
 from e4s_cl.cf.trace import opened_files
 from e4s_cl.cf.libraries import is_elf, resolve
 from e4s_cl.cf.launchers import interpret
@@ -135,10 +135,9 @@ class ProfileDetectCommand(AbstractCliView):
         if launcher:
             with variables.ParentStatus():
                 # If a launcher is present, act as a launcher
-                returncode, json_data = create_subprocess_exp(
-                launcher + [E4S_CL_SCRIPT, "profile", "detect"] +
-                program,
-                redirect_stdout=True)
+                returncode, json_data = run_e4scl_subprocess(
+                    [*launcher, E4S_CL_SCRIPT, "profile", "detect", *program],
+                    capture_output=True)
 
             if not returncode:
                 file_paths, library_paths = [], []
@@ -161,7 +160,9 @@ class ProfileDetectCommand(AbstractCliView):
 
         if returncode:
             if variables.is_master():
-                LOGGER.error("Failed to determine necessary libraries: program exited with code %d", returncode)
+                LOGGER.error(
+                    "Failed to determine necessary libraries: program exited with code %d",
+                    returncode)
             return EXIT_FAILURE
 
         # There are two cases: this is a master process, in which case the output

@@ -40,7 +40,7 @@ from argparse import Namespace
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, variables
 from e4s_cl.cli import arguments
-from e4s_cl.util import create_subprocess_exp
+from e4s_cl.util import run_e4scl_subprocess
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.launchers import interpret
 from e4s_cl.model.profile import Profile
@@ -172,8 +172,7 @@ class LaunchCommand(AbstractCommand):
             print(' '.join(full_command))
             return EXIT_SUCCESS
 
-        with variables.ParentStatus():
-            retval, _ = create_subprocess_exp(full_command)
+        retval = run_e4scl_subprocess(full_command)
 
         return retval
 

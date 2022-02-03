@@ -7,7 +7,6 @@ import subprocess
 import tempfile
 from pathlib import Path
 from e4s_cl import logger, CONTAINER_DIR
-from e4s_cl.util import create_subprocess_exp
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
 LOGGER = logger.get_logger(__name__)
@@ -23,6 +22,7 @@ class ShifterContainer(Container):
     """
     Class to use for a shifter execution
     """
+
     def __setup__(self):
         pass
 
@@ -70,8 +70,9 @@ class ShifterContainer(Container):
         return [f"--volume={source}:{dest}" for (source, dest) in volumes]
 
     def run(self, command, redirect_stdout=False, test_run=False):
-        
-        if not test_run and (not self.executable or (not Path(self.executable).exists())):
+
+        if not test_run and (not self.executable or
+                             (not Path(self.executable).exists())):
             raise BackendNotAvailableError(self.executable)
 
         env_list = []
