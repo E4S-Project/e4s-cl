@@ -93,7 +93,7 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
-from e4s_cl.cf.libraries.linker import resolve
+from sotools.linker import resolve
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)

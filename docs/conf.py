@@ -13,12 +13,12 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../../packages'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../packages'))
 
 # -- Project information -----------------------------------------------------
 
 project = 'E4S Container Launcher'
-copyright = '2021, Jean-Baptiste Skutnik'
+copyright = '2022, Jean-Baptiste Skutnik'
 author = 'Jean-Baptiste Skutnik'
 
 # The full version, including alpha/beta/rc tags

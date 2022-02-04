@@ -17,6 +17,7 @@ endif
 ifeq ($(INSTALLDIR),)
 	INSTALLDIR=$(shell pwd)/e4s-cl-$(VERSION)
 endif
+INSTALL_BIN_DIR=$(INSTALLDIR)/bin
 
 # Get target OS and architecture
 ifeq ($(HOST_OS),)
@@ -149,6 +150,7 @@ COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COM
 COMPLETION_DEST=$(INSTALLDIR)/bin/__e4s_cl_completion.$(HOST_ARCH)
 
 completion:
+	@$(MKDIR) $(INSTALL_BIN_DIR)
 	@$(call download,$(COMPLETION_BIN_URL),$(COMPLETION_DEST)) || \
 		(rm -f "$(COMPLETION_DEST)" ; \
 		echo "* ERROR: Unable to download $(COMPLETION_BIN_URL)." ; \
@@ -163,22 +165,18 @@ completion:
 # Documentation targets and variables
 
 PROJECT=.
-DOCS=$(PROJECT)/doc-source
-MAN=$(PROJECT)/doc-source/build/man
+DOCS=$(PROJECT)/docs
+MANBUILDDIR=$(PROJECT)/docs/build/man
 USER_MAN=$(HOME)/.local/share/man
 
 man: python_check
 	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	@$(MKDIR) $(USER_MAN)/man1
-	@$(COPY) $(MAN)/* $(USER_MAN)/man1
+	@$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1
 	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
 	@$(PYTHON) scripts/success.py "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
-html: python_check
-	find $(DOCS)/source -exec touch {} \;
-	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
-	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) html
 
 clean:
 	rm -fr build/ COMMIT VERSION

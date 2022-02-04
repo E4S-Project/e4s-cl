@@ -22,10 +22,6 @@ class ProfileShowCommand(ShowCommand):
     def _construct_parser(self):
         parser = super()._construct_parser()
 
-        parser.add_argument("--tree",
-                            action='store_true',
-                            help="Output the library list as dependency trees")
-
         return parser
 
     def detail(self, profile_dict):
@@ -82,24 +78,10 @@ class ProfileShowCommand(ShowCommand):
 
         print(outline % {**headers, **elements})
 
-    def tree(self, profile_dict):
-        cache = LibrarySet()
-
-        for path in map(Path, profile_dict.get('libraries', [])):
-            with open(path, 'rb') as shared_object:
-                cache.add(Library(shared_object))
-
-        print(f"\n{bold('Library dependencies')}")
-        for tree in cache.trees():
-            print(tree)
-
     def main(self, argv):
         args = self._parse_args(argv)
 
         self.detail(args.profile)
-
-        if args.tree:
-            self.tree(args.profile)
 
         return EXIT_SUCCESS
 

@@ -106,6 +106,7 @@ def filter_files(path_list: List[Path]):
 
 class ProfileDetectCommand(AbstractCliView):
     """``profile create`` subcommand."""
+
     def _construct_parser(self):
         usage = f"{self.command} [-p profile] <mpi_launcher command>"
         parser = arguments.get_parser(prog=self.command,
@@ -136,7 +137,7 @@ class ProfileDetectCommand(AbstractCliView):
             # If a launcher is present, act as a launcher
             returncode, json_data = create_subprocess_exp(
                 launcher + [E4S_CL_SCRIPT, "--slave", "profile", "detect"] +
-                program + ["4"],
+                program,
                 redirect_stdout=True)
 
             if not returncode:
