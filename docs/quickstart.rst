@@ -11,8 +11,8 @@ information about a MPI library's dependencies.
 Creating a profile
 ----------------------
 
-To begin using **e4s-cl**, the preferred method is to create a profile for the \
-target library. The preferred method to achieve this is by using the \
+The preferred way to start using **e4s-cl** is to create a profile for the \
+target library. The intended method to achieve this is by using the \
 :ref:`init<init>` or :ref:`profile detect<profile_detect>` commands.
 The resulting profile can be inspected and modified using the \
 :ref:`profile<profile>` sub-commands.
