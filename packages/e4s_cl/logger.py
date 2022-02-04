@@ -395,7 +395,7 @@ def add_file_handler(log_file: Path, logger: logging.Logger) -> bool:
         # Ensure the log file directory is accessible
         Path.mkdir(log_file.parent, parents=True, exist_ok=True)
 
-        with open(log_file, 'w', encoding='utf-8') as _:
+        with open(log_file, 'a', encoding='utf-8') as _:
             pass
     except OSError as exc:
         _ROOT_LOGGER.debug("Failed to open file %s for logging: %s",
