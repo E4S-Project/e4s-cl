@@ -12,6 +12,7 @@ import pkgutil
 import pathlib
 import hashlib
 import json
+from collections import deque
 from typing import Optional
 from time import perf_counter
 from contextlib import contextmanager
@@ -148,6 +149,9 @@ def path_accessible(path, mode='r'):
 def run_subprocess(cmd: list[str],
                    cwd=None,
                    env: Optional[dict] = None) -> int:
+    """
+    Run a subprocess, tailored for end subrocesses
+    """
     subproc_env = os.environ
     if env:
         for key, val in env.items():
@@ -158,6 +162,9 @@ def run_subprocess(cmd: list[str],
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
 
+    # Store the N last lines of error in a fast container
+    buffer = deque(maxlen=100)
+
     with subprocess.Popen(cmd,
                           cwd=cwd,
                           env=subproc_env,
@@ -166,13 +173,27 @@ def run_subprocess(cmd: list[str],
                           close_fds=False,
                           universal_newlines=True,
                           bufsize=1) as proc:
-        process_logger = logger.setup_process_logger(f"process.{proc.pid}")
+        # Save the PID for later use
+        pid = proc.pid
+        # Setup a logger dedicated to this subprocess
+        process_logger = logger.setup_process_logger(f"process.{pid}")
         with proc.stderr:
-            # Use iter to avoid hidden read-ahead buffer bug in named pipes:
-            # http://bugs.python.org/issue3907
+            # Log the errors in a log file
             for line in proc.stderr.readlines():
                 process_logger.error(line[:-1])
+                buffer.append(line)
         returncode = proc.wait()
+
+    # In case of error, output information
+    if returncode:
+        LOGGER.error("Process %d failed with code %d:", pid, returncode)
+        for line in buffer:
+            LOGGER.error(line)
+        if log_file := getattr(process_logger.handlers[0], 'baseFilename',
+                               None):
+            LOGGER.error("See %s for details.", log_file)
+
+    del process_logger
 
     return returncode
 
@@ -181,6 +202,9 @@ def run_e4scl_subprocess(cmd: list[str],
                          cwd=None,
                          env: Optional[dict] = None,
                          capture_output: bool = False) -> int:
+    """
+    Run a subprocess, tailored for recursive e4s-cl processes
+    """
     with ParentStatus():
         subproc_env = os.environ
         if env:
