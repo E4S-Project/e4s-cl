@@ -346,6 +346,8 @@ LOG_FILE = Path(USER_PREFIX, 'logs', 'debug_log')
 LOG_INDEX = Path(USER_PREFIX, 'logs', 'index.tsv')
 """str: Absolute path to a log file to receive all debugging output."""
 
+LOG_LATEST = Path(USER_PREFIX, 'logs', 'latest')
+
 TERM_SIZE = get_terminal_size()
 """tuple: (width, height) tuple of detected terminal dimensions in characters."""
 
@@ -356,11 +358,12 @@ Uses system specific methods to determine console line width.  If the line
 width cannot be determined, the default is 80.
 """
 
-LOGID_MARKER = "__E4S_CL_LOGID"
+LOG_ID_MARKER = "__E4S_CL_LOG_ID"
 """
 Environment variable name: set by the parent for every execution, is used to
 group debug logs in folders
 """
+
 
 
 def setup_process_logger(name: str) -> logging.Logger:
@@ -368,9 +371,10 @@ def setup_process_logger(name: str) -> logging.Logger:
     Create and setup handlers of a Logger object meant to log errors of
     a subprocess
     """
-    # Locate and ensure the log file is writeable
-    log_file = Path(_LOG_FILE_PREFIX, LOGID, name)
-    Path.mkdir(log_file.parent, parents=True, exist_ok=True)
+    # Locate and ensure the log file directory is writeable
+    # - Compatible with symlinks in LOG_ID
+    log_file = Path(_LOG_FILE_PREFIX, LOG_ID, name)
+    Path.mkdir(log_file.parent.readlink(), parents=True, exist_ok=True)
 
     # Create a logger in debug mode
     process_logger = logging.getLogger(name)
@@ -447,30 +451,39 @@ if is_master():
     grinder = hashlib.sha256()
     grinder.update(str(time()).encode())
 
-    LOGID = grinder.hexdigest()
-    os.environ[LOGID_MARKER] = LOGID
+    LOG_ID = grinder.hexdigest()
+    os.environ[LOG_ID_MARKER] = LOG_ID
 else:
-    LOGID = os.environ.get(LOGID_MARKER)
+    LOG_ID = os.environ.get(LOG_ID_MARKER)
 
-# Log the command in a database to ease human lookup
-if Path(sys.argv[0]).name == 'e4s-cl':
-    index_logger = logging.getLogger("index")
-    index_logger.propagate = False
-    add_file_handler(
-        LOG_INDEX,
-        index_logger,
-        formatter=logging.Formatter(fmt=f"%(asctime)s\t{LOGID}\t%(message)s"))
-    index_logger.info(" ".join(sys.argv))
-
-# Add a file handler, location depending on the status of the process
 if is_master():
+    # Add a file handler, location depending on the status of the process
     add_file_handler(LOG_FILE, _ROOT_LOGGER)
-else:
-    _log_file = Path(_LOG_FILE_PREFIX, LOGID, f"e4s_cl.{os.getpid()}")
-    add_file_handler(_log_file, _ROOT_LOGGER)
 
-# Dump process info
-if is_master():
+    # When running as e4s-cl
+    if Path(sys.argv[0]).name == 'e4s-cl':
+        # Log the command in a database to ease human lookup
+        index_logger = logging.getLogger("index")
+        index_logger.propagate = False
+        add_file_handler(
+            LOG_INDEX,
+            index_logger,
+            formatter=logging.Formatter(fmt=f"%(asctime)s\t{LOG_ID}\t%(message)s"))
+        index_logger.info(" ".join(sys.argv))
+
+        # Create a symlink towards the latest log directory
+        try:
+            os.unlink(LOG_LATEST)
+        except OSError as err:
+            _ROOT_LOGGER.debug(f"Unlink {LOG_LATEST.as_posix()} failed: {str(err)}")
+
+        try:
+            os.symlink(Path(LOG_FILE.parent, LOG_ID), LOG_LATEST)
+        except OSError as err:
+            _ROOT_LOGGER.debug(f"Symlink {LOG_LATEST.as_posix()} failed: {str(err)}")
+        else:
+            os.environ[LOG_ID_MARKER] = LOG_LATEST.name
+
     # pylint: disable=logging-not-lazy
     _ROOT_LOGGER.debug(
         ("\n%(bar)s\n"
@@ -495,5 +508,9 @@ if is_master():
              'cwd': os.getcwd(),
              'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
              'frozen': getattr(sys, 'frozen', False),
-             'logid': LOGID,
+             'logid': LOG_ID,
          })
+
+else:
+    _log_file = Path(_LOG_FILE_PREFIX, LOG_ID, f"e4s_cl.{os.getpid()}")
+    add_file_handler(_log_file, _ROOT_LOGGER)
