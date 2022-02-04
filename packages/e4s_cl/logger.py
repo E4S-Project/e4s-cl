@@ -396,9 +396,14 @@ def setup_process_logger(name: str) -> logging.Logger:
 
 
 def is_available(file: Path) -> bool:
+    parent_dir = file.parent
+
+    if parent_dir.is_symlink():
+        parent_dir = parent_dir.readlink()
+
     try:
         # Ensure the file directory is accessible, create it if need be
-        Path.mkdir(file.parent, parents=True, exist_ok=True)
+        Path.mkdir(parent_dir, parents=True, exist_ok=True)
 
         with open(file, 'a', encoding='utf-8') as _:
             pass
