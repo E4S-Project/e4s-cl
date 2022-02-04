@@ -255,7 +255,8 @@ class LogFormatter(logging.Formatter):
         try:
             return getattr(self, record.levelname)(record)
         except AttributeError as exc:
-            raise RuntimeError(f"Unknown record level (name: {record.levelname})") from exc
+            raise RuntimeError(
+                f"Unknown record level (name: {record.levelname})") from exc
 
     def _colored(self, text, *color_args):
         """Insert ANSII color formatting via `termcolor`_.
@@ -342,6 +343,9 @@ Don't change directly. May be changed via :any:`set_log_level`.
 LOG_FILE = Path(USER_PREFIX, 'logs', 'debug_log')
 """str: Absolute path to a log file to receive all debugging output."""
 
+LOG_INDEX = Path(USER_PREFIX, 'logs', 'index.tsv')
+"""str: Absolute path to a log file to receive all debugging output."""
+
 TERM_SIZE = get_terminal_size()
 """tuple: (width, height) tuple of detected terminal dimensions in characters."""
 
@@ -387,41 +391,42 @@ def setup_process_logger(name: str) -> logging.Logger:
     return process_logger
 
 
-def add_file_handler(log_file: Path, logger: logging.Logger) -> bool:
+def is_available(file: Path) -> bool:
+    try:
+        # Ensure the file directory is accessible, create it if need be
+        Path.mkdir(file.parent, parents=True, exist_ok=True)
+
+        with open(file, 'a', encoding='utf-8') as _:
+            pass
+    except OSError as exc:
+        _ROOT_LOGGER.debug("Failed to open file %s: %s", file.as_posix(),
+                           exc.strerror)
+        return False
+    return True
+
+
+def add_file_handler(
+    log_file: Path,
+    logger: logging.Logger,
+    formatter: logging.Formatter = LogFormatter(line_width=120,
+                                                allow_colors=False)
+) -> bool:
     """
     Add a file handler to a Logger object
     """
-    try:
-        # Ensure the log file directory is accessible
-        Path.mkdir(log_file.parent, parents=True, exist_ok=True)
-
-        with open(log_file, 'a', encoding='utf-8') as _:
-            pass
-    except OSError as exc:
-        _ROOT_LOGGER.debug("Failed to open file %s for logging: %s",
-                           log_file.as_posix(), exc.strerror)
+    if not is_available(log_file):
         return False
 
     file_handler = handlers.TimedRotatingFileHandler(log_file,
                                                      when='D',
                                                      interval=1,
                                                      backupCount=3)
-    file_handler.setFormatter(LogFormatter(line_width=120, allow_colors=False))
+    file_handler.setFormatter(formatter)
     file_handler.setLevel(logging.DEBUG)
     logger.addHandler(file_handler)
 
     return True
 
-
-if is_master():
-    # Create a hash for the execution ID
-    grinder = hashlib.sha256()
-    grinder.update(str(time()).encode())
-
-    LOGID = grinder.hexdigest()
-    os.environ[LOGID_MARKER] = LOGID
-else:
-    LOGID = os.environ.get(LOGID_MARKER)
 
 _ROOT_LOGGER = logging.getLogger()
 if not _ROOT_LOGGER.handlers:
@@ -436,12 +441,35 @@ if not _ROOT_LOGGER.handlers:
 
     _ROOT_LOGGER.addHandler(_STDERR_HANDLER)
 
-    if is_master():
-        add_file_handler(LOG_FILE, _ROOT_LOGGER)
-    else:
-        _log_file = Path(_LOG_FILE_PREFIX, LOGID, f"e4s_cl.{os.getpid()}")
-        add_file_handler(_log_file, _ROOT_LOGGER)
+# Create a hash for the execution ID, and dictate to dump logs in the
+# corresponding folder
+if is_master():
+    grinder = hashlib.sha256()
+    grinder.update(str(time()).encode())
 
+    LOGID = grinder.hexdigest()
+    os.environ[LOGID_MARKER] = LOGID
+else:
+    LOGID = os.environ.get(LOGID_MARKER)
+
+# Log the command in a database to ease human lookup
+if Path(sys.argv[0]).name == 'e4s-cl':
+    index_logger = logging.getLogger("index")
+    index_logger.propagate = False
+    add_file_handler(
+        LOG_INDEX,
+        index_logger,
+        formatter=logging.Formatter(fmt=f"%(asctime)s\t{LOGID}\t%(message)s"))
+    index_logger.info(" ".join(sys.argv))
+
+# Add a file handler, location depending on the status of the process
+if is_master():
+    add_file_handler(LOG_FILE, _ROOT_LOGGER)
+else:
+    _log_file = Path(_LOG_FILE_PREFIX, LOGID, f"e4s_cl.{os.getpid()}")
+    add_file_handler(_log_file, _ROOT_LOGGER)
+
+# Dump process info
 if is_master():
     # pylint: disable=logging-not-lazy
     _ROOT_LOGGER.debug(
