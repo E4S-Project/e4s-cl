@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import json
 import e4s_cl
 from e4s_cl import cli
@@ -15,6 +16,7 @@ PROFILE_MARKER = "__e4s_cl_profile"
 
 
 class Option:
+
     def __default__(self):
         self.names = []
         self.arguments = 0
@@ -38,6 +40,7 @@ class Option:
 
 
 class Command:
+
     def __default__(self):
         self.name = ""
         self.subcommands = []
@@ -70,7 +73,7 @@ class Command:
             self.options.append(
                 Option(names=action.option_strings,
                        arguments=(action.nargs or 0),
-                       values=(action.choices or [])))
+                       values=list(action.choices or [])))
 
         self.subcommands = [Command(*i) for i in dict_.items()]
 
@@ -91,6 +94,6 @@ class Command:
 
 
 if __name__ == "__main__":
-    print(
-        json.dumps(Command('root', command_tree).json(),
-                   separators=(',', ':')))
+    json.dump(Command('root', command_tree).json(),
+              sys.stdout,
+              separators=(',', ':'))
