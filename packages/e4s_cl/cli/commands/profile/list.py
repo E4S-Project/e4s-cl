@@ -5,7 +5,7 @@ Pass option **-s** to print only the names and disable formatting.
 
 .. code::
 
-    $ e4s-cl profile list s
+    $ e4s-cl profile list 
     == Profile Configurations (/home/user/.local/e4s_cl/user.json) ========
 
     +----------+--------+---------+-------+-----------+-------+--------+
