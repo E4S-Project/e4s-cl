@@ -377,8 +377,8 @@ def setup_process_logger(name: str) -> logging.Logger:
     """
     # Locate and ensure the log file directory is writeable
     # - Compatible with symlinks in LOG_ID
-    log_file = Path(_LOG_FILE_PREFIX, LOG_ID, name)
-    Path.mkdir(log_file.parent.readlink(), parents=True, exist_ok=True)
+    log_file = Path(_LOG_FILE_PREFIX, LOG_ID, name).resolve()
+    Path.mkdir(log_file.parent, parents=True, exist_ok=True)
 
     # Create a logger in debug mode
     process_logger = logging.getLogger(name)
