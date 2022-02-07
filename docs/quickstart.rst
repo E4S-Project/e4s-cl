@@ -1,7 +1,7 @@
 .. _qstart:
 
 ===========
-Quickstart
+Quick start
 ===========
 
 The CLI tool is called **e4s-cl**. It behaves as a supplementary launcher over \

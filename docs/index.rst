@@ -9,7 +9,7 @@ E4S Container Launcher is an effort to facilitate the use of MPI applications de
 Given a combination of an MPI library, a container and a MPI binary, E4S Container Launcher will run the MPI binary in the target container using the MPI library.
 This is useful when the binary has been compiled using a different library than the one passed as an argument: as long as the two libraries are `ABI compatible <https://www.mpich.org/abi/>`_, the binary will run under the new environment.
 
-E4S Container Launcher includes tools to automatically detect the MPI binary's necessary files, making it seamless to set up and use. These tools are first touched in the :ref:`quickstart<qstart>` section.
+E4S Container Launcher includes tools to automatically detect the MPI binary's necessary files, making it seamless to set up and use. These tools are first touched in the :ref:`quick start<qstart>` section.
 
 
 .. toctree::

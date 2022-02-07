@@ -1,6 +1,6 @@
 """
 The **profile detect** command will create a profile from the analysis of \
-the inputed MPI binary's execution. This process uses system call \
+the inputted MPI binary's execution. This process uses system call \
 monitoring to produce an exhaustive list of files and libraries required \
 by the MPI installation.
 
