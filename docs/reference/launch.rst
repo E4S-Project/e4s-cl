@@ -75,7 +75,7 @@ A launch command using a local :code:`mpich` library without profile:
 
 .. code::
 
-   e4s-cl profile launch --backend singularity \
+   e4s-cl launch --backend singularity \
         --image /home/user/ecp.simg \
         --libraries /home/user/spack/opt/spack/linux-arch-skylake_avx512/gcc-10.2.0/mpich-3.4.1-yjx3whq2g2mrzrws4xhoxyjt7hl6wvb5/lib/libmpi.so.12 \
         --files /usr/share/hwdata/pci.ids \

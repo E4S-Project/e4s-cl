@@ -23,29 +23,16 @@ The **e4s-cl** program will be copied over to :code:`<prefix>/bin`. On success, 
 
 A python interpreter will be downloaded to ensure a compatible Python 3 version is available.
 
-.. admonition:: Installing on specific machine
+.. admonition:: SYSTEM parameter
 
-   Some machines have been tested for e4s-cl to work with, and profiles tailored \
-   for those systems have been created. The resulting profiles can be downloaded \
-   at install time to ease the initialisation step.
-
-   To enable such profiles, use the :code:`SYSTEM` argument when calling \
-   :code:`make` or :code:`make install`.
-
-   The following systems are supported:
-
-   * Theta at ALCF. Use machine name :code:`theta`;
-   * Spock at ORNL. Use machine name :code:`spock`;
-   * Cori at NERSC. Use machine name :code:`cori`;
-   * Perlmutter at NERSC. Use machine name :code:`perlmutter`.
-   
+    Some machines have specific e4s-cl profiles tailored for them that can be downloaded and later accessed as builtin profiles. Refer to the :ref:`system compatibility<system_compat>` page for details.
 
 Completion
 ************
 
-Automatic completion for commands and profiles can be installed by running :code:`make completion`. A BASH completion script will be installed in :code:`$HOME/.local/share/bash-completion/completions/`. Sourcing it will enable **e4s-cl** completion in the shell; if the :code:`bash-completion` package is installed, it will be enabled for every new shell.
+Automatic completion for commands and profiles can be installed by running :code:`make completion`. Whichever :code:`INSTALLDIR` chosen, a BASH completion script will be installed in :code:`$HOME/.local/share/bash-completion/completions/`. Sourcing it will enable **e4s-cl** completion in the shell; if the :code:`bash-completion` package is installed, it will be enabled for every new shell.
 
-The :code:`INSTALLDIR` used for the script must be specified to tie the completion to the installed package.
+The :code:`INSTALLDIR` used for the :code:`make install` must be specified to tie the completion to the installed package.
 
 .. code-block:: bash
 
@@ -57,7 +44,7 @@ Manual page
 
 This website can also be installed in the :code:`man` format to be accessible on the CLI with :code:`make man`. This will create a man page in :code:`$HOME/.local/share/man/man1` and update the manual page database. This is the default user-level install directory, but you may have to add :code:`$HOME/.local/share/man` to the :code:`MANPATH` environment variable to access it depending on your system's configuration.
 
-The :code:`INSTALLDIR` used for the script must be specified to tie the manual to the installed package.
+The :code:`INSTALLDIR` used for the :code:`make install` must be specified to tie the manual to the installed package.
 
 .. code-block:: bash
 

@@ -2,8 +2,8 @@
 Examples
 ++++++++
 
-Cheatsheet
-----------
+Cheat sheet
+------------
 
 Initializing the tool for the available MPI library::
 

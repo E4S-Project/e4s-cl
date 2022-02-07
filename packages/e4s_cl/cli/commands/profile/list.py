@@ -5,16 +5,31 @@ Pass option **-s** to print only the names and disable formatting.
 
 .. code::
 
-    $ e4s-cl profile list s
-    == Profile Configurations (/home/user/.local/e4s_cl/user.json) ========
+    $ e4s-cl profile list 
+    == Profile Configurations (/home/fdeny/.local/e4s_cl/user.json) ===========
 
-    +----------+--------+---------+-------+-----------+-------+--------+
-    | Selected |  Name  | Backend | Image | Libraries | Files | WI4MPI |
-    +==========+========+=========+=======+===========+=======+========+
-    |          | single |    None |  None |     1     |   0   |   Yes  |
-    +----------+--------+---------+-------+-----------+-------+--------+
-    |          | sparse |    None |  None |     7     |  71   |   No   |
-    +----------+--------+---------+-------+-----------+-------+--------+
+    +----------+---------------+---------+-------+-----------+-------+--------+
+    | Selected |     Name      | Backend | Image | Libraries | Files | WI4MPI |
+    +==========+===============+=========+=======+===========+=======+========+
+    |          |   MPICH_3.4.2 |     N/A |   N/A |    16     |   1   |   No   |
+    +----------+---------------+---------+-------+-----------+-------+--------+
+    |    *     | OpenMPI_4.1.1 |     N/A |   N/A |    21     |  73   |   No   |
+    +----------+---------------+---------+-------+-----------+-------+--------+
+
+    $ e4s-cl profile list MPI
+    == Profile Configurations (/home/fdeny/.local/e4s_cl/user.json) =========
+
+    +----------+-------------+---------+-------+-----------+-------+--------+
+    | Selected |    Name     | Backend | Image | Libraries | Files | WI4MPI |
+    +==========+=============+=========+=======+===========+=======+========+
+    |          | MPICH_3.4.2 |     N/A |   N/A |    16     |   1   |   No   |
+    +----------+-------------+---------+-------+-----------+-------+--------+
+    
+
+    $ e4s-cl profile list -s
+    MPICH_3.4.2
+    OpenMPI_4.1.1
+
 
 """
 

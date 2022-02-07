@@ -1,5 +1,5 @@
 """
-Entrypoint to the CLI
+Entry point to the CLI
 """
 
 import os

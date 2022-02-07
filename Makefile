@@ -177,6 +177,10 @@ man: python_check
 	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
 	@$(PYTHON) scripts/success.py "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
+html: python_check
+	find $(DOCS) -exec touch {} \;
+	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
+	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) html
 
 clean:
 	rm -fr build/ COMMIT VERSION
