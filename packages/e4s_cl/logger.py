@@ -26,7 +26,12 @@ from logging import handlers
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
 from e4s_cl.variables import is_master
-import termcolor
+
+try:
+    import termcolor
+    COLOR_OUTPUT = True
+except ModuleNotFoundError:
+    COLOR_OUTPUT = False
 
 # Use isatty to check if the stream supports color
 STDOUT_COLOR = os.isatty(sys.stdout.fileno())
@@ -291,7 +296,7 @@ class LogFormatter(logging.Formatter):
         
         .. _termcolor: http://pypi.python.org/pypi/termcolor
         """
-        if self.allow_colors and color_args:
+        if COLOR_OUTPUT and self.allow_colors and color_args:
             return termcolor.colored(text, *color_args)
         return text
 
@@ -363,7 +368,6 @@ LOG_ID_MARKER = "__E4S_CL_LOG_ID"
 Environment variable name: set by the parent for every execution, is used to
 group debug logs in folders
 """
-
 
 
 def setup_process_logger(name: str) -> logging.Logger:
@@ -470,22 +474,24 @@ if is_master():
         # Log the command in a database to ease human lookup
         index_logger = logging.getLogger("index")
         index_logger.propagate = False
-        add_file_handler(
-            LOG_INDEX,
-            index_logger,
-            formatter=logging.Formatter(fmt=f"%(asctime)s\t{LOG_ID}\t%(message)s"))
+        add_file_handler(LOG_INDEX,
+                         index_logger,
+                         formatter=logging.Formatter(
+                             fmt=f"%(asctime)s\t{LOG_ID}\t%(message)s"))
         index_logger.info(" ".join(sys.argv))
 
         # Create a symlink towards the latest log directory
         try:
             os.unlink(LOG_LATEST)
         except OSError as err:
-            _ROOT_LOGGER.debug(f"Unlink {LOG_LATEST.as_posix()} failed: {str(err)}")
+            _ROOT_LOGGER.debug(
+                f"Unlink {LOG_LATEST.as_posix()} failed: {str(err)}")
 
         try:
             os.symlink(Path(LOG_FILE.parent, LOG_ID), LOG_LATEST)
         except OSError as err:
-            _ROOT_LOGGER.debug(f"Symlink {LOG_LATEST.as_posix()} failed: {str(err)}")
+            _ROOT_LOGGER.debug(
+                f"Symlink {LOG_LATEST.as_posix()} failed: {str(err)}")
         else:
             os.environ[LOG_ID_MARKER] = LOG_LATEST.name
 

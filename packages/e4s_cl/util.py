@@ -19,7 +19,12 @@ from contextlib import contextmanager
 from e4s_cl import logger
 from e4s_cl.variables import ParentStatus
 from e4s_cl.error import InternalError
-import termcolor
+
+try:
+    import termcolor
+    COLOR_OUTPUT = True
+except ModuleNotFoundError:
+    COLOR_OUTPUT = False
 
 LOGGER = logger.get_logger(__name__)
 
@@ -350,7 +355,7 @@ def color_text(text, *args, **kwargs):
     Returns:
         str: The colorized text.
     """
-    if sys.stdout.isatty():
+    if sys.stdout.isatty() and COLOR_OUTPUT:
         return termcolor.colored(text, *args, **kwargs)
     return text
 
