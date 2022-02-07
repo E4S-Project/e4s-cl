@@ -9,7 +9,7 @@ import sys
 import subprocess
 import errno
 import pkgutil
-import pathlib
+from pathlib import Path
 import hashlib
 import json
 from functools import lru_cache
@@ -21,7 +21,6 @@ from e4s_cl import logger
 from e4s_cl.variables import is_master
 from e4s_cl.error import InternalError
 import termcolor
-
 
 LOGGER = logger.get_logger(__name__)
 
@@ -60,12 +59,13 @@ def mkdirp(*args):
                 if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
                     raise
 
+
 @lru_cache
 def which(*args, **kwargs):
     return sh_which(*args, **kwargs)
 
 
-def path_accessible(path, mode='r'):
+def path_accessible(path: Path, mode: str = 'r') -> bool:
     """Check if a file or directory exists and is accessible.
     
     Files are checked by attempting to open them with the given mode.
@@ -80,6 +80,9 @@ def path_accessible(path, mode='r'):
     Returns:
         True if the file exists and can be opened in the specified mode, False otherwise.
     """
+    if isinstance(path, str):
+        path = Path(path)
+
     modes = {'r': os.R_OK, 'w': os.W_OK, 'x': os.X_OK}
 
     if not mode:
@@ -91,7 +94,8 @@ def path_accessible(path, mode='r'):
     modebits = 0
     for char in mode:
         modebits |= modes[char]
-    return os.access(path, os.F_OK) and os.access(path, modebits)
+    return os.access(path.as_posix(), os.F_OK) and os.access(
+        path.as_posix(), modebits)
 
 
 def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
@@ -361,6 +365,7 @@ def walk_packages(path, prefix):
     :any:`pkgutil.walk_packages` silently fails to list modules and packages when
     they are in a zip file.  This implementation works around this.
     """
+
     def seen(path, dct={}):  # pylint: disable=dangerous-default-value
         if path in dct:
             return True
@@ -463,11 +468,17 @@ def add_dot(string: str) -> str:
     return string + '.'
 
 
-def update_ld_path(posixpath):
-    os.environ["LD_LIBRARY_PATH"] = pathlib.Path(
-        posixpath,
-        "lib").as_posix() + os.pathsep + os.environ["LD_LIBRARY_PATH"]
-    return os.environ["LD_LIBRARY_PATH"]
+def update_ld_path(path: Path):
+    ld_path = os.environ.get('LD_LIBRARY_PATH')
+
+    if ld_path:
+        ld_path = f"{path.as_posix()}{os.pathsep}{ld_path}"
+    else:
+        ld_path = path.as_posix()
+
+    os.environ['LD_LIBRARY_PATH'] = ld_path
+    return ld_path
+
 
 @contextmanager
 def catchtime() -> float:
