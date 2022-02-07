@@ -80,6 +80,7 @@ import json
 import tempfile
 import subprocess
 import shlex
+from argparse import ArgumentTypeError
 from pathlib import Path
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
@@ -186,7 +187,7 @@ def _analyze_binary(args):
     # we need to analyze a binary to
     # determine the dynamic dependencies of the library
 
-    # Use the environment compiler per default
+    # Use the MPI environment scripts by default
     compiler = util.which('mpicc')
     launcher = util.which('mpirun')
 
@@ -209,7 +210,9 @@ def _analyze_binary(args):
     binary = _select_binary(precompiled_binaries())
 
     # Use the launcher passed as an argument in priority
-    launcher = util.which(getattr(args, 'launcher', launcher))
+    if arg_launcher := getattr(args, 'launcher', None):
+        launcher = path
+
     launcher_args = shlex.split(getattr(args, 'launcher_args', ''))
 
     # If no binary, check for compiler and compile a binary
@@ -262,8 +265,19 @@ def _special_clauses(args) -> bool:
     return True
 
 
+def launcher_argument(string):
+    """ Argument type callback. Asserts the given string identifies a launcher binary
+    on the system. """
+
+    if not (path := util.which(string)):
+        raise ArgumentTypeError(
+            f"Launcher argument '{string}' could not be resolved to a binary")
+    return path
+
+
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
+
     def _construct_parser(self):
         parser = arguments.get_parser(prog=self.command,
                                       description=self.summary)
@@ -280,6 +294,7 @@ class InitCommand(AbstractCommand):
             '--launcher',
             help="MPI launcher required to run a sample program.",
             metavar='launcher',
+            type=launcher_argument,
             default=arguments.SUPPRESS,
             dest='launcher')
 

@@ -12,6 +12,8 @@ import pkgutil
 import pathlib
 import hashlib
 import json
+from functools import lru_cache
+from shutil import which as sh_which
 from collections import deque
 from time import perf_counter
 from contextlib import contextmanager
@@ -58,53 +60,9 @@ def mkdirp(*args):
                 if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
                     raise
 
-
-_WHICH_CACHE = {}
-
-
-def which(program, use_cached=True):
-    """Returns the full path to a program command.
-
-    Program must exist and be executable.
-    Searches the system PATH and the current directory.
-    Caches the result.
-
-    Args:
-        program (str): program to find.
-        use_cached (bool): If False then don't use cached results.
-
-    Returns:
-        str: Full path to program or None if program can't be found.
-    """
-    if not program:
-        return None
-    assert isinstance(program, str)
-    if use_cached:
-        try:
-            return _WHICH_CACHE[program]
-        except KeyError:
-            pass
-    _is_exec = lambda fpath: os.path.isfile(fpath) and os.access(
-        fpath, os.X_OK)
-    fpath, _ = os.path.split(program)
-    if fpath:
-        abs_program = os.path.abspath(program)
-        if _is_exec(abs_program):
-            LOGGER.debug("which(%s) = '%s'", program, abs_program)
-            _WHICH_CACHE[program] = abs_program
-            return abs_program
-    else:
-        pathlist = os.environ['PATH'].split(os.pathsep) + ['/sbin']
-        for path in pathlist:
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if _is_exec(exe_file):
-                LOGGER.debug("which(%s) = '%s'", program, exe_file)
-                _WHICH_CACHE[program] = exe_file
-                return exe_file
-    _heavy_debug("which(%s): command not found", program)
-    _WHICH_CACHE[program] = None
-    return None
+@lru_cache
+def which(*args, **kwargs):
+    return sh_which(*args, **kwargs)
 
 
 def path_accessible(path, mode='r'):
