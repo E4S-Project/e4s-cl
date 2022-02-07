@@ -80,31 +80,18 @@ def path_accessible(path, mode='r'):
     Returns:
         True if the file exists and can be opened in the specified mode, False otherwise.
     """
-    assert mode and set(mode) <= set(('r', 'w'))
-    if not os.path.exists(path):
-        return False
-    if os.path.isdir(path):
-        modebits = 0
-        if 'r' in mode:
-            modebits |= os.R_OK
-        if 'w' in mode:
-            modebits |= os.W_OK | os.X_OK
-        return os.access(path, modebits)
+    modes = {'r': os.R_OK, 'w': os.W_OK, 'x': os.X_OK}
 
-    handle = None
-    try:
-        handle = open(path, mode)
-    except IOError as err:
-        if err.errno == errno.EACCES:
-            return False
-        # Some other error, not permissions
-        raise
-    else:
-        return True
-    finally:
-        if handle:
-            handle.close()
-    return False
+    if not mode:
+        raise InternalError(f"Unsupported value for mode: '{mode}'")
+    for element in mode:
+        if element not in modes.keys():
+            raise InternalError(f"Unsupported value for mode: '{element}'")
+
+    modebits = 0
+    for char in mode:
+        modebits |= modes[char]
+    return os.access(path, os.F_OK) and os.access(path, modebits)
 
 
 def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
