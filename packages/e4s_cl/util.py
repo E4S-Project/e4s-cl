@@ -40,24 +40,29 @@ _PY_SUFFEXES = ('.py', '.pyo', '.pyc')
 _COLOR_CONTROL_RE = re.compile('\033\\[([0-9]|3[0-8]|4[0-8])m')
 
 
-def mkdirp(*args):
+def mkdirp(path: Path) -> bool:
     """Creates a directory and all its parents.
     
     Works just like ``mkdir -p``.
     
     Args:
-        *args: Paths to create.
+        path: Path to create.
     """
-    for path in args:
-        # Avoid errno.EACCES if a parent directory is not writable and the directory exists
-        if not os.path.isdir(path):
-            try:
-                os.makedirs(path)
-                LOGGER.debug("Created directory '%s'", path)
-            except OSError as exc:
-                # Only raise if another process didn't already create the directory
-                if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
-                    raise
+
+    if not isinstance(path, Path):
+        path = Path(path)
+
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except PermissionError as err:
+        LOGGER.error("Failed to create directory {}: {}", path.as_posix(),
+                     str(err))
+        return False
+    except FileExistsError as err:
+        LOGGER.error("File {} exists and is not a directory: {}",
+                     path.as_posix(), str(err))
+
+    return True
 
 
 @lru_cache
