@@ -159,16 +159,16 @@ class ProfileDetectCommand(AbstractCliView):
             libs, files = filter_files(accessed_files)
 
         if returncode:
-            if variables.is_master():
+            if variables.is_parent():
                 LOGGER.error(
                     "Failed to determine necessary libraries: program exited with code %d",
                     returncode)
             return EXIT_FAILURE
 
-        # There are two cases: this is a master process, in which case the output
+        # There are two cases: this is a parent process, in which case the output
         # must be processed, or this is a slave process, where we just print it
-        # all on stdout in a format the master process will understand
-        if not variables.is_master():
+        # all on stdout in a format the parent process will understand
+        if not variables.is_parent():
             print(json_dumps({
                 'files': files,
                 'libraries': libs,

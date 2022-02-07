@@ -25,7 +25,7 @@ from time import time
 from logging import handlers
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
-from e4s_cl.variables import is_master
+from e4s_cl.variables import is_parent
 
 try:
     import termcolor
@@ -454,7 +454,7 @@ if not _ROOT_LOGGER.handlers:
 
 # Create a hash for the execution ID, and dictate to dump logs in the
 # corresponding folder
-if is_master():
+if is_parent():
     grinder = hashlib.sha256()
     grinder.update(str(time()).encode())
 
@@ -463,7 +463,7 @@ if is_master():
 else:
     LOG_ID = os.environ.get(LOG_ID_MARKER)
 
-if is_master():
+if is_parent():
     # Add a file handler, location depending on the status of the process
     add_file_handler(LOG_FILE, _ROOT_LOGGER)
 

@@ -11,18 +11,18 @@ CHILD_MARKER = "__E4S_CL_WORKER"
 DRY_RUN = False
 
 
-def is_master():
+def is_parent():
     return not os.environ.get(CHILD_MARKER, False)
 
 
-def set_master():
+def set_parent():
     os.environ[CHILD_MARKER] = str(1)
 
 
 class ParentStatus:
 
     def __enter__(self):
-        set_master()
+        set_parent()
 
     def __exit__(self, type_, value, traceback):
         if os.environ.get(CHILD_MARKER):
