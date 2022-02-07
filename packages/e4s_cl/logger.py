@@ -195,15 +195,11 @@ class LogFormatter(logging.Formatter):
 
     _printable_chars = set(string.printable)
 
-    def __init__(self, line_width, printable_only=False, allow_colors=True):
+    def __init__(self, line_width=0, printable_only=False, allow_colors=True):
         super().__init__()
         self.printable_only = printable_only
         self.allow_colors = allow_colors
         self.line_width = line_width
-        self._text_wrapper = textwrap.TextWrapper(width=self.line_width,
-                                                  break_long_words=False,
-                                                  break_on_hyphens=False,
-                                                  drop_whitespace=False)
 
     @on_stderr
     def CRITICAL(self, record):
@@ -302,22 +298,24 @@ class LogFormatter(logging.Formatter):
 
     def _format_message(self, record, header=''):
         # Length of the header, pruned from invisible escape characters
-        header_length = len(_prune_ansi(header))
+        if self.line_width:
+            header_length = len(_prune_ansi(header))
 
-        output = []
-        text = record.getMessage().split("\n")
+            output = []
+            text = record.getMessage().split("\n")
 
-        # Strip empty lines at the end only
-        while len(text) > 1 and not text[-1]:
-            text.pop()
+            # Strip empty lines at the end only
+            while len(text) > 1 and not text[-1]:
+                text.pop()
 
-        for line in text:
-            output += textwrap.wrap(line,
-                                    width=(self.line_width - header_length))
-            if not line:
-                output += ['']
+            for line in text:
+                output += textwrap.wrap(line,
+                                        width=(self.line_width - header_length))
+                if not line:
+                    output += ['']
 
-        return textwrap.indent("\n".join(output), header, lambda line: True)
+            return textwrap.indent("\n".join(output), header, lambda line: True)
+        return textwrap.indent(record.getMessage().strip(), header, lambda line: True)
 
 
 def set_log_level(level):
@@ -449,7 +447,7 @@ if not _ROOT_LOGGER.handlers:
     # Setup output on stderr
     _STDERR_HANDLER = logging.StreamHandler(sys.stderr)
     _STDERR_HANDLER.setFormatter(
-        LogFormatter(line_width=LINE_WIDTH, printable_only=False))
+        LogFormatter(printable_only=False))
     _STDERR_HANDLER.setLevel(LOG_LEVEL)
 
     _ROOT_LOGGER.addHandler(_STDERR_HANDLER)
