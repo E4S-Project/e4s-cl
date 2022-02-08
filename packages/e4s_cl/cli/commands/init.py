@@ -211,7 +211,7 @@ def _analyze_binary(args):
 
     # Use the launcher passed as an argument in priority
     if arg_launcher := getattr(args, 'launcher', None):
-        launcher = path
+        launcher = arg_launcher
 
     launcher_args = shlex.split(getattr(args, 'launcher_args', ''))
 
