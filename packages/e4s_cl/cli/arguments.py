@@ -656,6 +656,6 @@ def defined_object(model, field):
             return exact_matches.pop()
         return matches.pop()
 
-    wrapper.__name__ = __name__ + model.name
+    wrapper.__name__ = f"defined_{model.name.lower()}"
 
     return wrapper
