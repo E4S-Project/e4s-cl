@@ -210,6 +210,7 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
         max_help_position (int): Column on which to begin subsequent lines of wrapped help strings.
         width (int): Maximum help message length before wrapping.
     """
+
     def __init__(self,
                  prog,
                  indent_increment=2,
@@ -303,6 +304,7 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 class ConsoleHelpFormatter(HelpFormatter):
     """Custom help string formatter for console output."""
+
     def start_section(self, heading):
         return super().start_section(util.color_text(heading, attrs=['bold']))
 
@@ -630,23 +632,29 @@ def existing_posix_path_list(string):
 def defined_object(model, field):
     """Argument type callback.
     Asserts that the string corresponds to an existing object."""
+
     def wrapper(string):
         if string == UNSELECTED:
             raise argparse.ArgumentTypeError(
                 f"no {model.name} selected nor specified")
 
-        objects = model.controller().match(field,
-                                           regex=(f"^{re.escape(string)}.*"))
-        exact_matches = list(filter(lambda x: x.get(field) == string, objects))
+        matches = []
 
-        if len(objects) != 1 and not len(exact_matches) == 1:
+        for level in ORDERED_LEVELS:
+            matches.extend(
+                model.controller(storage=level).match(
+                    field, regex=(f"^{re.escape(string)}.*")))
+
+        exact_matches = list(filter(lambda x: x.get(field) == string, matches))
+
+        if len(matches) != 1 and not len(exact_matches) == 1:
             raise argparse.ArgumentTypeError(
-                f"Pattern '{string}' does not identify a single {model.name.lower()}: \
-                        {len(objects)} {model.name.lower()}s match")
+                f"Pattern '{string}' does not identify a single {model.name.lower()}: "
+                f"{len(matches)} {model.name.lower()}s match")
 
         if exact_matches:
-            return exact_matches[0]
-        return objects[0]
+            return exact_matches.pop()
+        return matches.pop()
 
     wrapper.__name__ = __name__ + model.name
 
