@@ -3,7 +3,6 @@ import shlex
 import json
 from e4s_cl import tests
 from e4s_cl.cf.libraries import host_libraries
-from e4s_cl.cf.storage.levels import PROFILE_STORAGE
 from e4s_cl.cli.commands.launch import COMMAND
 from e4s_cl.cli.cli_view import CreateCommand
 from e4s_cl.model.profile import Profile
