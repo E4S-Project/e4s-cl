@@ -7,7 +7,6 @@ import os
 import re
 import sys
 import subprocess
-import errno
 import pkgutil
 from pathlib import Path
 import hashlib
@@ -55,11 +54,11 @@ def mkdirp(path: Path) -> bool:
     try:
         path.mkdir(parents=True, exist_ok=True)
     except PermissionError as err:
-        LOGGER.error("Failed to create directory {}: {}", path.as_posix(),
+        LOGGER.error("Failed to create directory %s: %s", path.as_posix(),
                      str(err))
         return False
     except FileExistsError as err:
-        LOGGER.error("File {} exists and is not a directory: {}",
+        LOGGER.error("File %s exists and is not a directory: %s",
                      path.as_posix(), str(err))
 
     return True
@@ -93,7 +92,7 @@ def path_accessible(path: Path, mode: str = 'r') -> bool:
     if not mode:
         raise InternalError(f"Unsupported value for mode: '{mode}'")
     for element in mode:
-        if element not in modes.keys():
+        if element not in modes:
             raise InternalError(f"Unsupported value for mode: '{element}'")
 
     modebits = 0
@@ -437,7 +436,7 @@ def _json_decoder(obj):
         if obj['__type'] == 'set':
             return set(obj['__list'])
 
-        if obj['__type'] in JSON_HOOKS.keys():
+        if obj['__type'] in JSON_HOOKS:
             return JSON_HOOKS[obj['__type']](obj['__dict'])
 
     return obj
