@@ -23,9 +23,6 @@ class ShifterContainer(Container):
     Class to use for a shifter execution
     """
 
-    def __setup__(self):
-        pass
-
     def __setup_import(self) -> str:
         """
         Create a temporary directory to bind /.e4s-cl files in

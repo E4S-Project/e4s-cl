@@ -2,6 +2,16 @@
 Defines an abstract class to simplify the use of container technology.
 Creating an instance of ``Container`` will return a specific class to
 the required backend.
+
+To implement support for a new container backend, create a submodule
+that posesses the following attributes:
+    - NAME: The name identifying the backend
+    - EXECUTABLES: List of executables the backend uses; if not accessible on the
+        PATH, the backend will be disabled
+    - MIMES: if the backend uses files, extensions used to guess the backend from
+        an image
+    - CLASS: the class to use. The class' `run` method will be used when launching
+        the container: refer to its docstring for details
 """
 
 import os
@@ -348,10 +358,32 @@ def guess_backend(path):
 
     return matches[0][1]
 
+def assert_module(_module) -> bool:
+    """
+    Assert a module defining a container class is properly structured
+    """
+    required = ['NAME', 'EXECUTABLES', 'CLASS']
+
+    for attribute in required:
+        if not hasattr(_module, attribute):
+            LOGGER.warning(
+                "Container module '%s' is missing a required attribute: %s; skipping ...",
+                module_name, required)
+            return False
+
+    if getattr(_module, 'CLASS') and not getattr(_module.CLASS, 'run'):
+        LOGGER.warning(
+            "Container module '%s' has an incomplete module class; skipping ...")
+
+    return True
+
 
 for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
     import_module(_module_name)
     _module = sys.modules[_module_name]
+
+    if not assert_module(_module):
+        continue
 
     for _executable in _module.EXECUTABLES:
         BACKENDS.update({
@@ -361,5 +393,5 @@ for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
         if not getattr(_module, 'DEBUG_BACKEND', False):
             EXPOSED_BACKENDS.append(_executable)
 
-    for mimetype in _module.MIMES:
+    for mimetype in getattr(_module, 'MIMES', []):
         MIMES.append((mimetype, _module.NAME))

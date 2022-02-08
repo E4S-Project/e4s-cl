@@ -15,6 +15,8 @@ Using the system name
 
 If the current system is supported, use the :code:`--system` argument to \
 flag its use. The available values are listed when using :code:`e4s-cl init -h`.
+In order to have the system-specific profiles available (and listed as available),\
+ the :code:`SYSTEM=<system>` flag needs to be used when building the project.
 
 Using a WI4MPI installation
 ----------------------------
@@ -27,8 +29,8 @@ Using an installed MPI library
 --------------------------------
 
 This initialization method will create a profile from the execution analysis \
-of a sample MPI program. A program will be compiled from the library's compiler, \
-then run using a provided launcher. The opened files and libraries will be detected \
+of a sample MPI program. A program compiled with the MPI library's compiler \
+will run using a provided launcher. The opened files and libraries will be detected \
 using the :code:`ptrace` system call, and added to the resulting profile.
 
 The :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options can be \
@@ -271,7 +273,10 @@ class InitCommand(AbstractCommand):
         parser.add_argument(
             '--system',
             help="Initialize e4s-cl for use on a specific system."
-            f" Available systems are: {', '.join(builtin_profiles().keys())}",
+            f" Available systems: {', '.join(builtin_profiles().keys())}"\
+                    if builtin_profiles().keys() else \
+                    "Initialize e4s-cl for use on a specific system."
+                    f" Use 'make install SYSTEM=<system>' to have the associated profile available.",
             metavar='machine',
             default=arguments.SUPPRESS,
             choices=builtin_profiles().keys())
