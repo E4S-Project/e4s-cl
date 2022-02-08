@@ -48,6 +48,7 @@ from e4s_cl.model.profile import Profile
 from e4s_cl.cli.cli_view import AbstractCliView
 
 LOGGER = logger.get_logger(__name__)
+INIT_TEMP_PROFILE_NAME = '__INIT_TEMP_PROFILE'
 
 
 def filter_files(path_list: List[Path]):
@@ -190,6 +191,10 @@ class ProfileDetectCommand(AbstractCliView):
                     return EXIT_FAILURE
         else:
             profile = controller.selected()
+
+            if not profile['name'] == INIT_TEMP_PROFILE_NAME:
+                LOGGER.warning(
+                        "No profile specified: currently selected profile will be updated.")
 
             if not profile:
                 LOGGER.error(
