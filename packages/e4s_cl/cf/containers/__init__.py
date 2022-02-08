@@ -22,7 +22,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Union
 from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
-from e4s_cl.util import walk_packages, which, json_loads, create_subprocess_exp
+from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.pipe import Pipe
 from e4s_cl.cf.libraries import LibrarySet
@@ -215,9 +215,7 @@ class Container:
 
         # Setup a one-way communication channel
         with Pipe() as fdr:
-            code, _ = create_subprocess_exp(container_cmd,
-                                            env=env,
-                                            redirect_stdout=False)
+            code = run_e4scl_subprocess(container_cmd, env=env)
 
             if code:
                 raise AnalysisError(code)

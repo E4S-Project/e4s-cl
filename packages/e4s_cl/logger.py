@@ -14,59 +14,40 @@ import os
 import re
 import sys
 import time
-import errno
 import textwrap
 import socket
 import platform
 import string
 import logging
-import json
+import hashlib
+from pathlib import Path
+from time import time
 from logging import handlers
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
-from e4s_cl.variables import is_master
-import termcolor
+from e4s_cl.variables import is_parent
 
-IDENTIFIER = "e4s-cl-slave-message"
-SLAVE_LOGGER = logging.getLogger("Child Processes")
+try:
+    import termcolor
+    COLOR_OUTPUT = True
+except ModuleNotFoundError:
+    COLOR_OUTPUT = False
 
+# Use isatty to check if the stream supports color
 STDOUT_COLOR = os.isatty(sys.stdout.fileno())
 STDERR_COLOR = os.isatty(sys.stderr.fileno())
 
+# This is used all over the project, so name translation here
+get_logger = logging.getLogger
 
-def slave_error(record):
-    template = {
-        'level': record.levelname.lower(),
-        'process': os.getpid(),
-        'host': socket.gethostname(),
-        'date': record.created,
-        'message': record.getMessage().strip()
-    }
-    return json.dumps(template)
+WARNING = logging.WARNING
+ERROR = logging.ERROR
 
 
-def handle_error(line):
-    try:
-        data = json.loads(line)
-    except ValueError:
-        # Its not json, does not come from a slave
-        SLAVE_LOGGER.warning(line)
-        return
-
-    if data.get('level') in ["error", "critical"]:
-        SLAVE_LOGGER.error("%d on %s: %s", data.get('process'),
-                           data.get('host'), data.get('message'))
-
-    with open("{}.{}.log".format(data.get('host'), data.get('process')),
-              'a') as proc_log:
-        proc_log.write(
-            '[%(date)s] %(message)s\n' % {
-                'date': time.ctime(float(data.get('date'))),
-                'message': data.get('message')
-            })
-
-
-def _prune_ansi(line):
+def _prune_ansi(line: str) -> str:
+    """
+    Remove ANSI color codes from a string
+    """
     return re.sub(re.compile('\x1b[^m]+m'), '', line)
 
 
@@ -111,15 +92,15 @@ def _get_term_size_tput():
     """
     try:
         import subprocess
-        proc = subprocess.Popen(["tput", "cols"],
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
-        output = proc.communicate(input=None)
+        with subprocess.Popen(["tput", "cols"],
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE) as proc:
+            output = proc.communicate(input=None)
         cols = int(output[0])
-        proc = subprocess.Popen(["tput", "lines"],
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
-        output = proc.communicate(input=None)
+        with subprocess.Popen(["tput", "lines"],
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE) as proc:
+            output = proc.communicate(input=None)
         rows = int(output[0])
         return (cols, rows)
     except:  # pylint: disable=bare-except
@@ -178,16 +159,8 @@ def _get_term_size_env():
         return None
 
 
-def hierachical(function):
-    def wrapper(obj, record):
-        if is_master():
-            return function(obj, record)
-        return slave_error(record)
-
-    return wrapper
-
-
 def on_stdout(function):
+
     def wrapper(obj, record):
         text = function(obj, record)
         if STDOUT_COLOR:
@@ -198,6 +171,7 @@ def on_stdout(function):
 
 
 def on_stderr(function):
+
     def wrapper(obj, record):
         text = function(obj, record)
         if STDERR_COLOR:
@@ -221,42 +195,36 @@ class LogFormatter(logging.Formatter):
 
     _printable_chars = set(string.printable)
 
-    def __init__(self, line_width, printable_only=False, allow_colors=True):
+    def __init__(self, line_width=0, printable_only=False, allow_colors=True):
         super().__init__()
         self.printable_only = printable_only
         self.allow_colors = allow_colors
         self.line_width = line_width
-        self._text_wrapper = textwrap.TextWrapper(width=self.line_width,
-                                                  break_long_words=False,
-                                                  break_on_hyphens=False,
-                                                  drop_whitespace=False)
 
-    @hierachical
     @on_stderr
     def CRITICAL(self, record):
         return self._colored(self._format_message(record), 'red', None,
                              ['bold'])
 
-    @hierachical
     @on_stderr
     def ERROR(self, record):
         return self._colored(self._format_message(record), 'red', None,
                              ['bold'])
 
-    @hierachical
     @on_stderr
     def WARNING(self, record):
         return self._colored(self._format_message(record), 'yellow', None,
                              ['bold'])
 
-    @hierachical
     @on_stdout
     def INFO(self, record):
         return self._format_message(record)
 
-    @hierachical
     @on_stderr
     def DEBUG(self, record):
+        """
+        Print a debug message with a neat little header
+        """
         message = record.getMessage()
         if self.printable_only and (not set(message).issubset(
                 self._printable_chars)):
@@ -264,14 +232,14 @@ class LogFormatter(logging.Formatter):
 
         if __debug__:
             marker = self._colored(
-                "[%s %s:%s]" %
-                (record.levelname.title(), record.name, record.lineno),
+                f"[{record.levelname.title()} {record.name}:{record.lineno}]",
                 'yellow')
         else:
-            marker = self._colored("[%s]" % record.levelname.title(), 'cyan',
-                                   None, ['bold'])
+            marker = self._colored(
+                f"[{record.levelname.title()} {getattr(record, 'host', 'localhost')}:{record.process}]",
+                'cyan', None, ['bold'])
 
-        return '%s %s' % (marker, message)
+        return f"{marker} {message}"
 
     def format(self, record):
         """Formats a log record.
@@ -287,9 +255,9 @@ class LogFormatter(logging.Formatter):
         """
         try:
             return getattr(self, record.levelname)(record)
-        except AttributeError:
-            raise RuntimeError('Unknown record level (name: %s)' %
-                               record.levelname)
+        except AttributeError as exc:
+            raise RuntimeError(
+                f"Unknown record level (name: {record.levelname})") from exc
 
     def _colored(self, text, *color_args):
         """Insert ANSII color formatting via `termcolor`_.
@@ -324,42 +292,30 @@ class LogFormatter(logging.Formatter):
         
         .. _termcolor: http://pypi.python.org/pypi/termcolor
         """
-        if self.allow_colors and color_args:
+        if COLOR_OUTPUT and self.allow_colors and color_args:
             return termcolor.colored(text, *color_args)
         return text
 
     def _format_message(self, record, header=''):
         # Length of the header, pruned from invisible escape characters
-        header_length = len(_prune_ansi(header))
+        if self.line_width:
+            header_length = len(_prune_ansi(header))
 
-        output = []
-        text = record.getMessage().split("\n")
+            output = []
+            text = record.getMessage().split("\n")
 
-        # Strip empty lines at the end only
-        while len(text) > 1 and not text[-1]:
-            text.pop()
+            # Strip empty lines at the end only
+            while len(text) > 1 and not text[-1]:
+                text.pop()
 
-        for line in text:
-            output += textwrap.wrap(line,
-                                    width=(self.line_width - header_length))
-            if not line:
-                output += ['']
+            for line in text:
+                output += textwrap.wrap(line,
+                                        width=(self.line_width - header_length))
+                if not line:
+                    output += ['']
 
-        return textwrap.indent("\n".join(output), header, lambda line: True)
-
-
-def get_logger(name):
-    """Returns a customized logging object.
-    
-    Multiple calls to with the same name will always return a reference to the same Logger object.
-    
-    Args:
-        name (str): Dot-separated hierarchical name for the logger.
-        
-    Returns:
-        Logger: An instance of :any:`logging.Logger`.
-    """
-    return logging.getLogger(name)
+            return textwrap.indent("\n".join(output), header, lambda line: True)
+        return textwrap.indent(record.getMessage().strip(), header, lambda line: True)
 
 
 def set_log_level(level):
@@ -374,7 +330,7 @@ def set_log_level(level):
     # pylint: disable=global-statement
     global LOG_LEVEL
     LOG_LEVEL = level.upper()
-    _STDOUT_HANDLER.setLevel(LOG_LEVEL)
+    _STDERR_HANDLER.setLevel(LOG_LEVEL)
 
 
 def debug_mode():
@@ -387,8 +343,13 @@ LOG_LEVEL = 'INFO'
 Don't change directly. May be changed via :any:`set_log_level`.  
 """
 
-LOG_FILE = os.path.join(USER_PREFIX, 'debug_log')
+LOG_FILE = Path(USER_PREFIX, 'logs', 'debug_log')
 """str: Absolute path to a log file to receive all debugging output."""
+
+LOG_INDEX = Path(USER_PREFIX, 'logs', 'index.tsv')
+"""str: Absolute path to a log file to receive all debugging output."""
+
+LOG_LATEST = Path(USER_PREFIX, 'logs', 'latest')
 
 TERM_SIZE = get_terminal_size()
 """tuple: (width, height) tuple of detected terminal dimensions in characters."""
@@ -400,34 +361,138 @@ Uses system specific methods to determine console line width.  If the line
 width cannot be determined, the default is 80.
 """
 
+LOG_ID_MARKER = "__E4S_CL_LOG_ID"
+"""
+Environment variable name: set by the parent for every execution, is used to
+group debug logs in folders
+"""
+
+
+def setup_process_logger(name: str) -> logging.Logger:
+    """
+    Create and setup handlers of a Logger object meant to log errors of
+    a subprocess
+    """
+    # Locate and ensure the log file directory is writeable
+    # - Compatible with symlinks in LOG_ID
+    log_file = Path(_LOG_FILE_PREFIX, LOG_ID, name).resolve()
+    Path.mkdir(log_file.parent, parents=True, exist_ok=True)
+
+    # Create a logger in debug mode
+    process_logger = logging.getLogger(name)
+    process_logger.setLevel(logging.DEBUG)
+
+    # Log process data to file
+    handler = logging.FileHandler(log_file,
+                                  mode='a',
+                                  encoding='utf-8',
+                                  delay=True)
+    handler.setFormatter(LogFormatter(line_width=120, allow_colors=False))
+    process_logger.addHandler(handler)
+
+    # This disables the propagation along the logger tree, to avoid getting
+    # everything on stderr
+    process_logger.propagate = False
+
+    return process_logger
+
+
+def is_available(file: Path) -> bool:
+    parent_dir = file.parent
+
+    if parent_dir.is_symlink():
+        parent_dir = parent_dir.readlink()
+
+    try:
+        # Ensure the file directory is accessible, create it if need be
+        Path.mkdir(parent_dir, parents=True, exist_ok=True)
+
+        with open(file, 'a', encoding='utf-8') as _:
+            pass
+    except OSError as exc:
+        _ROOT_LOGGER.debug("Failed to open file %s: %s", file.as_posix(),
+                           exc.strerror)
+        return False
+    return True
+
+
+def add_file_handler(
+    log_file: Path,
+    logger: logging.Logger,
+    formatter: logging.Formatter = LogFormatter(line_width=120,
+                                                allow_colors=False)
+) -> bool:
+    """
+    Add a file handler to a Logger object
+    """
+    if not is_available(log_file):
+        return False
+
+    file_handler = handlers.TimedRotatingFileHandler(log_file,
+                                                     when='D',
+                                                     interval=1,
+                                                     backupCount=3)
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
+    logger.addHandler(file_handler)
+
+    return True
+
+
 _ROOT_LOGGER = logging.getLogger()
 if not _ROOT_LOGGER.handlers:
     _ROOT_LOGGER.setLevel(logging.DEBUG)
-    _LOG_FILE_PREFIX = os.path.dirname(LOG_FILE)
-    try:
-        os.makedirs(_LOG_FILE_PREFIX)
-    except OSError as exc:
-        if exc.errno == errno.EROFS:  # Don't crash and burn on RO systems
-            pass
-        elif not (exc.errno == errno.EEXIST
-                  and os.path.isdir(_LOG_FILE_PREFIX)):
-            raise
-    _STDOUT_HANDLER = logging.StreamHandler(sys.stderr)
-    _STDOUT_HANDLER.setFormatter(
-        LogFormatter(line_width=LINE_WIDTH, printable_only=False))
-    _STDOUT_HANDLER.setLevel(LOG_LEVEL)
-    _ROOT_LOGGER.addHandler(_STDOUT_HANDLER)
-    try:
-        _FILE_HANDLER = handlers.TimedRotatingFileHandler(LOG_FILE,
-                                                          when='D',
-                                                          interval=1,
-                                                          backupCount=3)
-        _FILE_HANDLER.setFormatter(
-            LogFormatter(line_width=120, allow_colors=False))
-        _FILE_HANDLER.setLevel(logging.DEBUG)
-        _ROOT_LOGGER.addHandler(_FILE_HANDLER)
-    except OSError as err:
-        _ROOT_LOGGER.debug("Failed to open file logger: %s", err.strerror)
+    _LOG_FILE_PREFIX = LOG_FILE.parent
+
+    # Setup output on stderr
+    _STDERR_HANDLER = logging.StreamHandler(sys.stderr)
+    _STDERR_HANDLER.setFormatter(
+        LogFormatter(printable_only=False))
+    _STDERR_HANDLER.setLevel(LOG_LEVEL)
+
+    _ROOT_LOGGER.addHandler(_STDERR_HANDLER)
+
+# Create a hash for the execution ID, and dictate to dump logs in the
+# corresponding folder
+if is_parent():
+    grinder = hashlib.sha256()
+    grinder.update(str(time()).encode())
+
+    LOG_ID = grinder.hexdigest()
+    os.environ[LOG_ID_MARKER] = LOG_ID
+else:
+    LOG_ID = os.environ.get(LOG_ID_MARKER)
+
+if is_parent():
+    # Add a file handler, location depending on the status of the process
+    add_file_handler(LOG_FILE, _ROOT_LOGGER)
+
+    # When running as e4s-cl
+    if Path(sys.argv[0]).name == 'e4s-cl':
+        # Log the command in a database to ease human lookup
+        index_logger = logging.getLogger("index")
+        index_logger.propagate = False
+        add_file_handler(LOG_INDEX,
+                         index_logger,
+                         formatter=logging.Formatter(
+                             fmt=f"%(asctime)s\t{LOG_ID}\t%(message)s"))
+        index_logger.info(" ".join(sys.argv))
+
+        # Create a symlink towards the latest log directory
+        try:
+            os.unlink(LOG_LATEST)
+        except OSError as err:
+            _ROOT_LOGGER.debug(
+                f"Unlink {LOG_LATEST.as_posix()} failed: {str(err)}")
+
+        try:
+            os.symlink(Path(LOG_FILE.parent, LOG_ID), LOG_LATEST)
+        except OSError as err:
+            _ROOT_LOGGER.debug(
+                f"Symlink {LOG_LATEST.as_posix()} failed: {str(err)}")
+        else:
+            os.environ[LOG_ID_MARKER] = LOG_LATEST.name
+
     # pylint: disable=logging-not-lazy
     _ROOT_LOGGER.debug(
         ("\n%(bar)s\n"
@@ -441,6 +506,7 @@ if not _ROOT_LOGGER.handlers:
          "Working Directory : %(cwd)s\n"
          "Terminal Size     : %(termsize)s\n"
          "Frozen            : %(frozen)s\n"
+         "Log ID            : %(logid)s\n"
          "%(bar)s\n") % {
              'bar': '#' * LINE_WIDTH,
              'timestamp': str(datetime.now()),
@@ -450,5 +516,10 @@ if not _ROOT_LOGGER.handlers:
              'pyversion': platform.python_version(),
              'cwd': os.getcwd(),
              'termsize': 'x'.join([str(_) for _ in TERM_SIZE]),
-             'frozen': getattr(sys, 'frozen', False)
+             'frozen': getattr(sys, 'frozen', False),
+             'logid': LOG_ID,
          })
+
+else:
+    _log_file = Path(_LOG_FILE_PREFIX, LOG_ID, f"e4s_cl.{os.getpid()}")
+    add_file_handler(_log_file, _ROOT_LOGGER)

@@ -5,9 +5,9 @@ python is tricky. The following is read only.
 """
 
 import re
+import subprocess
 from functools import lru_cache
 from e4s_cl import logger
-from e4s_cl.util import create_subprocess_exp
 
 LOGGER = logger.get_logger(__name__)
 
@@ -46,16 +46,16 @@ class Module:
 #def __available() -> set(Module):
 @lru_cache
 def __available():
-    status, modules = create_subprocess_exp(['bash', '-c', 'module -t avail'],
-                                            redirect_stdout=True)
+    query = subprocess.run(['bash', '-c', 'module -t avail'],
+                                            capture_output=True)
 
     avail = set()
 
-    if status:
+    if query.returncode:
         LOGGER.debug("Failed accessing available modules")
         return avail
 
-    for line in filter(lambda x: ':' not in x, modules.split('\n')):
+    for line in filter(lambda x: ':' not in x, query.stdout.split('\n')):
         avail.add(Module(line))
 
     return avail
@@ -64,16 +64,16 @@ def __available():
 #def __loaded() -> set(Module):
 @lru_cache
 def __loaded():
-    status, modules = create_subprocess_exp(['bash', '-c', 'module -t list'],
+    query = subprocess.run(['bash', '-c', 'module -t list'],
                                             redirect_stdout=True)
 
     loaded = set()
 
-    if status:
+    if query.returncode:
         LOGGER.debug("Failed accessing loaded modules")
         return loaded
 
-    for line in filter(lambda x: ':' not in x, modules.split('\n')):
+    for line in filter(lambda x: ':' not in x, query.stdout.split('\n')):
         loaded.add(Module(line))
 
     return loaded

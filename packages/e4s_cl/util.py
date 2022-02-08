@@ -14,12 +14,18 @@ import json
 from functools import lru_cache
 from shutil import which as sh_which
 from collections import deque
+from typing import Optional
 from time import perf_counter
 from contextlib import contextmanager
 from e4s_cl import logger
-from e4s_cl.variables import is_master
+from e4s_cl.variables import ParentStatus
 from e4s_cl.error import InternalError
-import termcolor
+
+try:
+    import termcolor
+    COLOR_OUTPUT = True
+except ModuleNotFoundError:
+    COLOR_OUTPUT = False
 
 LOGGER = logger.get_logger(__name__)
 
@@ -102,20 +108,11 @@ def path_accessible(path: Path, mode: str = 'r') -> bool:
         path.as_posix(), modebits)
 
 
-def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
-    """Create a subprocess.
-
-    See :any:`subprocess.Popen`.
-
-    Args:
-        cmd (list): Command and its command line arguments.
-        env (dict): Environment variables to set or unset before launching cmd.
-        redirect_stdout (bool): If True return the process' output, 
-            instead of passing it to stdtout
-
-    Returns:
-        retval: Int Subprocess return code.
-        output: String if redirect_stdout is True
+def run_subprocess(cmd: list[str],
+                   cwd=None,
+                   env: Optional[dict] = None) -> int:
+    """
+    Run a subprocess, tailored for end subrocesses
     """
     subproc_env = os.environ
     if env:
@@ -127,107 +124,77 @@ def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
 
-    LOGGER.debug("Creating subprocess: %s", ' '.join(cmd))
+    # Store the N last lines of error in a fast container
+    buffer = deque(maxlen=100)
 
-    out = (subprocess.PIPE if redirect_stdout else sys.stdout)
     with subprocess.Popen(cmd,
+                          cwd=cwd,
                           env=subproc_env,
-                          stdout=out,
+                          stdout=sys.stdout,
                           stderr=subprocess.PIPE,
                           close_fds=False,
-                          universal_newlines=True) as proc:
-        output, errors = proc.communicate()
-        retval = proc.returncode
+                          universal_newlines=True,
+                          bufsize=1) as proc:
+        # Save the PID for later use
+        pid = proc.pid
+        # Setup a logger dedicated to this subprocess
+        process_logger = logger.setup_process_logger(f"process.{pid}")
+        with proc.stderr:
+            # Log the errors in a log file
+            for line in proc.stderr.readlines():
+                process_logger.error(line[:-1])
+                buffer.append(line)
+        returncode = proc.wait()
 
-    if redirect_stdout and log:
-        LOGGER.debug(output.strip())
+    # In case of error, output information
+    if returncode:
+        LOGGER.error("Process %d failed with code %d:", pid, returncode)
+        for line in buffer:
+            LOGGER.error(line)
+        if log_file := getattr(process_logger.handlers[0], 'baseFilename',
+                               None):
+            LOGGER.error("See %s for details.", log_file)
 
-    for line in errors.split('\n'):
-        # If this is a master process, prettify the output; if not,
-        # format it for the master process to understand
-        if is_master() and line:
-            logger.handle_error(line)
-        elif line:
-            if retval:
-                LOGGER.error(line)
-            else:
-                LOGGER.warning(line)
+    del process_logger
 
-    LOGGER.debug("%s returned %d", cmd, retval)
-
-    return retval, output
+    return returncode
 
 
-def create_subprocess(cmd,
-                      cwd=None,
-                      env=None,
-                      stdout=True,
-                      log=True,
-                      error_buf=50,
-                      record_output=False):
-    """Create a subprocess.
-    
-    See :any:`subprocess.Popen`.
-    
-    Args:
-        cmd (list): Command and its command line arguments.
-        cwd (str): If not None, change directory to `cwd` before creating the subprocess.
-        env (dict): Environment variables to set or unset before launching cmd.
-        stdout (bool): If True send subprocess stdout and stderr to this processes' stdout.
-        log (bool): If True send subprocess stdout and stderr to the debug log.
-        error_buf (int): If non-zero, stdout is not already being sent, and return value is
-                          non-zero then send last `error_buf` lines of subprocess stdout and stderr
-                          to this processes' stdout.
-        record_output (bool): If True return output.
-        
-    Returns:
-        int: Subprocess return code.
+def run_e4scl_subprocess(cmd: list[str],
+                         cwd=None,
+                         env: Optional[dict] = None,
+                         capture_output: bool = False) -> int:
     """
-    subproc_env = dict(os.environ)
-    if env:
-        for key, val in env.items():
-            if val is None:
-                subproc_env.pop(key, None)
-                _heavy_debug("unset %s", key)
-            else:
-                subproc_env[key] = val
-                _heavy_debug("%s=%s", key, val)
-    LOGGER.debug("Creating subprocess: cmd=%s, cwd='%s'\n", cmd, cwd)
-    if error_buf:
-        buf = deque(maxlen=error_buf)
-    output = []
-    proc = subprocess.Popen(cmd,
-                            cwd=cwd,
-                            env=subproc_env,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT,
-                            close_fds=False,
-                            universal_newlines=True,
-                            bufsize=1)
-    with proc.stdout:
-        # Use iter to avoid hidden read-ahead buffer bug in named pipes:
-        # http://bugs.python.org/issue3907
-        for line in proc.stdout.readlines():
-            if log:
-                LOGGER.debug(line[:-1])
-            if stdout:
-                print(line, end='')
-            if error_buf:
-                buf.append(line)
-            if record_output:
-                output.append(line)
-    proc.wait()
+    Run a subprocess, tailored for recursive e4s-cl processes
+    """
+    with ParentStatus():
+        subproc_env = os.environ
+        if env:
+            for key, val in env.items():
+                if val is None:
+                    subproc_env.pop(key, None)
+                    _heavy_debug("unset %s", key)
+                else:
+                    subproc_env[key] = val
+                    _heavy_debug("%s=%s", key, val)
 
-    retval = proc.returncode
-    LOGGER.debug("%s returned %d", cmd, retval)
+        with subprocess.Popen(
+                cmd,
+                cwd=cwd,
+                env=subproc_env,
+                stdout=subprocess.PIPE if capture_output else sys.stdout,
+                stderr=sys.stderr,
+                close_fds=False,
+                universal_newlines=True,
+                bufsize=1) as proc:
 
-    if retval and error_buf and not stdout:
-        for line in buf:
-            print(line)
+            returncode = proc.wait()
+            if capture_output:
+                output = proc.stdout.read()
 
-    if record_output:
-        return retval, output
-    return retval
+    if capture_output:
+        return returncode, output
+    return returncode
 
 
 def get_command_output(cmd):
@@ -345,7 +312,7 @@ def color_text(text, *args, **kwargs):
     Returns:
         str: The colorized text.
     """
-    if sys.stdout.isatty():
+    if sys.stdout.isatty() and COLOR_OUTPUT:
         return termcolor.colored(text, *args, **kwargs)
     return text
 
@@ -482,6 +449,7 @@ def update_ld_path(path: Path):
 
     os.environ['LD_LIBRARY_PATH'] = ld_path
     return ld_path
+
 
 
 @contextmanager
