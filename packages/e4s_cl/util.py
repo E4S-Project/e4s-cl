@@ -7,11 +7,12 @@ import os
 import re
 import sys
 import subprocess
-import errno
 import pkgutil
-import pathlib
+from pathlib import Path
 import hashlib
 import json
+from functools import lru_cache
+from shutil import which as sh_which
 from collections import deque
 from typing import Optional
 from time import perf_counter
@@ -44,75 +45,37 @@ _PY_SUFFEXES = ('.py', '.pyo', '.pyc')
 _COLOR_CONTROL_RE = re.compile('\033\\[([0-9]|3[0-8]|4[0-8])m')
 
 
-def mkdirp(*args):
+def mkdirp(path: Path) -> bool:
     """Creates a directory and all its parents.
     
     Works just like ``mkdir -p``.
     
     Args:
-        *args: Paths to create.
+        path: Path to create.
     """
-    for path in args:
-        # Avoid errno.EACCES if a parent directory is not writable and the directory exists
-        if not os.path.isdir(path):
-            try:
-                os.makedirs(path)
-                LOGGER.debug("Created directory '%s'", path)
-            except OSError as exc:
-                # Only raise if another process didn't already create the directory
-                if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
-                    raise
+
+    if not isinstance(path, Path):
+        path = Path(path)
+
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except PermissionError as err:
+        LOGGER.error("Failed to create directory %s: %s", path.as_posix(),
+                     str(err))
+        return False
+    except FileExistsError as err:
+        LOGGER.error("File %s exists and is not a directory: %s",
+                     path.as_posix(), str(err))
+
+    return True
 
 
-_WHICH_CACHE = {}
+@lru_cache
+def which(*args, **kwargs):
+    return sh_which(*args, **kwargs)
 
 
-def which(program, use_cached=True):
-    """Returns the full path to a program command.
-
-    Program must exist and be executable.
-    Searches the system PATH and the current directory.
-    Caches the result.
-
-    Args:
-        program (str): program to find.
-        use_cached (bool): If False then don't use cached results.
-
-    Returns:
-        str: Full path to program or None if program can't be found.
-    """
-    if not program:
-        return None
-    assert isinstance(program, str)
-    if use_cached:
-        try:
-            return _WHICH_CACHE[program]
-        except KeyError:
-            pass
-    _is_exec = lambda fpath: os.path.isfile(fpath) and os.access(
-        fpath, os.X_OK)
-    fpath, _ = os.path.split(program)
-    if fpath:
-        abs_program = os.path.abspath(program)
-        if _is_exec(abs_program):
-            LOGGER.debug("which(%s) = '%s'", program, abs_program)
-            _WHICH_CACHE[program] = abs_program
-            return abs_program
-    else:
-        pathlist = os.environ['PATH'].split(os.pathsep) + ['/sbin']
-        for path in pathlist:
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if _is_exec(exe_file):
-                LOGGER.debug("which(%s) = '%s'", program, exe_file)
-                _WHICH_CACHE[program] = exe_file
-                return exe_file
-    _heavy_debug("which(%s): command not found", program)
-    _WHICH_CACHE[program] = None
-    return None
-
-
-def path_accessible(path, mode='r'):
+def path_accessible(path: Path, mode: str = 'r') -> bool:
     """Check if a file or directory exists and is accessible.
     
     Files are checked by attempting to open them with the given mode.
@@ -127,28 +90,22 @@ def path_accessible(path, mode='r'):
     Returns:
         True if the file exists and can be opened in the specified mode, False otherwise.
     """
-    assert mode and set(mode) <= set(('r', 'w'))
-    if not os.path.exists(path):
-        return False
-    if os.path.isdir(path):
-        modebits = 0
-        if 'r' in mode:
-            modebits |= os.R_OK
-        if 'w' in mode:
-            modebits |= os.W_OK | os.X_OK
-        return os.access(path, modebits)
+    if isinstance(path, str):
+        path = Path(path)
 
-    try:
-        with open(path, mode, encoding='utf-8') as _:
-            pass
-    except IOError as err:
-        if err.errno == errno.EACCES:
-            return False
-        # Some other error, not permissions
-        raise
-    else:
-        return True
-    return False
+    modes = {'r': os.R_OK, 'w': os.W_OK, 'x': os.X_OK}
+
+    if not mode:
+        raise InternalError(f"Unsupported value for mode: '{mode}'")
+    for element in mode:
+        if element not in modes:
+            raise InternalError(f"Unsupported value for mode: '{element}'")
+
+    modebits = 0
+    for char in mode:
+        modebits |= modes[char]
+    return os.access(path.as_posix(), os.F_OK) and os.access(
+        path.as_posix(), modebits)
 
 
 def run_subprocess(cmd: list[str],
@@ -482,11 +439,17 @@ def add_dot(string: str) -> str:
     return string + '.'
 
 
-def update_ld_path(posixpath):
-    os.environ["LD_LIBRARY_PATH"] = pathlib.Path(
-        posixpath,
-        "lib").as_posix() + os.pathsep + os.environ["LD_LIBRARY_PATH"]
-    return os.environ["LD_LIBRARY_PATH"]
+def update_ld_path(path: Path):
+    ld_path = os.environ.get('LD_LIBRARY_PATH')
+
+    if ld_path:
+        ld_path = f"{path.as_posix()}{os.pathsep}{ld_path}"
+    else:
+        ld_path = path.as_posix()
+
+    os.environ['LD_LIBRARY_PATH'] = ld_path
+    return ld_path
+
 
 
 @contextmanager
