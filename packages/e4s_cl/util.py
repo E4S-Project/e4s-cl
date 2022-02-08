@@ -7,19 +7,25 @@ import os
 import re
 import sys
 import subprocess
-import errno
 import pkgutil
-import pathlib
+from pathlib import Path
 import hashlib
 import json
+from functools import lru_cache
+from shutil import which as sh_which
 from collections import deque
+from typing import Optional
 from time import perf_counter
 from contextlib import contextmanager
 from e4s_cl import logger
-from e4s_cl.variables import is_master
+from e4s_cl.variables import ParentStatus
 from e4s_cl.error import InternalError
-import termcolor
 
+try:
+    import termcolor
+    COLOR_OUTPUT = True
+except ModuleNotFoundError:
+    COLOR_OUTPUT = False
 
 LOGGER = logger.get_logger(__name__)
 
@@ -39,75 +45,37 @@ _PY_SUFFEXES = ('.py', '.pyo', '.pyc')
 _COLOR_CONTROL_RE = re.compile('\033\\[([0-9]|3[0-8]|4[0-8])m')
 
 
-def mkdirp(*args):
+def mkdirp(path: Path) -> bool:
     """Creates a directory and all its parents.
     
     Works just like ``mkdir -p``.
     
     Args:
-        *args: Paths to create.
+        path: Path to create.
     """
-    for path in args:
-        # Avoid errno.EACCES if a parent directory is not writable and the directory exists
-        if not os.path.isdir(path):
-            try:
-                os.makedirs(path)
-                LOGGER.debug("Created directory '%s'", path)
-            except OSError as exc:
-                # Only raise if another process didn't already create the directory
-                if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
-                    raise
+
+    if not isinstance(path, Path):
+        path = Path(path)
+
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except PermissionError as err:
+        LOGGER.error("Failed to create directory %s: %s", path.as_posix(),
+                     str(err))
+        return False
+    except FileExistsError as err:
+        LOGGER.error("File %s exists and is not a directory: %s",
+                     path.as_posix(), str(err))
+
+    return True
 
 
-_WHICH_CACHE = {}
+@lru_cache
+def which(*args, **kwargs):
+    return sh_which(*args, **kwargs)
 
 
-def which(program, use_cached=True):
-    """Returns the full path to a program command.
-
-    Program must exist and be executable.
-    Searches the system PATH and the current directory.
-    Caches the result.
-
-    Args:
-        program (str): program to find.
-        use_cached (bool): If False then don't use cached results.
-
-    Returns:
-        str: Full path to program or None if program can't be found.
-    """
-    if not program:
-        return None
-    assert isinstance(program, str)
-    if use_cached:
-        try:
-            return _WHICH_CACHE[program]
-        except KeyError:
-            pass
-    _is_exec = lambda fpath: os.path.isfile(fpath) and os.access(
-        fpath, os.X_OK)
-    fpath, _ = os.path.split(program)
-    if fpath:
-        abs_program = os.path.abspath(program)
-        if _is_exec(abs_program):
-            LOGGER.debug("which(%s) = '%s'", program, abs_program)
-            _WHICH_CACHE[program] = abs_program
-            return abs_program
-    else:
-        pathlist = os.environ['PATH'].split(os.pathsep) + ['/sbin']
-        for path in pathlist:
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if _is_exec(exe_file):
-                LOGGER.debug("which(%s) = '%s'", program, exe_file)
-                _WHICH_CACHE[program] = exe_file
-                return exe_file
-    _heavy_debug("which(%s): command not found", program)
-    _WHICH_CACHE[program] = None
-    return None
-
-
-def path_accessible(path, mode='r'):
+def path_accessible(path: Path, mode: str = 'r') -> bool:
     """Check if a file or directory exists and is accessible.
     
     Files are checked by attempting to open them with the given mode.
@@ -122,47 +90,29 @@ def path_accessible(path, mode='r'):
     Returns:
         True if the file exists and can be opened in the specified mode, False otherwise.
     """
-    assert mode and set(mode) <= set(('r', 'w'))
-    if not os.path.exists(path):
-        return False
-    if os.path.isdir(path):
-        modebits = 0
-        if 'r' in mode:
-            modebits |= os.R_OK
-        if 'w' in mode:
-            modebits |= os.W_OK | os.X_OK
-        return os.access(path, modebits)
+    if isinstance(path, str):
+        path = Path(path)
 
-    handle = None
-    try:
-        handle = open(path, mode)
-    except IOError as err:
-        if err.errno == errno.EACCES:
-            return False
-        # Some other error, not permissions
-        raise
-    else:
-        return True
-    finally:
-        if handle:
-            handle.close()
-    return False
+    modes = {'r': os.R_OK, 'w': os.W_OK, 'x': os.X_OK}
+
+    if not mode:
+        raise InternalError(f"Unsupported value for mode: '{mode}'")
+    for element in mode:
+        if element not in modes:
+            raise InternalError(f"Unsupported value for mode: '{element}'")
+
+    modebits = 0
+    for char in mode:
+        modebits |= modes[char]
+    return os.access(path.as_posix(), os.F_OK) and os.access(
+        path.as_posix(), modebits)
 
 
-def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
-    """Create a subprocess.
-
-    See :any:`subprocess.Popen`.
-
-    Args:
-        cmd (list): Command and its command line arguments.
-        env (dict): Environment variables to set or unset before launching cmd.
-        redirect_stdout (bool): If True return the process' output, 
-            instead of passing it to stdtout
-
-    Returns:
-        retval: Int Subprocess return code.
-        output: String if redirect_stdout is True
+def run_subprocess(cmd: list[str],
+                   cwd=None,
+                   env: Optional[dict] = None) -> int:
+    """
+    Run a subprocess, tailored for end subrocesses
     """
     subproc_env = os.environ
     if env:
@@ -174,107 +124,77 @@ def create_subprocess_exp(cmd, env=None, log=True, redirect_stdout=False):
                 subproc_env[key] = val
                 _heavy_debug("%s=%s", key, val)
 
-    LOGGER.debug("Creating subprocess: %s", ' '.join(cmd))
+    # Store the N last lines of error in a fast container
+    buffer = deque(maxlen=100)
 
-    out = (subprocess.PIPE if redirect_stdout else sys.stdout)
     with subprocess.Popen(cmd,
+                          cwd=cwd,
                           env=subproc_env,
-                          stdout=out,
+                          stdout=sys.stdout,
                           stderr=subprocess.PIPE,
                           close_fds=False,
-                          universal_newlines=True) as proc:
-        output, errors = proc.communicate()
-        retval = proc.returncode
+                          universal_newlines=True,
+                          bufsize=1) as proc:
+        # Save the PID for later use
+        pid = proc.pid
+        # Setup a logger dedicated to this subprocess
+        process_logger = logger.setup_process_logger(f"process.{pid}")
+        with proc.stderr:
+            # Log the errors in a log file
+            for line in proc.stderr.readlines():
+                process_logger.error(line[:-1])
+                buffer.append(line)
+        returncode = proc.wait()
 
-    if redirect_stdout and log:
-        LOGGER.debug(output.strip())
+    # In case of error, output information
+    if returncode:
+        LOGGER.error("Process %d failed with code %d:", pid, returncode)
+        for line in buffer:
+            LOGGER.error(line)
+        if log_file := getattr(process_logger.handlers[0], 'baseFilename',
+                               None):
+            LOGGER.error("See %s for details.", log_file)
 
-    for line in errors.split('\n'):
-        # If this is a master process, prettify the output; if not,
-        # format it for the master process to understand
-        if is_master() and line:
-            logger.handle_error(line)
-        elif line:
-            if retval:
-                LOGGER.error(line)
-            else:
-                LOGGER.warning(line)
+    del process_logger
 
-    LOGGER.debug("%s returned %d", cmd, retval)
-
-    return retval, output
+    return returncode
 
 
-def create_subprocess(cmd,
-                      cwd=None,
-                      env=None,
-                      stdout=True,
-                      log=True,
-                      error_buf=50,
-                      record_output=False):
-    """Create a subprocess.
-    
-    See :any:`subprocess.Popen`.
-    
-    Args:
-        cmd (list): Command and its command line arguments.
-        cwd (str): If not None, change directory to `cwd` before creating the subprocess.
-        env (dict): Environment variables to set or unset before launching cmd.
-        stdout (bool): If True send subprocess stdout and stderr to this processes' stdout.
-        log (bool): If True send subprocess stdout and stderr to the debug log.
-        error_buf (int): If non-zero, stdout is not already being sent, and return value is
-                          non-zero then send last `error_buf` lines of subprocess stdout and stderr
-                          to this processes' stdout.
-        record_output (bool): If True return output.
-        
-    Returns:
-        int: Subprocess return code.
+def run_e4scl_subprocess(cmd: list[str],
+                         cwd=None,
+                         env: Optional[dict] = None,
+                         capture_output: bool = False) -> int:
     """
-    subproc_env = dict(os.environ)
-    if env:
-        for key, val in env.items():
-            if val is None:
-                subproc_env.pop(key, None)
-                _heavy_debug("unset %s", key)
-            else:
-                subproc_env[key] = val
-                _heavy_debug("%s=%s", key, val)
-    LOGGER.debug("Creating subprocess: cmd=%s, cwd='%s'\n", cmd, cwd)
-    if error_buf:
-        buf = deque(maxlen=error_buf)
-    output = []
-    proc = subprocess.Popen(cmd,
-                            cwd=cwd,
-                            env=subproc_env,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT,
-                            close_fds=False,
-                            universal_newlines=True,
-                            bufsize=1)
-    with proc.stdout:
-        # Use iter to avoid hidden read-ahead buffer bug in named pipes:
-        # http://bugs.python.org/issue3907
-        for line in proc.stdout.readlines():
-            if log:
-                LOGGER.debug(line[:-1])
-            if stdout:
-                print(line, end='')
-            if error_buf:
-                buf.append(line)
-            if record_output:
-                output.append(line)
-    proc.wait()
+    Run a subprocess, tailored for recursive e4s-cl processes
+    """
+    with ParentStatus():
+        subproc_env = os.environ
+        if env:
+            for key, val in env.items():
+                if val is None:
+                    subproc_env.pop(key, None)
+                    _heavy_debug("unset %s", key)
+                else:
+                    subproc_env[key] = val
+                    _heavy_debug("%s=%s", key, val)
 
-    retval = proc.returncode
-    LOGGER.debug("%s returned %d", cmd, retval)
+        with subprocess.Popen(
+                cmd,
+                cwd=cwd,
+                env=subproc_env,
+                stdout=subprocess.PIPE if capture_output else sys.stdout,
+                stderr=sys.stderr,
+                close_fds=False,
+                universal_newlines=True,
+                bufsize=1) as proc:
 
-    if retval and error_buf and not stdout:
-        for line in buf:
-            print(line)
+            returncode = proc.wait()
+            if capture_output:
+                output = proc.stdout.read()
 
-    if record_output:
-        return retval, output
-    return retval
+    if capture_output:
+        return returncode, output
+    return returncode
 
 
 def get_command_output(cmd):
@@ -392,7 +312,7 @@ def color_text(text, *args, **kwargs):
     Returns:
         str: The colorized text.
     """
-    if sys.stdout.isatty():
+    if sys.stdout.isatty() and COLOR_OUTPUT:
         return termcolor.colored(text, *args, **kwargs)
     return text
 
@@ -416,6 +336,7 @@ def walk_packages(path, prefix):
     :any:`pkgutil.walk_packages` silently fails to list modules and packages when
     they are in a zip file.  This implementation works around this.
     """
+
     def seen(path, dct={}):  # pylint: disable=dangerous-default-value
         if path in dct:
             return True
@@ -482,7 +403,7 @@ def _json_decoder(obj):
         if obj['__type'] == 'set':
             return set(obj['__list'])
 
-        if obj['__type'] in JSON_HOOKS.keys():
+        if obj['__type'] in JSON_HOOKS:
             return JSON_HOOKS[obj['__type']](obj['__dict'])
 
     return obj
@@ -518,11 +439,18 @@ def add_dot(string: str) -> str:
     return string + '.'
 
 
-def update_ld_path(posixpath):
-    os.environ["LD_LIBRARY_PATH"] = pathlib.Path(
-        posixpath,
-        "lib").as_posix() + os.pathsep + os.environ["LD_LIBRARY_PATH"]
-    return os.environ["LD_LIBRARY_PATH"]
+def update_ld_path(path: Path):
+    ld_path = os.environ.get('LD_LIBRARY_PATH')
+
+    if ld_path:
+        ld_path = f"{path.as_posix()}{os.pathsep}{ld_path}"
+    else:
+        ld_path = path.as_posix()
+
+    os.environ['LD_LIBRARY_PATH'] = ld_path
+    return ld_path
+
+
 
 @contextmanager
 def catchtime() -> float:

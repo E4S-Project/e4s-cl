@@ -2,6 +2,16 @@
 Defines an abstract class to simplify the use of container technology.
 Creating an instance of ``Container`` will return a specific class to
 the required backend.
+
+To implement support for a new container backend, create a submodule
+that posesses the following attributes:
+    - NAME: The name identifying the backend
+    - EXECUTABLES: List of executables the backend uses; if not accessible on the
+        PATH, the backend will be disabled
+    - MIMES: if the backend uses files, extensions used to guess the backend from
+        an image
+    - CLASS: the class to use. The class' `run` method will be used when launching
+        the container: refer to its docstring for details
 """
 
 import os
@@ -12,7 +22,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Union
 from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
-from e4s_cl.util import walk_packages, which, json_loads, create_subprocess_exp
+from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.pipe import Pipe
 from e4s_cl.cf.libraries import LibrarySet
@@ -44,6 +54,7 @@ class FileOptions:
 
 class BackendError(ConfigurationError):
     """Error raised when the requested container tech is not available"""
+
     def __init__(self, backend_name):
         self.offending = backend_name
         self._message = f"An error has been encountered setting up the container technology backend {backend_name}."
@@ -56,6 +67,7 @@ class BackendError(ConfigurationError):
 
 class BackendNotAvailableError(BackendError):
     """Error raised when the requested backend is not found on the system"""
+
     def __init__(self, backend_name):
         super().__init__(backend_name)
         self._message = f"Backend {self.offending} not found. Is the module loaded ?"
@@ -63,6 +75,7 @@ class BackendNotAvailableError(BackendError):
 
 class BackendUnsupported(BackendError):
     """Error raised when the requested backend is not supported"""
+
     def __init__(self, backend_name):
         super().__init__(backend_name)
         pretty = 's are' if len(EXPOSED_BACKENDS) > 1 else ' is'
@@ -73,6 +86,7 @@ Please create a GitHub issue if support is required."""
 
 class AnalysisError(ConfigurationError):
     """Generic error for container analysis failure"""
+
     def __init__(self, returncode):
         self.code = returncode
         super().__init__(f"Container analysis failed ! ({self.code})")
@@ -90,6 +104,7 @@ def dump(func):
     This needs to be a decorator as it is wraps the run() method implemented
     in every backend module.
     """
+
     def wrapper(*args, **kwargs):
         self = func.__self__
 
@@ -122,6 +137,7 @@ class Container:
         """
         Element of the bound file dictionnary
         """
+
         def __init__(self, path: Path, option: int = FileOptions.READ_ONLY):
             self.path = Path(path)
             self.option = option
@@ -199,9 +215,7 @@ class Container:
 
         # Setup a one-way communication channel
         with Pipe() as fdr:
-            code, _ = create_subprocess_exp(container_cmd,
-                                            env=env,
-                                            redirect_stdout=False)
+            code = run_e4scl_subprocess(container_cmd, env=env)
 
             if code:
                 raise AnalysisError(code)
@@ -233,6 +247,7 @@ class Container:
             """
             Returns a list of all the directories referenced by a relative path
             """
+
             def _contains(path1, path2):
                 """
                 Returns true if path2 is in the tree of which path1 is the root
@@ -343,10 +358,32 @@ def guess_backend(path):
 
     return matches[0][1]
 
+def assert_module(_module) -> bool:
+    """
+    Assert a module defining a container class is properly structured
+    """
+    required = ['NAME', 'EXECUTABLES', 'CLASS']
+
+    for attribute in required:
+        if not hasattr(_module, attribute):
+            LOGGER.warning(
+                "Container module '%s' is missing a required attribute: %s; skipping ...",
+                module_name, required)
+            return False
+
+    if getattr(_module, 'CLASS') and not getattr(_module.CLASS, 'run'):
+        LOGGER.warning(
+            "Container module '%s' has an incomplete module class; skipping ...")
+
+    return True
+
 
 for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
     import_module(_module_name)
     _module = sys.modules[_module_name]
+
+    if not assert_module(_module):
+        continue
 
     for _executable in _module.EXECUTABLES:
         BACKENDS.update({
@@ -356,5 +393,5 @@ for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
         if not getattr(_module, 'DEBUG_BACKEND', False):
             EXPOSED_BACKENDS.append(_executable)
 
-    for mimetype in _module.MIMES:
+    for mimetype in getattr(_module, 'MIMES', []):
         MIMES.append((mimetype, _module.NAME))

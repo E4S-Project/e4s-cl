@@ -1,12 +1,12 @@
 """
-Entrypoint to the CLI
+Entry point to the CLI
 """
 
 import os
 import sys
 import e4s_cl
 from e4s_cl import cli, logger, util, E4S_CL_VERSION, E4S_CL_SCRIPT, PYTHON_VERSION
-from e4s_cl.variables import SlaveAction, DryRunAction
+from e4s_cl.variables import DryRunAction
 from e4s_cl.cf.version import Version
 from e4s_cl.cli import UnknownCommandError, arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -85,11 +85,6 @@ class MainCommand(AbstractCommand):
             nargs=0,
             help="Do nothing, print out what would be done instead",
             action=DryRunAction)
-
-        parser.add_argument('--slave',
-                            nargs=0,
-                            help=arguments.SUPPRESS,
-                            action=SlaveAction)
 
         return parser
 

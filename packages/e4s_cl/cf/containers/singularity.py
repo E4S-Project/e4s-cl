@@ -5,7 +5,7 @@ Module introducing singularity support
 import os
 from pathlib import Path
 from e4s_cl import logger
-from e4s_cl.util import create_subprocess_exp, which
+from e4s_cl.util import which
 from e4s_cl.cf.libraries import host_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 

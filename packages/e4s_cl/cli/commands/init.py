@@ -15,6 +15,8 @@ Using the system name
 
 If the current system is supported, use the :code:`--system` argument to \
 flag its use. The available values are listed when using :code:`e4s-cl init -h`.
+In order to have the system-specific profiles available (and listed as available),\
+ the :code:`SYSTEM=<system>` flag needs to be used when building the project.
 
 Using a WI4MPI installation
 ----------------------------
@@ -27,8 +29,8 @@ Using an installed MPI library
 --------------------------------
 
 This initialization method will create a profile from the execution analysis \
-of a sample MPI program. A program will be compiled from the library's compiler, \
-then run using a provided launcher. The opened files and libraries will be detected \
+of a sample MPI program. A program compiled with the MPI library's compiler \
+will run using a provided launcher. The opened files and libraries will be detected \
 using the :code:`ptrace` system call, and added to the resulting profile.
 
 The :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options can be \
@@ -80,6 +82,7 @@ import json
 import tempfile
 import subprocess
 import shlex
+from argparse import ArgumentTypeError
 from pathlib import Path
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, util
@@ -186,7 +189,7 @@ def _analyze_binary(args):
     # we need to analyze a binary to
     # determine the dynamic dependencies of the library
 
-    # Use the environment compiler per default
+    # Use the MPI environment scripts by default
     compiler = util.which('mpicc')
     launcher = util.which('mpirun')
 
@@ -209,7 +212,9 @@ def _analyze_binary(args):
     binary = _select_binary(precompiled_binaries())
 
     # Use the launcher passed as an argument in priority
-    launcher = util.which(getattr(args, 'launcher', launcher))
+    if arg_launcher := getattr(args, 'launcher', None):
+        launcher = arg_launcher
+
     launcher_args = shlex.split(getattr(args, 'launcher_args', ''))
 
     # If no binary, check for compiler and compile a binary
@@ -262,8 +267,19 @@ def _special_clauses(args) -> bool:
     return True
 
 
+def launcher_argument(string):
+    """ Argument type callback. Asserts the given string identifies a launcher binary
+    on the system. """
+
+    if not (path := util.which(string)):
+        raise ArgumentTypeError(
+            f"Launcher argument '{string}' could not be resolved to a binary")
+    return path
+
+
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
+
     def _construct_parser(self):
         parser = arguments.get_parser(prog=self.command,
                                       description=self.summary)
@@ -271,7 +287,10 @@ class InitCommand(AbstractCommand):
         parser.add_argument(
             '--system',
             help="Initialize e4s-cl for use on a specific system."
-            f" Available systems are: {', '.join(builtin_profiles().keys())}",
+            f" Available systems: {', '.join(builtin_profiles().keys())}"\
+                    if builtin_profiles().keys() else \
+                    "Initialize e4s-cl for use on a specific system."
+                    f" Use 'make install SYSTEM=<system>' to have the associated profile available.",
             metavar='machine',
             default=arguments.SUPPRESS,
             choices=builtin_profiles().keys())
@@ -280,6 +299,7 @@ class InitCommand(AbstractCommand):
             '--launcher',
             help="MPI launcher required to run a sample program.",
             metavar='launcher',
+            type=launcher_argument,
             default=arguments.SUPPRESS,
             dest='launcher')
 
