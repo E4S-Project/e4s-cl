@@ -31,20 +31,15 @@ class DiffCommand(AbstractCliView):
 
     def _construct_parser(self):
         key_attr = self.model.key_attribute
-        usage = (
-            f"{self.command} <{self.model_name}_{key_attr}> <other_{key_attr}>"
-        )
         parser = arguments.get_model_identifier(self.model,
                                                 prog=self.command,
-                                                usage=usage,
                                                 description=self.summary)
 
         parser.add_argument(self.model_name + '_rhs',
-                            nargs='?',
                             type=arguments.defined_object(
                                 self.model, key_attr),
                             help="The profile to compare with",
-                            metavar=f"{self.model_name}_{key_attr}")
+                            metavar=f"other_{self.model_name}_{key_attr}")
 
         return parser
 
