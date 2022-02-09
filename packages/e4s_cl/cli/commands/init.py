@@ -84,7 +84,7 @@ import subprocess
 import shlex
 from argparse import ArgumentTypeError
 from pathlib import Path
-from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT
+from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_NAME
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
 from e4s_cl.cf.detect_name import try_rename
@@ -98,7 +98,6 @@ from sotools.linker import resolve
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
-INIT_TEMP_PROFILE_NAME = '__INIT_TEMP_PROFILE'
 
 
 def _compile_sample(compiler) -> Path:

@@ -37,7 +37,8 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import List
 
-from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger
+from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, INIT_TEMP_PROFILE_NAME
+
 from e4s_cl import variables
 from e4s_cl.util import run_e4scl_subprocess, flatten, json_dumps, json_loads
 from e4s_cl.cf.trace import opened_files
@@ -48,7 +49,6 @@ from e4s_cl.model.profile import Profile
 from e4s_cl.cli.cli_view import AbstractCliView
 
 LOGGER = logger.get_logger(__name__)
-INIT_TEMP_PROFILE_NAME = '__INIT_TEMP_PROFILE'
 
 
 def filter_files(path_list: List[Path]):

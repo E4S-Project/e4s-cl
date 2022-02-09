@@ -24,6 +24,9 @@ EXIT_WARNING = 100
 EXIT_SUCCESS = 0
 """int: Process exit code indicating successful operation."""
 
+INIT_TEMP_PROFILE_NAME = '__INIT_TEMP_PROFILE'
+"""string: Default profile name at initialisation."""
+
 MIN_PYTHON_VERSION = (3, 6)
 """tuple: Required Python version for E4S Container Launcher.
 
