@@ -40,12 +40,12 @@ class ParserNode:
 
 class Positional(ParserNode):
 
-    attributes = {'arguments': int, 'values': list, 'type': str}
+    attributes = {'arguments': int, 'values': list, 'expected_type': str}
 
 
 class Option(ParserNode):
 
-    attributes = {'names': list, 'arguments': int, 'values': list, 'type': str}
+    attributes = {'names': list, 'arguments': int, 'values': list, 'expected_type': str}
 
 
 class Command(ParserNode):
@@ -87,14 +87,14 @@ class Command(ParserNode):
                 self.positionals.append(
                     Positional(arguments=action.nargs,
                                values=list(action.choices or []),
-                               type=getattr(action.type, '__name__', None)))
+                               expected_type=getattr(action.type, '__name__', None)))
                 continue
 
             self.options.append(
                 Option(names=action.option_strings,
                        arguments=action.nargs,
                        values=list(action.choices or []),
-                       type=getattr(action.type, '__name__', None)))
+                       expected_type=getattr(action.type, '__name__', None)))
 
         self.subcommands = [Command(*i) for i in dict_.items()]
 
