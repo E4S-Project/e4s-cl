@@ -70,7 +70,7 @@ def mkdirp(path: Path) -> bool:
     return True
 
 
-@lru_cache
+@lru_cache()
 def which(*args, **kwargs):
     return sh_which(*args, **kwargs)
 
