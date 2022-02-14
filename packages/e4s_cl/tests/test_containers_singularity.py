@@ -21,26 +21,26 @@ class ContainerTestSingularity(tests.TestCase):
     def test_run_backend(self):
         container = Container(executable='singularity')
         command = ['']
-        container_cmd, env = container.run(command)
+        container_cmd = container._prepare(command)
         self.assertIn('singularity', ' '.join(map(str, container_cmd)))
 
     def test_run_image(self):
         container = Container(executable='singularity', image='imagenametest')
         command = ['']
-        container_cmd, env = container.run(command, test_run=True)
+        container_cmd = container._prepare(command)
         self.assertIn('imagenametest', ' '.join(map(str, container_cmd)))
 
     def test_run_pwd(self):
         container = Container(executable='singularity')
         command = ['']
-        container_cmd, env = container.run(command, test_run=True)
+        container_cmd = container._prepare(command)
         pwd = getcwd()
         self.assertIn(pwd, ' '.join(map(str, container_cmd)))
 
     def test_run_mpirun(self):
         container = Container(executable='singularity', image='dummyimagename')
         command = ['mpirun -n 2 ls']
-        container_cmd, env = container.run(command, test_run=True)
+        container_cmd = container._prepare(command)
         self.assertIn(command[0], ' '.join(map(str, container_cmd)))
 
     def test_bind_file(self):

@@ -5,7 +5,7 @@ Module introducing singularity support
 import os
 from pathlib import Path
 from e4s_cl import logger
-from e4s_cl.util import which
+from e4s_cl.util import which, run_subprocess
 from e4s_cl.cf.libraries import host_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
@@ -37,12 +37,7 @@ class SingularityContainer(Container):
         #self.bind_file('/dev', option=FileOptions.READ_WRITE)
         #self.bind_file('/tmp', option=FileOptions.READ_WRITE)
 
-    def run(self, command, test_run=False):
-
-        if not test_run and (not self.executable or
-                             (not Path(self.executable).exists())):
-            raise BackendNotAvailableError(self.executable)
-
+    def _prepare(self, command) -> list[str]:
         self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
             {'SINGULARITYENV_LD_PRELOAD': ":".join(self.ld_preload)})
@@ -50,12 +45,19 @@ class SingularityContainer(Container):
             {'SINGULARITYENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
         self.format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
-        container_cmd = [
+
+        return [
             self.executable, 'exec', *self._working_dir(), *nvidia_flag,
             self.image, *command
         ]
 
-        return (container_cmd, self.env)
+    def run(self, command):
+        if not which(self.executable):
+            raise BackendNotAvailableError(self.executable)
+
+        container_cmd = self._prepare(command)
+
+        return run_subprocess(container_cmd, env=self.env)
 
     def format_bound(self):
         """
