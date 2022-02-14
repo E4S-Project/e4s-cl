@@ -151,8 +151,8 @@ def run_subprocess(cmd: list[str],
         LOGGER.error("Process %d failed with code %d:", pid, returncode)
         for line in buffer:
             LOGGER.error(line)
-        if log_file := getattr(process_logger.handlers[0], 'baseFilename',
-                               None):
+        log_file = getattr(process_logger.handlers[0], 'baseFilename', None)
+        if log_file:
             LOGGER.error("See %s for details.", log_file)
 
     del process_logger
