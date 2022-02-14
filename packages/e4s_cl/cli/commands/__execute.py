@@ -256,8 +256,7 @@ class ExecuteCommand(AbstractCommand):
             params.teardown()
             return EXIT_SUCCESS
 
-        container_cmd, env = container.run(command, redirect_stdout=False)
-        code = run_subprocess(container_cmd, env=env)
+        code = container.run(command)
 
         params.teardown()
 
