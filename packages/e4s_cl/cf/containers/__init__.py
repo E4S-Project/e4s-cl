@@ -132,6 +132,8 @@ class Container:
     """
     Abstract class that auto-completes depending on the container tech
     """
+    # Default pipe manager
+    pipe_manager = Pipe
 
     # pylint: disable=too-few-public-methods
     class BoundFile:
@@ -215,15 +217,22 @@ class Container:
         self.bind_file(script_name, CONTAINER_SCRIPT)
 
         # Setup a one-way communication channel
-        with Pipe() as fdr:
+        with self.__class__.pipe_manager() as pipe_reader:
             with ParentStatus():
                 code = self.run([CONTAINER_SCRIPT])
 
             if code:
                 raise AnalysisError(code)
 
-            data = json_loads(os.read(fdr, 1024**3).decode())
+            info = pipe_reader()
+
         entrypoint.teardown()
+
+        try:
+            data = json_loads(info)
+        except Exception as err:
+            LOGGER.critical("Container analysis failed !")
+            data = {}
 
         self.libc_v = Version(data.get('libc_version', '0.0.0'))
         self.libraries = LibrarySet(data.get('libraries', set()))
