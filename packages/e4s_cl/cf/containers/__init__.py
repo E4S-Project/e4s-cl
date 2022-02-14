@@ -210,8 +210,7 @@ class Container:
         script_name = entrypoint.setup()
         self.bind_file(script_name, CONTAINER_SCRIPT)
 
-        container_cmd, env = self.run([CONTAINER_SCRIPT],
-                                      redirect_stdout=False)
+        container_cmd, env = self.run([CONTAINER_SCRIPT])
 
         # Setup a one-way communication channel
         with Pipe() as fdr:
@@ -307,7 +306,7 @@ class Container:
         if path not in self.ld_lib_path:
             self.ld_lib_path.append(path)
 
-    def run(self, command, redirect_stdout=False):
+    def run(self, command):
         """
         run a command in a container.
 

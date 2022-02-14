@@ -66,7 +66,7 @@ class ShifterContainer(Container):
 
         return [f"--volume={source}:{dest}" for (source, dest) in volumes]
 
-    def run(self, command, redirect_stdout=False, test_run=False):
+    def run(self, command, test_run=False):
 
         if not test_run and (not self.executable or
                              (not Path(self.executable).exists())):

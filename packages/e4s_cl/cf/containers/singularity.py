@@ -22,6 +22,7 @@ class SingularityContainer(Container):
     """
     Class to use when formatting bound files for a singularity execution
     """
+
     def _working_dir(self):
         return ['--pwd', os.getcwd()]
 
@@ -36,11 +37,12 @@ class SingularityContainer(Container):
         #self.bind_file('/dev', option=FileOptions.READ_WRITE)
         #self.bind_file('/tmp', option=FileOptions.READ_WRITE)
 
-    def run(self, command, redirect_stdout=False, test_run=False):
-        
-        if not test_run and (not self.executable or (not Path(self.executable).exists())):
+    def run(self, command, test_run=False):
+
+        if not test_run and (not self.executable or
+                             (not Path(self.executable).exists())):
             raise BackendNotAvailableError(self.executable)
-        
+
         self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
             {'SINGULARITYENV_LD_PRELOAD': ":".join(self.ld_preload)})
@@ -52,12 +54,14 @@ class SingularityContainer(Container):
             self.executable, 'exec', *self._working_dir(), *nvidia_flag,
             self.image, *command
         ]
+
         return (container_cmd, self.env)
 
     def format_bound(self):
         """
         Format a list of files to a compatible bind option of singularity
         """
+
         def _format():
             for source, dest, options_val in self.bound:
                 yield f"{source}:{dest}:{OPTION_STRINGS[options_val]}"
