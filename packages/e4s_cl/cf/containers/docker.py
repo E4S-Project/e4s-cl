@@ -62,14 +62,26 @@ class DockerContainer(Container):
             else:
                 container_env[key] = val
 
-        outlog = client.containers.run(image,
+        try:
+            outlog = client.containers.run(image,
                                        command,
                                        environment=container_env,
                                        stdout=True,
                                        stderr=True,
                                        mounts=mounts)
+        except docker.errors.ImageNotFound as err:
+            raise BackendError('docker') from err
+        except docker.errors.APIError as err:
+            raise BackendNotAvailableError('docker') from err
+        except docker.errors.ContainerError as err:
+            LOGGER.error("Process in container %s failed with code %d:", err.container.short_id, err.exit_status)
+            for line in err.stderr.decode().split("\n"):
+                LOGGER.error(line)
+            return err.exit_status
+        else:
+            print(outlog.decode(), file=sys.stdout, end='')
 
-        print(outlog.decode(), file=sys.stdout, end='')
+        return 0
 
 
 CLASS = DockerContainer
