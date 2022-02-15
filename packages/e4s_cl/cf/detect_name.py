@@ -152,7 +152,8 @@ def version_info(shared_object: Path):
     version_buffer = ctypes.create_string_buffer(3000)
     length = ctypes.c_int()
 
-    if not (handle := _extract_vinfo(shared_object)):
+    handle = _extract_vinfo(shared_object)
+    if not handle:
         LOGGER.debug("Extracting MPI_Get_library_version from %s failed",
                      shared_object.as_posix())
         return None
@@ -219,8 +220,8 @@ def try_rename(profile_id: str) -> None:
     Analyze the selected profile for MPI libraries and rename it according
     to the vendor/version info in the shared object
     """
-
-    if not (data := Profile.controller().one({'name': profile_id})):
+    data = Profile.controller().one({'name': profile_id})
+    if not data:
         LOGGER.debug("Error renaming profile: profile '%s' not found",
                      profile_id)
         return
