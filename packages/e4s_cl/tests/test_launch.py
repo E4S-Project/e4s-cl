@@ -13,7 +13,8 @@ class LaunchTest(tests.TestCase):
     def setUp(self):
         self.resetStorage()
 
-        if not (data := os.getenv('__E4S_CL_TEST_PROFILE', {})):
+        data = os.getenv('__E4S_CL_TEST_PROFILE', {})
+        if not data:
             return
 
         controller = Profile.controller()
