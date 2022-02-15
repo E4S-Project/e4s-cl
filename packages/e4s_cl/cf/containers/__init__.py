@@ -231,7 +231,7 @@ class Container:
         try:
             data = json_loads(info)
         except Exception as err:
-            LOGGER.critical("Container analysis failed !")
+            LOGGER.critical("Container analysis failed ! %s", str(err))
             data = {}
 
         self.libc_v = Version(data.get('libc_version', '0.0.0'))
@@ -375,7 +375,7 @@ def assert_module(_module) -> bool:
         if not hasattr(_module, attribute):
             LOGGER.warning(
                 "Container module '%s' is missing a required attribute: %s; skipping ...",
-                module_name, required)
+                _module.__name__, required)
             return False
 
     if getattr(_module, 'CLASS') and not getattr(_module.CLASS, 'run'):

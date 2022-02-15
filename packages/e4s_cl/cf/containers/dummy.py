@@ -11,7 +11,7 @@ MIMES = []
 
 
 class DummyContainer(Container):
-    def run(self, command, redirect_stdout=False):
+    def run(self, command):
         pass
 
 

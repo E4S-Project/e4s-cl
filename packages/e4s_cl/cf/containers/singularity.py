@@ -74,7 +74,7 @@ class SingularityContainer(Container):
         self.env.update({f"SINGULARITYENV_{key}": value})
 
     def _has_nvidia(self):
-        if 'nvidia' not in " ".join(host_libraries().keys()):
+        if 'nvidia' not in " ".join(host_libraries()):
             LOGGER.debug("Disabling Nvidia support: no libraries found")
             return False
         return True
