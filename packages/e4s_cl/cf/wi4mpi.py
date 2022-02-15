@@ -18,7 +18,7 @@ def wi4mpi_enabled() -> bool:
     return not os.environ.get("WI4MPI_VERSION") is None
 
 
-@lru_cache
+@lru_cache()
 def wi4mpi_root() -> Path:
     string = os.environ.get("WI4MPI_ROOT")
 
@@ -55,7 +55,7 @@ def __read_cfg(cfg_file: Path):
 
 
 #def wi4mpi_config(install_dir: Path) -> dict[str, str]:
-@lru_cache
+@lru_cache()
 def wi4mpi_config(install_dir: Path):
     global_cfg = __read_cfg(install_dir.joinpath('etc/wi4mpi.cfg'))
     user_cfg = __read_cfg(
