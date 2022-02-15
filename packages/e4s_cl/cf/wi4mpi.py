@@ -36,7 +36,8 @@ def __read_cfg(cfg_file: Path):
 
     try:
         with open(cfg_file, 'r') as cfg:
-            while line := cfg.readline().strip():
+            while cfg.readline().strip():
+                line = cfg.readline().strip()
                 if line.startswith('#') or not '=' in line:
                     continue
 
