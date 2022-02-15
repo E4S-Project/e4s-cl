@@ -50,10 +50,7 @@ class DockerContainer(Container):
         fifo = os.environ.get(ENV_VAR_NAMED, '')
         if fifo:
             mounts.append(
-                docker.types.Mount(fifo,
-                                   fifo,
-                                   type='bind',
-                                   read_only=False))
+                docker.types.Mount(fifo, fifo, type='bind', read_only=False))
 
         container_env = dict(os.environ)
         for key, val in self.env.items():
@@ -64,17 +61,19 @@ class DockerContainer(Container):
 
         try:
             outlog = client.containers.run(image,
-                                       command,
-                                       environment=container_env,
-                                       stdout=True,
-                                       stderr=True,
-                                       mounts=mounts)
+                                           command,
+                                           environment=container_env,
+                                           stdout=True,
+                                           stderr=True,
+                                           mounts=mounts,
+                                           remove=True)
         except docker.errors.ImageNotFound as err:
             raise BackendError('docker') from err
         except docker.errors.APIError as err:
             raise BackendNotAvailableError('docker') from err
         except docker.errors.ContainerError as err:
-            LOGGER.error("Process in container %s failed with code %d:", err.container.short_id, err.exit_status)
+            LOGGER.error("Process in container %s failed with code %d:",
+                         err.container.short_id, err.exit_status)
             for line in err.stderr.decode().split("\n"):
                 LOGGER.error(line)
             return err.exit_status
