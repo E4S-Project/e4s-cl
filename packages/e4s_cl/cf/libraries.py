@@ -21,7 +21,7 @@ from sotools.libraryset import LibrarySet, Library
 LOGGER = get_logger(__name__)
 
 
-@lru_cache
+@lru_cache()
 def libc_version():
     """
     -> e4s_cl.cf.version.Version
