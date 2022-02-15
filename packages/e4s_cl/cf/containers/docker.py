@@ -13,20 +13,12 @@ EXECUTABLES = ['docker']
 MIMES = []
 
 
-
 class DockerContainer(Container):
     pipe_manager = NamedPipe
 
     def run(self, command: list[str]):
         # Create the client from the environment
         client = docker.from_env()
-
-        for variable in [ENV_VAR_NAMED, CHILD_MARKER, logger.LOG_ID_MARKER]:
-            if os.environ.get(variable, ''):
-                self.bind_env_var(variable, os.environ[variable])
-
-        if os.environ.get(ENV_VAR_NAMED, ''):
-            self.bind_file(os.environ[ENV_VAR_NAMED], option=FileOptions.READ_WRITE)
 
         # Ensure the queried image is accessible
         try:
@@ -45,6 +37,14 @@ class DockerContainer(Container):
                     type='bind',
                     read_only=(options_val == FileOptions.READ_ONLY)))
 
+        fifo = os.environ.get(ENV_VAR_NAMED, '')
+        if fifo:
+            mounts.append(
+                docker.types.Mount(fifo,
+                                   fifo,
+                                   type='bind',
+                                   read_only=False))
+
         container_env = dict(os.environ)
         for key, val in self.env.items():
             if val is None:
@@ -59,7 +59,7 @@ class DockerContainer(Container):
                                        stderr=True,
                                        mounts=mounts)
 
-        print(outlog.decode(), file=sys.stdout)
+        print(outlog.decode(), file=sys.stdout, end='')
 
 
 CLASS = DockerContainer
