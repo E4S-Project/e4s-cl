@@ -55,7 +55,8 @@ def homogenize_files(data):
     if not isinstance(data, dict):
         return
 
-    if files := data.get('files', []):
+    files = data.get('files', [])
+    if files:
         data['files'] = list({pathlib.Path(f).as_posix() for f in files})
 
 
