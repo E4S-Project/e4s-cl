@@ -4,9 +4,14 @@ Software Compatibility
 Container backends
 -------------------
 
-As of now, only `singularity <https://sylabs.io/docs>`_  and `shifter <https://docs.nersc.gov/development/shifter>`_ are supported in **e4s-cl**.
+As of now, `singularity <https://sylabs.io/docs>`_, `shifter <https://docs.nersc.gov/development/shifter>`_ and `docker <https://www.docker.com>`_ are supported in **e4s-cl**.
 
 More container technologies can be supported. Create an issue on github or write a dedicated module in :code:`e4s_cl/cf/containers`. Refer to :code:`e4s_cl/cf/containers/__init__.py` for details.
+
+.. warning:: Using **docker** with MPI
+
+   Several MPI implementations expect their processes to inherit opened file descriptors; because of docker's client-daemon architecture, this is not possible.
+
 
 Process launchers
 ------------------

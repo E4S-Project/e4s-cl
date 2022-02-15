@@ -14,6 +14,7 @@ Additions:
     - e4s-cl package resolving now bypasses ALPS quarantine
 - Added barebones module awareness
 - Added logging output in dedicated logging folders
+- Added docker backend module
 
 Removed:
 

@@ -170,7 +170,7 @@ MANBUILDDIR=$(PROJECT)/docs/build/man
 USER_MAN=$(HOME)/.local/share/man
 
 man: python_check
-	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
+	$(PYTHON) -m pip install -U -r $(DOCS)/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	@$(MKDIR) $(USER_MAN)/man1
 	@$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1

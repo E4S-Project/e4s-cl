@@ -21,7 +21,8 @@ import json
 from importlib import import_module
 from pathlib import Path
 from typing import Union
-from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger, variables
+from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger
+from e4s_cl.variables import ParentStatus
 from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.pipe import Pipe
@@ -131,6 +132,8 @@ class Container:
     """
     Abstract class that auto-completes depending on the container tech
     """
+    # Default pipe manager
+    pipe_manager = Pipe
 
     # pylint: disable=too-few-public-methods
     class BoundFile:
@@ -193,6 +196,9 @@ class Container:
         environment inside of it. The results will be used to tailor the
         library import to ensure compatibility of the shared objects.
 
+        The entrypoint passed as an argument may contain external parameters
+        (The source script being one of them)
+
         A library set with data about libraries listed in library_set will
         be returned
         """
@@ -210,18 +216,23 @@ class Container:
         script_name = entrypoint.setup()
         self.bind_file(script_name, CONTAINER_SCRIPT)
 
-        container_cmd, env = self.run([CONTAINER_SCRIPT],
-                                      redirect_stdout=False)
-
         # Setup a one-way communication channel
-        with Pipe() as fdr:
-            code = run_e4scl_subprocess(container_cmd, env=env)
+        with self.__class__.pipe_manager() as pipe_reader:
+            with ParentStatus():
+                code = self.run([CONTAINER_SCRIPT])
 
             if code:
                 raise AnalysisError(code)
 
-            data = json_loads(os.read(fdr, 1024**3).decode())
+            info = pipe_reader()
+
         entrypoint.teardown()
+
+        try:
+            data = json_loads(info)
+        except Exception as err:
+            LOGGER.critical("Container analysis failed ! %s", str(err))
+            data = {}
 
         self.libc_v = Version(data.get('libc_version', '0.0.0'))
         self.libraries = LibrarySet(data.get('libraries', set()))
@@ -307,13 +318,11 @@ class Container:
         if path not in self.ld_lib_path:
             self.ld_lib_path.append(path)
 
-    def run(self, command, redirect_stdout=False):
+    def run(self, command):
         """
         run a command in a container.
 
         command         list[str]   the command line to execute
-        redirect_stdout bool        if true, return the output as a string;
-                                    if false, it ends up on stdout
 
         This method must be implemented in the container module.
         It should take into account the parameters set in the object:
@@ -322,8 +331,6 @@ class Container:
         - The LD_PRELOAD self.ld_preload;
         - The LD_LIBRARY_PATH self.ld_lib_path
         and set them to be available in the created container.
-
-        It should return a tuple the process' returncode and output
         """
         raise NotImplementedError(
             f"`run` method not implemented for container module {self.__class__.__name__}"
@@ -368,7 +375,7 @@ def assert_module(_module) -> bool:
         if not hasattr(_module, attribute):
             LOGGER.warning(
                 "Container module '%s' is missing a required attribute: %s; skipping ...",
-                module_name, required)
+                _module.__name__, required)
             return False
 
     if getattr(_module, 'CLASS') and not getattr(_module.CLASS, 'run'):

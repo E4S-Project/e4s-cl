@@ -7,9 +7,9 @@ from e4s_cl.cf.containers import Container, BackendUnsupported, FileOptions
 
 
 class ContainerTestShifter(tests.TestCase):
+
     def shifter_check():
         return (not which('shifter') and (not Path('shifter').exists()))
-
 
     def test_create(self):
         container = Container(executable='shifter', image='test')
@@ -20,27 +20,27 @@ class ContainerTestShifter(tests.TestCase):
     def test_run_backend(self):
         container = Container(executable='shifter')
         command = ['']
-        container_cmd, env = container.run(command,redirect_stdout=False)
-        self.assertIn('shifter',' '.join(map(str,container_cmd)))
-    
+        container_cmd = container._prepare(command)
+        self.assertIn('shifter', ' '.join(map(str, container_cmd)))
+
     def test_run_image(self):
         container = Container(executable='shifter', image='imagenametest')
         command = ['']
-        container_cmd, env = container.run(command,redirect_stdout=False, test_run=True)
-        self.assertIn('imagenametest',' '.join(map(str,container_cmd)))
-    
+        container_cmd = container._prepare(command)
+        self.assertIn('imagenametest', ' '.join(map(str, container_cmd)))
+
     def test_run_pwd(self):
         container = Container(executable='shifter')
         command = ['']
-        container_cmd, env = container.run(command,redirect_stdout=False, test_run=True)
+        container_cmd = container._prepare(command)
         pwd = getcwd()
-        self.assertIn(pwd,' '.join(map(str,container_cmd)))
+        self.assertIn(pwd, ' '.join(map(str, container_cmd)))
 
     def test_run_mpirun(self):
         container = Container(executable='shifter', image='dummyimagename')
         command = ['mpirun -n 2 ls']
-        container_cmd, env = container.run(command,redirect_stdout=False, test_run=True)
-        self.assertIn(command[0],' '.join(map(str,container_cmd)))
+        container_cmd = container._prepare(command)
+        self.assertIn(command[0], ' '.join(map(str, container_cmd)))
 
     def test_bind_file(self):
         container = Container(executable='shifter')
@@ -68,7 +68,7 @@ class ContainerTestShifter(tests.TestCase):
 
         ref = Path('/tmp')
         file = Path('/proc/meminfo')
-        
+
         container.bind_file(target)
         files = set(map(lambda x: x[0], container.bound))
 
