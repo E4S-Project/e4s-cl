@@ -401,7 +401,7 @@ def is_available(file: Path) -> bool:
     parent_dir = file.parent
 
     if parent_dir.is_symlink():
-        parent_dir = parent_dir.readlink()
+        parent_dir = parent_dir.resolve()
 
     try:
         # Ensure the file directory is accessible, create it if need be
