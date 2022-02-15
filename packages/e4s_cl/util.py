@@ -108,10 +108,12 @@ def path_accessible(path: Path, mode: str = 'r') -> bool:
         path.as_posix(), modebits)
 
 
-def run_subprocess(cmd: list[str],
-                   cwd=None,
-                   env: Optional[dict] = None) -> int:
+def run_subprocess(cmd,
+                   cwd= None,
+                   env= None)-> int:
     """
+    cmd: list[str],
+    env: Optional[dict]
     Run a subprocess, tailored for end subrocesses
     """
     subproc_env = os.environ
@@ -160,11 +162,14 @@ def run_subprocess(cmd: list[str],
     return returncode
 
 
-def run_e4scl_subprocess(cmd: list[str],
-                         cwd=None,
-                         env: Optional[dict] = None,
-                         capture_output: bool = False) -> int:
+def run_e4scl_subprocess(cmd,
+                         cwd= None,
+                         env= None,
+                         capture_output= False) -> int:
     """
+    cmd: list[str],
+    env: Optional[dict],
+    capture_output: bool
     Run a subprocess, tailored for recursive e4s-cl processes
     """
     with ParentStatus():
