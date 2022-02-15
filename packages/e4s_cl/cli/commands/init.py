@@ -134,7 +134,8 @@ def _check_mpirun(executable):
     """
     Run hostname with the launcher and list the affected nodes
     """
-    if not (hostname_bin := util.which('hostname')):
+    hostname_bin = util.which('hostname')
+    if not hostname_bin:
         return
 
     with subprocess.Popen([executable, hostname_bin],
@@ -158,7 +159,8 @@ def _profile_from_args(args) -> dict:
     data = {}
 
     for attr in ['image', 'backend', 'source', 'wi4mpi', 'wi4mpi_options']:
-        if value := getattr(args, attr, None):
+        value = getattr(args, attr, None)
+        if value:
             data[attr] = value
 
     # Determine the backend if possible
@@ -166,7 +168,8 @@ def _profile_from_args(args) -> dict:
         data['backend'] = guess_backend(args.image)
 
     # Load data from assets if required
-    if system := getattr(args, 'system', None):
+    system = getattr(args, 'system', None)
+    if system:
         data = data | builtin_profiles().get(system, {})
 
     return data
@@ -211,7 +214,8 @@ def _analyze_binary(args):
     binary = _select_binary(precompiled_binaries())
 
     # Use the launcher passed as an argument in priority
-    if arg_launcher := getattr(args, 'launcher', None):
+    arg_launcher = getattr(args, 'launcher', None)
+    if arg_launcher:
         launcher = arg_launcher
 
     launcher_args = shlex.split(getattr(args, 'launcher_args', ''))
@@ -270,7 +274,8 @@ def launcher_argument(string):
     """ Argument type callback. Asserts the given string identifies a launcher binary
     on the system. """
 
-    if not (path := util.which(string)):
+    path = util.which(string)
+    if not path:
         raise ArgumentTypeError(
             f"Launcher argument '{string}' could not be resolved to a binary")
     return path
@@ -420,7 +425,8 @@ class InitCommand(AbstractCommand):
                               Profile.selected().eid)
 
         # Rename the profile to the name passed as an argument
-        if requested_name := getattr(args, 'profile_name', ''):
+        requested_name = getattr(args, 'profile_name', '')
+        if requested_name:
             # Erase any potential existing profile
             if controller.one({"name": requested_name}):
                 controller.delete({"name": requested_name})
