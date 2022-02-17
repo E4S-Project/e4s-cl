@@ -15,6 +15,7 @@ Additions:
 - Added barebones module awareness
 - Added logging output in dedicated logging folders
 - Added docker backend module
+- Added podman backend module
 
 Removed:
 

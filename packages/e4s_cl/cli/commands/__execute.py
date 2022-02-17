@@ -258,6 +258,9 @@ class ExecuteCommand(AbstractCommand):
 
         code = container.run(command)
 
+        if code:
+            LOGGER.critical("Container command failed with error code %d", code)
+
         params.teardown()
 
         return code
