@@ -154,6 +154,8 @@ def run_subprocess(cmd: list[str],
         if log_file := getattr(process_logger.handlers[0], 'baseFilename',
                                None):
             LOGGER.error("See %s for details.", log_file)
+    else:
+        LOGGER.debug("Process %d returned %d", pid, returncode)
 
     del process_logger
 
