@@ -63,7 +63,9 @@ class FDFiller:
             missing.discard(null.fileno())
 
             self.__opened_files.append(null)
-        LOGGER.debug("Created %d file descriptors: %s", len(self.__opened_files), [f.fileno() for f in self.__opened_files])
+        LOGGER.debug("Created %d file descriptors: %s",
+                     len(self.__opened_files),
+                     [f.fileno() for f in self.__opened_files])
 
     def __exit__(self, type_, value, traceback):
         for file in self.__opened_files:
@@ -106,6 +108,8 @@ class PodmanContainer(Container):
         return [
             self.executable,  # absolute path to podman
             'run',  # Run a container
+            '--rm',  # Remove when done
+            '--ipc=host',  # Use host IPC /!\
             '--env-host',  # Pass host environment /!\
             f"--preserve-fds={self._fd_number()}",  # Inherit file descriptors /!\
             *self._working_dir(),  # Work in the same CWD
