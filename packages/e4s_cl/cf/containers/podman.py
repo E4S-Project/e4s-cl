@@ -1,5 +1,8 @@
+"""
+Podman container manager support
+"""
+
 import os
-from shlex import join
 from pathlib import Path
 from e4s_cl.error import InternalError
 from e4s_cl.util import which, run_subprocess
@@ -15,6 +18,12 @@ MIMES = []
 
 
 def opened_fds():
+    """
+    -> set[int]
+
+    Returns a list of all the opened file descriptors opened by the current
+    process
+    """
     fds = []
 
     for file in Path('/proc/self/fd').glob('*'):
@@ -23,7 +32,7 @@ def opened_fds():
 
         try:
             fd_no = int(file.name)
-        except:
+        except ValueError:
             continue
 
         fds.append(fd_no)
@@ -32,13 +41,24 @@ def opened_fds():
 
 
 class FDFiller:
+    """
+    Context manager that will "fill" the opened file descriptors to have a
+    contiguous list, and make every fd inheritable
+    """
 
     def __init__(self):
+        """
+        Initialize by creating a buffer of opened files
+        """
         self.__opened_files = []
 
     def __enter__(self):
+        """
+        Create as many open files as necessary
+        """
         fds = opened_fds()
 
+        # Make every existing file descriptor inheritable
         for fd in fds:
             try:
                 os.set_inheritable(fd, True)
@@ -46,23 +66,27 @@ class FDFiller:
                 if err.errno == 9:
                     continue
 
+        # Compute all the missing numbers in the list
         missing = set(range(max(fds))) - set(fds)
 
         while missing:
-            null = open('/dev/null', 'w')
+            # Open files towards /dev/null
+            null = open('/dev/null', 'w', encoding='utf-8')
 
             if null.fileno() not in missing:
                 raise InternalError(f"Unexpected fileno: {null.fileno()}")
 
             try:
+                # Set the file as inheritable
                 os.set_inheritable(null.fileno(), True)
             except OSError as err:
                 if err.errno == 9:
                     continue
 
+            # It is not missing anymore
             missing.discard(null.fileno())
-
             self.__opened_files.append(null)
+
         LOGGER.debug("Created %d file descriptors: %s",
                      len(self.__opened_files),
                      [f.fileno() for f in self.__opened_files])
@@ -73,16 +97,16 @@ class FDFiller:
 
 
 class PodmanContainer(Container):
-    pipe_manager = NamedPipe
+    """
+    Podman container object
+    """
 
     def _fd_number(self):
         """
         Podman requires the --preserve-fds=K option to pass file descriptors;
         K being the amount (in addition of 0,1,2) of fds to pass. It also is
-        strict on the inheritance flag of those descriptors, and will not
-        function if any one of them is invalid/uninheritable. To abide to this,
-        we go through all the opened file descriptors, manually set the 
-        inheritance flag to true, and return as soon as a file descriptor refuses
+        strict on the existence and inheritance flag of those descriptors, and
+        will not function if any one of them is invalid/uninheritable.
         """
 
         LOGGER.debug("Max fd: %d (%s)", max(opened_fds()), opened_fds())
