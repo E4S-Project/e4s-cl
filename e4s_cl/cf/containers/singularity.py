@@ -48,7 +48,12 @@ class SingularityContainer(Container):
 
         self.env.update({"SINGULARITY_BIND": ','.join(_format())})
 
-    def _prepare(self, command) -> list[str]:
+    def _prepare(self, command):
+        """
+        -> list[str]
+
+        Return the command to run in a list of string
+        """
         self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
             {'SINGULARITYENV_LD_PRELOAD': ":".join(self.ld_preload)})
