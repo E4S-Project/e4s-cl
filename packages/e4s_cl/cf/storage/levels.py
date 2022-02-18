@@ -8,8 +8,6 @@ SYSTEM_STORAGE = LocalFileStorage('system', SYSTEM_PREFIX)
 USER_STORAGE = LocalFileStorage('user', USER_PREFIX)
 """User-level data storage."""
 
-PROFILE_STORAGE = USER_STORAGE
-
 ORDERED_LEVELS = (USER_STORAGE, SYSTEM_STORAGE)
 """All storage levels in their preferred order."""
 

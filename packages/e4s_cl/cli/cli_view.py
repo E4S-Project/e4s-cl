@@ -147,13 +147,15 @@ class DeleteCommand(AbstractCliView):
             help=
             f"{key_attr.capitalize()} of {self.model_name} configuration to delete",
             nargs="+",
+            type=arguments.defined_object(self.model, key_attr),
             metavar=f"<{self.model_name}_{key_attr}>")
         if self.include_storage_flag:
             arguments.add_storage_flag(parser, "delete", self.model_name)
         return parser
 
-    def _delete_record(self, store, key):
+    def _delete_record(self, store, obj):
         key_attr = self.model.key_attribute
+        key = obj.get(key_attr)
         ctrl = self.model.controller(store)
         if not ctrl.exists({key_attr: key}):
             self.parser.error(
@@ -166,9 +168,9 @@ class DeleteCommand(AbstractCliView):
     def main(self, argv):
         args = self._parse_args(argv)
         store = arguments.parse_storage_flag(args)[0]
-        keys = getattr(args, self.model.key_attribute)
-        for key in keys:
-            self._delete_record(store, key)
+        objects = getattr(args, self.model.key_attribute)
+        for obj in objects:
+            self._delete_record(store, obj)
         return EXIT_SUCCESS
 
 
