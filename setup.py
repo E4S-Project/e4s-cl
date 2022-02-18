@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import os, sys, setuptools, subprocess
+from setuptools import setup, find_packages
+from pathlib import Path
 import importlib.util
 
 # Load metadata from the package's version module
-spec = importlib.util.spec_from_file_location(
-    'version', os.path.join('e4s_cl', 'version.py'))
+spec = importlib.util.spec_from_file_location('version',
+                                              Path('e4s_cl', 'version.py'))
 metadata = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(metadata)
 
@@ -54,7 +55,7 @@ install_options = {
     "keywords": KEYWORDS,
     "classifiers": CLASSIFIERS,
     "scripts": ['scripts/e4s-cl'],
-    "packages": ['e4s_cl']
+    "packages": find_packages()
 }
 
-setuptools.setup(**install_options)
+setup(**install_options)
