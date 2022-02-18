@@ -108,9 +108,7 @@ def path_accessible(path: Path, mode: str = 'r') -> bool:
         path.as_posix(), modebits)
 
 
-def run_subprocess(cmd,
-                   cwd= None,
-                   env= None)-> int:
+def run_subprocess(cmd, cwd=None, env=None) -> int:
     """
     cmd: list[str],
     env: Optional[dict]
@@ -162,10 +160,7 @@ def run_subprocess(cmd,
     return returncode
 
 
-def run_e4scl_subprocess(cmd,
-                         cwd= None,
-                         env= None,
-                         capture_output= False) -> int:
+def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
     """
     cmd: list[str],
     env: Optional[dict],
@@ -454,7 +449,6 @@ def update_ld_path(path: Path):
 
     os.environ['LD_LIBRARY_PATH'] = ld_path
     return ld_path
-
 
 
 @contextmanager

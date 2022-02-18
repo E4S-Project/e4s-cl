@@ -62,6 +62,7 @@ def homogenize_files(data):
 
 class ProfileController(Controller):
     """Profile data controller."""
+
     def create(self, data):
         homogenize_files(data)
         return super().create(data)

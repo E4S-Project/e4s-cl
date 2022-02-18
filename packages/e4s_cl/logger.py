@@ -310,12 +310,15 @@ class LogFormatter(logging.Formatter):
 
             for line in text:
                 output += textwrap.wrap(line,
-                                        width=(self.line_width - header_length))
+                                        width=(self.line_width -
+                                               header_length))
                 if not line:
                     output += ['']
 
-            return textwrap.indent("\n".join(output), header, lambda line: True)
-        return textwrap.indent(record.getMessage().strip(), header, lambda line: True)
+            return textwrap.indent("\n".join(output), header,
+                                   lambda line: True)
+        return textwrap.indent(record.getMessage().strip(), header,
+                               lambda line: True)
 
 
 def set_log_level(level):
@@ -446,8 +449,7 @@ if not _ROOT_LOGGER.handlers:
 
     # Setup output on stderr
     _STDERR_HANDLER = logging.StreamHandler(sys.stderr)
-    _STDERR_HANDLER.setFormatter(
-        LogFormatter(printable_only=False))
+    _STDERR_HANDLER.setFormatter(LogFormatter(printable_only=False))
     _STDERR_HANDLER.setLevel(LOG_LEVEL)
 
     _ROOT_LOGGER.addHandler(_STDERR_HANDLER)
