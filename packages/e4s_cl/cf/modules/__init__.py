@@ -44,7 +44,7 @@ class Module:
 
 
 #def __available() -> set(Module):
-@lru_cache
+@lru_cache()
 def __available():
     query = subprocess.run(['bash', '-c', 'module -t avail'],
                                             capture_output=True)
@@ -62,7 +62,7 @@ def __available():
 
 
 #def __loaded() -> set(Module):
-@lru_cache
+@lru_cache()
 def __loaded():
     query = subprocess.run(['bash', '-c', 'module -t list'],
                                             redirect_stdout=True)
