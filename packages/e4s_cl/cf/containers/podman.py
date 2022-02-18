@@ -24,7 +24,7 @@ def opened_fds():
     Returns a list of all the opened file descriptors opened by the current
     process
     """
-    fds = []
+    fds = set()
 
     for file in Path('/proc/self/fd').glob('*'):
         if not file.exists():
@@ -35,7 +35,7 @@ def opened_fds():
         except ValueError:
             continue
 
-        fds.append(fd_no)
+        fds.add(fd_no)
 
     return fds
 
@@ -103,14 +103,17 @@ class PodmanContainer(Container):
 
     def _fd_number(self):
         """
+        -> int
         Podman requires the --preserve-fds=K option to pass file descriptors;
         K being the amount (in addition of 0,1,2) of fds to pass. It also is
         strict on the existence and inheritance flag of those descriptors, and
         will not function if any one of them is invalid/uninheritable.
         """
 
-        LOGGER.debug("Max fd: %d (%s)", max(opened_fds()), opened_fds())
-        return max(opened_fds()) - 3
+        fds = opened_fds() - {0, 1, 2}
+
+        LOGGER.debug("Passing %d file descriptors: (%s)", len(fds), fds)
+        return len(fds)
 
     def _working_dir(self):
         return ['--workdir', os.getcwd()]
