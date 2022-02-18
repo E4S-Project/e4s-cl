@@ -134,6 +134,7 @@ def select_libraries(library_set, container, entrypoint):
 
 class ExecuteCommand(AbstractCommand):
     """``execute`` subcommand."""
+
     def _construct_parser(self):
         usage = f"{self.command} [arguments] <command> [command_arguments]"
         parser = arguments.get_parser(prog=self.command,
@@ -201,8 +202,7 @@ class ExecuteCommand(AbstractCommand):
 
         # The following is a set of all libraries required. It
         # is used in the container to check version mismatches
-        libset = LibrarySet.create_from(required_libraries,
-                                            member=HostLibrary)
+        libset = LibrarySet.create_from(required_libraries, member=HostLibrary)
         if libset:
             # Analyze the container to get library information from the environment
             # it offers, using the entrypoint and the above libraries

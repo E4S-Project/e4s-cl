@@ -17,7 +17,6 @@ from sotools.ldd import ldd
 from sotools.linker import resolve, host_libraries
 from sotools.libraryset import LibrarySet, Library
 
-
 LOGGER = get_logger(__name__)
 
 
@@ -54,8 +53,8 @@ class GuestLibrary(Library):
     pass
 
 
-
 def __library_decoder(_type):
+
     def __l_decoder(obj):
         out = _type()
 

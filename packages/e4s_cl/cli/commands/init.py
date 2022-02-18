@@ -170,7 +170,7 @@ def _profile_from_args(args) -> dict:
     # Load data from assets if required
     system = getattr(args, 'system', None)
     if system:
-        data = {**data , **builtin_profiles().get(system, {})}
+        data = {**data, **builtin_profiles().get(system, {})}
 
     return data
 

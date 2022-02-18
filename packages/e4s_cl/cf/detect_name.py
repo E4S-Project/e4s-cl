@@ -26,9 +26,8 @@ def _suffix_name(name: str, existing_names: set) -> str:
         filter(
             None,
             map(
-                lambda x: re.match(
-                    f"{re.escape(name)}-(?P<ordinal>[0-9]*)", x),
-                existing_names)))
+                lambda x: re.match(f"{re.escape(name)}-(?P<ordinal>[0-9]*)", x
+                                   ), existing_names)))
 
     # Try to list all clones of this profile
     ordinals = []
@@ -47,6 +46,7 @@ def _suffix_name(name: str, existing_names: set) -> str:
 
 
 def strip(function):
+
     def wrapper(version_buffer_str):
         return function(version_buffer_str).strip()
 

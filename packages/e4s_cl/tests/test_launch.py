@@ -10,6 +10,7 @@ from e4s_cl.model.profile import Profile
 
 
 class LaunchTest(tests.TestCase):
+
     def setUp(self):
         self.resetStorage()
 
