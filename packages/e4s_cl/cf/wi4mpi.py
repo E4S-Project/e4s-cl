@@ -36,17 +36,16 @@ def __read_cfg(cfg_file: Path):
 
     try:
         with open(cfg_file, 'r') as cfg:
-            while cfg.readline().strip():
-                line = cfg.readline().strip()
+            for line in cfg.readlines():
+                line = line.strip()
+
                 if line.startswith('#') or not '=' in line:
                     continue
 
-                parts = line.split('=')
+                key, value = line.split('=')
 
-                if len(parts) != 2:
-                    continue
+                config.update({key: value.strip('"')})
 
-                config.update({parts[0]: parts[1].strip('"')})
     except OSError as err:
         LOGGER.debug("Error accessing configuration %s: %s",
                      cfg_file.as_posix(), str(err))
