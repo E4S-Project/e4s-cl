@@ -647,7 +647,14 @@ def defined_object(model, field):
 
         exact_matches = list(filter(lambda x: x.get(field) == string, matches))
 
-        if len(matches) != 1 and not len(exact_matches) == 1:
+        # If multiple matches occur, return the first occurence
+        if len(exact_matches) > 1:
+            LOGGER.debug("Multiple exact %s matches for %s ! %s", field,
+                         model.name.lower(), exact_matches)
+            exact_matches = exact_matches[:1]
+
+        # If there are multiple matches and no exact match
+        if len(matches) != 1 and len(exact_matches) != 1:
             raise argparse.ArgumentTypeError(
                 f"Pattern '{string}' does not identify a single {model.name.lower()}: "
                 f"{len(matches)} {model.name.lower()}s match")
