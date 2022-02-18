@@ -1,19 +1,11 @@
 import os
 import sys
 from pathlib import Path
-
-try:
-    from e4s_cl.version import __version__, __commit__
-except ImportError:
-    __version__ = "Undefined"
-    __commit__ = "Undefined"
+from e4s_cl.version import __version__
 """str: E4S Container Launcher Version"""
 
 E4S_CL_VERSION = __version__
 """str: E4S Container Launcher Version"""
-
-SCM_COMMIT = __commit__
-"""str: Git commit"""
 
 EXIT_FAILURE = -100
 """int: Process exit code indicating unrecoverable failure."""
@@ -98,7 +90,7 @@ def version_banner():
     fmt = ("E4S Container Launcher [ http://e4s-project.github.io/e4s-cl ]\n"
            "\n"
            "Prefix         : %(prefix)s\n"
-           "Version        : %(version)s@%(commit)s\n"
+           "Version        : %(version)s\n"
            "Timestamp      : %(timestamp)s\n"
            "Hostname       : %(hostname)s\n"
            "Platform       : %(platform)s\n"
@@ -112,7 +104,6 @@ def version_banner():
     data = {
         "prefix": E4S_CL_HOME,
         "version": E4S_CL_VERSION,
-        "commit": SCM_COMMIT,
         "timestamp": str(datetime.now()),
         "hostname": socket.gethostname(),
         "platform": platform.platform(),
