@@ -54,7 +54,7 @@ install_options = {
     "license": metadata.LICENSE,
     "keywords": KEYWORDS,
     "classifiers": CLASSIFIERS,
-    "scripts": ['scripts/e4s-cl'],
+    "scripts": ['scripts/e4s-cl', 'scripts/mpi_id.py'],
     "packages": find_packages()
 }
 

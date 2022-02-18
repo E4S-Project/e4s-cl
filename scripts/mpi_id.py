@@ -5,20 +5,23 @@
 
 import os
 import sys
+from e4s_cl.cf.detect_name import version_info
+
+USAGE = "Usage: %s <libmpi.so.x>" % sys.argv[0]
+
+DESCRIPTION = \
+f"""{USAGE}
+
+This program will extract and run the function associated to the 'MPI_Get_library_version' symbol from any shared object it is given.
+"""
 
 if __name__ == '__main__':
     if getattr(sys, 'frozen', False):
         __file__ = sys.executable
 
-    here = os.path.realpath(os.path.dirname(__file__))
-    os.environ['__E4S_CL_HOME__'] = os.path.join(here, '..')
-    packages = os.path.join(here, '..', 'packages')
-    sys.path.insert(0, packages)
-
     if len(sys.argv) < 2:
-        print("Usage: %s <libmpi.so.x>" % sys.argv[0], file=sys.stderr)
+        print(DESCRIPTION, end='')
         sys.exit(1)
 
-    from e4s_cl.cf.detect_name import version_info
-
-    print(version_info(sys.argv[1]))
+    print(version_info(sys.argv[1]), end='')
+    sys.exit(0)
