@@ -106,16 +106,10 @@ else
 	COMPLETION_DIR = $(BASH_COMPLETION_USER_DIR)/completions
 endif
 
-all: install completion man
+all: install download_assets completion man
 
 #>============================================================================<
 # Conda setup and fetch target
-
-python_check: $(PYTHON_EXE)
-	@$(PYTHON) -c "import sys; import setuptools;" || (echo "ERROR: setuptools is required." && false)
-	$(PYTHON) -m pip install -q -U -r requirements.txt
-
-python_download: $(CONDA_SRC)
 
 $(CONDA): $(CONDA_SRC)
 	bash $< -b -u -p $(CONDA_DEST)
@@ -131,18 +125,17 @@ $(CONDA_SRC):
 #>============================================================================<
 # Main installation target
 
-install: python_check download_assets
-	$(PYTHON) setup.py build -b "$(BUILDDIR)"
-	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
-	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
-	@$(PYTHON) scripts/success.py "Installation succeded. Please add '$(INSTALLDIR)/bin' to your PATH."
+install: $(PYTHON_EXE)
+	$(PYTHON) -m pip install --use-feature=in-tree-build -q -rrequirements.txt --compile .
+	$(MKDIR) $(INSTALL_BIN_DIR)
+	ln -fs $(CONDA_BIN)/e4s-cl $(INSTALL_BIN_DIR)/e4s-cl
 
 #>============================================================================<
 # Data fetching targets
 
 ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
 
-download_assets: python_check
+download_assets: $(PYTHON_EXE)
 	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(SYSTEM)
 
 COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
@@ -169,15 +162,15 @@ DOCS=$(PROJECT)/docs
 MANBUILDDIR=$(PROJECT)/docs/build/man
 USER_MAN=$(HOME)/.local/share/man
 
-man: python_check
-	$(PYTHON) -m pip install -U -r $(DOCS)/requirements.txt
+man: $(PYTHON_EXE)
+	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	@$(MKDIR) $(USER_MAN)/man1
 	@$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1
 	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
 	@$(PYTHON) scripts/success.py "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
-html: python_check
+man: $(PYTHON_EXE)
 	find $(DOCS) -exec touch {} \;
 	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) html
@@ -187,9 +180,6 @@ clean:
 
 #>============================================================================<
 # Maintenance targets
-
-__E4S_CL_USER_PREFIX__ = /tmp/$(USER)/e4s_cl/user_test
-__E4S_CL_SYSTEM_PREFIX__ = /tmp/$(USER)/e4s_cl/system_test
 
 format:
 	bash ./scripts/format.sh packages/e4s_cl
