@@ -13,38 +13,38 @@ class ContainerTestSingularity(tests.TestCase):
                 and (not Path('singularity').exists()))
 
     def test_create(self):
-        container = Container(executable='singularity', image='test')
+        container = Container(name='singularity', image='test')
         self.assertFalse(type(container) == Container)
         self.assertTrue(isinstance(container, Container))
 
     @skipIf(singularity_check(), "Singularity absent from system")
     def test_run_backend(self):
-        container = Container(executable='singularity')
+        container = Container(name='singularity')
         command = ['']
         container_cmd = container._prepare(command)
         self.assertIn('singularity', ' '.join(map(str, container_cmd)))
 
     def test_run_image(self):
-        container = Container(executable='singularity', image='imagenametest')
+        container = Container(name='singularity', image='imagenametest')
         command = ['']
         container_cmd = container._prepare(command)
         self.assertIn('imagenametest', ' '.join(map(str, container_cmd)))
 
     def test_run_pwd(self):
-        container = Container(executable='singularity')
+        container = Container(name='singularity')
         command = ['']
         container_cmd = container._prepare(command)
         pwd = getcwd()
         self.assertIn(pwd, ' '.join(map(str, container_cmd)))
 
     def test_run_mpirun(self):
-        container = Container(executable='singularity', image='dummyimagename')
+        container = Container(name='singularity', image='dummyimagename')
         command = ['mpirun -n 2 ls']
         container_cmd = container._prepare(command)
         self.assertIn(command[0], ' '.join(map(str, container_cmd)))
 
     def test_bind_file(self):
-        container = Container(executable='singularity')
+        container = Container(name='singularity')
 
         target = Path('/tmp')
         dest = Path('/tmp')
@@ -63,7 +63,7 @@ class ContainerTestSingularity(tests.TestCase):
                       list(container.bound))
 
     def test_bind_relative(self):
-        container = Container(executable='singularity')
+        container = Container(name='singularity')
 
         target = Path('/tmp/../proc/meminfo')
 

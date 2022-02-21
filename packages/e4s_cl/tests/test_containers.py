@@ -6,16 +6,16 @@ from e4s_cl.cf.containers import Container, BackendUnsupported, FileOptions
 
 class ContainerTest(tests.TestCase):
     def test_create(self):
-        container = Container(executable='bash')
+        container = Container(name='dummy')
         self.assertFalse(type(container) == Container)
         self.assertTrue(isinstance(container, Container))
 
     def test_backend_unknown(self):
         with self.assertRaises(BackendUnsupported):
-            container = Container(executable='UNKNOWN')
+            container = Container(name='UNKNOWN')
 
     def test_bind_file(self):
-        container = Container(executable='bash')
+        container = Container(name='dummy')
 
         target = Path('/tmp')
         dest = Path('/tmp')
@@ -34,7 +34,7 @@ class ContainerTest(tests.TestCase):
                       list(container.bound))
 
     def test_bind_relative(self):
-        container = Container(executable='bash')
+        container = Container(name='dummy')
 
         target = Path('/tmp/../proc/meminfo')
 
