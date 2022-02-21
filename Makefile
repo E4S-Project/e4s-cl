@@ -42,32 +42,19 @@ endif
 
 # Miniconda configuration
 USE_MINICONDA = true
-ifeq ($(HOST_OS),Darwin)
-ifeq ($(HOST_ARCH),i386)
-	USE_MINICONDA = false
-endif
-endif
-ifeq ($(HOST_OS),Darwin)
-	CONDA_OS = MacOSX
+ifeq ($(HOST_OS),Linux)
+	CONDA_OS = Linux
 else
-	ifeq ($(HOST_OS),Linux)
-		CONDA_OS = Linux
-	else
-		USE_MINICONDA = false
-	endif
+	USE_MINICONDA = false
 endif
 ifeq ($(HOST_ARCH),x86_64)
 	CONDA_ARCH = x86_64
 else
-	ifeq ($(HOST_ARCH),i386)
-		CONDA_ARCH = x86
-	else
-		ifeq ($(HOST_ARCH),ppc64le)
-			CONDA_ARCH = ppc64le
-		else
-			USE_MINICONDA = false
-		endif
-	endif
+	ifeq ($(HOST_ARCH),ppc64le)
+	CONDA_ARCH = ppc64le
+else
+	USE_MINICONDA = false
+endif
 endif
 
 CONDA_VERSION = latest
