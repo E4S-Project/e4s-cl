@@ -146,8 +146,8 @@ class ExecuteCommand(AbstractCommand):
                             type=str,
                             dest='backend',
                             required=True,
-                            help="Specify the container executable",
-                            metavar='executable')
+                            help="Specify the backend name",
+                            metavar='backend')
 
         parser.add_argument('--image',
                             type=str,
@@ -184,7 +184,7 @@ class ExecuteCommand(AbstractCommand):
         args = self._parse_args(argv)
 
         try:
-            container = Container(executable=args.backend, image=args.image)
+            container = Container(name=args.backend, image=args.image)
         except BackendError as err:
             return err.handle(type(err), err, None)
 

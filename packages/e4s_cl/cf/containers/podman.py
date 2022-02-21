@@ -7,13 +7,11 @@ from pathlib import Path
 from e4s_cl.error import InternalError
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.logger import get_logger
-from e4s_cl.cf.pipe import NamedPipe, ENV_VAR_NAMED
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
 LOGGER = get_logger(__name__)
 
 NAME = 'podman'
-EXECUTABLES = ['podman']
 MIMES = []
 
 
@@ -101,6 +99,12 @@ class PodmanContainer(Container):
     Podman container object
     """
 
+    executable_name = 'podman'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.executable = which(self.__class__.executable_name)
+
     def _fd_number(self):
         """
         -> int
@@ -121,10 +125,6 @@ class PodmanContainer(Container):
     def _format_bound(self):
 
         def _format():
-            fifo = os.environ.get(ENV_VAR_NAMED, '')
-            if fifo:
-                yield f"--mount=type=bind,src={fifo},dst={fifo},ro=false"
-
             for src, dst, opt in self.bound:
                 yield f"--mount=type=bind,src={src.as_posix()},dst={dst.as_posix()}{',ro=true' if (opt == FileOptions.READ_ONLY) else ''}"
 

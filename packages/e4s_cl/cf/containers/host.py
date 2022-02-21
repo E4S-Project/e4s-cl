@@ -5,19 +5,15 @@ Containerless support
 import os
 import tempfile
 from pathlib import Path
-from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT
-from e4s_cl.error import InternalError
+from e4s_cl import CONTAINER_SCRIPT
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.logger import get_logger
-from e4s_cl.cf.version import Version
-from e4s_cl.cf.pipe import NamedPipe, ENV_VAR_NAMED
-from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
+from e4s_cl.cf.containers import Container, BackendNotAvailableError
 from e4s_cl.cf.libraries import LibrarySet, libc_version
 
 LOGGER = get_logger(__name__)
 
 NAME = 'containerless'
-EXECUTABLES = ['bash']
 MIMES = []
 
 
@@ -26,8 +22,12 @@ class Containerless(Container):
     Containerless object
     """
 
+    executable_name = 'bash'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.executable = which(self.__class__.executable_name)
 
         # The following directory will hold symlinks to the libraries bound to
         # the container; the file will be deleted once the object is deleted
