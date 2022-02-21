@@ -21,7 +21,7 @@ import json
 from importlib import import_module
 from pathlib import Path
 from typing import Union
-from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger
+from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_LIBRARY_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger
 from e4s_cl.variables import ParentStatus
 from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
@@ -189,6 +189,18 @@ class Container:
 
         if hasattr(self, '__setup__'):
             self.__setup__()
+
+    @property
+    def script(self):
+        return Path(CONTAINER_SCRIPT)
+
+    @property
+    def import_dir(self):
+        return Path(CONTAINER_DIR)
+
+    @property
+    def import_library_dir(self):
+        return Path(CONTAINER_LIBRARY_DIR)
 
     def get_data(self, entrypoint, library_set=LibrarySet()):
         """

@@ -5,14 +5,14 @@ Containerless support
 import os
 import tempfile
 from pathlib import Path
-from e4s_cl import CONTAINER_DIR
+from e4s_cl import CONTAINER_DIR, CONTAINER_SCRIPT
 from e4s_cl.error import InternalError
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.pipe import NamedPipe, ENV_VAR_NAMED
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
-from e4s_cl.cf.libraries import LibrarySet
+from e4s_cl.cf.libraries import LibrarySet, libc_version
 
 LOGGER = get_logger(__name__)
 
@@ -33,8 +33,20 @@ class Containerless(Container):
         # the container; the file will be deleted once the object is deleted
         self._lib_dir = tempfile.TemporaryDirectory()
 
+    @property
+    def script(self):
+        return Path(self._lib_dir.name, Path(CONTAINER_SCRIPT).name)
+
+    @property
+    def import_dir(self):
+        return Path(self._lib_dir.name)
+
+    @property
+    def import_library_dir(self):
+        return Path(self._lib_dir.name, super().import_library_dir.name)
+
     def get_data(self, entrypoint, library_set=LibrarySet()):
-        self.libc_v = Version('0.0.0')
+        self.libc_v = libc_version()
         self.libraries = LibrarySet(set())
 
         return self.libraries
@@ -50,8 +62,9 @@ class Containerless(Container):
 
             # Abort if not bound in the special dir
             try:
-                rel = destination.relative_to(CONTAINER_DIR)
+                rel = destination.relative_to(self.import_dir)
             except ValueError:
+                LOGGER.debug("%s is not in %s", destination, self.import_dir)
                 continue
 
             link = Path(self._lib_dir.name, rel)
