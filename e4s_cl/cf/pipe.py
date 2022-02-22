@@ -3,6 +3,7 @@ Setup a pipe for communication with child e4s-cl processes
 """
 
 import os
+import errno
 from pathlib import Path
 from e4s_cl.logger import get_logger
 from e4s_cl.error import InternalError
@@ -79,8 +80,8 @@ class NamedPipe():
         try:
             os.mkfifo(self.pipe.as_posix())
         except OSError as err:
-            if err.errno != errno.EEXISTS:
-                raise e
+            if err.errno != errno.EEXIST:
+                raise err
 
         self.fd_read = os.open(self.pipe.as_posix(),
                                os.O_RDONLY | os.O_NONBLOCK)

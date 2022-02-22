@@ -10,12 +10,11 @@ from pathlib import Path
 from e4s_cl import CONTAINER_SCRIPT, CONTAINER_LIBRARY_DIR, \
         EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables
 from e4s_cl.error import InternalError
-from e4s_cl.util import run_subprocess
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, BackendError, FileOptions
-from e4s_cl.cf.libraries import libc_version, LibrarySet, HostLibrary, library_links
+from e4s_cl.cf.libraries import libc_version, LibrarySet, library_links, Library
 from e4s_cl.cf.wi4mpi import wi4mpi_enabled, wi4mpi_root, wi4mpi_import, \
         wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload
 
@@ -60,8 +59,7 @@ def filter_libraries(library_set, container, entrypoint):
     for linker in guest_set.linkers:
         filtered_set.add(linker)
 
-    return LibrarySet(
-        filter(lambda x: isinstance(x, HostLibrary), filtered_set))
+    return filtered_set
 
 
 def overlay_libraries(library_set, container, entrypoint):
@@ -73,8 +71,7 @@ def overlay_libraries(library_set, container, entrypoint):
     This method selects all the libraries defined in the list, along with
     with the host's (implicitly newer) linker.
     """
-    selected = LibrarySet(
-        filter(lambda x: isinstance(x, HostLibrary), library_set))
+    selected = library_set
 
     # Figure out what to if multiple linkers are required
     if len(library_set.linkers) != 1:
@@ -202,11 +199,11 @@ class ExecuteCommand(AbstractCommand):
 
         # The following is a set of all libraries required. It
         # is used in the container to check version mismatches
-        libset = LibrarySet.create_from(required_libraries, member=HostLibrary)
+        libset = LibrarySet.create_from(required_libraries)
         if libset:
             # Analyze the container to get library information from the environment
             # it offers, using the entrypoint and the above libraries
-            container.get_data(params, library_set=libset)
+            container.get_data()
 
         # Setup the final command and metadata relating to the execution
         params.command = args.cmd
@@ -214,9 +211,7 @@ class ExecuteCommand(AbstractCommand):
         params.library_dir = CONTAINER_LIBRARY_DIR
 
         if wi4mpi_enabled():
-            linker_paths = [
-                x.as_posix() for x in wi4mpi_libpath(wi4mpi_root())
-            ]
+            linker_paths = map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_root()))
             params.library_dir = ':'.join(
                 [*linker_paths, CONTAINER_LIBRARY_DIR])
 
@@ -239,7 +234,7 @@ class ExecuteCommand(AbstractCommand):
 
             if not wi4mpi_enabled():
                 # Preload the roots of all the set's trees
-                def _path(library: HostLibrary):
+                def _path(library: Library):
                     return Path(CONTAINER_LIBRARY_DIR,
                                 Path(library.binary_path).name).as_posix()
 

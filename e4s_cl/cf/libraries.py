@@ -32,7 +32,7 @@ def libc_version():
         raise InternalError("libc not found on host")
 
     with open(path, 'rb') as file:
-        data = HostLibrary(file)
+        data = Library(file)
 
     # Get the version with major 2 from the defined versions,
     # as almost all libc implementations have the GLIBC_3.4 symbol
@@ -41,31 +41,3 @@ def libc_version():
                [Version(s) for s in data.defined_versions]))
 
     return libc_ver
-
-
-# pylint: disable=too-few-public-methods
-class HostLibrary(Library):
-    pass
-
-
-# pylint: disable=too-few-public-methods
-class GuestLibrary(Library):
-    pass
-
-
-def __library_decoder(_type):
-
-    def __l_decoder(obj):
-        out = _type()
-
-        for key, value in obj.items():
-            setattr(out, key, value)
-
-        return out
-
-    return __l_decoder
-
-
-JSON_HOOKS['Library'] = __library_decoder(Library)
-JSON_HOOKS['HostLibrary'] = __library_decoder(HostLibrary)
-JSON_HOOKS['GuestLibrary'] = __library_decoder(GuestLibrary)

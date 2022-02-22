@@ -19,6 +19,7 @@ import re
 import sys
 import json
 from importlib import import_module
+from tempfile import TemporaryFile
 from pathlib import Path
 from typing import Union
 from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger
@@ -28,8 +29,6 @@ from e4s_cl.cf.version import Version
 from e4s_cl.cf.pipe import Pipe
 from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import ConfigurationError
-
-from e4s_cl.cli.commands.__analyze import COMMAND as ANALYZE_COMMAND
 
 LOGGER = logger.get_logger(__name__)
 
@@ -117,17 +116,6 @@ def dump(func):
     return wrapper
 
 
-def brand(container):
-    """
-    Bind the python interpreter and e4s_cl packages to a container object
-    """
-    requirements = ['packages', 'conda', 'bin']
-
-    for folder in requirements:
-        container.bind_file(Path(E4S_CL_HOME, folder).as_posix(),
-                            dest=Path(CONTAINER_DIR, folder).as_posix())
-
-
 class Container:
     """
     Abstract class that auto-completes depending on the container tech
@@ -190,7 +178,7 @@ class Container:
         if hasattr(self, '__setup__'):
             self.__setup__()
 
-    def get_data(self, entrypoint, library_set=LibrarySet()):
+    def get_data(self):
         """
         Run the e4s-cl analyze command in the container to analyze the
         environment inside of it. The results will be used to tailor the
@@ -202,42 +190,20 @@ class Container:
         A library set with data about libraries listed in library_set will
         be returned
         """
+        sys.stdout = TemporaryFile()
 
-        # Import python and e4s-cl files
-        brand(self)
+        code = self.run(['ldd', '--version'])
 
-        # Use the imported python interpreter with the imported e4s-cl
-        entrypoint.command = [
-            Path(CONTAINER_DIR, 'conda', 'bin', 'python3').as_posix(),
-            Path(CONTAINER_DIR, 'bin', 'e4s-cl').as_posix(),
-            ANALYZE_COMMAND.monicker, '--libraries'
-        ] + list(library_set.sonames)
+        if code:
+            raise AnalysisError(code)
 
-        script_name = entrypoint.setup()
-        self.bind_file(script_name, CONTAINER_SCRIPT)
+        sys.stdout.seek(0, 0)
+        out = sys.stdout.read().decode()
+        LOGGER.debug("Output of ldd --version: %s", out)
+        self.libc_v = Version(out)
+        sys.stdout = sys.__stdout__
 
-        # Setup a one-way communication channel
-        with self.__class__.pipe_manager() as pipe_reader:
-            with ParentStatus():
-                code = self.run([CONTAINER_SCRIPT])
-
-            if code:
-                raise AnalysisError(code)
-
-            info = pipe_reader()
-
-        entrypoint.teardown()
-
-        try:
-            data = json_loads(info)
-        except Exception as err:
-            LOGGER.critical("Container analysis failed ! %s", str(err))
-            data = {}
-
-        self.libc_v = Version(data.get('libc_version', '0.0.0'))
-        self.libraries = LibrarySet(data.get('libraries', set()))
-
-        return self.libraries
+        return set()
 
     def bind_file(self,
                   path: Union[Path, str],
@@ -365,6 +331,7 @@ def guess_backend(path):
 
     return matches[0][1]
 
+
 def assert_module(_module) -> bool:
     """
     Assert a module defining a container class is properly structured
@@ -380,7 +347,8 @@ def assert_module(_module) -> bool:
 
     if getattr(_module, 'CLASS') and not getattr(_module.CLASS, 'run'):
         LOGGER.warning(
-            "Container module '%s' has an incomplete module class; skipping ...")
+            "Container module '%s' has an incomplete module class; skipping ..."
+        )
 
     return True
 
