@@ -49,7 +49,7 @@ class ProfileEditCommand(EditCommand):
                             help="change the profile's image",
                             metavar='<path/to/image>',
                             dest='image',
-                            type=arguments.posix_path,
+                            type=str,
                             default=arguments.SUPPRESS)
 
         parser.add_argument('--source',
