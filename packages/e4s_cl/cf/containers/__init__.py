@@ -21,7 +21,7 @@ import json
 from importlib import import_module
 from pathlib import Path
 from typing import Union
-from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger
+from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_LIBRARY_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger
 from e4s_cl.variables import ParentStatus
 from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
@@ -146,16 +146,16 @@ class Container:
             self.option = option
 
     # pylint: disable=unused-argument
-    def __new__(cls, image=None, executable=None):
+    def __new__(cls, image=None, name=None):
         """
         Object level creation hijacking: depending on the executable
         argument, the appropriate subclass will be returned.
         """
-        module_name = BACKENDS.get(Path(executable).name)
-        module = sys.modules.get(module_name)
-
-        if not module_name or not module:
-            raise BackendUnsupported(executable)
+        module_name = BACKENDS.get(name)
+        if module_name:
+            module = sys.modules.get(module_name)
+        else:
+            raise BackendUnsupported(name)
 
         driver = object.__new__(module.CLASS)
 
@@ -166,14 +166,12 @@ class Container:
 
         return driver
 
-    def __init__(self, image=None, executable=None):
+    def __init__(self, image=None, name=None):
         """
         Common class init: this code is run in the actual sub-classes
         """
 
-        self.executable = which(executable)
-
-        # Container image file on the host
+        # Container image identifier
         self.image = image
 
         # User-set parameters
@@ -189,6 +187,18 @@ class Container:
 
         if hasattr(self, '__setup__'):
             self.__setup__()
+
+    @property
+    def script(self):
+        return Path(CONTAINER_SCRIPT)
+
+    @property
+    def import_dir(self):
+        return Path(CONTAINER_DIR)
+
+    @property
+    def import_library_dir(self):
+        return Path(CONTAINER_LIBRARY_DIR)
 
     def get_data(self, entrypoint, library_set=LibrarySet()):
         """
@@ -369,7 +379,7 @@ def assert_module(_module) -> bool:
     """
     Assert a module defining a container class is properly structured
     """
-    required = ['NAME', 'EXECUTABLES', 'CLASS']
+    required = ['NAME', 'CLASS']
 
     for attribute in required:
         if not hasattr(_module, attribute):
@@ -392,13 +402,12 @@ for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
     if not assert_module(_module):
         continue
 
-    for _executable in _module.EXECUTABLES:
-        BACKENDS.update({
-            _executable: _module_name,
-        })
+    BACKENDS.update({
+        _module.NAME: _module_name,
+    })
 
-        if not getattr(_module, 'DEBUG_BACKEND', False):
-            EXPOSED_BACKENDS.append(_executable)
+    if not getattr(_module, 'DEBUG_BACKEND', False):
+        EXPOSED_BACKENDS.append(_module.NAME)
 
     for mimetype in getattr(_module, 'MIMES', []):
         MIMES.append((mimetype, _module.NAME))

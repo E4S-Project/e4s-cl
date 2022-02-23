@@ -12,38 +12,38 @@ class ContainerTestShifter(tests.TestCase):
         return (not which('shifter') and (not Path('shifter').exists()))
 
     def test_create(self):
-        container = Container(executable='shifter', image='test')
+        container = Container(name='shifter', image='test')
         self.assertFalse(type(container) == Container)
         self.assertTrue(isinstance(container, Container))
 
     @skipIf(shifter_check(), "Shifter absent from system")
     def test_run_backend(self):
-        container = Container(executable='shifter')
+        container = Container(name='shifter')
         command = ['']
         container_cmd = container._prepare(command)
         self.assertIn('shifter', ' '.join(map(str, container_cmd)))
 
     def test_run_image(self):
-        container = Container(executable='shifter', image='imagenametest')
+        container = Container(name='shifter', image='imagenametest')
         command = ['']
         container_cmd = container._prepare(command)
         self.assertIn('imagenametest', ' '.join(map(str, container_cmd)))
 
     def test_run_pwd(self):
-        container = Container(executable='shifter')
+        container = Container(name='shifter')
         command = ['']
         container_cmd = container._prepare(command)
         pwd = getcwd()
         self.assertIn(pwd, ' '.join(map(str, container_cmd)))
 
     def test_run_mpirun(self):
-        container = Container(executable='shifter', image='dummyimagename')
+        container = Container(name='shifter', image='dummyimagename')
         command = ['mpirun -n 2 ls']
         container_cmd = container._prepare(command)
         self.assertIn(command[0], ' '.join(map(str, container_cmd)))
 
     def test_bind_file(self):
-        container = Container(executable='shifter')
+        container = Container(name='shifter')
 
         target = Path('/tmp')
         dest = Path('/tmp')
@@ -62,7 +62,7 @@ class ContainerTestShifter(tests.TestCase):
                       list(container.bound))
 
     def test_bind_relative(self):
-        container = Container(executable='shifter')
+        container = Container(name='shifter')
 
         target = Path('/tmp/../proc/meminfo')
 
