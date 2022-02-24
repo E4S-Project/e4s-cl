@@ -29,22 +29,16 @@ class ShifterContainer(Container):
         super().__init__(*args, **kwargs)
         self.executable = which(self.__class__.executable_name)
 
-        # The following directory will hold the files bound to the container
-        # The file is deleted once the object is deleted
-        self.__shifter_e4s_dir = tempfile.TemporaryDirectory()
-        LOGGER.debug("Generating import template in '%s'",
-                     self.__shifter_e4s_dir.name)
-
-    def __setup_import(self) -> str:
+    def _setup_import(self, where: Path) -> str:
         """
         Create a temporary directory to bind /.e4s-cl files in
         """
-        volumes = [(self.__shifter_e4s_dir.name, CONTAINER_DIR)]
+        volumes = [(where.as_posix(), CONTAINER_DIR)]
 
         for source, destination, _ in self.bound:
             if destination.as_posix().startswith(CONTAINER_DIR):
                 rebased = destination.as_posix()[len(CONTAINER_DIR) + 1:]
-                temporary = Path(self.__shifter_e4s_dir.name, rebased)
+                temporary = Path(where, rebased)
 
                 LOGGER.debug("Shifter: Creating %s for %s in %s",
                              temporary.as_posix(), source.as_posix(),
@@ -82,12 +76,12 @@ class ShifterContainer(Container):
         for env_var in self.env.items():
             env_list.append(f'--env={env_var}={env_var}')
 
-        volumes = self.__setup_import()
-
-        return [
-            self.executable, f"--image={self.image}", *env_list, *volumes,
-            *command
-        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            volumes = self._setup_import(Path(temp_dir))
+            return [
+                self.executable, f"--image={self.image}", *env_list, *volumes,
+                *command
+            ]
 
     def run(self, command):
 
