@@ -113,7 +113,7 @@ $(CONDA_SRC):
 # Main installation target
 
 install: $(PYTHON_EXE)
-	$(PYTHON) -m pip install --use-feature=in-tree-build -q -rrequirements.txt --compile .
+	$(PYTHON) -m pip install --use-feature=in-tree-build -q -rrequirements/core.txt --compile .
 	$(MKDIR) $(INSTALL_BIN_DIR)
 	ln -fs $(CONDA_BIN)/e4s-cl $(INSTALL_BIN_DIR)/e4s-cl
 
@@ -157,9 +157,9 @@ man: $(PYTHON_EXE)
 	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
 	@$(PYTHON) scripts/success.py "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
-man: $(PYTHON_EXE)
+html: $(PYTHON_EXE)
 	find $(DOCS) -exec touch {} \;
-	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
+	$(PYTHON) -m pip install -q -U -r requirements/docs.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) html
 
 clean:
