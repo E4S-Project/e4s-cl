@@ -45,11 +45,10 @@ class Containerless(Container):
     def import_library_dir(self):
         return Path(self._lib_dir.name, super().import_library_dir.name)
 
-    def get_data(self, entrypoint, library_set=LibrarySet()):
+    def get_data(self):
         self.libc_v = libc_version()
-        self.libraries = LibrarySet(set())
 
-        return self.libraries
+        return set()
 
     def _setup_import(self) -> None:
         """

@@ -7,7 +7,7 @@ This command is used internally and thus cloaked from the UI
 """
 
 from pathlib import Path
-from sotools.libraryset import LibrarySet
+from sotools.libraryset import LibrarySet, Library
 from e4s_cl import (CONTAINER_SCRIPT, EXIT_SUCCESS, E4S_CL_SCRIPT, logger,
                     variables)
 from e4s_cl.error import InternalError
