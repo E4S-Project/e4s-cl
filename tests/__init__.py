@@ -15,6 +15,7 @@ from io import StringIO
 from e4s_cl import logger, E4S_CL_HOME, EXIT_SUCCESS, EXIT_FAILURE
 from e4s_cl.error import ConfigurationError
 from e4s_cl.cf.storage.levels import USER_STORAGE, SYSTEM_STORAGE
+from e4s_cl.cf.assets import SAMPLE_BINARY_TABLE, BUILTIN_PROFILE_TABLE
 
 _DIR_STACK = []
 _CWD_STACK = []
@@ -180,8 +181,10 @@ class TestCase(unittest.TestCase):
 
     @classmethod
     def resetStorage(cls):
-        USER_STORAGE.purge(table_name="Profile")
-        SYSTEM_STORAGE.purge(table_name="Profile")
+        tables = ["Profile", SAMPLE_BINARY_TABLE, BUILTIN_PROFILE_TABLE]
+        for table in tables:
+            USER_STORAGE.purge(table_name=table)
+            SYSTEM_STORAGE.purge(table_name=table)
 
 
 class TestRunner(unittest.TextTestRunner):
