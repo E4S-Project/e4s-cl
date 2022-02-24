@@ -7,16 +7,16 @@ This command is used internally and thus cloaked from the UI
 """
 
 from pathlib import Path
-from e4s_cl import CONTAINER_SCRIPT, CONTAINER_LIBRARY_DIR, \
-        EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables
+from e4s_cl import (CONTAINER_SCRIPT, EXIT_SUCCESS, E4S_CL_SCRIPT, logger,
+                    variables)
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, BackendError, FileOptions
-from e4s_cl.cf.libraries import libc_version, LibrarySet, library_links, Library
-from e4s_cl.cf.wi4mpi import wi4mpi_enabled, wi4mpi_root, wi4mpi_import, \
-        wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload
+from e4s_cl.cf.libraries import (libc_version, library_links)
+from e4s_cl.cf.wi4mpi import (wi4mpi_enabled, wi4mpi_root, wi4mpi_import,
+                              wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload)
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -33,7 +33,8 @@ def import_library(shared_object, container):
     library is found down the line.
     """
     for file in library_links(shared_object):
-        container.bind_file(file, Path(CONTAINER_LIBRARY_DIR, file.name))
+        container.bind_file(file, Path(container.import_library_dir,
+                                       file.name))
 
 
 # pylint: disable=unused-argument
@@ -80,10 +81,10 @@ def overlay_libraries(library_set, container, entrypoint):
         )
 
     for linker in library_set.linkers:
-        entrypoint.linker = Path(CONTAINER_LIBRARY_DIR,
+        entrypoint.linker = Path(container.import_library_dir,
                                  Path(linker.binary_path).name).as_posix()
         container.bind_file(linker.binary_path,
-                            dest=Path(CONTAINER_LIBRARY_DIR,
+                            dest=Path(container.import_library_dir,
                                       Path(linker.binary_path).name))
 
     return selected
@@ -141,8 +142,8 @@ class ExecuteCommand(AbstractCommand):
                             type=str,
                             dest='backend',
                             required=True,
-                            help="Specify the container executable",
-                            metavar='executable')
+                            help="Specify the backend name",
+                            metavar='backend')
 
         parser.add_argument('--image',
                             type=str,
@@ -179,7 +180,7 @@ class ExecuteCommand(AbstractCommand):
         args = self._parse_args(argv)
 
         try:
-            container = Container(executable=args.backend, image=args.image)
+            container = Container(name=args.backend, image=args.image)
         except BackendError as err:
             return err.handle(type(err), err, None)
 
@@ -208,12 +209,13 @@ class ExecuteCommand(AbstractCommand):
         # Setup the final command and metadata relating to the execution
         params.command = args.cmd
         params.debug = logger.debug_mode()
-        params.library_dir = CONTAINER_LIBRARY_DIR
+        params.library_dir = container.import_library_dir.as_posix()
 
         if wi4mpi_enabled():
             linker_paths = map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_root()))
             params.library_dir = ':'.join(
-                [*linker_paths, CONTAINER_LIBRARY_DIR])
+                [*linker_paths,
+                 container.import_library_dir.as_posix()])
 
         if wi4mpi_enabled():
             # Import relevant files
@@ -235,7 +237,7 @@ class ExecuteCommand(AbstractCommand):
             if not wi4mpi_enabled():
                 # Preload the roots of all the set's trees
                 def _path(library: Library):
-                    return Path(CONTAINER_LIBRARY_DIR,
+                    return Path(container.import_library_dir,
                                 Path(library.binary_path).name).as_posix()
 
                 for import_path in map(_path, libset.top_level):
@@ -243,9 +245,9 @@ class ExecuteCommand(AbstractCommand):
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()
-        container.bind_file(script_name, dest=CONTAINER_SCRIPT)
+        container.bind_file(script_name, dest=container.script)
 
-        command = [CONTAINER_SCRIPT]
+        command = [container.script]
 
         if variables.is_dry_run():
             LOGGER.info("Running %s in container %s", command, container)
@@ -255,7 +257,8 @@ class ExecuteCommand(AbstractCommand):
         code = container.run(command)
 
         if code:
-            LOGGER.critical("Container command failed with error code %d", code)
+            LOGGER.critical("Container command failed with error code %d",
+                            code)
 
         params.teardown()
 

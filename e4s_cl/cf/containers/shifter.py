@@ -13,7 +13,6 @@ from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableErro
 LOGGER = logger.get_logger(__name__)
 
 NAME = 'shifter'
-EXECUTABLES = ['shifter']
 MIMES = []
 
 OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
@@ -24,10 +23,11 @@ class ShifterContainer(Container):
     Class to use for a shifter execution
     """
 
-    def __setup_import(self) -> str:
-        """
-        Create a temporary directory to bind /.e4s-cl files in
-        """
+    executable_name = 'shifter'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.executable = which(self.__class__.executable_name)
 
         # The following directory will hold the files bound to the container
         # The file is deleted once the object is deleted
@@ -35,6 +35,10 @@ class ShifterContainer(Container):
         LOGGER.debug("Generating import template in '%s'",
                      self.__shifter_e4s_dir.name)
 
+    def __setup_import(self) -> str:
+        """
+        Create a temporary directory to bind /.e4s-cl files in
+        """
         volumes = [(self.__shifter_e4s_dir.name, CONTAINER_DIR)]
 
         for source, destination, _ in self.bound:

@@ -12,7 +12,6 @@ from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableErro
 LOGGER = logger.get_logger(__name__)
 
 NAME = 'singularity'
-EXECUTABLES = ['singularity']
 MIMES = ['.simg', '.sif']
 
 OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
@@ -22,6 +21,12 @@ class SingularityContainer(Container):
     """
     Class to use when formatting bound files for a singularity execution
     """
+
+    executable_name = 'singularity'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.executable = which(self.__class__.executable_name)
 
     def _working_dir(self):
         return ['--pwd', os.getcwd()]
@@ -63,8 +68,8 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable, 'exec', *self._working_dir(), *nvidia_flag,
-            self.image, *command
+            self.executable, 'exec', *self._working_dir(),
+            *nvidia_flag, self.image, *command
         ]
 
     def bind_env_var(self, key, value):
@@ -77,13 +82,12 @@ class SingularityContainer(Container):
         return True
 
     def run(self, command):
-        if not which(self.executable):
+        if not self.executable:
             raise BackendNotAvailableError(self.executable)
 
         container_cmd = self._prepare(command)
 
         return run_subprocess(container_cmd, env=self.env)
-
 
 
 CLASS = SingularityContainer
