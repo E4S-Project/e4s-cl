@@ -7,6 +7,7 @@ This command is used internally and thus cloaked from the UI
 """
 
 from pathlib import Path
+from sotools.libraryset import LibrarySet
 from e4s_cl import (CONTAINER_SCRIPT, EXIT_SUCCESS, E4S_CL_SCRIPT, logger,
                     variables)
 from e4s_cl.error import InternalError
@@ -44,21 +45,15 @@ def filter_libraries(library_set, container, entrypoint):
     library_paths: list[pathlib.Path]
     container: e4s_cl.cf.containers.Container
 
-    This method generates a LibarySet of libraries to import in the container.
+    This method filters out libraries that may cause problems when imported
+    in a newer glibc environment
     """
 
-    guest_set = container.libraries
     filtered_set = LibrarySet(library_set)
 
-    # Remove libc-tied libraries from the filtered set by adding the guest libraries
+    # Remove libc-tied libraries from the filtered set, including the linker
     for lib in library_set.glib:
-        guest_lib = guest_set.find(lib.soname)
-        if guest_lib:
-            filtered_set.add(guest_lib)
-
-    # Remove linkers from the import list
-    for linker in guest_set.linkers:
-        filtered_set.add(linker)
+        filtered_set.remove(lib)
 
     return filtered_set
 
