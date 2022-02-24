@@ -1,6 +1,6 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# This workflow will install Python dependencies and calculate test coverage
 
-name: Run tests
+name: Run coverage
 
 on: 
   push:
@@ -8,11 +8,11 @@ on:
       - '**.py'
 
 jobs:
-  Test:
+  Coverage:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.9]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -23,6 +23,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install tox
-    - name: Test with tox
+    - name: Calculate coverage with tox
       run: |
-        tox -e py3
+        tox -e coverage
