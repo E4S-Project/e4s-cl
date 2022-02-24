@@ -1,5 +1,5 @@
 import pathlib
-from e4s_cl import tests, E4S_CL_SCRIPT
+import tests
 from e4s_cl.cli.commands.__main__ import COMMAND as main
 
 

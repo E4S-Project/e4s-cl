@@ -1,5 +1,5 @@
 import re
-from e4s_cl import tests
+import tests
 from e4s_cl.cli.arguments import get_parser
 
 parser_usage = 'do not use'

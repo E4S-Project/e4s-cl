@@ -3,7 +3,7 @@
 Functions used for unit tests of help.py.
 """
 
-from e4s_cl import tests
+import tests
 from e4s_cl.cli.commands.help import COMMAND as help_command
 
 

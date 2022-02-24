@@ -1,7 +1,7 @@
 """
 Ensure the profile unselect command behaves properly
 """
-from e4s_cl import tests
+import tests
 from e4s_cl.model.profile import Profile
 from e4s_cl.error import ProfileSelectionError
 from e4s_cl.cli.commands.profile.unselect import COMMAND

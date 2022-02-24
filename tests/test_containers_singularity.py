@@ -1,7 +1,7 @@
 from os import getenv, getcwd
 from unittest import skipIf
 from pathlib import Path
-from e4s_cl import tests
+import tests
 from e4s_cl.util import which
 from e4s_cl.cf.containers import Container, BackendUnsupported, FileOptions
 

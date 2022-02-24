@@ -1,6 +1,6 @@
 import os
 import pathlib
-from e4s_cl import tests
+import tests
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 
 

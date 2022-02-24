@@ -2,7 +2,7 @@
 Tests asserting the correct behaviour of the profile create command
 """
 
-from e4s_cl import tests
+import tests
 from e4s_cl.model.profile import Profile
 from e4s_cl.cli.commands.profile.create import COMMAND as command
 

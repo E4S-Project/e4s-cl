@@ -1,5 +1,5 @@
 from shlex import split
-from e4s_cl import tests
+import tests
 from e4s_cl.cf.launchers import interpret
 
 

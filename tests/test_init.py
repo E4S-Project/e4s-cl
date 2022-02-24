@@ -4,7 +4,7 @@ Tests ensuring the init command behaves as intented
 
 from os import getenv
 from itertools import combinations
-from e4s_cl import tests
+import tests
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.assets import add_builtin_profile, remove_builtin_profile
 from e4s_cl.cli.commands.init import COMMAND

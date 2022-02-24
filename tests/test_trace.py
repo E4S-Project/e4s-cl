@@ -1,5 +1,5 @@
 from pathlib import Path
-from e4s_cl import tests
+import tests
 from e4s_cl.cf.trace import opened_files
 
 

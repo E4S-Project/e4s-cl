@@ -3,7 +3,7 @@ Tests relating to MPI library version detection
 """
 
 from pathlib import Path
-from e4s_cl import tests
+import tests
 from e4s_cl.cf.libraries import resolve
 from e4s_cl.cf.detect_name import (_suffix_name, _extract_mvapich_version,
                                    _extract_intel_mpi_version,

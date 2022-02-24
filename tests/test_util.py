@@ -1,5 +1,5 @@
 import pathlib
-from e4s_cl import tests
+import tests
 from e4s_cl.util import which, path_accessible
 
 

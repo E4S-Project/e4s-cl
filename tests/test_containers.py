@@ -1,6 +1,6 @@
 from unittest import skipIf
 from pathlib import Path
-from e4s_cl import tests
+import tests
 from e4s_cl.cf.containers import Container, BackendUnsupported, FileOptions
 
 

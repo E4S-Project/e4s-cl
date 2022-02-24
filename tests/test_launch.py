@@ -1,7 +1,7 @@
 import os
 import shlex
 import json
-from e4s_cl import tests
+import tests
 from e4s_cl.cf.libraries import host_libraries
 from e4s_cl.cf.storage.levels import PROFILE_STORAGE
 from e4s_cl.cli.commands.launch import COMMAND
