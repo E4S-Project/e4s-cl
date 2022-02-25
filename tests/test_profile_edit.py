@@ -104,11 +104,11 @@ class ProfileEditTest(tests.TestCase):
 
 
 fields = {
-    ('--image', 'image:id', 'image', 'edit_image'),
-    ('--backend', 'singularity', 'backend', 'edit_backend'),
-    ('--source', '/tmp/test.sh', 'source', 'edit_source'),
-    ('--wi4mpi', '/usr/packages/installation', 'wi4mpi', 'edit_wi4mpi'),
-    ('--wi4mpi_options', "'-T to -F from'", 'wi4mpi_options', 'edit_wi4mpi_options'),
+    ('--image', 'image:id', 'image', 'profile_edit_image'),
+    ('--backend', 'singularity', 'backend', 'profile_edit_backend'),
+    ('--source', '/tmp/test.sh', 'source', 'profile_edit_source'),
+    ('--wi4mpi', '/usr/packages/installation', 'wi4mpi', 'profile_edit_wi4mpi'),
+    ('--wi4mpi_options', "'-T to -F from'", 'wi4mpi_options', 'profile_edit_wi4mpi_options'),
 }
 
 
