@@ -2,7 +2,8 @@ import os
 import shlex
 import json
 import tests
-from e4s_cl.cf.libraries import host_libraries
+from e4s_cl.variables import set_dry_run
+from e4s_cl.cf.launchers import LAUNCHERS
 from e4s_cl.cli.commands.launch import COMMAND
 from e4s_cl.cli.cli_view import CreateCommand
 from e4s_cl.model.profile import Profile
@@ -24,10 +25,21 @@ class LaunchTest(tests.TestCase):
     def tearDown(self):
         self.resetStorage()
 
-    @tests.skipIf(not os.getenv('__E4S_CL_TEST_LAUNCHER'),
-                  "No environment information")
-    def test_launch(self):
+
+def wrapper(launcher):
+
+    def generated(self):
+        set_dry_run(True)
         self.assertCommandReturnValue(
             0, COMMAND,
-            shlex.split(os.getenv('__E4S_CL_TEST_LAUNCHER')) +
-            [os.getenv('__E4S_CL_TEST_BINARY')])
+            shlex.split(
+                f"--backend containerless --image None {launcher} hostname"))
+
+    generated.__name__ = f"test_launch_{launcher}"
+
+    return generated
+
+
+for launcher in LAUNCHERS:
+    test = wrapper(launcher)
+    setattr(LaunchTest, test.__name__, test)
