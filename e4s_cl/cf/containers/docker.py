@@ -6,7 +6,6 @@ import os
 import sys
 import docker
 from e4s_cl.logger import get_logger
-from e4s_cl.cf.pipe import ENV_VAR_NAMED, NamedPipe
 from e4s_cl.cf.containers import Container, FileOptions, BackendError, BackendNotAvailableError
 
 LOGGER = get_logger(__name__)
@@ -20,8 +19,6 @@ class DockerContainer(Container):
     """
     Class used to abstract docker containers
     """
-    pipe_manager = NamedPipe
-
     def run(self, command):
         """
         def run(self, command: list[str]):
@@ -46,11 +43,6 @@ class DockerContainer(Container):
                     source.as_posix(),
                     type='bind',
                     read_only=(options_val == FileOptions.READ_ONLY)))
-
-        fifo = os.environ.get(ENV_VAR_NAMED, '')
-        if fifo:
-            mounts.append(
-                docker.types.Mount(fifo, fifo, type='bind', read_only=False))
 
         container_env = dict(os.environ)
         for key, val in self.env.items():

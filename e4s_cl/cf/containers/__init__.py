@@ -26,7 +26,6 @@ from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_LIBRARY_D
 from e4s_cl.variables import ParentStatus
 from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
-from e4s_cl.cf.pipe import Pipe
 from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import ConfigurationError
 
@@ -120,9 +119,6 @@ class Container:
     """
     Abstract class that auto-completes depending on the container tech
     """
-    # Default pipe manager
-    pipe_manager = Pipe
-
     # pylint: disable=too-few-public-methods
     class BoundFile:
         """
