@@ -32,7 +32,7 @@ Examples
 
 """
 
-import re
+import sys
 from json import JSONDecodeError
 from pathlib import Path
 from typing import List
@@ -40,6 +40,7 @@ from typing import List
 from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, INIT_TEMP_PROFILE_NAME
 
 from e4s_cl import variables
+from e4s_cl.error import ProfileSelectionError
 from e4s_cl.util import run_e4scl_subprocess, flatten, json_dumps, json_loads
 from e4s_cl.cf.trace import opened_files
 from e4s_cl.cf.libraries import is_elf, resolve
@@ -92,8 +93,7 @@ def filter_files(path_list: List[Path]):
         blacklist = ["/tmp", "/sys", "/proc", "/dev", "/run"]
         filtered = False
         for expr in blacklist:
-            if not filtered and re.match(f"^{re.escape(expr)}.*",
-                                         path.as_posix()):
+            if not filtered and path.as_posix().startswith(expr):
                 filtered = True
                 break
 
@@ -138,7 +138,7 @@ class ProfileDetectCommand(AbstractCliView):
             with variables.ParentStatus():
                 # If a launcher is present, act as a launcher
                 returncode, json_data = run_e4scl_subprocess(
-                    [*launcher, E4S_CL_SCRIPT, "profile", "detect", *program],
+                    [*launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect", *program],
                     capture_output=True)
 
             if not returncode:
@@ -190,20 +190,20 @@ class ProfileDetectCommand(AbstractCliView):
                     LOGGER.error("Profile creation failed: %s", str(err))
                     return EXIT_FAILURE
         else:
-            profile = controller.selected()
-
-            if not profile['name'] == INIT_TEMP_PROFILE_NAME:
-                LOGGER.warning(
-                        "No profile specified: currently selected profile will be updated.")
-
-            if not profile:
+            try:
+                profile = controller.selected()
+            except ProfileSelectionError as err:
                 LOGGER.error(
                     "No output profile selected or given as an argument.")
                 return EXIT_FAILURE
 
+            if profile.get('name') != INIT_TEMP_PROFILE_NAME:
+                LOGGER.warning(
+                        "No profile specified: currently selected profile will be updated.")
+
             identifier = {'name': profile.get('name')}
 
-        data = {'libraries': libs, 'files': files}
+        data = {'libraries': list(libs), 'files': list(files)}
         try:
             controller.update(data, identifier)
         except Exception as err:  # TODO same as above
