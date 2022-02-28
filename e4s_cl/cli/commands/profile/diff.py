@@ -56,7 +56,7 @@ class DiffCommand(AbstractCliView):
         _order_l = lambda x, y: (list(set(y) - set(x)), '>')
 
         def _diff_member(attr, order):
-            diff, sign = order(lhs[attr], rhs[attr])
+            diff, sign = order(lhs.get(attr, []), rhs.get(attr, []))
             diff.sort()
 
             for element in diff:
@@ -66,6 +66,8 @@ class DiffCommand(AbstractCliView):
         _diff_member('files', _order_r)
         _diff_member('libraries', _order_l)
         _diff_member('files', _order_l)
+
+        return 0
 
 
 COMMAND = DiffCommand(Profile, __name__)
