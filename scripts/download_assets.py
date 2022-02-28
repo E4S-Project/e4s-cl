@@ -19,11 +19,11 @@ sys.path.insert(0, packages)
 
 from e4s_cl import logger, USER_PREFIX
 from e4s_cl.cf.assets import (add_builtin_profile, add_precompiled_binary,
-                              SAMPLE_BINARY_ID)
+                              SAMPLE_BINARY_TABLE)
 
 LOGGER = logger.get_logger(__name__)
 
-BINARY_DIR = Path(USER_PREFIX, SAMPLE_BINARY_ID).as_posix()
+BINARY_DIR = Path(USER_PREFIX, SAMPLE_BINARY_TABLE).as_posix()
 
 
 def init_dirs():
