@@ -43,7 +43,7 @@ from e4s_cl import variables
 from e4s_cl.error import ProfileSelectionError
 from e4s_cl.util import run_e4scl_subprocess, flatten, json_dumps, json_loads
 from e4s_cl.cf.trace import opened_files
-from e4s_cl.cf.libraries import is_elf, resolve
+from e4s_cl.cf.libraries import is_elf, resolve, Library
 from e4s_cl.cf.launchers import interpret
 from e4s_cl.cli import arguments
 from e4s_cl.model.profile import Profile
@@ -73,7 +73,12 @@ def filter_files(path_list: List[Path]):
 
         # Process shared objects
         if is_elf(path):
-            if resolve(path.name):
+            with open(path, 'rb') as elf:
+                library = Library(elf)
+
+            resolved_path = resolve(library.soname)
+
+            if Path(path).resolve() == Path(resolved_path).resolve():
                 # The library is resolved by the linker, treat it as a library
                 libraries.add(path.as_posix())
                 LOGGER.debug("File %s is a library", path.name)
