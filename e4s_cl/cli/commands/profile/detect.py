@@ -78,7 +78,8 @@ def filter_files(path_list: List[Path]):
 
             resolved_path = resolve(library.soname)
 
-            if Path(path).resolve() == Path(resolved_path).resolve():
+            if resolved_path and Path(path).resolve() == Path(
+                    resolved_path).resolve():
                 # The library is resolved by the linker, treat it as a library
                 libraries.add(path.as_posix())
                 LOGGER.debug("File %s is a library", path.name)
@@ -143,7 +144,10 @@ class ProfileDetectCommand(AbstractCliView):
             with variables.ParentStatus():
                 # If a launcher is present, act as a launcher
                 returncode, json_data = run_e4scl_subprocess(
-                    [*launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect", *program],
+                    [
+                        *launcher, sys.executable, E4S_CL_SCRIPT, "profile",
+                        "detect", *program
+                    ],
                     capture_output=True)
 
             if not returncode:
@@ -204,7 +208,8 @@ class ProfileDetectCommand(AbstractCliView):
 
             if profile.get('name') != INIT_TEMP_PROFILE_NAME:
                 LOGGER.warning(
-                        "No profile specified: currently selected profile will be updated.")
+                    "No profile specified: currently selected profile will be updated."
+                )
 
             identifier = {'name': profile.get('name')}
 

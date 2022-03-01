@@ -11,6 +11,8 @@ from e4s_cl.cli.commands.profile.detect import (filter_files, COMMAND)
 from e4s_cl.model.profile import Profile
 
 __TEST_LIBRARY_SONAME__ = "libz.so"
+__TEST_LIBRARY_NON_STANDARD__ = Path(
+    Path(__file__).parent, "assets", "libgver.so.0").as_posix()
 __BLACKLISTED_FILES__ = {
     "/dev/null", "/proc/self/fd/0", "/root", "/root/file", "/etc/ld.so.cache"
 }
@@ -31,7 +33,11 @@ class ProfileDetectTest(tests.TestCase):
             library = resolve(__TEST_LIBRARY_SONAME__)
 
             libraries, files = filter_files(
-                map(Path, {*__BLACKLISTED_FILES__, library, datafile.name}))
+                map(
+                    Path, {
+                        *__BLACKLISTED_FILES__, __TEST_LIBRARY_NON_STANDARD__,
+                        library, datafile.name
+                    }))
 
             self.assertIn(library, libraries)
             self.assertIn(datafile.name, files)
@@ -43,7 +49,9 @@ class ProfileDetectTest(tests.TestCase):
                   f"{__TEST_BINARY__} not found on this system")
     def test_profile_detect_new_profile(self):
         self.assertCommandReturnValue(
-            0, COMMAND, split(f"-p __test_profile_detect {__TEST_BINARY__} {__TEST_ARGS__}"))
+            0, COMMAND,
+            split(
+                f"-p __test_profile_detect {__TEST_BINARY__} {__TEST_ARGS__}"))
 
     @tests.skipIf(not which(__TEST_BINARY__),
                   f"{__TEST_BINARY__} not found on this system")
@@ -52,7 +60,9 @@ class ProfileDetectTest(tests.TestCase):
             {'name': '__test_profile_detect'})
 
         self.assertCommandReturnValue(
-            0, COMMAND, split(f"-p __test_profile_detect {__TEST_BINARY__} {__TEST_ARGS__}"))
+            0, COMMAND,
+            split(
+                f"-p __test_profile_detect {__TEST_BINARY__} {__TEST_ARGS__}"))
 
     @tests.skipIf(not which(__TEST_BINARY__),
                   f"{__TEST_BINARY__} not found on this system")
@@ -61,20 +71,21 @@ class ProfileDetectTest(tests.TestCase):
             {'name': '__test_profile_detect'})
         Profile.controller().select(profile)
 
-        self.assertCommandReturnValue(0, COMMAND, split(f"{__TEST_BINARY__} {__TEST_ARGS__}"))
+        self.assertCommandReturnValue(
+            0, COMMAND, split(f"{__TEST_BINARY__} {__TEST_ARGS__}"))
 
     @tests.skipIf(not which(__TEST_BINARY__),
                   f"{__TEST_BINARY__} not found on this system")
     def test_profile_detect_no_profile(self):
-        self.assertNotCommandReturnValue(0, COMMAND,
-                                         split(f"{__TEST_BINARY__} {__TEST_ARGS__}"))
+        self.assertNotCommandReturnValue(
+            0, COMMAND, split(f"{__TEST_BINARY__} {__TEST_ARGS__}"))
 
     @tests.skipIf(not which(__TEST_BINARY__),
                   f"{__TEST_BINARY__} not found on this system")
     def test_profile_detect_child(self):
         with ParentStatus():
-            self.assertCommandReturnValue(0, COMMAND,
-                                          split(f"{__TEST_BINARY__} {__TEST_ARGS__}"))
+            self.assertCommandReturnValue(
+                0, COMMAND, split(f"{__TEST_BINARY__} {__TEST_ARGS__}"))
 
     def test_profile_detect_error(self):
         self.assertNotCommandReturnValue(0, COMMAND,
