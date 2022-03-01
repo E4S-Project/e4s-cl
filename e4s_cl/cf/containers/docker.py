@@ -31,8 +31,10 @@ class DockerContainer(Container):
         try:
             image = client.images.get(self.image)
         except docker.errors.ImageNotFound as err:
+            client.close()
             raise BackendError('docker') from err
         except docker.errors.APIError as err:
+            client.close()
             raise BackendNotAvailableError('docker') from err
 
         mounts = []
@@ -71,6 +73,8 @@ class DockerContainer(Container):
             return err.exit_status
         else:
             print(outlog.decode(), file=sys.stdout, end='')
+        finally:
+            client.close()
 
         return 0
 
