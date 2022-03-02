@@ -458,7 +458,6 @@ class LocalFileStorage(AbstractStorage):
             #LOGGER.debug("%s: update(%r, keys=%r)", table_name, fields, keys)
             table.update(fields, self._query(keys, match_any))
         elif isinstance(keys, (list, tuple)):
-            #LOGGER.debug("%s: update(%r, eids=%r)", table_name, fields, keys)
             table.update(fields, doc_ids=keys)
         else:
             raise ValueError(keys)
@@ -496,7 +495,6 @@ class LocalFileStorage(AbstractStorage):
                              self._query(keys, match_any))
         elif isinstance(keys, (list, tuple)):
             for field in fields:
-                #LOGGER.debug("%s: unset(%s, eids=%r)", table_name, field, keys)
                 table.update(operations.delete(field), doc_ids=keys)
         else:
             raise ValueError(keys)
@@ -521,13 +519,12 @@ class LocalFileStorage(AbstractStorage):
         table = self.table(table_name)
         if isinstance(keys, self.Record.eid_type):
             #LOGGER.debug("%s: remove(eid=%r)", table_name, keys)
-            table.remove(eids=[keys])
+            table.remove(doc_ids=[keys])
         elif isinstance(keys, dict):
             #LOGGER.debug("%s: remove(keys=%r)", table_name, keys)
             table.remove(self._query(keys, match_any))
         elif isinstance(keys, (list, tuple)):
-            #LOGGER.debug("%s: remove(eids=%r)", table_name, keys)
-            table.remove(eids=keys)
+            table.remove(doc_ids=keys)
         else:
             raise ValueError(keys)
 
