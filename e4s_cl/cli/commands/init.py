@@ -253,7 +253,7 @@ def _analyze_binary(args):
         LOGGER.error("MPI execution failed.")
         return EXIT_FAILURE
 
-    try_rename(Profile.selected().get('name', ''))
+    try_rename(Profile.selected().eid)
 
     return EXIT_SUCCESS
 
@@ -409,20 +409,20 @@ class InitCommand(AbstractCommand):
 
         status = EXIT_SUCCESS
 
-        if profile_data['name'] == INIT_TEMP_PROFILE_NAME and _special_clauses(
-                args):
+        if (profile_data['name'] == INIT_TEMP_PROFILE_NAME
+                and _special_clauses(args)):
             try:
                 status = _analyze_binary(args)
 
                 if status == EXIT_FAILURE:
-                    controller.delete({"name": INIT_TEMP_PROFILE_NAME})
+                    controller.delete(profile.eid)
             except KeyboardInterrupt:
-                controller.delete({"name": INIT_TEMP_PROFILE_NAME})
+                controller.delete(profile.eid)
 
         if Profile.selected().get('name') == INIT_TEMP_PROFILE_NAME:
             hash_ = util.hash256(json.dumps(Profile.selected()))
             controller.update({'name': f"default-{hash_[:16]}"},
-                              Profile.selected().eid)
+                              profile.eid)
 
         # Rename the profile to the name passed as an argument
         requested_name = getattr(args, 'profile_name', '')
@@ -431,7 +431,7 @@ class InitCommand(AbstractCommand):
             if controller.one({"name": requested_name}):
                 controller.delete({"name": requested_name})
             # Rename the profile created and selected above
-            controller.update({'name': requested_name}, Profile.selected().eid)
+            controller.update({'name': requested_name}, profile.eid)
 
         return status
 

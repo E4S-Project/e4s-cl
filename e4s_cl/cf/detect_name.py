@@ -215,15 +215,15 @@ def detect_name(path_list):
     return profile_name
 
 
-def try_rename(profile_id: str) -> None:
+def try_rename(profile_eid: int) -> None:
     """
-    Analyze the selected profile for MPI libraries and rename it according
-    to the vendor/version info in the shared object
+    Analyze the profile with the given eid for MPI libraries and rename it
+    according to the vendor/version info in the shared object
     """
-    data = Profile.controller().one({'name': profile_id})
+    data = Profile.controller().one(profile_eid)
     if not data:
-        LOGGER.debug("Error renaming profile: profile '%s' not found",
-                     profile_id)
+        LOGGER.debug("Error renaming profile: profile id '%d' not found",
+                     profile_eid)
         return
 
     # Extract all libmpi* libraries from the profile
@@ -249,4 +249,4 @@ def try_rename(profile_id: str) -> None:
     profile_name = _suffix_name(new_name, names)
 
     # Update the profile name
-    Profile.controller().update({'name': profile_name}, Profile.selected().eid)
+    Profile.controller().update({'name': profile_name}, profile_eid)
