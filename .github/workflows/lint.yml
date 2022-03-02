@@ -6,7 +6,7 @@ on:
       - '**.py'
 
 jobs:
-  Coverage:
+  Lint:
     runs-on: ubuntu-latest
     strategy:
       matrix:
