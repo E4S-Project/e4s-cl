@@ -2,15 +2,18 @@
 Tests ensuring the init command behaves as intented
 """
 
-from os import getenv
+import os
 from itertools import combinations
 import tests
+from e4s_cl.util import which
 from e4s_cl.model.profile import Profile
+from e4s_cl.cf.libraries import resolve
 from e4s_cl.cf.assets import add_builtin_profile, remove_builtin_profile
-from e4s_cl.cli.commands.init import COMMAND
+from e4s_cl.cli.commands.init import COMMAND, _compile_sample
 
 TEST_SYSTEM = '__test_system'
 
+MPICC = os.environ.get('__E4SCL_MPI_COMPILER', 'mpicc')
 
 class InitTest(tests.TestCase):
     """
@@ -23,6 +26,14 @@ class InitTest(tests.TestCase):
         remove_builtin_profile(TEST_SYSTEM)
         Profile.controller().unselect()
         self.resetStorage()
+
+    @tests.skipUnless(which(MPICC), "No MPI compiler found")
+    def test_compile_mpicc(self):
+        self.assertIsNotNone(_compile_sample(which(MPICC)))
+
+    @tests.skipUnless(which('gcc'), "No GNU compiler found")
+    def test_compile_bad_compiler(self):
+        self.assertIsNone(_compile_sample(which('gcc')))
 
     def test_system(self):
         self.assertCommandReturnValue(0, COMMAND, f"--system {TEST_SYSTEM}")
@@ -74,10 +85,6 @@ class InitTest(tests.TestCase):
         self.assertEqual(profile.get('name'), 'init_test_profile')
         self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
         self.assertEqual(profile.get('wi4mpi_options'), '-T to -F from')
-
-    @tests.skipIf(not getenv('__E4S_CL_TEST_INIT'), "Init test from environment disabled")
-    def test_init_environment(self):
-        self.assertCommandReturnValue(0, COMMAND, [])
 
 groups = [[('--system', TEST_SYSTEM)],
           [
