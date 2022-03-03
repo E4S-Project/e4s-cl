@@ -4,15 +4,11 @@ COPY = cp -rv
 MKDIR = mkdir -p
 RMDIR = rm -fr
 
-VERSION = $(shell cat VERSION 2>/dev/null || $(shell pwd)/scripts/version.sh 2>/dev/null || echo "0.0.0")
+VERSION = $(shell $(shell pwd)/scripts/version.sh 2>/dev/null || echo "0.0.0")
 
 # Get build system locations from configuration file or command line
 ifneq ("$(wildcard setup.cfg)","")
-	BUILDDIR = $(shell grep '^build-base =' setup.cfg | sed 's/build-base = //')
 	INSTALLDIR = $(shell grep '^prefix =' setup.cfg | sed 's/prefix = //')
-endif
-ifeq ($(BUILDDIR),)
-	BUILDDIR=build
 endif
 ifeq ($(INSTALLDIR),)
 	INSTALLDIR=$(shell pwd)/e4s-cl-$(VERSION)
@@ -164,9 +160,3 @@ html: $(PYTHON_EXE)
 
 clean:
 	rm -fr build/ COMMIT VERSION
-
-#>============================================================================<
-# Maintenance targets
-
-format:
-	bash ./scripts/format.sh packages/e4s_cl
