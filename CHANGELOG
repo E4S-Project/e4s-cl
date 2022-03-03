@@ -1,6 +1,7 @@
 v1.0rc6 
 ---------------------
 
+- Restructured project to better fit python guidelines
 - Added compatibility with python3.6 and up
 - Added the ability to run a command without containers
 - Improved completion capabilities
