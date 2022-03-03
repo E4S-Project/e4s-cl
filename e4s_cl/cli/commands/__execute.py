@@ -8,8 +8,7 @@ This command is used internally and thus cloaked from the UI
 
 from pathlib import Path
 from sotools.libraryset import LibrarySet, Library
-from e4s_cl import (CONTAINER_SCRIPT, EXIT_SUCCESS, E4S_CL_SCRIPT, logger,
-                    variables)
+from e4s_cl import (EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables)
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -207,7 +206,8 @@ class ExecuteCommand(AbstractCommand):
         params.library_dir = container.import_library_dir.as_posix()
 
         if wi4mpi_enabled():
-            linker_paths = map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_root()))
+            linker_paths = map(lambda x: x.as_posix(),
+                               wi4mpi_libpath(wi4mpi_root()))
             params.library_dir = ':'.join(
                 [*linker_paths,
                  container.import_library_dir.as_posix()])

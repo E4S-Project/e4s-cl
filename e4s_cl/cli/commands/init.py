@@ -84,6 +84,7 @@ import subprocess
 import shlex
 from argparse import ArgumentTypeError
 from pathlib import Path
+from sotools.linker import resolve
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_NAME
 from e4s_cl import logger, util
 from e4s_cl.cli import arguments
@@ -94,7 +95,6 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
-from sotools.linker import resolve
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
@@ -291,10 +291,10 @@ class InitCommand(AbstractCommand):
         parser.add_argument(
             '--system',
             help="Initialize e4s-cl for use on a specific system."
-            f" Available systems: {', '.join(builtin_profiles().keys())}"\
+            f" Available systems: {', '.join(builtin_profiles().keys())}" \
                     if builtin_profiles().keys() else \
                     "Initialize e4s-cl for use on a specific system."
-                    f" Use 'make install SYSTEM=<system>' to have the associated profile available.",
+                    " Use 'make install SYSTEM=<system>' to have the associated profile available.",
             metavar='machine',
             default=arguments.SUPPRESS,
             choices=builtin_profiles().keys())
@@ -421,8 +421,7 @@ class InitCommand(AbstractCommand):
 
         if Profile.selected().get('name') == INIT_TEMP_PROFILE_NAME:
             hash_ = util.hash256(json.dumps(Profile.selected()))
-            controller.update({'name': f"default-{hash_[:16]}"},
-                              profile.eid)
+            controller.update({'name': f"default-{hash_[:16]}"}, profile.eid)
 
         # Rename the profile to the name passed as an argument
         requested_name = getattr(args, 'profile_name', '')

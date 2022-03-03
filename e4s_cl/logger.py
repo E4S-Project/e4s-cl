@@ -401,6 +401,10 @@ def setup_process_logger(name: str) -> logging.Logger:
 
 
 def is_available(file: Path) -> bool:
+    """
+    Returns True if the path passed as an argument is accessible to write
+    The parents of the passed file will be create if not existent
+    """
     parent_dir = file.parent
 
     if parent_dir.is_symlink():
@@ -484,14 +488,14 @@ if is_parent():
         try:
             os.unlink(LOG_LATEST)
         except OSError as err:
-            _ROOT_LOGGER.debug(
-                f"Unlink {LOG_LATEST.as_posix()} failed: {str(err)}")
+            _ROOT_LOGGER.debug("Unlink %s failed: %s", LOG_LATEST.as_posix(),
+                               str(err))
 
         try:
             os.symlink(Path(LOG_FILE.parent, LOG_ID), LOG_LATEST)
         except OSError as err:
-            _ROOT_LOGGER.debug(
-                f"Symlink {LOG_LATEST.as_posix()} failed: {str(err)}")
+            _ROOT_LOGGER.debug("Symlink %s failed: %s", LOG_LATEST.as_posix(),
+                               str(err))
         else:
             os.environ[LOG_ID_MARKER] = LOG_LATEST.name
 

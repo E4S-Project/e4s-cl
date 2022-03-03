@@ -14,7 +14,6 @@ import json
 from functools import lru_cache
 from shutil import which as sh_which
 from collections import deque
-from typing import Optional
 from time import perf_counter
 from contextlib import contextmanager
 from e4s_cl import logger
@@ -299,7 +298,7 @@ def hline(title, *args, **kwargs):
     Returns:
         str: The horizontal rule.
     """
-    text = "{:=<{}}\n".format('== %s ==' % title, logger.LINE_WIDTH)
+    text = f"== {title} ==".rjust(logger.LINE_WIDTH, '=')
     return color_text(text, *args, **kwargs)
 
 

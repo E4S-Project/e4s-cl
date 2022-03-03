@@ -126,7 +126,17 @@ class PodmanContainer(Container):
 
         def _format():
             for src, dst, opt in self.bound:
-                yield f"--mount=type=bind,src={src.as_posix()},dst={dst.as_posix()}{',ro=true' if (opt == FileOptions.READ_ONLY) else ''}"
+                params = {
+                    'type': 'bind',
+                    'src': src.as_posix(),
+                    'dst': dst.as_posix(),
+                }
+
+                if opt == FileOptions.READ_ONLY:
+                    params['ro'] = 'true'
+
+                yield "--mount=" + ",".join(f"{k}={v}"
+                                           for (k, v) in params.items())
 
         return list(_format())
 

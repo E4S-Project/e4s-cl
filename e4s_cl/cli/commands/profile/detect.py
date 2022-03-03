@@ -201,7 +201,7 @@ class ProfileDetectCommand(AbstractCliView):
         else:
             try:
                 profile = controller.selected()
-            except ProfileSelectionError as err:
+            except ProfileSelectionError:
                 LOGGER.error(
                     "No output profile selected or given as an argument.")
                 return EXIT_FAILURE

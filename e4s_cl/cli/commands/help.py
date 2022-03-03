@@ -32,7 +32,7 @@ def _guess_filetype(filename):
     if not filetype[0]:
         textchars = bytearray([7, 8, 9, 10, 12, 13, 27]) + bytearray(
             range(0x20, 0x100))
-        with open(filename) as fd:
+        with open(filename, encoding='utf-8') as fd:
             if fd.read(1024).translate(None, textchars):
                 filetype = ('application/unknown', None)
             else:

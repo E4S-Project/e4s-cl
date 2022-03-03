@@ -2,20 +2,22 @@
 Library analysis and manipulation helpers
 """
 
-from re import match
-from os.path import realpath
-from pathlib import Path
 from functools import lru_cache
+
+# Symbols imported for ease of use
+# pylint: disable=W0611
+from sotools import is_elf, library_links
+# pylint: disable=W0611
+from sotools.ldd import ldd
+# pylint: disable=W0611
+from sotools.linker import resolve, host_libraries
+# pylint: disable=W0611
+from sotools.libraryset import LibrarySet, Library
+
 from e4s_cl.error import InternalError
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.version import Version
 from e4s_cl.util import JSON_HOOKS
-
-# Symbols imported for ease of use
-from sotools import is_elf, library_links
-from sotools.ldd import ldd
-from sotools.linker import resolve, host_libraries
-from sotools.libraryset import LibrarySet, Library
 
 LOGGER = get_logger(__name__)
 

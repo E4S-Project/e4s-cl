@@ -22,7 +22,9 @@ from importlib import import_module
 from tempfile import TemporaryFile
 from pathlib import Path
 from typing import Union
-from e4s_cl import EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR, CONTAINER_LIBRARY_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT, logger
+from e4s_cl import (EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR,
+                    CONTAINER_LIBRARY_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT,
+                    logger)
 from e4s_cl.variables import ParentStatus
 from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
@@ -119,6 +121,7 @@ class Container:
     """
     Abstract class that auto-completes depending on the container tech
     """
+
     # pylint: disable=too-few-public-methods
     class BoundFile:
         """
@@ -196,18 +199,22 @@ class Container:
         A library set with data about libraries listed in library_set will
         be returned
         """
-        sys.stdout = TemporaryFile()
+        outstream = sys.stdout
 
-        code = self.run(['ldd', '--version'])
+        with TemporaryFile() as buffer:
+            sys.stdout = buffer
 
-        if code:
-            raise AnalysisError(code)
+            code = self.run(['ldd', '--version'])
 
-        sys.stdout.seek(0, 0)
-        out = sys.stdout.read().decode()
-        LOGGER.debug("Output of ldd --version: %s", out)
-        self.libc_v = Version(out)
-        sys.stdout = sys.__stdout__
+            if code:
+                raise AnalysisError(code)
+
+            sys.stdout.seek(0, 0)
+            out = sys.stdout.read().decode()
+            LOGGER.debug("Output of ldd --version: %s", out)
+            self.libc_v = Version(out)
+
+        sys.stdout = outstream
 
         return set()
 
@@ -313,8 +320,9 @@ class Container:
         out.append(f"{self.__class__.__name__} object:")
         if self.image:
             out.append(f"- image: {self.image}")
-        out.append("- bound:\n%s" %
-                   "\n".join(["\t%s -> %s (%d)" % v for v in self.bound]))
+        bound_files = "\n".join(
+            [f"\t{v[0]} -> {v[1]} ({v[2]})" % v for v in self.bound])
+        out.append(f"- bound:\n{bound_files}")
         if self.env:
             out.append(f"- env: { json.dumps(self.env, indent=2)}")
         if self.ld_preload:

@@ -6,7 +6,6 @@ The name argument can be omitted in case a profile is selected, in which case th
 from pathlib import Path
 from e4s_cl import EXIT_SUCCESS
 from e4s_cl.util import color_text
-from e4s_cl.cf.libraries import LibrarySet, Library
 from e4s_cl.cli.cli_view import ShowCommand
 from e4s_cl.model.profile import Profile
 

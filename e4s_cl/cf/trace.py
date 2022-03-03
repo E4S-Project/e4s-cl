@@ -5,11 +5,11 @@ all files accessed by a program
 
 
 import pathlib
-from e4s_cl import logger
 from ptrace.debugger import (PtraceDebugger, ProcessExit, ProcessSignal,
                              NewProcessEvent, ProcessExecution, child)
 from ptrace.func_call import FunctionCallOptions
 from ptrace.tools import locateProgram
+from e4s_cl import logger
 
 LOGGER = logger.get_logger(__name__)
 

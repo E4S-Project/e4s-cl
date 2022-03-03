@@ -35,7 +35,7 @@ def __read_cfg(cfg_file: Path):
     config = {}
 
     try:
-        with open(cfg_file, 'r') as cfg:
+        with open(cfg_file, 'r', encoding='utf-8') as cfg:
             for line in cfg.readlines():
                 line = line.strip()
 

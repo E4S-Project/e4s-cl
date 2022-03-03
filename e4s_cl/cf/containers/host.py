@@ -9,7 +9,7 @@ from e4s_cl import CONTAINER_SCRIPT
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.containers import Container, BackendNotAvailableError
-from e4s_cl.cf.libraries import LibrarySet, libc_version
+from e4s_cl.cf.libraries import libc_version
 
 LOGGER = get_logger(__name__)
 
@@ -29,6 +29,7 @@ class Containerless(Container):
 
         self.executable = which(self.__class__.executable_name)
 
+        # pylint: disable=R1732
         # The following directory will hold symlinks to the libraries bound to
         # the container; the file will be deleted once the object is deleted
         self._lib_dir = tempfile.TemporaryDirectory()

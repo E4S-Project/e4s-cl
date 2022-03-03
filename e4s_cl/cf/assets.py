@@ -57,11 +57,11 @@ def _import_asset(primary_key: str,
     with storage as database:
         try:
             database.remove({primary_key: data_id}, table_name)
-        except ValueError as err:
+        except ValueError:
             return False
 
         # No errors according to the source, so no error checking
-        record = database.insert(data, table_name)
+        database.insert(data, table_name)
 
     return True
 

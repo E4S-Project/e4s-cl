@@ -199,7 +199,7 @@ def detect_name(path_list):
             try:
                 version_str = "_" + distro_dict.get(
                     profile_name, lambda x: None)(version_buffer_str)
-            except:
+            except Exception:
                 continue
 
             # Add the result to the above container
