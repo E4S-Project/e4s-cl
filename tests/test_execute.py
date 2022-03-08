@@ -15,8 +15,7 @@ class ExecuteTests(tests.TestCase):
     def test_lib_import(self):
         container = Container(name="containerless")
 
-        with open(linker.resolve("libmpi.so"), 'rb') as elffile:
-            lib = Library(file=elffile)
+        lib = Library.from_path(linker.resolve("libmpi.so"))
 
         import_library(lib, container)
 

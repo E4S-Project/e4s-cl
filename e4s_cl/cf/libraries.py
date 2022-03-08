@@ -33,8 +33,7 @@ def libc_version():
     if not path:
         raise InternalError("libc not found on host")
 
-    with open(path, 'rb') as file:
-        data = Library(file)
+    data = Library.from_path(path)
 
     # Get the version with major 2 from the defined versions,
     # as almost all libc implementations have the GLIBC_3.4 symbol

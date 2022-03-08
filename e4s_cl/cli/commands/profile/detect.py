@@ -73,8 +73,7 @@ def filter_files(path_list: List[Path]):
 
         # Process shared objects
         if is_elf(path):
-            with open(path, 'rb') as elf:
-                library = Library(elf)
+            library = Library.from_path(path)
 
             resolved_path = resolve(library.soname)
 
