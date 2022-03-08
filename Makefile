@@ -4,15 +4,11 @@ COPY = cp -rv
 MKDIR = mkdir -p
 RMDIR = rm -fr
 
-VERSION = $(shell cat VERSION 2>/dev/null || $(shell pwd)/scripts/version.sh 2>/dev/null || echo "0.0.0")
+VERSION = $(shell $(shell pwd)/scripts/version.sh 2>/dev/null || echo "0.0.0")
 
 # Get build system locations from configuration file or command line
 ifneq ("$(wildcard setup.cfg)","")
-	BUILDDIR = $(shell grep '^build-base =' setup.cfg | sed 's/build-base = //')
 	INSTALLDIR = $(shell grep '^prefix =' setup.cfg | sed 's/prefix = //')
-endif
-ifeq ($(BUILDDIR),)
-	BUILDDIR=build
 endif
 ifeq ($(INSTALLDIR),)
 	INSTALLDIR=$(shell pwd)/e4s-cl-$(VERSION)
@@ -42,32 +38,19 @@ endif
 
 # Miniconda configuration
 USE_MINICONDA = true
-ifeq ($(HOST_OS),Darwin)
-ifeq ($(HOST_ARCH),i386)
-	USE_MINICONDA = false
-endif
-endif
-ifeq ($(HOST_OS),Darwin)
-	CONDA_OS = MacOSX
+ifeq ($(HOST_OS),Linux)
+	CONDA_OS = Linux
 else
-	ifeq ($(HOST_OS),Linux)
-		CONDA_OS = Linux
-	else
-		USE_MINICONDA = false
-	endif
+	USE_MINICONDA = false
 endif
 ifeq ($(HOST_ARCH),x86_64)
 	CONDA_ARCH = x86_64
 else
-	ifeq ($(HOST_ARCH),i386)
-		CONDA_ARCH = x86
-	else
-		ifeq ($(HOST_ARCH),ppc64le)
-			CONDA_ARCH = ppc64le
-		else
-			USE_MINICONDA = false
-		endif
-	endif
+	ifeq ($(HOST_ARCH),ppc64le)
+	CONDA_ARCH = ppc64le
+else
+	USE_MINICONDA = false
+endif
 endif
 
 CONDA_VERSION = latest
@@ -106,16 +89,10 @@ else
 	COMPLETION_DIR = $(BASH_COMPLETION_USER_DIR)/completions
 endif
 
-all: install completion man
+all: install download_assets completion man
 
 #>============================================================================<
 # Conda setup and fetch target
-
-python_check: $(PYTHON_EXE)
-	@$(PYTHON) -c "import sys; import setuptools;" || (echo "ERROR: setuptools is required." && false)
-	$(PYTHON) -m pip install -q -U -r requirements.txt
-
-python_download: $(CONDA_SRC)
 
 $(CONDA): $(CONDA_SRC)
 	bash $< -b -u -p $(CONDA_DEST)
@@ -131,18 +108,17 @@ $(CONDA_SRC):
 #>============================================================================<
 # Main installation target
 
-install: python_check download_assets
-	$(PYTHON) setup.py build -b "$(BUILDDIR)"
-	$(PYTHON) setup.py build_scripts --executable "$(PYTHON)"
-	$(PYTHON) setup.py install --prefix $(INSTALLDIR) --force
-	@$(PYTHON) scripts/success.py "Installation succeded. Please add '$(INSTALLDIR)/bin' to your PATH."
+install: $(PYTHON_EXE)
+	$(PYTHON) -m pip install --use-feature=in-tree-build -q -rrequirements/core.txt --compile .
+	$(MKDIR) $(INSTALL_BIN_DIR)
+	ln -fs $(CONDA_BIN)/e4s-cl $(INSTALL_BIN_DIR)/e4s-cl
 
 #>============================================================================<
 # Data fetching targets
 
 ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
 
-download_assets: python_check
+download_assets: $(PYTHON_EXE)
 	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(SYSTEM)
 
 COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
@@ -169,48 +145,18 @@ DOCS=$(PROJECT)/docs
 MANBUILDDIR=$(PROJECT)/docs/build/man
 USER_MAN=$(HOME)/.local/share/man
 
-man: python_check
-	$(PYTHON) -m pip install -U -r $(DOCS)/requirements.txt
+man: $(PYTHON_EXE)
+	$(PYTHON) -m pip install -q -U -r ./requirements/docs.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	@$(MKDIR) $(USER_MAN)/man1
 	@$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1
 	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
 	@$(PYTHON) scripts/success.py "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
-html: python_check
+html: $(PYTHON_EXE)
 	find $(DOCS) -exec touch {} \;
-	$(PYTHON) -m pip install -q -U -r $(DOCS)/requirements.txt
+	$(PYTHON) -m pip install -q -U -r requirements/docs.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) html
 
 clean:
 	rm -fr build/ COMMIT VERSION
-
-#>============================================================================<
-# Maintenance targets
-
-ifneq ($(TEST_ENV),)
-TEST_ENV = deep_test
-TEST_DEPENDENCIES = install python_check
-else
-TEST_ENV = shallow_test
-TEST_DEPENDENCIES =
-endif
-
-__E4S_CL_USER_PREFIX__ = /tmp/$(USER)/e4s_cl/user_test
-__E4S_CL_SYSTEM_PREFIX__ = /tmp/$(USER)/e4s_cl/system_test
-
-test: $(TEST_DEPENDENCIES)
-	$(PYTHON) -m tox tox.ini -e $(TEST_ENV)
-
-format:
-	bash ./scripts/format.sh packages/e4s_cl
-
-ifeq ($(LINT_FILE),)
-LINT_FILE=packages/e4s_cl
-endif
-
-lint:
-	@$(PYTHON) -m pip install pylint
-	$(PYTHON) -m pylint --rcfile pylintrc --output-format=colorized -r n $(LINT_FILE)
-
-#>============================================================================<
