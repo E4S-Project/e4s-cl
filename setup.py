@@ -14,6 +14,11 @@ NAME = "e4s-cl"
 
 VERSION = metadata.__version__
 
+DEPENDENCIES = [
+    "python-ptrace>=0.9.7", "pyelftools==0.27", "requests==2.26.0",
+    "tinydb==4.5.2", "python-sotools==0.0.3"
+]
+
 # Package author information
 AUTHOR = "Jean-Baptiste Skutnik"
 AUTHOR_EMAIL = "jskutnik@uoregon.edu"
@@ -54,8 +59,9 @@ install_options = {
     "license": metadata.LICENSE,
     "keywords": KEYWORDS,
     "classifiers": CLASSIFIERS,
+    "install_requires": DEPENDENCIES,
     "scripts": ['scripts/e4s-cl', 'scripts/mpi_id.py'],
-    "packages": find_packages()
+    "packages": find_packages(exclude=['tests']),
 }
 
 setup(**install_options)
