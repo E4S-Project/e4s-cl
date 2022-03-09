@@ -10,7 +10,7 @@ from e4s_cl.model.profile import Profile
 from e4s_cl.cli.commands.profile.detect import (filter_files, COMMAND)
 from e4s_cl.model.profile import Profile
 
-__TEST_LIBRARY_SONAME__ = "libz.so"
+__TEST_LIBRARY_SONAME__ = "libmpi.so"
 __TEST_LIBRARY_NON_STANDARD__ = Path(
     Path(__file__).parent, "assets", "libgver.so.0").as_posix()
 __BLACKLISTED_FILES__ = {
@@ -28,22 +28,32 @@ class ProfileDetectTest(tests.TestCase):
 
     @tests.skipIf(not resolve(__TEST_LIBRARY_SONAME__),
                   f"{__TEST_LIBRARY_SONAME__} not found on this system")
-    def test_filter_files(self):
+    def test_filter_files_lib(self):
+        library = resolve(__TEST_LIBRARY_SONAME__)
+
+        libraries, files = filter_files([Path(library)])
+
+        self.assertIn(library, libraries)
+        self.assertFalse(files)
+
+    def test_filter_files_non_std_lib(self):
+        libraries, files = filter_files([Path(__TEST_LIBRARY_NON_STANDARD__)])
+
+        self.assertFalse(libraries)
+        self.assertIn(__TEST_LIBRARY_NON_STANDARD__, files)
+
+    def test_filter_files_existing_file(self):
         with NamedTemporaryFile() as datafile:
-            library = resolve(__TEST_LIBRARY_SONAME__)
+            libraries, files = filter_files([Path(datafile.name)])
 
-            libraries, files = filter_files(
-                map(
-                    Path, {
-                        *__BLACKLISTED_FILES__, __TEST_LIBRARY_NON_STANDARD__,
-                        library, datafile.name
-                    }))
-
-            self.assertIn(library, libraries)
+            self.assertFalse(libraries)
             self.assertIn(datafile.name, files)
-            for filename in __BLACKLISTED_FILES__:
-                self.assertNotIn(filename, files)
-                self.assertNotIn(filename, libraries)
+
+    def test_filter_files_blacklisted(self):
+        libraries, files = filter_files(map(Path, *__BLACKLISTED_FILES__))
+
+        self.assertFalse(libraries)
+        self.assertFalse(files)
 
     @tests.skipIf(not which(__TEST_BINARY__),
                   f"{__TEST_BINARY__} not found on this system")
