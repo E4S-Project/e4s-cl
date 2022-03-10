@@ -10,7 +10,7 @@ More container technologies can be supported. Create an issue on github or write
 
 .. warning:: Using **docker** with MPI
 
-   Several MPI implementations expect their processes to inherit opened file descriptors; because of docker's client-daemon architecture, this is not possible.To use docker images with MPI, it is encouraged to used podman <https://podman.io/>`_.
+   Several MPI implementations expect their processes to inherit opened file descriptors; because of docker's client-daemon architecture, this is not possible. To use docker images with MPI, it is encouraged to used `podman <https://podman.io/>`_.
 
 Process launchers
 ------------------
