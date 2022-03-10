@@ -45,9 +45,10 @@ class Error(Exception):
         if not self.hints:
             hints_str = ''
         elif len(self.hints) == 1:
-            hints_str = 'Hint: %s\n' % self.hints[0]
+            hints_str = f"Hint: {self.hints[0]}\n"
         else:
-            hints_str = 'Hints:\n  * %s\n' % ('\n  * '.join(self.hints))
+            bullet_list = '\n  * '.join(self.hints)
+            hints_str = f"Hints:\n  * {bullet_list}\n"
         fields['hints'] = hints_str
         return self.message_fmt % fields
 
@@ -90,8 +91,8 @@ class ConfigurationError(Error):
             *hints: Hint messages to help the user resolve this error.
         """
         if not hints:
-            hints = ["Try `%s --help`" % os.path.basename(E4S_CL_SCRIPT)]
-        super(ConfigurationError, self).__init__(value, *hints)
+            hints = [f"Try `{os.path.basename(E4S_CL_SCRIPT)} --help`"]
+        super().__init__(value, *hints)
 
     def __str__(self):
         return self.value
@@ -99,6 +100,7 @@ class ConfigurationError(Error):
 
 class ModelError(InternalError):
     """Indicates an error in model data or the model itself."""
+
     def __init__(self, model, value):
         """Initialize the error instance.
         
@@ -106,12 +108,13 @@ class ModelError(InternalError):
             model (Model): Data model.
             value (str): A message describing the error.  
         """
-        super(ModelError, self).__init__("%s: %s" % (model.name, value))
+        super().__init__(f"{model.name}: {value}")
         self.model = model
 
 
 class UniqueAttributeError(ModelError):
     """Indicates that duplicate values were given for a unique attribute."""
+
     def __init__(self, model, unique):
         """Initialize the error instance.
         
@@ -119,8 +122,8 @@ class UniqueAttributeError(ModelError):
             model (Model): Data model.
             unique (dict): Dictionary of unique attributes in the data model.  
         """
-        super(UniqueAttributeError, self).__init__(
-            model, "A record with one of '%s' already exists" % unique)
+        super().__init__(model,
+                         f"A record with one of '{unique}' already exists")
 
 
 class ImmutableRecordError(ConfigurationError):
@@ -133,19 +136,18 @@ class IncompatibleRecordError(ConfigurationError):
 
 class ProfileSelectionError(ConfigurationError):
     """Indicates an error while selecting a profile."""
+
     def __init__(self, value, *hints):
         from e4s_cl.cli.commands.profile.create import COMMAND as profile_create_cmd
         from e4s_cl.cli.commands.profile.select import COMMAND as profile_select_cmd
         from e4s_cl.cli.commands.profile.list import COMMAND as profile_list_cmd
         if not hints:
             hints = (
-                "Use `%s` to create a new profile configuration." %
-                profile_create_cmd,
-                "Use `%s <profile_name>` to select a profile configuration." %
-                profile_select_cmd,
-                "Use `%s` to see available profile configurations." %
-                profile_list_cmd)
-        super(ProfileSelectionError, self).__init__(value, *hints)
+                f"Use `{profile_create_cmd}` to create a new profile configuration.",
+                f"Use `{profile_select_cmd} <name>` to select a configuration.",
+                f"Use `{profile_list_cmd}` to see available profile configurations."
+            )
+        super().__init__(value, *hints)
 
 
 def excepthook(etype, value, tb):

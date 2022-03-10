@@ -1,3 +1,7 @@
+"""
+Model definition of the MVC architecture
+"""
+
 from e4s_cl import logger
 from e4s_cl.error import IncompatibleRecordError, ModelError, InternalError
 from e4s_cl.cf.storage import StorageRecord
@@ -8,10 +12,11 @@ LOGGER = logger.get_logger(__name__)
 
 class ModelMeta(type):
     """Constructs model attributes, configures defaults, and establishes relationships."""
+
     def __new__(mcs, name, bases, dct):
         if dct['__module__'] != __name__:
             # Each Model subclass has its own relationships
-            dct.update({'associations': dict(), 'references': set()})
+            dct.update({'associations': {}, 'references': set()})
             # The default model name is the class name
             if dct.get('name', None) is None:
                 dct['name'] = name
@@ -19,9 +24,10 @@ class ModelMeta(type):
             # We make the callable a staticmethod to prevent method binding.
             try:
                 dct['__attributes__'] = staticmethod(dct['__attributes__'])
-            except KeyError:
+            except KeyError as err:
                 raise InternalError(
-                    "Model class %s does not define '__attributes__'" % name)
+                    f"Model class {name} does not define '__attributes__'"
+                ) from err
             # Replace attributes with a callable property (defined below).  This is to guarantee
             # that model attributes won't be constructed until all Model subclasses have been constructed.
             dct['attributes'] = ModelMeta.attributes
@@ -48,7 +54,7 @@ class ModelMeta(type):
         # pylint: disable=no-value-for-parameter
         try:
             return cls._key_attribute
-        except AttributeError:
+        except AttributeError as err:
             for attr, props in cls.attributes.items():
                 if 'primary_key' in props:
                     cls._key_attribute = attr
@@ -57,7 +63,7 @@ class ModelMeta(type):
                 raise ModelError(
                     cls,
                     "No attribute has the 'primary_key' property set to 'True'"
-                )
+                ) from err
             return cls._key_attribute
 
 
@@ -87,12 +93,12 @@ class Model(StorageRecord, metaclass=ModelMeta):
         deprecated = [attr for attr in record if attr not in self.attributes]
         if deprecated:
             try:
-                title = "%s '%s'" % (self.name, record[self.key_attribute])
+                title = f"{self.name} '{record[self.key_attribute]}'"
             except (KeyError, ModelError):
-                title = "%s" % self.name
+                title = f"{self.name}"
             LOGGER.debug("Ignorning deprecated attributes %s in %s",
                          deprecated, title)
-        super(Model, self).__init__(
+        super().__init__(
             record.storage, record.eid,
             (item for item in record.items() if item[0] not in deprecated))
         self._populated = None
@@ -172,25 +178,25 @@ class Model(StorageRecord, metaclass=ModelMeta):
             if 'collection' in props and 'via' not in props:
                 raise ModelError(
                     cls,
-                    "%s: collection does not define 'via'" % model_attr_name)
+                    f"{model_attr_name}: collection does not define 'via'")
             if 'via' in props and not ('collection' in props
                                        or 'model' in props):
                 raise ModelError(
                     cls,
-                    "%s: defines 'via' property but not 'model' or 'collection'"
-                    % model_attr_name)
+                    f"{model_attr_name}: defines 'via' property but not 'model'"
+                    "or 'collection'")
             if not isinstance(props.get('unique', False), bool):
                 raise ModelError(
-                    cls, "%s: invalid value for 'unique'" % model_attr_name)
+                    cls, f"{model_attr_name}: invalid value for 'unique'")
             if not isinstance(props.get('description', ''), str):
                 raise ModelError(
-                    cls,
-                    "%s: invalid value for 'description'" % model_attr_name)
+                    cls, f"{model_attr_name}: invalid value for 'description'")
             if props.get('primary_key', False):
                 if primary_key is not None:
                     raise ModelError(
-                        cls, "%s: primary key previously specified as %s" %
-                        (model_attr_name, primary_key))
+                        cls,
+                        f"{model_attr_name}: primary key previously specified "
+                        f"as {primary_key}")
                 primary_key = attr
 
             via = props.get('via', None)
@@ -200,10 +206,11 @@ class Model(StorageRecord, metaclass=ModelMeta):
             try:
                 if not issubclass(foreign_cls, Model):
                     raise TypeError
-            except TypeError:
+            except TypeError as err:
                 raise ModelError(
-                    cls, "%s: Invalid foreign model controller: %r" %
-                    (model_attr_name, foreign_cls))
+                    cls,
+                    f"{model_attr_name}: Invalid foreign model controller: "
+                    f"{foreign_cls}") from err
 
             forward = (foreign_cls, via)
             reverse = (cls, attr)
@@ -214,21 +221,23 @@ class Model(StorageRecord, metaclass=ModelMeta):
                 foreign_model_attr_name = foreign_cls.name + "." + via
                 try:
                     via_props = foreign_cls.attributes[via]
-                except KeyError:
+                except KeyError as err:
                     raise ModelError(
-                        cls, "%s: 'via' references undefined attribute '%s'" %
-                        (model_attr_name, foreign_model_attr_name))
+                        cls, f"{model_attr_name}: 'via' references undefined "
+                        f"attribute '{foreign_model_attr_name}'") from err
                 via_attr_model = via_props.get(
                     'model', via_props.get('collection', None))
                 if not via_attr_model:
                     raise ModelError(
-                        cls, "%s: 'via' on non-model attribute '%s'" %
-                        (model_attr_name, foreign_model_attr_name))
+                        cls,
+                        f"{model_attr_name}: 'via' on non-model attribute "
+                        f"'{foreign_model_attr_name}'")
                 if via_attr_model is not cls:
                     raise ModelError(
-                        cls, "Attribute '%s' referenced by 'via' in '%s' "
-                        "does not define 'collection' or 'model' of type '%s'"
-                        % (foreign_model_attr_name, attr, cls.name))
+                        cls,
+                        f"Attribute '{foreign_model_attr_name}' referenced by "
+                        f"'via' in '{attr}' does not define 'collection' or "
+                        f"'model' of type '{cls.name}'")
                 try:
                     existing = cls.associations[attr]
                 except KeyError:
@@ -237,8 +246,8 @@ class Model(StorageRecord, metaclass=ModelMeta):
                     if existing != forward:
                         raise ModelError(
                             cls,
-                            "%s: conflicting associations: '%s' vs. '%s'" %
-                            (model_attr_name, existing, forward))
+                            f"{model_attr_name}: conflicting associations: "
+                            f"'{existing}' vs. '{forward}'")
 
     @classmethod
     def validate(cls, data):
@@ -257,17 +266,18 @@ class Model(StorageRecord, metaclass=ModelMeta):
             return None
         for key in data:
             if key not in cls.attributes:
-                raise ModelError(cls, "no attribute named '%s'" % key)
+                raise ModelError(cls, f"no attribute named '{key}'")
         validated = {}
         for attr, props in cls.attributes.items():
             # Check required fields and defaults
             try:
                 validated[attr] = data[attr]
-            except KeyError:
+            except KeyError as err:
                 if 'required' in props:
                     if props['required']:
                         raise ModelError(
-                            cls, "'%s' is required but was not defined" % attr)
+                            cls, f"'{attr}' is required but was not defined"
+                        ) from err
                 elif 'default' in props:
                     validated[attr] = props['default']
             # Check collections
@@ -277,16 +287,17 @@ class Model(StorageRecord, metaclass=ModelMeta):
                     value = []
                 elif not isinstance(value, list):
                     raise ModelError(
-                        cls, "Value supplied for '%s' is not a list: %r" %
-                        (attr, value))
+                        cls,
+                        f"Value supplied for '{attr}' is not a list: {value}")
                 else:
                     for eid in value:
                         try:
                             int(eid)
-                        except ValueError:
+                        except ValueError as err:
                             raise ModelError(
-                                cls, "Invalid non-integer ID '%s' in '%s'" %
-                                (eid, attr))
+                                cls,
+                                f"Invalid non-integer ID '{eid}' in '{attr}'"
+                            ) from err
                 validated[attr] = value
             # Check model associations
             elif 'model' in props:
@@ -295,10 +306,11 @@ class Model(StorageRecord, metaclass=ModelMeta):
                     try:
                         if int(value) != value:
                             raise ValueError
-                    except ValueError:
+                    except ValueError as err:
                         raise ModelError(
-                            cls, "Invalid non-integer ID '%s' in '%s'" %
-                            (value, attr))
+                            cls,
+                            f"Invalid non-integer ID '{value}' in '{attr}'"
+                        ) from err
                     validated[attr] = value
         return validated
 
@@ -410,21 +422,21 @@ class Model(StorageRecord, metaclass=ModelMeta):
             
                 CheeseShop.require('have_cheese', cheese_callback)
         """
+
         def attr_undefined(lhs, lhs_attr, lhs_value, rhs, rhs_attr):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
             raise IncompatibleRecordError(
-                "%s = %s in %s requires %s be defined in %s but it is undefined"
-                % (lhs_attr, lhs_value, lhs_name, rhs_attr, rhs_name))
+                f"{lhs_attr} = {lhs_value} in {lhs_name} requires {rhs_attr} "
+                f"be defined in {rhs_name} but it is undefined")
 
         def attr_ne(lhs, lhs_attr, lhs_value, rhs, rhs_attr, checked_value):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
             rhs_value = rhs[rhs_attr]
             raise IncompatibleRecordError(
-                "%s = %s in %s requires %s = %s in %s but it is %s" %
-                (lhs_attr, lhs_value, lhs_name, rhs_attr, checked_value,
-                 rhs_name, rhs_value))
+                f"{lhs_attr} = {lhs_value} in {lhs_name} requires {rhs_attr} "
+                f"= {checked_value} in {rhs_name} but it is {rhs_value}")
 
         return cls.construct_condition(args,
                                        attr_undefined=attr_undefined,
@@ -456,6 +468,7 @@ class Model(StorageRecord, metaclass=ModelMeta):
             
                 CheeseShop.encourage('have_cheese', cheese_callback)
         """
+
         def attr_undefined(lhs, lhs_attr, lhs_value, rhs, rhs_attr):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
@@ -502,6 +515,7 @@ class Model(StorageRecord, metaclass=ModelMeta):
             
                 CheeseShop.discourage('have_cheese', cheese_callback)
         """
+
         def attr_defined(lhs, lhs_attr, lhs_value, rhs, rhs_attr):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
@@ -545,20 +559,20 @@ class Model(StorageRecord, metaclass=ModelMeta):
             
                 CheeseShop.exclude('have_cheese', cheese_callback)
         """
+
         def attr_defined(lhs, lhs_attr, lhs_value, rhs, rhs_attr):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
             raise IncompatibleRecordError(
-                "%s = %s in %s requires %s be undefined in %s" %
-                (lhs_attr, lhs_value, lhs_name, rhs_attr, rhs_name))
+                f"{lhs_attr} = {lhs_value} in {lhs_name} requires {rhs_attr}"
+                f"be undefined in {rhs_name}")
 
         def attr_eq(lhs, lhs_attr, lhs_value, rhs, rhs_attr, checked_value):
             lhs_name = lhs.name.lower()
             rhs_name = rhs.name.lower()
             raise IncompatibleRecordError(
-                "%s = %s in %s is incompatible with %s = %s in %s" %
-                (lhs_attr, lhs_value, lhs_name, rhs_attr, checked_value,
-                 rhs_name))
+                f"{lhs_attr} = {lhs_value} in {lhs_name} is incompatible with "
+                f"{rhs_attr} = {checked_value} in {rhs_name}")
 
         return cls.construct_condition(args,
                                        attr_defined=attr_defined,

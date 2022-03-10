@@ -2,7 +2,6 @@ import os
 import sys
 from pathlib import Path
 from e4s_cl.version import __version__
-"""str: E4S Container Launcher Version"""
 
 E4S_CL_VERSION = __version__
 """str: E4S Container Launcher Version"""
@@ -32,11 +31,11 @@ if sys.version_info[0] < MIN_PYTHON_VERSION[0] or sys.version_info[
         1] < MIN_PYTHON_VERSION[1]:
     VERSION = '.'.join([str(x) for x in sys.version_info[0:3]])
     EXPECTED = '.'.join([str(x) for x in MIN_PYTHON_VERSION])
-    sys.stderr.write("""%s
-%s
-Your Python version is %s but Python %s is required.
+    sys.stderr.write(f"""{sys.executable}
+{sys.version}
+Your Python version is {VERSION} but Python {EXPECTED} is required.
 Please install the required Python version or raise an issue on Github for support.
-""" % (sys.executable, sys.version, VERSION, EXPECTED))
+""")
     sys.exit(EXIT_FAILURE)
 
 E4S_CL_HOME = os.path.realpath(
