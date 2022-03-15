@@ -321,7 +321,7 @@ class Container:
         if self.image:
             out.append(f"- image: {self.image}")
         bound_files = "\n".join(
-            [f"\t{v[0]} -> {v[1]} ({v[2]})" % v for v in self.bound])
+            [f"\t{v[0]} -> {v[1]} ({v[2]})" for v in self.bound])
         out.append(f"- bound:\n{bound_files}")
         if self.env:
             out.append(f"- env: { json.dumps(self.env, indent=2)}")
