@@ -9,3 +9,5 @@ if [ "$version" != "v0.0.0" ]; then
     #PEP 440 compliance
     version=$(echo "$version" | cut -d- -f1 | sed -e 's/-/./')
 fi
+
+echo $version
