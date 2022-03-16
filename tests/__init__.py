@@ -17,69 +17,7 @@ from e4s_cl.error import ConfigurationError
 from e4s_cl.cf.storage.levels import USER_STORAGE, SYSTEM_STORAGE
 from e4s_cl.cf.assets import SAMPLE_BINARY_TABLE, BUILTIN_PROFILE_TABLE
 
-_DIR_STACK = []
-_CWD_STACK = []
-_TEMPDIR_STACK = []
 _NOT_IMPLEMENTED = []
-
-
-def _destroy_test_workdir(path):
-    onerror = lambda f, p, e: sys.stderr.write(
-        "\nERROR: Failed to clean up testing directory %s\n" % p)
-    shutil.rmtree(path, ignore_errors=False, onerror=onerror)
-
-
-def push_test_workdir():
-    """Create a new working directory for a unit test.
-
-    Sets the current working directory and :any:`tempfile.tempdir` to the newly created test directory.
-
-    Directories created via this method are tracked.  If any of them exist when the program exits then
-    an error message is shown for each.
-    """
-    path = tempfile.mkdtemp()
-    try:
-        test_src = os.path.join(E4S_CL_HOME, '.testfiles', 'foo_launcher')
-        test_dst = os.path.join(path, 'foo_launcher')
-        shutil.copy(test_src, test_dst)
-        get_command_output('%s/foo_launcher' % path)
-    except OSError:
-        shutil.rmtree(path)
-        path = tempfile.mkdtemp(dir=os.getcwd())
-    _DIR_STACK.append(path)
-    _CWD_STACK.append(os.getcwd())
-    _TEMPDIR_STACK.append(tempfile.tempdir)
-    os.chdir(path)
-    tempfile.tempdir = path
-
-
-def pop_test_workdir():
-    """Recursively deletes the most recently created unit test working directory.
-
-    Restores the current working directory and :any:`tempfile.tempdir` to their values before
-    :any:`push_test_workdir` was called.
-    """
-    tempfile.tempdir = _TEMPDIR_STACK.pop()
-    os.chdir(_CWD_STACK.pop())
-    _destroy_test_workdir(_DIR_STACK.pop())
-
-
-def get_test_workdir():
-    """Return the current unit test's working directory."""
-    return _DIR_STACK[0]
-
-
-def cleanup():
-    """Checks that any files or directories created during testing have been removed."""
-    if _DIR_STACK:
-        for path in _DIR_STACK:
-            sys.stderr.write(
-                "\nWARNING: Test directory '%s' still exists, attempting to clean now...\n"
-                % path)
-            _destroy_test_workdir(path)
-
-
-atexit.register(cleanup)
 
 
 def not_implemented(cls):
@@ -103,7 +41,6 @@ class TestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        push_test_workdir()
         # Reset stdout logger handler to use buffered unittest stdout
         # pylint: disable=protected-access
         cls._orig_stream = logger._STDERR_HANDLER.stream
@@ -117,7 +54,6 @@ class TestCase(unittest.TestCase):
         # Reset stdout logger handler to use original stdout
         # pylint: disable=protected-access
         logger._STDERR_HANDLER.stream = cls._orig_stream
-        pop_test_workdir()
 
     def run(self, result=None):
         # Whenever running a test, set the terminal size large enough to avoid any regex failures due to line wrap
@@ -189,6 +125,7 @@ class TestCase(unittest.TestCase):
 
 class TestRunner(unittest.TextTestRunner):
     """Test suite runner."""
+
     def __init__(self, *args, **kwargs):
         super(TestRunner, self).__init__(*args, **kwargs)
         self.buffer = True

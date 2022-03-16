@@ -43,7 +43,7 @@ class ProfileDetectTest(tests.TestCase):
         self.assertIn(__TEST_LIBRARY_NON_STANDARD__, files)
 
     def test_filter_files_existing_file(self):
-        with NamedTemporaryFile() as datafile:
+        with NamedTemporaryFile(dir=os.getcwd()) as datafile:
             libraries, files = filter_files([Path(datafile.name)])
 
             self.assertFalse(libraries)
