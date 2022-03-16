@@ -14,7 +14,8 @@ from e4s_cl.error import Error
 class StorageError(Error):
     """Indicates a failure in the storage system."""
 
-    message_fmt = ("%(value)s\n" "%(hints)s\n")
+    message_fmt = ("%(value)s\n"
+                   "%(hints)s\n")
 
 
 class StorageRecord(dict):
@@ -28,7 +29,7 @@ class StorageRecord(dict):
     eid_type = str
 
     def __init__(self, storage, eid, element):
-        super(StorageRecord, self).__init__(element)
+        super().__init__(element)
         self.storage = storage
         self.eid = eid
 
@@ -36,7 +37,7 @@ class StorageRecord(dict):
         return hash(self.eid)
 
 
-class AbstractStorage(object):
+class AbstractStorage():
     """Abstract base class for storage containers.
     
     A storage container provides a record database, a persistent filesystem, and a key/value store.

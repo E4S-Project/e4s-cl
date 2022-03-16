@@ -29,13 +29,6 @@ class ContainerTestShifter(tests.TestCase):
         container_cmd = container._prepare(command)
         self.assertIn('imagenametest', ' '.join(map(str, container_cmd)))
 
-    def test_run_pwd(self):
-        container = Container(name='shifter')
-        command = ['']
-        container_cmd = container._prepare(command)
-        pwd = getcwd()
-        self.assertIn(pwd, ' '.join(map(str, container_cmd)))
-
     def test_run_mpirun(self):
         container = Container(name='shifter', image='dummyimagename')
         command = ['mpirun -n 2 ls']

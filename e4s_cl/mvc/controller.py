@@ -155,8 +155,8 @@ class Controller():
     def _populate_attribute(self, model, attr, defaults):
         try:
             props = model.attributes[attr]
-        except KeyError:
-            raise ModelError(model, "no attribute '%s'" % attr)
+        except KeyError as err:
+            raise ModelError(model, "no attribute '{attr}'") from err
         if not defaults or 'default' not in props:
             value = model[attr]
         else:
@@ -200,7 +200,8 @@ class Controller():
         with self.storage as database:
             record = database.insert(data, table_name=self.model.name)
             for attr, foreign in self.model.associations.items():
-                if 'model' or 'collection' in self.model.attributes[attr]:
+                if ('model' in self.model.attributes[attr]
+                        or 'collection' in self.model.attributes[attr]):
                     affected = record.get(attr, None)
                     if affected:
                         foreign_cls, via = foreign
@@ -228,7 +229,7 @@ class Controller():
         """
         for attr in data:
             if attr not in self.model.attributes:
-                raise ModelError(self.model, "no attribute named '%s'" % attr)
+                raise ModelError(self.model, f"no attribute named '{attr}'")
         with self.storage as database:
             # Get the list of affected records **before** updating the data so foreign keys are correct
             old_records = self.search(keys)
@@ -287,7 +288,7 @@ class Controller():
         """
         for attr in fields:
             if attr not in self.model.attributes:
-                raise ModelError(self.model, "no attribute named '%s'" % attr)
+                raise ModelError(self.model, f"no attribute named '{attr}'")
         with self.storage as database:
             # Get the list of affected records **before** updating the data so foreign keys are correct
             old_records = self.search(keys)
@@ -403,6 +404,7 @@ class Controller():
             }
 
         """
+
         def export_record(record, root):
             if isinstance(record, cls) and record is not root:
                 return
@@ -437,15 +439,15 @@ class Controller():
                                               table_name=foreign_model.name)
                 if not foreign_record:
                     raise ModelError(foreign_model,
-                                     "No record with ID '%s'" % key)
+                                     f"No record with ID '{key}'")
                 if 'model' in foreign_model.attributes[via]:
                     updated = record.eid
                 elif 'collection' in foreign_model.attributes[via]:
                     updated = list(set(foreign_record[via] + [record.eid]))
                 else:
                     raise InternalError(
-                        "%s.%s has neither 'model' nor 'collection'" %
-                        (foreign_model.name, via))
+                        f"{foreign_model.name}.{via} has neither 'model' nor "
+                        "'collection'")
                 foreign_model.controller(database).update({via: updated}, key)
 
     def _disassociate(self, record, foreign_model, affected, via):
