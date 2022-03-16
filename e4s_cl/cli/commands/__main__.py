@@ -19,6 +19,7 @@ HELP_PAGE_FMT = """'%(command)s' page to be written."""
 
 class MainCommand(AbstractCommand):
     """Main entry point to the command line interface."""
+
     def __init__(self):
         summary_parts = [
             util.color_text(f"E4S Container Launcher {E4S_CL_VERSION}",
@@ -162,8 +163,8 @@ class MainCommand(AbstractCommand):
 
             LOGGER.debug("Parsing updated arguments '%s'", argv)
             args = self._parse_args(argv)
-
-        self.parser.exit_on_error = True
+        finally:
+            self.parser.exit_on_error = True
 
         return args
 

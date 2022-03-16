@@ -11,10 +11,11 @@ class Version(list):
     Class abstracting a version of form x.y.z.
     Comparison operators are defined for simplicity.
     """
+
     def __init__(self, string):
         super().__init__()
 
-        digits = re.match(r'.*(?P<version>[0-9]+(\.[0-9]+)+).*', string)
+        digits = re.search(r'(?P<version>[0-9]+(\.[0-9]+)+)', string)
 
         if digits:
             for digit in digits.group('version').split('.'):
