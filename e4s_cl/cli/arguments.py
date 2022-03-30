@@ -645,7 +645,7 @@ def defined_object(model, field):
                 model.controller(storage=level).match(
                     field, regex=("^" + re.escape(string) + ".*")))
         
-        if not matches:
+        if not matches and '*' in string:
             for level in ORDERED_LEVELS:
                 matches.extend(
                     model.controller(storage=level).match(
