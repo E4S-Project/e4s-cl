@@ -640,7 +640,6 @@ def defined_object(model, field):
 
         matches = []
 
-        import pdb; pdb.set_trace()
         for level in ORDERED_LEVELS:
             matches.extend(
                 model.controller(storage=level).match(
