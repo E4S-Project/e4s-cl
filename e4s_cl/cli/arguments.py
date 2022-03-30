@@ -643,25 +643,32 @@ def defined_object(model, field):
         for level in ORDERED_LEVELS:
             matches.extend(
                 model.controller(storage=level).match(
-                    field, regex=("^" + re.sub(re.escape('\*'), '.*', re.escape(string)) + ".*")))
+                    field, regex=("^" + re.escape(string) + ".*")))
+        
+        if not matches:
+            for level in ORDERED_LEVELS:
+                matches.extend(
+                    model.controller(storage=level).match(
+                        field, regex=("^"+re.sub(re.escape('\*'), '.*', re.escape(string)))))
+            return matches
+        else:
+            exact_matches = list(filter(lambda x: x.get(field) == string, matches))
 
-        exact_matches = list(filter(lambda x: x.get(field) == string, matches))
+            # If multiple matches occur, return the first occurence
+            if len(exact_matches) > 1:
+                LOGGER.debug("Multiple exact %s matches for %s ! %s", field,
+                             model.name.lower(), exact_matches)
+                exact_matches = exact_matches[:1]
 
-        # If multiple matches occur, return the first occurence
-        if len(exact_matches) > 1:
-            LOGGER.debug("Multiple exact %s matches for %s ! %s", field,
-                         model.name.lower(), exact_matches)
-            exact_matches = exact_matches[:1]
+            # If there are multiple matches and no exact match
+            if len(matches) != 1 and len(exact_matches) != 1:
+                raise argparse.ArgumentTypeError(
+                    f"Pattern '{string}' does not identify a single {model.name.lower()}: "
+                    f"{len(matches)} {model.name.lower()}s match")
 
-        # If there are multiple matches and no exact match
-        if len(matches) != 1 and len(exact_matches) != 1:
-            raise argparse.ArgumentTypeError(
-                f"Pattern '{string}' does not identify a single {model.name.lower()}: "
-                f"{len(matches)} {model.name.lower()}s match")
-
-        if exact_matches:
-            return exact_matches.pop()
-        return matches.pop()
+            if exact_matches:
+                return exact_matches.pop()
+            return matches.pop()
 
     wrapper.__name__ = f"defined_{model.name.lower()}"
 
