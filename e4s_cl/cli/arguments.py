@@ -644,13 +644,16 @@ def defined_object(model, field):
             matches.extend(
                 model.controller(storage=level).match(
                     field, regex=("^" + re.escape(string) + ".*")))
-        
+       
+        # If not natural matches are found and a star is present,
+        # try matching with the unescaped star symbol
         if not matches and '*' in string:
             for level in ORDERED_LEVELS:
                 matches.extend(
                     model.controller(storage=level).match(
                         field, regex=("^"+re.sub(re.escape('\*'), '.*', re.escape(string)))))
             return matches
+        
         else:
             exact_matches = list(filter(lambda x: x.get(field) == string, matches))
 

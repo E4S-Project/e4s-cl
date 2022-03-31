@@ -170,7 +170,11 @@ class DeleteCommand(AbstractCliView):
         store = arguments.parse_storage_flag(args)[0]
         objects = getattr(args, self.model.key_attribute)
         for obj in objects:
-            self._delete_record(store, obj)
+            if isinstance(obj, list):
+                for elem in obj:
+                    self._delete_record(store, elem)
+            else:
+                self._delete_record(store, obj)
         return EXIT_SUCCESS
 
 
