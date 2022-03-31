@@ -80,7 +80,12 @@ class ProfileShowCommand(ShowCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        self.detail(args.profile)
+        if isinstance(args.profile, list):
+            for elem in args.profile:
+                self.detail(elem)
+                print("\n")
+        else:
+            self.detail(args.profile)
 
         return EXIT_SUCCESS
 
