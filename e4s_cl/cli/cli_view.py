@@ -722,6 +722,11 @@ class CopyCommand(CreateCommand):
         args = self._parse_args(argv)
         store = arguments.parse_storage_flag(args)[0]
         _object = getattr(args, self.model.name.lower())
+        if isinstance(_object, list):
+            raise self.parser.error(
+                    f"Cannot copy multiple profiles at once, {argv[0]} does not identify a single profile: "
+                    f"{len(_object)} profiles match"
+            )
         data = {
             attr: getattr(args, attr)
             for attr in self.model.attributes if hasattr(args, attr)
