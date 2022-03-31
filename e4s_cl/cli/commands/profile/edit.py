@@ -129,10 +129,7 @@ class ProfileEditCommand(EditCommand):
 
         return removed
 
-    def main(self, argv):
-        args = self._parse_args(argv)
-
-        profile = args.profile
+    def edit(self, args, profile):
         profile_name = profile.get('name')
 
         updates = dict(profile)
@@ -155,6 +152,15 @@ class ProfileEditCommand(EditCommand):
                              data, profile_name)
 
         Profile.controller().update(updates, {'name': profile_name})
+    
+    def main(self, argv):
+        args = self._parse_args(argv)
+        
+        if isinstance(args.profile, list):
+            for elem in args.profile:
+                self.edit(args, elem)
+        else:
+            self.edit(args, args.profile)
 
         return EXIT_SUCCESS
 
