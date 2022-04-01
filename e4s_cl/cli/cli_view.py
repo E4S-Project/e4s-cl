@@ -723,7 +723,7 @@ class CopyCommand(CreateCommand):
         store = arguments.parse_storage_flag(args)[0]
         _object = getattr(args, self.model.name.lower())
         if isinstance(_object, list):
-            raise self.parser.error(
+            raise self.parser.error( #pylint: disable=raising-bad-type
                     f"Cannot copy multiple profiles at once, {argv[0]} does not identify a single profile: "
                     f"{len(_object)} profiles match"
             )
