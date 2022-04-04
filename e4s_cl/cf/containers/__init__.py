@@ -214,6 +214,16 @@ class Container:
             LOGGER.debug("Output of ldd --version: %s", out)
             self.libc_v = Version(out)
 
+            sys.stdout.seek(0, 0)
+            code = self.run(['cat', '/etc/ld.so.cache'])
+
+            if code:
+                raise AnalysisError(code)
+
+            from sotools.dl_cache import _cache_libraries
+            sys.stdout.seek(0, 0)
+            self.libs = _cache_libraries(sys.stdout.read())
+
         sys.stdout = outstream
 
         return set()

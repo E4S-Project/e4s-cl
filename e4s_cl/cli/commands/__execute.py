@@ -74,6 +74,18 @@ def overlay_libraries(library_set, container, entrypoint):
             f"{len(library_set.linkers)} linkers detected. This should not happen."
         )
 
+    for lib in library_set.glib:
+        if lib.soname in container.libs:
+            LOGGER.debug("Overriding %s with %s", container.libs[lib.soname],
+                         lib.binary_path)
+            container.bind_file(lib.binary_path,
+                                dest=container.libs[lib.soname])
+
+    libdl = library_set.find('libdl.so.2')
+    if libdl is not None:
+        container.bind_file(libdl.binary_path,
+                            dest=container.libs[libdl.soname])
+
     for linker in library_set.linkers:
         entrypoint.linker = Path(container.import_library_dir,
                                  Path(linker.binary_path).name).as_posix()
@@ -181,14 +193,6 @@ class ExecuteCommand(AbstractCommand):
         # Setup a entrypoint object that will later be bound as a bash script
         params = Entrypoint()
 
-        # Bind files to make the sourced script accessible
-        if args.files:
-            for path in args.files:
-                container.bind_file(path, option=FileOptions.READ_WRITE)
-
-        # This script is sourced before any other command in the container
-        params.source_script_path = args.source
-
         # If WI4MPI is enabled, analyze the libraries it uses
         required_libraries = args.libraries + wi4mpi_libraries(wi4mpi_root())
 
@@ -199,6 +203,14 @@ class ExecuteCommand(AbstractCommand):
             # Analyze the container to get library information from the environment
             # it offers, using the entrypoint and the above libraries
             container.get_data()
+
+        # Bind files to make the sourced script accessible
+        if args.files:
+            for path in args.files:
+                container.bind_file(path, option=FileOptions.READ_WRITE)
+
+        # This script is sourced before any other command in the container
+        params.source_script_path = args.source
 
         # Setup the final command and metadata relating to the execution
         params.command = args.cmd
@@ -236,7 +248,8 @@ class ExecuteCommand(AbstractCommand):
                                 Path(library.binary_path).name).as_posix()
 
                 for import_path in map(_path, libset.top_level):
-                    params.preload.append(import_path)
+                    pass
+                    #params.preload.append(import_path)
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()

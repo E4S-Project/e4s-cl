@@ -13,7 +13,7 @@ from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
 
-TEMPLATE = """#!/bin/bash
+TEMPLATE = """#!/bin/bash -x
 # Source a user-provided script for convenience
 %(source_script)s
 
@@ -38,6 +38,7 @@ class Entrypoint:
     """
     Objects with exection information that convert to scripts on command
     """
+
     def __init__(self, debug=False):
         self.file_name = None
 
@@ -83,13 +84,16 @@ class Entrypoint:
         preload = list(dict.fromkeys(self.preload))
 
         if self.linker:
-            preload.append(self.linker)
+            linker_statement = f"{self.linker} /bin/bash"
+            #preload.append(self.linker)
+        else:
+            linker_statement = ''
 
         fields = {
             'source_script': self.source_script,
             'command': self.command,
             'library_dir': self.library_dir,
-            'linker': self.linker or '',
+            'linker': linker_statement,
             'preload': ':'.join(preload),
             'debugging': "export LD_DEBUG=files" if self.debug else ''
         }
