@@ -18,3 +18,8 @@ class ProfileCopyTest(tests.TestCase):
 
     def test_existence(self):
         self.assertNotCommandReturnValue(0, COMMAND, ['test01', 'test02'])
+
+    def test_copy_wildcard(self):
+        Profile.controller().create({'name': 'test01'})
+        Profile.controller().create({'name': 'test02'})
+        self.assertNotCommandReturnValue(0, COMMAND, ['test0*', 'test03'])
