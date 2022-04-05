@@ -651,7 +651,9 @@ def defined_object(model, field):
             for level in ORDERED_LEVELS:
                 matches.extend(
                     model.controller(storage=level).match(
-                        field, regex=("^"+re.sub(re.escape('\*'), '.*', re.escape(string)))))
+                        field, regex=('^'+
+                            re.sub(re.escape('\*'), '.*', re.escape(string)
+                                + '$'))))
             return matches
         
         else:
