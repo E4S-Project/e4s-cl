@@ -1,6 +1,62 @@
 """
 Detail a profile's content and fields.
 The name argument can be omitted in case a profile is selected, in which case the selected profile is shown.
+
+Show multiple profiles
+-------------------------
+
+You can show multiple profiles at once by using the '*' wildcard, which will match with any single or multiple characters. 
+
+
+.. code::
+
+    $ e4s-cl profile list 
+    ============================= Profile Configurations (/home/fdeny/.local/e4s_cl/user.json) ==
+    +----------+---------------+---------+-------+-----------+-------+--------+
+    | Selected |     Name      | Backend | Image | Libraries | Files | WI4MPI |
+    +==========+===============+=========+=======+===========+=======+========+
+    |    *     |   MPICH_3.4.2 |    None |  None |    16     |   1   |   No   |
+    +----------+---------------+---------+-------+-----------+-------+--------+
+    |          | MPICH_3.4.2-2 |    None |  None |    16     |   1   |   No   |
+    +----------+---------------+---------+-------+-----------+-------+--------+
+    |          |   MPICH_3.3.2 |    None |  None |    16     |   1   |   No   |
+    +----------+---------------+---------+-------+-----------+-------+--------+
+    |          | MPICH_3.3.2-2 |    None |  None |    16     |   1   |   No   |
+    +----------+---------------+---------+-------+-----------+-------+--------+
+
+    $ e4s-cl profile show MPICH_3.*.2
+    Profile name: MPICH_3.4.2
+    Container image: None
+    Container tech: None
+    Pre-execution script: None
+    WI4MPI: None
+    WI4MPI options: None
+
+    Bound libraries:
+     - libz.so.1 (/usr/lib/libz.so.1)
+     [...]
+     - libicuuc.so.70 (/usr/lib/libicuuc.so.70)
+
+    Bound files:
+     - /usr/share/hwdata/pci.ids
+
+
+    Profile name: MPICH_3.3.2
+    Container image: None
+    Container tech: None
+    Pre-execution script: None
+    WI4MPI: None
+    WI4MPI options: None
+
+    Bound libraries:
+     - libm.so.6 (/usr/lib/libm.so.6)
+     [...]
+     - libc.so.6 (/usr/lib/libc.so.6)
+
+    Bound files:
+     - /usr/share/hwdata/pci.ids
+        $ e4s-cl profile show MPICH_3.*.2   
+
 """
 
 from pathlib import Path
