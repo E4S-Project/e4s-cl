@@ -36,35 +36,45 @@ class ProfileDeleteTest(tests.TestCase):
         Profile.controller().create({'name': PROFILE_NAMES[1]})
         Profile.controller().create({'name': PROFILE_NAMES[2]})
 
-        # Fails due to 'm' matching two profiles
+        # Fails due to 'm' alone not matching any profile
         self.assertNotCommandReturnValue(0, COMMAND, [PROFILE_NAMES[0][0]])
+        
+        # Succeeds due to '#a#' matching with a profile
+        self.assertCommandReturnValue(0, COMMAND, ['#a#'])
 
-        # Succeeds due to 'o' matching only the last profile
-        self.assertCommandReturnValue(0, COMMAND, [PROFILE_NAMES[2][0]])
+        Profile.controller().create({'name': PROFILE_NAMES[1]})
+        # Succeeds due to 'm#' matching with two profile
+        self.assertCommandReturnValue(0, COMMAND, ['m#'])
+        
 
-        self.assertTrue(Profile.controller().one({'name': PROFILE_NAMES[0]}))
-        self.assertTrue(Profile.controller().one({'name': PROFILE_NAMES[1]}))
+        # Fails due to 'o' alone not matching any profile
+        self.assertNotCommandReturnValue(0, COMMAND, [PROFILE_NAMES[2][0]])
+        # Succeeds due to 'o#' matching a profile
+        self.assertCommandReturnValue(0, COMMAND, ['o#'])
+
+        self.assertFalse(Profile.controller().one({'name': PROFILE_NAMES[0]}))
+        self.assertFalse(Profile.controller().one({'name': PROFILE_NAMES[1]}))
         self.assertFalse(Profile.controller().one({'name': PROFILE_NAMES[2]}))
 
     def test_wildcard(self):
-        Profile.controller().create({'name': 'test.*'})
+        Profile.controller().create({'name': 'test.#'})
         Profile.controller().create({'name': 'test01'})
         Profile.controller().create({'name': 'test02'})
         Profile.controller().create({'name': 'test.1.1'})
         Profile.controller().create({'name': 'test.2.1'})
 
-        self.assertCommandReturnValue(0, COMMAND, 'test0*')
+        self.assertCommandReturnValue(0, COMMAND, 'test0#')
         self.assertTrue(Profile.controller().one({'name': 'test.1.1'}))
         self.assertTrue(Profile.controller().one({'name': 'test.2.1'}))
         self.assertFalse(Profile.controller().one({'name': 'test01'}))
         self.assertFalse(Profile.controller().one({'name': 'test02'}))
-        self.assertTrue(Profile.controller().one({'name': 'test.*'}))
+        self.assertTrue(Profile.controller().one({'name': 'test.#'}))
 
-        self.assertCommandReturnValue(0, COMMAND, 'test.*.1')
+        self.assertCommandReturnValue(0, COMMAND, 'test.#.1')
         self.assertFalse(Profile.controller().one({'name': 'test.1.1'}))
         self.assertFalse(Profile.controller().one({'name': 'test.2.1'}))
-        self.assertTrue(Profile.controller().one({'name': 'test.*'}))
+        self.assertTrue(Profile.controller().one({'name': 'test.#'}))
 
-        self.assertCommandReturnValue(0, COMMAND, 'test.*')
-        self.assertFalse(Profile.controller().one({'name': 'test.*'}))
+        self.assertCommandReturnValue(0, COMMAND, 'test.#')
+        self.assertFalse(Profile.controller().one({'name': 'test.#'}))
 

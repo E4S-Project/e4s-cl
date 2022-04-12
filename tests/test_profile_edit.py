@@ -103,16 +103,6 @@ class ProfileEditTest(tests.TestCase):
             0, COMMAND, [self.profile_name, '--remove-libraries', filename])
         self.assertIn(f"File {filename} not in profile's libraries", stderr)
 
-    def test_wildcard(self):
-        Profile.controller().create({'name': 'test001'})
-        Profile.controller().create({'name': 'test002'})
-        Profile.controller().create({'name': 'test3'})
-        
-        self.assertCommandReturnValue(0, COMMAND, ['test0*', '--backend', self.backend])
-        self.assertIn(self.backend,  Profile.controller().one({'name': 'test001'}).get('backend', []))
-        self.assertIn(self.backend,  Profile.controller().one({'name': 'test002'}).get('backend', []))
-        self.assertNotIn(self.backend,  Profile.controller().one({'name': 'test3'}).get('backend', []))
-
 
 fields = {
     ('--image', 'image:id', 'image', 'profile_edit_image'),

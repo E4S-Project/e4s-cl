@@ -32,13 +32,6 @@ class ProfileShowTest(tests.TestCase):
         self.assertNotCommandReturnValue(0, command, ['test'])
         self.assertCommandReturnValue(0, command, ['otherName'])
 
-    def test_wildcard(self):
-        Profile.controller().create({"name": 'test01'})
-        Profile.controller().create({"name": 'test02'})
-        Profile.controller().create({"name": 'test3'})
-        stdout = self.assertCommandReturnValue(0, command, 'test0*')
-        
-        
 
 def wrapper(key, value, test_name):
     """
