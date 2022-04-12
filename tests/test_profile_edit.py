@@ -16,7 +16,6 @@ class ProfileEditTest(tests.TestCase):
         self.profile_name = 'test01'
         self.files = ['/tmp/file1']
         self.libraries = ['/tmp/lib1.so']
-        self.backend = 'testbackend'
 
         Profile.controller().create({
             "name": self.profile_name,

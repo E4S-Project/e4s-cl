@@ -25,9 +25,3 @@ class ProfileSelectTest(tests.TestCase):
 
     def test_select_nonexistent(self):
         self.assertCommandReturnValue(2, COMMAND, ["non-existent"])
-
-    def test_wildcard(self):
-        Profile.controller().create({'name': 'test01'})
-        Profile.controller().create({'name': 'test02'})
-        self.assertNotCommandReturnValue(0, COMMAND, 'test0*')
-        

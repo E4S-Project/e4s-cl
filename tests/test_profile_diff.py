@@ -22,13 +22,3 @@ class ProfileDiffTest(tests.TestCase):
         Profile.controller().create({'name': 'lhs', 'files': ['/tmp/lhs_only', '/tmp/both']})
 
         self.assertNotCommandReturnValue(0, COMMAND, shlex.split("lhs"))
-    
-    def test_wildcard(self):
-        Profile.controller().create({'name': 'test01'})
-        Profile.controller().create({'name': 'test02'})
-        Profile.controller().create({'name': 'test3'})
-        
-        self.assertNotCommandReturnValue(0, COMMAND, shlex.split('test0* test3'))
-        self.assertNotCommandReturnValue(0, COMMAND, shlex.split('test*'))
-        self.assertCommandReturnValue(0, COMMAND, shlex.split('test01 test3'))
-        
