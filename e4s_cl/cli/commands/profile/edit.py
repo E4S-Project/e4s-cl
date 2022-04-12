@@ -9,44 +9,6 @@ Passing a value to **--add-files**, **--remove-files**, **--add-libraries**, \
 of files or libraries, accordingly.
 
 The name argument can be omitted, in which case the selected profile is modified.
-
-Edit multiple profiles
--------------------------
-
-You can edit multiple profiles at once by using the '*' wildcard, which will match with any single or multiple characters. 
-
-
-.. code::
-
-    $ e4s-cl profile list 
-    ============================= Profile Configurations (/home/fdeny/.local/e4s_cl/user.json) ==
-    +----------+---------------+---------+-------+-----------+-------+--------+
-    | Selected |     Name      | Backend | Image | Libraries | Files | WI4MPI |
-    +==========+===============+=========+=======+===========+=======+========+
-    |    *     |   MPICH_3.4.2 |    None |  None |    16     |   1   |   No   |
-    +----------+---------------+---------+-------+-----------+-------+--------+
-    |          | MPICH_3.4.2-2 |    None |  None |    16     |   1   |   No   |
-    +----------+---------------+---------+-------+-----------+-------+--------+
-    |          |   MPICH_3.3.2 |    None |  None |    16     |   1   |   No   |
-    +----------+---------------+---------+-------+-----------+-------+--------+
-    |          | MPICH_3.3.2-2 |    None |  None |    16     |   1   |   No   |
-    +----------+---------------+---------+-------+-----------+-------+--------+
-
-    $ e4s-cl profile edit MPICH_3.*.2 --backend singularity --image ecp.img  
-
-    $ e4s-cl profile list
-    ============================= Profile Configurations (/home/fdeny/.local/e4s_cl/user.json) ==
-    +----------+---------------+-------------+---------+-----------+-------+--------+
-    | Selected |     Name      |   Backend   |  Image  | Libraries | Files | WI4MPI |
-    +==========+===============+=============+=========+===========+=======+========+
-    |    *     |   MPICH_3.4.2 | singularity | ecp.img |    16     |   1   |   No   |
-    +----------+---------------+-------------+---------+-----------+-------+--------+
-    |          |   MPICH_3.3.2 | singularity | ecp.img |    16     |   1   |   No   |
-    +----------+---------------+-------------+---------+-----------+-------+--------+
-    |          | MPICH_3.4.2-2 |        None |    None |    16     |   1   |   No   |
-    +----------+---------------+-------------+---------+-----------+-------+--------+
-    |          | MPICH_3.3.2-2 |        None |    None |    16     |   1   |   No   |
-    +----------+---------------+-------------+---------+-----------+-------+--------+
 """
 
 from pathlib import Path
@@ -194,11 +156,7 @@ class ProfileEditCommand(EditCommand):
     def main(self, argv):
         args = self._parse_args(argv)
         
-        if isinstance(args.profile, list):
-            for elem in args.profile:
-                self.edit(args, elem)
-        else:
-            self.edit(args, args.profile)
+        self.edit(args, args.profile)
 
         return EXIT_SUCCESS
 

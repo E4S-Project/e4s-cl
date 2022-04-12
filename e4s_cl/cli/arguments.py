@@ -551,7 +551,7 @@ def get_model_identifier(model,
     parser.add_argument(
         model_name,
         nargs='?',
-        type=defined_object(model, key_attr),
+        type=single_defined_object(model, key_attr),
         help=
         f"The target {model_name}. If omitted, defaults to the selected {model_name}",
         default=_default,
@@ -629,7 +629,7 @@ def existing_posix_path_list(string):
     return [existing_posix_path(data) for data in string.split(',')]
 
 
-def defined_object(model, field):
+def single_defined_object(model, field):
     """Argument type callback.
     Asserts that the string corresponds to an existing object."""
 
@@ -645,36 +645,51 @@ def defined_object(model, field):
                 model.controller(storage=level).match(
                     field, regex=("^" + re.escape(string) + ".*")))
        
-        # If not natural matches are found and a star is present,
-        # try matching with the unescaped star symbol
-        if not matches and '*' in string:
-            for level in ORDERED_LEVELS:
-                matches.extend(
-                    model.controller(storage=level).match(
-                        field, regex=('^'+
-                            re.sub(re.escape('\*'), '.*', re.escape(string)
-                                + '$'))))
-            return matches
+        exact_matches = list(filter(lambda x: x.get(field) == string, matches))
+
+        # If multiple matches occur, return the first occurence
+        if len(exact_matches) > 1:
+            LOGGER.debug("Multiple exact %s matches for %s ! %s", field,
+                         model.name.lower(), exact_matches)
+            exact_matches = exact_matches[:1]
+
+        # If there are multiple matches and no exact match
+        if len(matches) != 1 and len(exact_matches) != 1:
+            raise argparse.ArgumentTypeError(
+                f"Pattern '{string}' does not identify a single {model.name.lower()}: "
+                f"{len(matches)} {model.name.lower()}s match")
+
+        if exact_matches:
+            return exact_matches.pop()
+        return matches.pop()
+
+    wrapper.__name__ = f"defined_{model.name.lower()}"
+
+    return wrapper
+
+def wildcard_defined_object(model, field):
+    """Argument type callback.
+    Asserts that the string corresponds to an existing object."""
+
+    def wrapper(string):
+        if string == UNSELECTED:
+            raise argparse.ArgumentTypeError(
+                f"no {model.name} selected nor specified")
+
+        matches = []
+
+        for level in ORDERED_LEVELS:
+            matches.extend(
+                model.controller(storage=level).match(
+                    field, regex=('^'+
+                        re.sub(re.escape('\#'), '.*', re.escape(string))
+                            + '$')))
+        if not matches :
+            raise argparse.ArgumentTypeError(
+                f"Pattern '{string}' does not identify any {model.name.lower()}: "
+                f"{len(matches)} {model.name.lower()}s match")
+        return matches
         
-        else:
-            exact_matches = list(filter(lambda x: x.get(field) == string, matches))
-
-            # If multiple matches occur, return the first occurence
-            if len(exact_matches) > 1:
-                LOGGER.debug("Multiple exact %s matches for %s ! %s", field,
-                             model.name.lower(), exact_matches)
-                exact_matches = exact_matches[:1]
-
-            # If there are multiple matches and no exact match
-            if len(matches) != 1 and len(exact_matches) != 1:
-                raise argparse.ArgumentTypeError(
-                    f"Pattern '{string}' does not identify a single {model.name.lower()}: "
-                    f"{len(matches)} {model.name.lower()}s match")
-
-            if exact_matches:
-                return exact_matches.pop()
-            return matches.pop()
-
     wrapper.__name__ = f"defined_{model.name.lower()}"
 
     return wrapper

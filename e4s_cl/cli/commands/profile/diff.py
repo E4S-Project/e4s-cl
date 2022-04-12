@@ -36,7 +36,7 @@ class DiffCommand(AbstractCliView):
                                                 description=self.summary)
 
         parser.add_argument(self.model_name + '_rhs',
-                            type=arguments.defined_object(
+                            type=arguments.single_defined_object(
                                 self.model, key_attr),
                             help="The profile to compare with",
                             metavar=f"other_{self.model_name}_{key_attr}")

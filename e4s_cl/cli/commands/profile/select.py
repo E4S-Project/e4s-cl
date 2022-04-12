@@ -21,11 +21,6 @@ class ProfileSelectCommand(AbstractCommand):
 
     def main(self, argv):
         profile = self._parse_args(argv).profile
-        if isinstance(profile, list):
-            raise self.parser.error( #pylint: disable=raising-bad-type
-                    f"Cannot select multiple profiles at once, {argv[0]} does not identify a single profile: "
-                    f"{len(profile)} profiles match"
-            )
         Profile.controller().select(profile)
         return EXIT_SUCCESS
 

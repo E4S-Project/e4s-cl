@@ -147,7 +147,7 @@ class DeleteCommand(AbstractCliView):
             help=
             f"{key_attr.capitalize()} of {self.model_name} configuration to delete",
             nargs="+",
-            type=arguments.defined_object(self.model, key_attr),
+            type=arguments.wildcard_defined_object(self.model, key_attr),
             metavar=f"<{self.model_name}_{key_attr}>")
         if self.include_storage_flag:
             arguments.add_storage_flag(parser, "delete", self.model_name)
@@ -170,11 +170,8 @@ class DeleteCommand(AbstractCliView):
         store = arguments.parse_storage_flag(args)[0]
         objects = getattr(args, self.model.key_attribute)
         for obj in objects:
-            if isinstance(obj, list):
-                for elem in obj:
-                    self._delete_record(store, elem)
-            else:
-                self._delete_record(store, obj)
+            for elem in obj:
+                self._delete_record(store, elem)
         return EXIT_SUCCESS
 
 
@@ -722,11 +719,6 @@ class CopyCommand(CreateCommand):
         args = self._parse_args(argv)
         store = arguments.parse_storage_flag(args)[0]
         _object = getattr(args, self.model.name.lower())
-        if isinstance(_object, list):
-            raise self.parser.error( #pylint: disable=raising-bad-type
-                    f"Cannot copy multiple profiles at once, {argv[0]} does not identify a single profile: "
-                    f"{len(_object)} profiles match"
-            )
         data = {
             attr: getattr(args, attr)
             for attr in self.model.attributes if hasattr(args, attr)
