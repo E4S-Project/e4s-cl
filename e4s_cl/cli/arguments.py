@@ -643,7 +643,7 @@ def single_defined_object(model, field):
         for level in ORDERED_LEVELS:
             matches.extend(
                 model.controller(storage=level).match(
-                    field, regex=("^" + re.escape(string) + ".*")))
+                    field, regex=(f"^{re.escape(string)}.*")))
        
         exact_matches = list(filter(lambda x: x.get(field) == string, matches))
 
@@ -678,12 +678,11 @@ def wildcard_defined_object(model, field):
 
         matches = []
 
+        wildcard_string = re.sub(re.escape('\#'), '.*', re.escape(string))
         for level in ORDERED_LEVELS:
             matches.extend(
                 model.controller(storage=level).match(
-                    field, regex=('^'+
-                        re.sub(re.escape('\#'), '.*', re.escape(string))
-                            + '$')))
+                    field, regex=(f"^{wildcard_string}$")))
         if not matches :
             raise argparse.ArgumentTypeError(
                 f"Pattern '{string}' does not identify any {model.name.lower()}: "
