@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 from e4s_cl import logger, CONTAINER_DIR
-from e4s_cl.util import which
+from e4s_cl.util import which, run_subprocess
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
 LOGGER = logger.get_logger(__name__)
@@ -76,12 +76,12 @@ class ShifterContainer(Container):
         for env_var in self.env.items():
             env_list.append(f'--env={env_var}={env_var}')
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            volumes = self._setup_import(Path(temp_dir))
-            return [
-                self.executable, f"--image={self.image}", *env_list, *volumes,
-                *command
-            ]
+        self.temp_dir = tempfile.TemporaryDirectory()
+        volumes = self._setup_import(Path(self.temp_dir.name))
+        return [
+            self.executable, f"--image={self.image}", *env_list, *volumes,
+            *command
+        ]
 
     def run(self, command):
 
@@ -89,7 +89,8 @@ class ShifterContainer(Container):
             raise BackendNotAvailableError(self.executable)
 
         container_cmd = self._prepare(command)
-        return (container_cmd, self.env)
+        LOGGER.debug(container_cmd)
+        return run_subprocess(container_cmd, env=self.env)
 
 
 CLASS = ShifterContainer
