@@ -6,7 +6,7 @@ Usage
 
 .. code::
 
-    e4s-cl profile dump [ NAME ]
+    e4s-cl profile dump [ NAME ] [ OTHER_NAME ] [...]
 
 Description
 --------------

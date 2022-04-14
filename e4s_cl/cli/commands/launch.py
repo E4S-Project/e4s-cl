@@ -101,7 +101,7 @@ class LaunchCommand(AbstractCommand):
                                       description=self.summary)
         parser.add_argument(
             '--profile',
-            type=arguments.defined_object(Profile, 'name'),
+            type=arguments.single_defined_object(Profile, 'name'),
             help=
             "Profile to use. Its fields will be used by default, but any other argument will override them",
             default=Profile.selected().get('name', arguments.SUPPRESS),
