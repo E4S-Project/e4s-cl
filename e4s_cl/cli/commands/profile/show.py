@@ -1,7 +1,6 @@
 """
 Detail a profile's content and fields.
 The name argument can be omitted in case a profile is selected, in which case the selected profile is shown.
-
 """
 
 from pathlib import Path

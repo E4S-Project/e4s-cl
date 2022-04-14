@@ -644,7 +644,7 @@ def single_defined_object(model, field):
             matches.extend(
                 model.controller(storage=level).match(
                     field, regex=(f"^{re.escape(string)}.*")))
-       
+
         exact_matches = list(filter(lambda x: x.get(field) == string, matches))
 
         # If multiple matches occur, return the first occurence
@@ -667,6 +667,7 @@ def single_defined_object(model, field):
 
     return wrapper
 
+
 def wildcard_defined_object(model, field):
     """Argument type callback.
     Asserts that the string corresponds to an existing object."""
@@ -683,12 +684,12 @@ def wildcard_defined_object(model, field):
             matches.extend(
                 model.controller(storage=level).match(
                     field, regex=(f"^{wildcard_string}$")))
-        if not matches :
+        if not matches:
             raise argparse.ArgumentTypeError(
                 f"Pattern '{string}' does not identify any {model.name.lower()}: "
                 f"{len(matches)} {model.name.lower()}s match")
         return matches
-        
+
     wrapper.__name__ = f"defined_{model.name.lower()}"
 
     return wrapper

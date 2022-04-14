@@ -131,7 +131,7 @@ class ProfileEditCommand(EditCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
-        
+
         profile = args.profile
         profile_name = profile.get('name')
 
@@ -155,7 +155,7 @@ class ProfileEditCommand(EditCommand):
                              data, profile_name)
 
         Profile.controller().update(updates, {'name': profile_name})
-    
+
         return EXIT_SUCCESS
 
 
