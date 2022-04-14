@@ -49,11 +49,6 @@ class DiffCommand(AbstractCliView):
         lhs = getattr(args, self.model_name)
         rhs = getattr(args, self.model_name + '_rhs')
 
-        if isinstance(lhs, list) or isinstance(rhs, list):
-            raise self.parser.error( #pylint: disable=raising-bad-type
-                    f"Cannot differentiate more than 2 profiles at once, arguments don't identify 2 single profiles: "
-            )
-
         if not (lhs and rhs):
             self.parser.error("Missing profile argument")
 
