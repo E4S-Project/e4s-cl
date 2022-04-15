@@ -10,12 +10,12 @@ the initialisation step.
 Installation for targeted systems
 ------------------------------------
 
-To enable such profiles, use the :code:`SYSTEM` argument when calling \
+To enable such profiles, use the :code:`E4SCL_TARGETSYSTEM` argument when calling \
 :code:`make` or :code:`make install`.
 
 .. code-block:: bash
 
-    $ make INSTALLDIR=<prefix> install [SYSTEM=<system_key>]
+    $ make INSTALLDIR=<prefix> install [E4SCL_TARGETSYSTEM=<system_key>]
 
 Successfully tested systems
 ----------------------------
