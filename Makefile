@@ -119,7 +119,7 @@ install: $(PYTHON_EXE)
 ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
 
 download_assets: $(PYTHON_EXE)
-	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(SYSTEM)
+	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(E4SCL_TARGETSYSTEM)
 
 COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
 COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)
