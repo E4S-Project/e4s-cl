@@ -18,6 +18,98 @@ MIMES = []
 OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
 
 
+def _deprettify(lines):
+    """
+    Reconstruct full directives out of directives separated by backslashes
+    over multiple lines
+    """
+    buffer, full_lines = '', []
+
+    for line in lines:
+        buffer = buffer + line
+
+        if buffer.endswith('\\'):
+            buffer = buffer.rstrip('\\')
+            continue
+
+        full_lines.append(buffer)
+        buffer = ''
+
+    return full_lines
+
+
+def _directives_to_dict(directives):
+    """
+    Transform a list of strings of shape 'KEY=value[=foo]' into a dict
+    """
+    entries = []
+
+    # Split all the directives at the first '='
+    for directive in directives:
+        parts = directive.split('=', 1)
+
+        if len(parts) != 2:
+            LOGGER.warning("Unrecognized directive: '%s'", directive)
+            continue
+
+        entries.append(tuple(map(lambda x: x.strip(), parts)))
+
+    return dict(entries)
+
+
+def _parse_config(config_file: Path):
+    """
+    Parse a file at a given path and return a dict with its defined variables
+    """
+    # Read the given file
+    try:
+        with open(config_file, 'r', encoding='utf-8') as config:
+            config_directives = _deprettify(
+                [l.strip() for l in config.readlines()])
+    except IOError as err:
+        LOGGER.warning("Error opening configuration file: %s", str(err))
+        return {}
+
+    # Remove all comments
+    config_directives = set(
+        filter(lambda x: not x.startswith('#'), config_directives))
+
+    # Organize the results in a dict
+    return _directives_to_dict(config_directives)
+
+
+def organize_config(config):
+    """
+    Organize shifter module directives in a nested directory
+    """
+    module_directives = set(filter(lambda x: x.startswith('module'), config))
+
+    if not module_directives:
+        return
+
+    module_root = {}
+    config['module'] = module_root
+
+    for directive in module_directives:
+        value = config[directive]
+        path = directive.split('_')
+
+        if len(path) != 3:
+            LOGGER.warning("Unknown module directive: '%s'", directive)
+            continue
+
+        _, module_name, key = path
+
+        existing = module_root.get(module_name, None)
+
+        if not existing:
+            existing = dict()
+
+        config['module'][module_name] = existing | {key: value}
+
+        del config[directive]
+
+
 class ShifterContainer(Container):
     """
     Class to use for a shifter execution
