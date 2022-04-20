@@ -60,8 +60,8 @@ class ShifterContainer(Container):
 
             else:
                 LOGGER.warning(
-                    "Shifter: Backend does not support file binding. Performance may be impacted."
-                )
+                    "Shifter: Failed to bind '%s': Backend does not support file binding. Performance may be impacted.",
+                    source)
 
         return [f"--volume={source}:{dest}" for (source, dest) in volumes]
 
