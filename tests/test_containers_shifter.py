@@ -1,15 +1,58 @@
 from os import getenv, getcwd
+from tempfile import NamedTemporaryFile
 from unittest import skipIf
 from pathlib import Path
 import tests
 from e4s_cl.util import which
 from e4s_cl.cf.containers import Container, BackendUnsupported, FileOptions
+from e4s_cl.cf.containers.shifter import _parse_config, organize_config
+
+SAMPLE_CONFIG = """#system (required)
+#
+# Name of your system, e.g., edison or cori. This name must match a configured 
+# system in the imagegw. This is primarily used by shifterimg to self-identify 
+# which system it is representing.
+#
+system=perlmutter
+siteFs=/path1:/path1;\\
+    /path2:/path2;
+siteEnv=SHIFTER_RUNTIME=1
+module_test_siteFs = test
+this line is an issue and should be dropped
+"""
+
+EXPECTED_CONFIG = dict(system='perlmutter',
+                       siteFs='/path1:/path1;/path2:/path2;',
+                       siteEnv='SHIFTER_RUNTIME=1',
+                       module_test_siteFs='test')
 
 
 class ContainerTestShifter(tests.TestCase):
 
     def shifter_check():
         return (not which('shifter') and (not Path('shifter').exists()))
+
+    def test_parse_config(self):
+        with NamedTemporaryFile('w', delete=False) as config:
+            config.write(SAMPLE_CONFIG)
+            config_file = config.name
+
+        directives = _parse_config(config_file)
+
+        self.assertSetEqual(set(EXPECTED_CONFIG.keys()),
+                            set(directives.keys()))
+        self.assertSetEqual(set(EXPECTED_CONFIG.values()),
+                            set(directives.values()))
+
+        organized = organize_config(directives)
+
+        old_var = directives.get('module_test_siteFs')
+        module_dir = directives.get('module', {})
+        test_dir = module_dir.get('test', {})
+        self.assertIsNone(old_var)
+        self.assertTrue(module_dir)
+        self.assertTrue(test_dir)
+        self.assertEqual(test_dir.get('siteFs'), 'test')
 
     def test_create(self):
         container = Container(name='shifter', image='test')
