@@ -17,6 +17,8 @@ MIMES = []
 
 OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
 
+_DEFAULT_CONFIG_PATH = Path('/etc/shifter/udiRoot.conf')
+
 
 def _deprettify(lines):
     """
@@ -78,44 +80,28 @@ def _parse_config(config_file: Path):
     return _directives_to_dict(config_directives)
 
 
-def organize_config(config):
-    """
-    Organize shifter module directives in a nested directory
-    """
-    module_directives = set(filter(lambda x: x.startswith('module'), config))
-
-    if not module_directives:
-        return
-
-    module_root = {}
-    config['module'] = module_root
-
-    for directive in module_directives:
-        value = config[directive]
-        path = directive.split('_')
-
-        if len(path) != 3:
-            LOGGER.warning("Unknown module directive: '%s'", directive)
-            continue
-
-        _, module_name, key = path
-
-        existing = module_root.get(module_name, None)
-
-        if not existing:
-            existing = dict()
-
-        config['module'][module_name] = existing | {key: value}
-
-        del config[directive]
-
-
 class ShifterContainer(Container):
     """
     Class to use for a shifter execution
     """
 
     executable_name = 'shifter'
+
+    @classmethod
+    @property
+    def linker_path(cls):
+        config = _parse_config(_DEFAULT_CONFIG_PATH)
+
+        path = []
+
+        for module in config.get('defaultModules', '').split(','):
+            prepend = config.get(f"module_{module}_siteEnvPrepend")
+            if prepend:
+                for var in prepend.split():
+                    if var.startswith('LD_LIBRARY_PATH'):
+                        path.append(var.split('=')[1])
+
+        return os.pathsep.join(path).split(os.pathsep)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -152,8 +138,8 @@ class ShifterContainer(Container):
 
             else:
                 LOGGER.warning(
-                    "Shifter: Failed to bind '%s': Backend does not support file binding. Performance may be impacted.",
-                    source)
+                    "Shifter: Failed to bind '%s': Backend does not support file"
+                    "binding. Performance may be impacted.", source)
 
         return [f"--volume={source}:{dest}" for (source, dest) in volumes]
 

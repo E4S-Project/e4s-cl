@@ -5,7 +5,7 @@ from pathlib import Path
 import tests
 from e4s_cl.util import which
 from e4s_cl.cf.containers import Container, BackendUnsupported, FileOptions
-from e4s_cl.cf.containers.shifter import _parse_config, organize_config
+from e4s_cl.cf.containers.shifter import _parse_config
 
 SAMPLE_CONFIG = """#system (required)
 #
@@ -43,16 +43,6 @@ class ContainerTestShifter(tests.TestCase):
                             set(directives.keys()))
         self.assertSetEqual(set(EXPECTED_CONFIG.values()),
                             set(directives.values()))
-
-        organized = organize_config(directives)
-
-        old_var = directives.get('module_test_siteFs')
-        module_dir = directives.get('module', {})
-        test_dir = module_dir.get('test', {})
-        self.assertIsNone(old_var)
-        self.assertTrue(module_dir)
-        self.assertTrue(test_dir)
-        self.assertEqual(test_dir.get('siteFs'), 'test')
 
     def test_create(self):
         container = Container(name='shifter', image='test')
