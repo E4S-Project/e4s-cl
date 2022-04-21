@@ -17,6 +17,68 @@ MIMES = []
 
 OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
 
+_DEFAULT_CONFIG_PATH = Path('/etc/shifter/udiRoot.conf')
+
+
+def _deprettify(lines):
+    """
+    Reconstruct full directives out of directives separated by backslashes
+    over multiple lines
+    """
+    buffer, full_lines = '', []
+
+    for line in lines:
+        buffer = buffer + line
+
+        if buffer.endswith('\\'):
+            buffer = buffer.rstrip('\\')
+            continue
+
+        full_lines.append(buffer)
+        buffer = ''
+
+    return full_lines
+
+
+def _directives_to_dict(directives):
+    """
+    Transform a list of strings of shape 'KEY=value[=foo]' into a dict
+    """
+    entries = []
+
+    # Split all the directives at the first '='
+    for directive in directives:
+        parts = directive.split('=', 1)
+
+        if len(parts) != 2:
+            LOGGER.warning("Unrecognized directive: '%s'", directive)
+            continue
+
+        entries.append(tuple(map(lambda x: x.strip(), parts)))
+
+    return dict(entries)
+
+
+def _parse_config(config_file: Path):
+    """
+    Parse a file at a given path and return a dict with its defined variables
+    """
+    # Read the given file
+    try:
+        with open(config_file, 'r', encoding='utf-8') as config:
+            config_directives = _deprettify(
+                [l.strip() for l in config.readlines()])
+    except IOError as err:
+        LOGGER.warning("Error opening configuration file: %s", str(err))
+        return {}
+
+    # Remove all comments
+    config_directives = set(
+        filter(lambda x: not x.startswith('#'), config_directives))
+
+    # Organize the results in a dict
+    return _directives_to_dict(config_directives)
+
 
 class ShifterContainer(Container):
     """
@@ -24,6 +86,22 @@ class ShifterContainer(Container):
     """
 
     executable_name = 'shifter'
+
+    @classmethod
+    @property
+    def linker_path(cls):
+        config = _parse_config(_DEFAULT_CONFIG_PATH)
+
+        path = []
+
+        for module in config.get('defaultModules', '').split(','):
+            prepend = config.get(f"module_{module}_siteEnvPrepend")
+            if prepend:
+                for var in prepend.split():
+                    if var.startswith('LD_LIBRARY_PATH'):
+                        path.append(var.split('=')[1])
+
+        return os.pathsep.join(path).split(os.pathsep)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -60,8 +138,8 @@ class ShifterContainer(Container):
 
             else:
                 LOGGER.warning(
-                    "Shifter: Backend does not support file binding. Performance may be impacted."
-                )
+                    "Shifter: Failed to bind '%s': Backend does not support file"
+                    "binding. Performance may be impacted.", source)
 
         return [f"--volume={source}:{dest}" for (source, dest) in volumes]
 
