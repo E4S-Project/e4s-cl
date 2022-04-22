@@ -70,6 +70,11 @@ def add_builtin_profile(system, configuration, storage=USER_STORAGE):
     """
     Record a configuration to be used as a built-in profile
     """
+
+    if not isinstance(configuration, dict):
+        raise ValueError(f"Profile '{system}' data is not a dictionary! Profile import cancelled.")
+
+
     record = {
         'system': system,
         'configuration': configuration,
