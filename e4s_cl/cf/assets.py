@@ -87,8 +87,8 @@ def check_builtin_profile(system, configuration):
     """
     
     profile_types = {
-    'string': str,
-    'list': list
+    'string': [str],
+    'list': [list, str]
     } 
     
     # Checks if the profile is a dict
@@ -102,7 +102,7 @@ def check_builtin_profile(system, configuration):
             raise ValueError(f"Profile {system}'s keys don't match with"
                     f" e4s-cl's profiles keys: '{key}' not an authorised key!"
                     " Profile import cancelled.")
-        if not type(configuration[key]) == profile_types[(attr[key]['type'])]:
+        if not type(configuration[key]) in profile_types[(attr[key]['type'])]:
             raise ValueError(f"Profile {system} has values of the wrong"
                     f" type: '{type(configuration[key])}', and don't match"
                     f" with e4s-cl's {key}'s type: '{profile_types[attr[key]['type']]}'!"
