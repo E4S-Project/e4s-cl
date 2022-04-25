@@ -59,12 +59,13 @@ def mkdirp(path: Path) -> bool:
     try:
         path.mkdir(parents=True, exist_ok=True)
     except PermissionError as err:
-        LOGGER.error("Failed to create directory %s: %s", path.as_posix(),
+        LOGGER.debug("Failed to create directory %s: %s", path.as_posix(),
                      str(err))
         return False
     except FileExistsError as err:
-        LOGGER.error("File %s exists and is not a directory: %s",
+        LOGGER.debug("File %s exists and is not a directory: %s",
                      path.as_posix(), str(err))
+        return False
 
     return True
 
