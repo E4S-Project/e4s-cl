@@ -89,12 +89,9 @@ def check_builtin_profile(system, configuration):
         raise ValueError(f"Profile {system} data is not a dictionary! Profile import cancelled.")
 
     attr = attributes()
-    import pdb; pdb.set_trace()
     for key in configuration.keys():
         if key not in attr.keys():
             raise ValueError(f"Profile {system}'s keys don't match with e4s-cl's profiles keys: '{key}' not an authorised key! Profile import cancelled.")
-
-
 
 def remove_builtin_profile(system, storage=USER_STORAGE):
     """
