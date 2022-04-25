@@ -1,8 +1,8 @@
 """
 This modules parses data in the asset dirs to list all assets available during execution
 """
-
 from e4s_cl import logger
+from e4s_cl.model.profile import attributes
 from e4s_cl.cf.storage.levels import USER_STORAGE
 
 LOGGER = logger.get_logger(__name__)
@@ -70,9 +70,8 @@ def add_builtin_profile(system, configuration, storage=USER_STORAGE):
     """
     Record a configuration to be used as a built-in profile
     """
-
-    if not isinstance(configuration, dict):
-        raise ValueError(f"Profile '{system}' data is not a dictionary! Profile import cancelled.")
+    
+    check_builtin_profile(system, configuration)
 
 
     record = {
@@ -80,6 +79,21 @@ def add_builtin_profile(system, configuration, storage=USER_STORAGE):
         'configuration': configuration,
     }
     _import_asset('system', record, BUILTIN_PROFILE_TABLE, storage)
+
+def check_builtin_profile(system, configuration):
+    """
+    Checks the downloaded profile for format validity
+    """
+    # Checks if the profile is a dict
+    if not isinstance(configuration, dict):
+        raise ValueError(f"Profile {system} data is not a dictionary! Profile import cancelled.")
+
+    attr = attributes()
+    import pdb; pdb.set_trace()
+    for key in configuration.keys():
+        if key not in attr.keys():
+            raise ValueError(f"Profile {system}'s keys don't match with e4s-cl's profiles keys: '{key}' not an authorised key! Profile import cancelled.")
+
 
 
 def remove_builtin_profile(system, storage=USER_STORAGE):
