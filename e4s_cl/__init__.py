@@ -41,7 +41,7 @@ Please install the required Python version or raise an issue on Github for suppo
 E4S_CL_HOME = os.path.realpath(
     os.path.abspath(
         os.environ.get('__E4S_CL_HOME__',
-                       os.path.join(os.path.dirname(__file__), '..', '..'))))
+                       os.path.join(os.path.dirname(__file__), '..'))))
 """str: Absolute path to the top-level E4S Container Launcher directory.
 
 This directory contains at least `bin`, `docs`, and `packages` directories and is the root
