@@ -1,6 +1,7 @@
 """
 This modules parses data in the asset dirs to list all assets available during execution
 """
+from pydoc import locate
 from e4s_cl import logger
 from e4s_cl.model.profile import attributes
 from e4s_cl.cf.storage.levels import USER_STORAGE
@@ -84,14 +85,29 @@ def check_builtin_profile(system, configuration):
     """
     Checks the downloaded profile for format validity
     """
+    
+    profile_types = {
+    'string': str,
+    'list': list
+    } 
+    
     # Checks if the profile is a dict
     if not isinstance(configuration, dict):
-        raise ValueError(f"Profile {system} data is not a dictionary! Profile import cancelled.")
+        raise ValueError(f"Profile {system} data is not a dictionary!"
+                " Profile import cancelled.")
 
     attr = attributes()
     for key in configuration.keys():
         if key not in attr.keys():
-            raise ValueError(f"Profile {system}'s keys don't match with e4s-cl's profiles keys: '{key}' not an authorised key! Profile import cancelled.")
+            raise ValueError(f"Profile {system}'s keys don't match with"
+                    f" e4s-cl's profiles keys: '{key}' not an authorised key!"
+                    " Profile import cancelled.")
+        if not type(configuration[key]) == profile_types[(attr[key]['type'])]:
+            raise ValueError(f"Profile {system} has values of the wrong"
+                    f" type: '{type(configuration[key])}', and don't match"
+                    f" with e4s-cl's {key}'s type: '{profile_types[attr[key]['type']]}'!"
+                    " Profile import cancelled.")
+
 
 def remove_builtin_profile(system, storage=USER_STORAGE):
     """
