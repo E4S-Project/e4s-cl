@@ -85,13 +85,23 @@ def check_builtin_profile(system, configuration):
     """
     Checks the downloaded profile for format validity
     """
+    def check_list(path_list):
+        for path in path_list:
+            if not Path(path).exists():
+                LOGGER.warning("Builtin profile %s has a non-existent"
+                        " %s path: %s!", system, key, path)
+
+    def check_string(path):
+        if not Path(path).exists():
+            LOGGER.warning("Builtin profile %s has a non-existent"
+                    " %s path: %s!", system, key, path)
     
     profile_types = {
     'string': str,
     'list': list
     }
 
-    path_keys = {
+    profile_paths = {
     'files': check_list,
     'libraries': check_list,
     'wi4mpi': check_string,
@@ -105,29 +115,22 @@ def check_builtin_profile(system, configuration):
 
     attr = Profile.attributes
     for key in configuration:
+        key_values = configuration[key]
+        # Checks if the keys are correct
         if key not in attr:
             raise ValueError(f"Profile {system}'s keys don't match with"
                     f" e4s-cl's profiles keys: '{key}' not an authorised key!"
                     " Profile import cancelled.")
         key_type = profile_types.get(attr[key]['type'])
-        if not isinstance(configuration[key], key_type):
+        # Checks if the values are of the correct type
+        if not isinstance(key_values, key_type):
             raise ValueError(f"Profile {system} has values of the wrong"
-                    f" type: '{type(configuration[key])}', and don't match"
+                    f" type: '{type(key_values)}', and don't match"
                     f" with e4s-cl's {key}'s type: '{key_type}'!"
                     " Profile import cancelled.")
-        if key in path_keys:
-            path_keys[key](configuration[key], system, key)
-
-def check_list(path_list, system, key):
-    for path in path_list:
-        if not Path(path).exists():
-            LOGGER.warning("Builtin profile %s has a non-existent"
-                    " %s path: %s!", system, key, path)
-
-def check_string(path, system, key):
-    if not Path(path).exists():
-        LOGGER.warning("Builtin profile %s has a non-existent"
-                " %s path: %s!", system, key, path)
+        # Checks if the path values point to an existing file
+        if key in profile_paths:
+            profile_paths.get(key)(key_values)
 
 
 def remove_builtin_profile(system, storage=USER_STORAGE):
