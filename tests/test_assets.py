@@ -25,7 +25,7 @@ class AssetsTest(tests.TestCase):
         self.assertIn('libffi.so.7', precompiled_binaries())
 
     def test_import_builtin_profile(self):
-        add_builtin_profile('spoutnik', {'files': '/tmp'})
+        add_builtin_profile('spoutnik', {'files': ['/tmp']})
 
         self.assertIn('spoutnik', builtin_profiles())
 

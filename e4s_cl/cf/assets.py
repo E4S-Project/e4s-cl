@@ -2,7 +2,7 @@
 This modules parses data in the asset dirs to list all assets available during execution
 """
 from e4s_cl import logger
-from e4s_cl.model import profile
+from e4s_cl.model.profile import Profile
 from e4s_cl.cf.storage.levels import USER_STORAGE
 
 LOGGER = logger.get_logger(__name__)
@@ -86,8 +86,8 @@ def check_builtin_profile(system, configuration):
     """
     
     profile_types = {
-    'string': [str],
-    'list': [list, str]
+    'string': str,
+    'list': list
     } 
     
     # Checks if the profile is a dict
@@ -95,16 +95,17 @@ def check_builtin_profile(system, configuration):
         raise ValueError(f"Profile {system} data is not a dictionary!"
                 " Profile import cancelled.")
 
-    attr = profile.attributes()
+    attr = Profile.attributes
     for key in configuration:
-        if key not in attr.keys():
+        key_type = profile_types[attr[key]['type']]
+        if key not in attr:
             raise ValueError(f"Profile {system}'s keys don't match with"
                     f" e4s-cl's profiles keys: '{key}' not an authorised key!"
                     " Profile import cancelled.")
-        if not type(configuration[key]) in profile_types[(attr[key]['type'])]:
+        if not isinstance(configuration[key], key_type):
             raise ValueError(f"Profile {system} has values of the wrong"
                     f" type: '{type(configuration[key])}', and don't match"
-                    f" with e4s-cl's {key}'s type: '{profile_types[attr[key]['type']]}'!"
+                    f" with e4s-cl's {key}'s type: '{key_type}'!"
                     " Profile import cancelled.")
 
 
