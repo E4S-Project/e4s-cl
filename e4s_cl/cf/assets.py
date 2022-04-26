@@ -89,7 +89,14 @@ def check_builtin_profile(system, configuration):
     profile_types = {
     'string': str,
     'list': list
-    } 
+    }
+
+    path_keys = {
+    'files': check_list,
+    'libraries': check_list,
+    'wi4mpi': check_string,
+    'source': check_string
+    }
     
     # Checks if the profile is a dict
     if not isinstance(configuration, dict):
@@ -108,12 +115,19 @@ def check_builtin_profile(system, configuration):
                     f" type: '{type(configuration[key])}', and don't match"
                     f" with e4s-cl's {key}'s type: '{key_type}'!"
                     " Profile import cancelled.")
-        if key in ['files', 'libraries', 'wi4mpi']:
-            for path in configuration[key]:
-                if not Path(path).exists():
-                    LOGGER.warning("Builtin profile %s has a non-existent"
-                            " %s path: %s!", system, key ,path)
+        if key in path_keys:
+            path_keys[key](configuration[key], system, key)
 
+def check_list(path_list, system, key):
+    for path in path_list:
+        if not Path(path).exists():
+            LOGGER.warning("Builtin profile %s has a non-existent"
+                    " %s path: %s!", system, key, path)
+
+def check_string(path, system, key):
+    if not Path(path).exists():
+        LOGGER.warning("Builtin profile %s has a non-existent"
+                " %s path: %s!", system, key, path)
 
 
 def remove_builtin_profile(system, storage=USER_STORAGE):
