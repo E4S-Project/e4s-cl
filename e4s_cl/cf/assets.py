@@ -1,6 +1,7 @@
 """
 This modules parses data in the asset dirs to list all assets available during execution
 """
+from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.storage.levels import USER_STORAGE
@@ -107,6 +108,12 @@ def check_builtin_profile(system, configuration):
                     f" type: '{type(configuration[key])}', and don't match"
                     f" with e4s-cl's {key}'s type: '{key_type}'!"
                     " Profile import cancelled.")
+        if key in ['files', 'libraries', 'wi4mpi']:
+            for path in configuration[key]:
+                if not Path(path).exists():
+                    LOGGER.warning("Builtin profile %s has a non-existent"
+                            " %s path: %s!", system, key ,path)
+
 
 
 def remove_builtin_profile(system, storage=USER_STORAGE):
