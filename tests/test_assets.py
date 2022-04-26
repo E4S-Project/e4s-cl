@@ -28,7 +28,17 @@ class AssetsTest(tests.TestCase):
         add_builtin_profile('spoutnik', {'files': ['/tmp']})
 
         self.assertIn('spoutnik', builtin_profiles())
+    
+    def test_import_builtin_faulty_profile_type(self):
+        with self.assertRaises(ValueError):
+            add_builtin_profile('spoutnik', {'files': '/tmp'})
+        self.assertNotIn('spoutnik', builtin_profiles())
 
+    def test_import_builtin_faulty_profile_key(self):
+        with self.assertRaises(ValueError):
+            add_builtin_profile('spoutnik', {'file': ['/tmp']})
+        self.assertNotIn('spoutnik', builtin_profiles())
+    
     def test_import_bad_asset(self):
         _import_asset('notakey', {'name': 'profile'}, SAMPLE_BINARY_TABLE)
         self.assertNotIn('notakey', builtin_profiles())
