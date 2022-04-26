@@ -1,9 +1,8 @@
 """
 This modules parses data in the asset dirs to list all assets available during execution
 """
-from pydoc import locate
 from e4s_cl import logger
-from e4s_cl.model.profile import attributes
+from e4s_cl.model import profile
 from e4s_cl.cf.storage.levels import USER_STORAGE
 
 LOGGER = logger.get_logger(__name__)
@@ -96,8 +95,8 @@ def check_builtin_profile(system, configuration):
         raise ValueError(f"Profile {system} data is not a dictionary!"
                 " Profile import cancelled.")
 
-    attr = attributes()
-    for key in configuration.keys():
+    attr = profile.attributes()
+    for key in configuration:
         if key not in attr.keys():
             raise ValueError(f"Profile {system}'s keys don't match with"
                     f" e4s-cl's profiles keys: '{key}' not an authorised key!"
