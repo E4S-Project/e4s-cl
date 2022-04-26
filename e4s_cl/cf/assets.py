@@ -97,11 +97,11 @@ def check_builtin_profile(system, configuration):
 
     attr = Profile.attributes
     for key in configuration:
-        key_type = profile_types[attr[key]['type']]
         if key not in attr:
             raise ValueError(f"Profile {system}'s keys don't match with"
                     f" e4s-cl's profiles keys: '{key}' not an authorised key!"
                     " Profile import cancelled.")
+        key_type = profile_types.get(attr[key]['type'])
         if not isinstance(configuration[key], key_type):
             raise ValueError(f"Profile {system} has values of the wrong"
                     f" type: '{type(configuration[key])}', and don't match"
