@@ -637,7 +637,7 @@ def _search_available_databases(model, field, regex):
         try:
             matches.extend(model.controller(storage=level).match(field, regex))
         except StorageError as err:
-            LOGGER.debug("Failed to access records from level")
+            LOGGER.debug("Failed to access records from level %s", level.name)
 
     return matches
 
