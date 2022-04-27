@@ -11,11 +11,11 @@ Installation for targeted systems
 ------------------------------------
 
 To enable such profiles, use the :code:`E4SCL_TARGETSYSTEM` argument when calling \
-:code:`make` or :code:`make install`.
+:code:`make`, :code:`make all` or :code:`make install` if e4s-cl was previously installed.
 
 .. code-block:: bash
 
-    $ make INSTALLDIR=<prefix> install [E4SCL_TARGETSYSTEM=<system_key>]
+    $ make INSTALLDIR=<prefix> all [E4SCL_TARGETSYSTEM=<system_key>]
 
 Successfully tested systems
 ----------------------------
