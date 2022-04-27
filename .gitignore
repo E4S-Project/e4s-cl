@@ -56,7 +56,9 @@ benchmarks
 *.error
 *.
 system
-packages/e4s_cl/tags
+e4s_cl/tags
+/docs/build
+/e4s-cl-*
 
 # Python coverage data
 .coverage
