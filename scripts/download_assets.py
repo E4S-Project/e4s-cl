@@ -11,32 +11,27 @@ import lzma
 from pathlib import Path
 from requests import get
 
-# Resolve the e4s-cl installation and add it to the PYTHONPATH
-here = os.path.realpath(os.path.dirname(__file__))
-os.environ['__E4S_CL_HOME__'] = os.path.join(here, '..')
-packages = os.path.join(here, '..', 'packages')
-sys.path.insert(0, packages)
-
 from e4s_cl import logger, USER_PREFIX
+from e4s_cl.cf.storage.levels import highest_writable_storage
 from e4s_cl.cf.assets import (add_builtin_profile, add_precompiled_binary,
                               SAMPLE_BINARY_TABLE)
 
 LOGGER = logger.get_logger(__name__)
 
-BINARY_DIR = Path(USER_PREFIX, SAMPLE_BINARY_TABLE).as_posix()
+BINARY_DIR = Path(highest_writable_storage().prefix(), SAMPLE_BINARY_TABLE)
 
 
 def init_dirs():
-    os.makedirs(BINARY_DIR, exist_ok=True)
+    BINARY_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def secure_binaries(url: str, available: dict) -> None:
+def download_binaries(url: str, available: dict) -> None:
     """
     From a dict of {soname, suffix.xz} download and uncompress from the provided URL
     """
     for library, binary in available.items():
         bin_url = f"{url}/{binary}"
-        destination = Path(BINARY_DIR, Path(binary).stem).as_posix()
+        destination = Path(BINARY_DIR, Path(binary).stem)
 
         answer = get(bin_url)
 
@@ -53,15 +48,16 @@ def secure_binaries(url: str, available: dict) -> None:
         status = os.stat(destination)
         os.chmod(destination, status.st_mode | stat.S_IEXEC)
 
-        add_precompiled_binary(library, destination)
+        add_precompiled_binary(library, destination.as_posix())
 
 
-def secure_profile(url: str, available: dict, system: str) -> None:
+def download_profile(url: str, available: dict, system: str) -> None:
     """
     If a profile url is returned, download and put its JSON file in the profile directory
     """
     if not available or not available.get(system):
-        LOGGER.error("Failed to locate a profile for system '%s', skipping ..", system)
+        LOGGER.error("Failed to locate a profile for system '%s', skipping ..",
+                     system)
         return
 
     suffix = available.get(system)
@@ -99,9 +95,9 @@ def main():
 
     available = index.json()
 
-    secure_binaries(url, available.get('binaries', {}).get(architecture, {}))
+    download_binaries(url, available.get('binaries', {}).get(architecture, {}))
     if system:
-        secure_profile(url, available.get('profiles', {}), system)
+        download_profile(url, available.get('profiles', {}), system)
 
 
 if __name__ == '__main__':

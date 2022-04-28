@@ -3,15 +3,17 @@ This modules parses data in the asset dirs to list all assets available during e
 """
 
 from e4s_cl import logger
-from e4s_cl.cf.storage.levels import USER_STORAGE
+from e4s_cl.cf.storage.levels import highest_writable_storage
 
 LOGGER = logger.get_logger(__name__)
 
 SAMPLE_BINARY_TABLE = "precompiled_binaries"
 BUILTIN_PROFILE_TABLE = "builtin_profiles"
 
+DEFAULT_STORAGE = highest_writable_storage()
 
-def precompiled_binaries(storage=USER_STORAGE) -> dict:
+
+def precompiled_binaries(storage=DEFAULT_STORAGE) -> dict:
     """
     List all the precompiled binaries available
     """
@@ -21,7 +23,7 @@ def precompiled_binaries(storage=USER_STORAGE) -> dict:
     return dict(map(transform, records))
 
 
-def builtin_profiles(storage=USER_STORAGE) -> dict:
+def builtin_profiles(storage=DEFAULT_STORAGE) -> dict:
     """
     List all the builtin profiles available
     """
@@ -34,7 +36,7 @@ def builtin_profiles(storage=USER_STORAGE) -> dict:
 def _import_asset(primary_key: str,
                   data: dict,
                   table_name: str,
-                  storage=USER_STORAGE) -> bool:
+                  storage=DEFAULT_STORAGE) -> bool:
     """
     Import `data` into the database.
 
@@ -66,7 +68,7 @@ def _import_asset(primary_key: str,
     return True
 
 
-def add_builtin_profile(system, configuration, storage=USER_STORAGE):
+def add_builtin_profile(system, configuration, storage=DEFAULT_STORAGE):
     """
     Record a configuration to be used as a built-in profile
     """
@@ -77,7 +79,7 @@ def add_builtin_profile(system, configuration, storage=USER_STORAGE):
     _import_asset('system', record, BUILTIN_PROFILE_TABLE, storage)
 
 
-def remove_builtin_profile(system, storage=USER_STORAGE):
+def remove_builtin_profile(system, storage=DEFAULT_STORAGE):
     """
     Remove a configuration used as a built-in profile
     """
@@ -85,7 +87,7 @@ def remove_builtin_profile(system, storage=USER_STORAGE):
         database.remove({'system': system})
 
 
-def add_precompiled_binary(soname, path, storage=USER_STORAGE):
+def add_precompiled_binary(soname, path, storage=DEFAULT_STORAGE):
     """
     Record a path towards a precompiled MPI binary
     """
