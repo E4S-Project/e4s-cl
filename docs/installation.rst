@@ -17,7 +17,13 @@ Install **e4s-cl** using :code:`make install`. The installation directory can be
 
 .. code-block:: bash
 
-    $ make INSTALLDIR=<prefix> install [E4SCL_TARGETSYSTEM=<machine_name>]
+    $ make INSTALLDIR=<prefix> install
+
+Or:
+
+.. code-block:: bash
+
+    $ make INSTALLDIR=<prefix> all [E4SCL_TARGETSYSTEM=<machine_name>]
 
 The **e4s-cl** program will be copied over to :code:`<prefix>/bin`. On success, a message will be printed with the full path to add to your :code:`PATH`.
 
@@ -25,7 +31,7 @@ A python interpreter will be downloaded to ensure a compatible Python 3 version 
 
 .. admonition:: :code:`E4SCL_TARGETSYSTEM` parameter
 
-    Some machines have specific e4s-cl profiles tailored for them that can be downloaded and later accessed as builtin profiles. Those need to be enabled at installation using the :code:`E4SCL_TARGETSYSTEM` environment variable. Refer to the :ref:`system compatibility<system_compat>` page for details.
+    Some machines have specific e4s-cl profiles tailored for them that can be downloaded and later accessed as builtin profiles. Those need to be enabled at installation using the :code:`E4SCL_TARGETSYSTEM` environment variable. This parameter requires e4s-cl to already be installed or to use the "all" target. Refer to the :ref:`system compatibility<system_compat>` page for details.
 
 Completion
 ************

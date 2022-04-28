@@ -1,8 +1,9 @@
 """
 This modules parses data in the asset dirs to list all assets available during execution
 """
-
+from pathlib import Path
 from e4s_cl import logger
+from e4s_cl.model.profile import Profile
 from e4s_cl.cf.storage.levels import highest_writable_storage
 
 LOGGER = logger.get_logger(__name__)
@@ -72,11 +73,67 @@ def add_builtin_profile(system, configuration, storage=DEFAULT_STORAGE):
     """
     Record a configuration to be used as a built-in profile
     """
+
+    check_builtin_profile(system, configuration)
+
     record = {
         'system': system,
         'configuration': configuration,
     }
     _import_asset('system', record, BUILTIN_PROFILE_TABLE, storage)
+
+
+def check_builtin_profile(system, configuration):
+    """
+    Checks the downloaded profile for format validity
+    """
+
+    def check_list(path_list):
+        for path in path_list:
+            if not Path(path).exists():
+                LOGGER.warning(
+                    "Builtin profile %s has a non-existent"
+                    " %s path: %s!", system, key, path)
+
+    def check_string(path):
+        if not Path(path).exists():
+            LOGGER.warning(
+                "Builtin profile %s has a non-existent"
+                " %s path: %s!", system, key, path)
+
+    profile_types = {'string': str, 'list': list}
+
+    profile_paths = {
+        'files': check_list,
+        'libraries': check_list,
+        'wi4mpi': check_string,
+        'source': check_string
+    }
+
+    # Checks if the profile is a dict
+    if not isinstance(configuration, dict):
+        raise ValueError(f"Profile {system} data is not a dictionary!"
+                         " Profile import cancelled.")
+
+    attr = Profile.attributes
+    for key in configuration:
+        key_values = configuration[key]
+        # Checks if the keys are correct
+        if key not in attr:
+            raise ValueError(
+                f"Profile {system}'s keys don't match with"
+                f" e4s-cl's profiles keys: '{key}' not an authorised key!"
+                " Profile import cancelled.")
+        key_type = profile_types.get(attr[key]['type'])
+        # Checks if the values are of the correct type
+        if not isinstance(key_values, key_type):
+            raise ValueError(f"Profile {system} has values of the wrong"
+                             f" type: '{type(key_values)}', and don't match"
+                             f" with e4s-cl's {key}'s type: '{key_type}'!"
+                             " Profile import cancelled.")
+        # Checks if the path values point to an existing file
+        if key in profile_paths:
+            profile_paths.get(key)(key_values)
 
 
 def remove_builtin_profile(system, storage=DEFAULT_STORAGE):
