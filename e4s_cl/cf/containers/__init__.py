@@ -22,9 +22,8 @@ from importlib import import_module
 from tempfile import TemporaryFile
 from pathlib import Path
 from typing import Union
-from e4s_cl import (EXIT_FAILURE, E4S_CL_HOME, CONTAINER_DIR,
-                    CONTAINER_LIBRARY_DIR, CONTAINER_SCRIPT, E4S_CL_SCRIPT,
-                    logger)
+from e4s_cl import (EXIT_FAILURE, CONTAINER_DIR, CONTAINER_LIBRARY_DIR,
+                    CONTAINER_SCRIPT, logger)
 from e4s_cl.variables import ParentStatus
 from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
