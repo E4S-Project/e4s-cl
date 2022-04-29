@@ -51,7 +51,8 @@ def _directives_to_dict(directives):
         parts = directive.split('=', 1)
 
         if len(parts) != 2:
-            LOGGER.warning("Unrecognized directive: '%s'", directive)
+            LOGGER.debug("Shifter: udiRoot.conf: Unrecognized directive: '%s'",
+                         directive)
             continue
 
         entries.append(tuple(map(lambda x: x.strip(), parts)))
