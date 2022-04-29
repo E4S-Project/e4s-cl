@@ -1,61 +1,61 @@
 """
-This command initializes E4S Container Launcher for the system's available MPI \
-library.
+This command is intended to be run once, and will create a \
+:ref:`profile<profile>` from the resources made available to it. \
+Initialization can be achieved in one of three ways, depending on the \
+arguments passed to the command.
 
-A :ref:`profile<profile>` will be created with the collected results from the \
-initialization, and made accessible for the next :ref:`launch command<launch>`.
-This effectively simplifies execution, by implicitly targeting the right \
-libraries to be imported.
-
-Initialization can be achieved in multiple ways, depending on the arguments \
-passed to the command.
+In case no method is explicitly invoked, the fallback in the MPI library \
+analysis, by using the MPI compiler and launcher available in the environment.
 
 Using the system name
 -----------------------
 
 If the current system is supported, use the :code:`--system` argument to \
-flag its use. The available values are listed when using :code:`e4s-cl init -h`.
-In order to have the system-specific profiles available (and listed as available),\
- the :code:`SYSTEM=<system>` flag needs to be used when building the project.
+flag its use. The available values are listed when using \
+:code:`e4s-cl init -h`. In order to have the system-specific profiles \
+available (and listed as available), the \
+:code:`E4SCL_TARGETSYSTEM=<system>` flag needs to be used when installing \
+the project.
 
 Using a WI4MPI installation
 ----------------------------
 
 If an WI4MPI installation is present on the system, one can link a profile \
 to it using the :code:`--wi4mpi` and :code:`--wi4mpi_options` arguments. The \
-profile will contain this information and the installation will be used during launch.
+profile will contain this information and the installation will be used \
+during launch.
 
 Using an installed MPI library
 --------------------------------
 
 This initialization method will create a profile from the execution analysis \
 of a sample MPI program. A program compiled with the MPI library's compiler \
-will run using a provided launcher. The opened files and libraries will be detected \
-using the :code:`ptrace` system call, and added to the resulting profile.
+will run using a provided launcher. The opened files and libraries will be \
+detected using the :code:`ptrace` system call, and added to the resulting \
+profile.
 
-The :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options can be \
-used to influence the initialization process. It is highly encouraged to load the \
-MPI library beforehand using the module system available \
-(:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the paths and dependencies \
-are valid and loaded as well.
+The :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options can \
+be used to influence the initialization process. It is highly encouraged to \
+load the MPI library beforehand using the module system available \
+(:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the paths and \
+dependencies are valid and loaded as well.
 
 .. admonition:: The importance of inter-process communication
 
     This process relies on the execution of a sample MPI program to discover \
-its dependencies.
-    In some cases, a library will lazy-load network libraries, preventing \
-them from being detected.
-    A message will appear in case some limitations were detected.
+    its dependencies. In some cases, a library will lazy-load network \
+    libraries, preventing them from being detected. A message will appear in \
+    case some limitations were detected.
 
-    In case of error, it is good practice to \
-:ref:`perform this process manually<init_override>` to ensure the network \
-stack is used and exposed to **e4s-cl**.
+    In case of error, it is good practice to perform this process \
+    :ref:`manually<init_override>` to ensure the network stack is used and \
+    exposed to **e4s-cl**.
 
 If no :ref:`profile<profile>` name is passed to :code:`--profile`, a profile \
 name will be generated from the version of the found MPI library.
 
 Examples
-----------
+--------
 
 Initializing using the available MPI resources:
 
@@ -74,7 +74,9 @@ Using an installation of WI4MPI:
 
 .. code::
 
-    e4s-cl init --wi4mpi /packages/wi4mpi --wi4mpi_options "-T openmpi -F mpich"
+    e4s-cl init --wi4mpi /packages/wi4mpi \\
+            --wi4mpi_options \\
+            "-T openmpi -F mpich"
 """
 
 import os
@@ -294,7 +296,8 @@ class InitCommand(AbstractCommand):
             f" Available systems: {', '.join(builtin_profiles().keys())}" \
                     if builtin_profiles().keys() else \
                     "Initialize e4s-cl for use on a specific system."
-                    " Use 'make install SYSTEM=<system>' to have the associated profile available.",
+                    " Use 'make install E4SCL_TARGETSYSTEM=<system>' to make "
+                    " the associated profile available.",
             metavar='machine',
             default=arguments.SUPPRESS,
             choices=builtin_profiles().keys())
