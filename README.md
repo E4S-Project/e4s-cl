@@ -1,8 +1,8 @@
 # E4S Container Launcher
 
-E4S container launcher is a tool to ease running MPI applications in E4S containers with host libraries. Built upon the [MPICH ABI Compatibility Initiative](https://www.mpich.org/abi/).
+E4S container launcher is a tool to simplify running MPI applications in E4S containers with host libraries. This project is built upon the [MPICH ABI Compatibility Initiative](https://www.mpich.org/abi/).
 
-__Check out the documentation [here](https://e4s-cl.readthedocs.io/en/latest/index.html)__ 
+__Check out the documentation [here](https://e4s-cl.readthedocs.io/en/latest/index.html) !__
 
 ## Usage
 
