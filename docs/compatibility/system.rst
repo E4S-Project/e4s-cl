@@ -44,3 +44,4 @@ Machine-specific guides
    :maxdepth: 1
 
    perlmutter
+   crusher

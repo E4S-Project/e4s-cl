@@ -1,3 +1,5 @@
+.. _profile_show:
+
 **show** - Detail a specific profile
 ====================================
 
