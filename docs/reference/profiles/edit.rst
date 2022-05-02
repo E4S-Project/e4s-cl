@@ -1,3 +1,5 @@
+.. _profile_edit:
+
 **edit** - Edit a profile
 =========================
 

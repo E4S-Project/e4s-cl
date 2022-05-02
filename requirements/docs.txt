@@ -1,4 +1,4 @@
 sphinx~=4.0
-sphinx>=2.18.2
+sphinx-toolbox>=2.18.2
 furo==2021.6.24b37
 -r core.txt
