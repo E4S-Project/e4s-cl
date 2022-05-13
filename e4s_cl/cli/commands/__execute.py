@@ -87,8 +87,6 @@ def overlay_libraries(library_set, container, entrypoint):
 def select_libraries(library_set, container, entrypoint):
     """ Select the libraries to make available in the future container
 
-    library_paths: list[pathlib.Path]
-
     This method checks the libc versions compatibilities and returns a
     list of libraries safe to bind dependending on that check.
 
@@ -121,7 +119,31 @@ def select_libraries(library_set, container, entrypoint):
     LOGGER.debug("Host libc: %s %s Guest libc: %s", str(host_libc),
                  '>' if host_precedence else '<=', str(guest_libc))
 
-    return methods[host_precedence](library_set, container, entrypoint)
+    selected_libraries = methods[host_precedence](library_set, container,
+                                                  entrypoint)
+
+    for line in selected_libraries.ldd_format():
+        LOGGER.debug(line)
+
+    return selected_libraries
+
+
+def generate_rtld_path(container):
+    """
+    Create the final path list to be passed to LD_LIBRARY_PATH in the container
+    """
+    path_list = []
+
+    if wi4mpi_enabled():
+        wi4mpi_paths = list(
+            map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_root())))
+
+        path_list += wi4mpi_paths
+
+    if hasattr(container.__class__, 'linker_path'):
+        path_list += container.__class__.linker_path
+
+    return path_list + [container.import_library_dir]
 
 
 class ExecuteCommand(AbstractCommand):
@@ -149,6 +171,7 @@ class ExecuteCommand(AbstractCommand):
         parser.add_argument('--files',
                             type=arguments.existing_posix_path_list,
                             help="Files to bind, comma-separated",
+                            default=[],
                             metavar='files')
 
         parser.add_argument('--libraries',
@@ -172,6 +195,9 @@ class ExecuteCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
+        files = args.files or []
+
+        libraries = (args.libraries or []) + wi4mpi_libraries(wi4mpi_root())
 
         try:
             container = Container(name=args.backend, image=args.image)
@@ -181,70 +207,49 @@ class ExecuteCommand(AbstractCommand):
         # Setup a entrypoint object that will later be bound as a bash script
         params = Entrypoint()
 
-        # Bind files to make the sourced script accessible
-        if args.files:
-            for path in args.files:
-                container.bind_file(path, option=FileOptions.READ_WRITE)
+        # Bind files now to make the sourced script accessible
+        for path in files:
+            container.bind_file(path, option=FileOptions.READ_WRITE)
 
         # This script is sourced before any other command in the container
         params.source_script_path = args.source
 
-        # If WI4MPI is enabled, analyze the libraries it uses
-        required_libraries = args.libraries + wi4mpi_libraries(wi4mpi_root())
-
         # The following is a set of all libraries required. It
         # is used in the container to check version mismatches
-        libset = LibrarySet.create_from(required_libraries)
-        if libset:
-            # Analyze the container to get library information from the environment
-            # it offers, using the entrypoint and the above libraries
-            container.get_data()
+        libset = LibrarySet.create_from(libraries)
+
+        # Analyze the container to get library information from the environment
+        # it offers
+        container.get_data()
 
         # Setup the final command and metadata relating to the execution
         params.command = args.cmd
         params.debug = logger.debug_mode()
 
         # Setup the linker search path for the process in the container
-        params.linker_library_path.append(container.import_library_dir)
-
-        if hasattr(container.__class__, 'linker_path'):
-            paths = container.__class__.linker_path
-            paths.reverse()
-            for path in paths:
-                params.linker_library_path.insert(0, path)
+        params.linker_library_path = generate_rtld_path(container)
 
         if wi4mpi_enabled():
-            linker_paths = list(
-                map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_root())))
-            linker_paths.reverse()
-
-            for linker_path in linker_paths:
-                params.linker_library_path.insert(0, linker_path)
-
             # Import relevant files
             wi4mpi_import(container, wi4mpi_root())
 
             params.preload += wi4mpi_preload(wi4mpi_root())
 
-        if libset:
-            # Create a set of libraries to import
-            libset = select_libraries(libset, container, params)
+        # Create a set of libraries to import
+        final_libset = select_libraries(libset, container, params)
 
-            for line in libset.ldd_format():
-                LOGGER.debug(line)
+        # Import each library along with all symlinks pointing to it
+        for shared_object in final_libset:
+            import_library(shared_object, container)
 
-            # Import each library along with all symlinks pointing to it
-            for shared_object in libset:
-                import_library(shared_object, container)
+        if not wi4mpi_enabled():
+            # Preload the roots of all the set's trees
+            def _path(library: Library):
+                return Path(container.import_library_dir,
+                            Path(library.binary_path).name).as_posix()
 
-            if not wi4mpi_enabled():
-                # Preload the roots of all the set's trees
-                def _path(library: Library):
-                    return Path(container.import_library_dir,
-                                Path(library.binary_path).name).as_posix()
-
-                for import_path in map(_path, libset.top_level):
-                    params.preload.append(import_path)
+            for import_path in map(_path, final_libset.top_level):
+                params.preload.append(import_path)
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()
