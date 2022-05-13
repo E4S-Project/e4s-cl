@@ -109,8 +109,10 @@ def select_libraries(library_set, container, entrypoint):
     host_newer = True
     guest_newer = False
 
-    host_libc = libc_version()
+    # Analyze the container to get glibc information
+    container.get_data()
     guest_libc = container.libc_v
+    host_libc = libc_version()
 
     methods = {host_newer: overlay_libraries, guest_newer: filter_libraries}
 
@@ -195,61 +197,51 @@ class ExecuteCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
-        files = args.files or []
 
-        libraries = (args.libraries or []) + wi4mpi_libraries(wi4mpi_root())
+        # This object automatically mutates to one of the defined container
+        # classes, and holds information about what is bound to the future
+        # container launch
+        container = Container(name=args.backend, image=args.image)
 
-        try:
-            container = Container(name=args.backend, image=args.image)
-        except BackendError as err:
-            return err.handle(type(err), err, None)
-
-        # Setup a entrypoint object that will later be bound as a bash script
+        # All execute does is build this object that translates to a bash
+        # script, that is then bound to the container to be executed
         params = Entrypoint()
 
-        # Bind files now to make the sourced script accessible
+        params.source_script_path = args.source
+        params.command = args.cmd
+        params.debug = logger.debug_mode()
+        params.linker_library_path = generate_rtld_path(container)
+
+        files = args.files or []
+        libraries = (args.libraries or []) + wi4mpi_libraries(wi4mpi_root())
+
         for path in files:
             container.bind_file(path, option=FileOptions.READ_WRITE)
 
-        # This script is sourced before any other command in the container
-        params.source_script_path = args.source
-
-        # The following is a set of all libraries required. It
-        # is used in the container to check version mismatches
-        libset = LibrarySet.create_from(libraries)
-
-        # Analyze the container to get library information from the environment
-        # it offers
-        container.get_data()
-
-        # Setup the final command and metadata relating to the execution
-        params.command = args.cmd
-        params.debug = logger.debug_mode()
-
-        # Setup the linker search path for the process in the container
-        params.linker_library_path = generate_rtld_path(container)
-
-        if wi4mpi_enabled():
-            # Import relevant files
-            wi4mpi_import(container, wi4mpi_root())
-
-            params.preload += wi4mpi_preload(wi4mpi_root())
-
-        # Create a set of libraries to import
-        final_libset = select_libraries(libset, container, params)
+        # Create a set of libraries to import using a library_set object,
+        # then filtering it according to the contents of the container
+        final_libset = select_libraries(LibrarySet.create_from(libraries),
+                                        container, params)
 
         # Import each library along with all symlinks pointing to it
         for shared_object in final_libset:
             import_library(shared_object, container)
 
         if not wi4mpi_enabled():
-            # Preload the roots of all the set's trees
+            # Preload the top-level libraries of the imported set to bypass
+            # any potential RPATH settings
             def _path(library: Library):
                 return Path(container.import_library_dir,
                             Path(library.binary_path).name).as_posix()
 
-            for import_path in map(_path, final_libset.top_level):
-                params.preload.append(import_path)
+            for imported_library_path in map(_path, final_libset.top_level):
+                params.preload.append(imported_library_path)
+        else:
+            # If WI4MPI is found in the environment, import its files and
+            # preload its required components
+            wi4mpi_import(container, wi4mpi_root())
+
+            params.preload += wi4mpi_preload(wi4mpi_root())
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()
