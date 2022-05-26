@@ -84,6 +84,7 @@ import json
 import tempfile
 import subprocess
 import shlex
+import yaml
 from argparse import ArgumentTypeError
 from pathlib import Path
 from sotools.linker import resolve
@@ -352,6 +353,12 @@ class InitCommand(AbstractCommand):
             metavar='profile_name',
             default=arguments.SUPPRESS,
             dest='profile_name')
+        
+        parser.add_argument(
+            '--conf',
+            help="Configuration file containing init parameters",
+            metavar='configuration file',
+            default=arguments.SUPPRESS)
 
         parser.add_argument('--wi4mpi',
                             help="Path to the install directory of WI4MPI",
@@ -369,6 +376,14 @@ class InitCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
+        
+        conf_args = getattr(args, 'conf', False)
+        if conf_args:
+            with open(conf_args) as f:
+                conf_data = yaml.safe_load(f)
+            import pdb; pdb.set_trace()
+            for key in conf_data.keys():
+                setattr(args, key, conf_data[key])
 
         system_args = getattr(args, 'system', False)
         wi4mpi_args = getattr(args, 'wi4mpi', False) or getattr(
@@ -434,6 +449,7 @@ class InitCommand(AbstractCommand):
                 controller.delete({"name": requested_name})
             # Rename the profile created and selected above
             controller.update({'name': requested_name}, profile.eid)
+
 
         return status
 
