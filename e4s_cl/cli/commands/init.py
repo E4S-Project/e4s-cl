@@ -84,12 +84,11 @@ import json
 import tempfile
 import subprocess
 import shlex
-import yaml
 from argparse import ArgumentTypeError
 from pathlib import Path
 from sotools.linker import resolve
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_NAME
-from e4s_cl import logger, util
+from e4s_cl import logger, util, config
 from e4s_cl.cli import arguments
 from e4s_cl.cf.detect_name import try_rename
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
@@ -379,11 +378,9 @@ class InitCommand(AbstractCommand):
         
         conf_args = getattr(args, 'conf', False)
         if conf_args:
-            with open(conf_args) as f:
-                conf_data = yaml.safe_load(f)
-            import pdb; pdb.set_trace()
-            for key in conf_data.keys():
-                setattr(args, key, conf_data[key])
+            conf = config.Configuration(conf_args)
+            for key in conf.data.keys():
+                setattr(args, key, conf.data[key])
 
         system_args = getattr(args, 'system', False)
         wi4mpi_args = getattr(args, 'wi4mpi', False) or getattr(
