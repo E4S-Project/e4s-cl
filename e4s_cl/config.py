@@ -11,3 +11,8 @@ class Configuration:
         for key in self.data.keys():
             global_key = confxGlobal[key]
             self.updated_globals.update({confxGlobal[key]: self.data[key]})
+            
+CONFIGURATION_VALUES = None
+
+if CONFIGURATION_VALUES is None:
+    CONFIGURATION_VALUES = Configuration('conf.yaml').updated_globals

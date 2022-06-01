@@ -1,5 +1,6 @@
 import os
 import sys
+from e4s_cl.config import CONFIGURATION_VALUES
 from pathlib import Path
 from e4s_cl.version import __version__
 
@@ -75,7 +76,7 @@ USER_PREFIX = os.path.realpath(
             os.path.join(os.path.expanduser('~'), '.local', 'e4s_cl'))))
 """str: User-level E4S Container Launcher files."""
 
-CONTAINER_DIR = Path("/", ".e4s-cl").as_posix()
+CONTAINER_DIR = CONFIGURATION_VALUES.get('CONTAINER_DIR') or Path("/", ".e4s-cl").as_posix()
 """str: Path of a directory in which to bind files when in containers"""
 
 CONTAINER_SCRIPT = Path(CONTAINER_DIR, "script").as_posix()
@@ -83,7 +84,6 @@ CONTAINER_SCRIPT = Path(CONTAINER_DIR, "script").as_posix()
 
 CONTAINER_LIBRARY_DIR = Path(CONTAINER_DIR, "hostlibs").as_posix()
 """str: Path of the libraries bound in the container"""
-
 
 def version_banner():
     """Return a human readable text banner describing the E4S Container Launcher installation."""
