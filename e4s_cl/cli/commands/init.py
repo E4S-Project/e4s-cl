@@ -88,7 +88,7 @@ from argparse import ArgumentTypeError
 from pathlib import Path
 from sotools.linker import resolve
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_NAME
-from e4s_cl import logger, util, config
+from e4s_cl import logger, util
 from e4s_cl.cli import arguments
 from e4s_cl.cf.detect_name import try_rename
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
@@ -352,12 +352,6 @@ class InitCommand(AbstractCommand):
             metavar='profile_name',
             default=arguments.SUPPRESS,
             dest='profile_name')
-        
-        parser.add_argument(
-            '--conf',
-            help="Configuration file containing init parameters",
-            metavar='configuration file',
-            default=arguments.SUPPRESS)
 
         parser.add_argument('--wi4mpi',
                             help="Path to the install directory of WI4MPI",
@@ -375,12 +369,6 @@ class InitCommand(AbstractCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
-        
-        conf_args = getattr(args, 'conf', False)
-        if conf_args:
-            conf = config.Configuration(conf_args)
-            for key in conf.data.keys():
-                setattr(args, key, conf.data[key])
 
         system_args = getattr(args, 'system', False)
         wi4mpi_args = getattr(args, 'wi4mpi', False) or getattr(
@@ -446,7 +434,6 @@ class InitCommand(AbstractCommand):
                 controller.delete({"name": requested_name})
             # Rename the profile created and selected above
             controller.update({'name': requested_name}, profile.eid)
-
 
         return status
 
