@@ -76,7 +76,7 @@ USER_PREFIX = os.path.realpath(
             os.path.join(os.path.expanduser('~'), '.local', 'e4s_cl'))))
 """str: User-level E4S Container Launcher files."""
 
-CONTAINER_DIR = CONFIGURATION_VALUES.get('CONTAINER_DIR') or Path("/", ".e4s-cl").as_posix()
+CONTAINER_DIR = CONFIGURATION_VALUES.get('CONTAINER_DIR') if CONFIGURATION_VALUES else Path("/", ".e4s-cl").as_posix()
 """str: Path of a directory in which to bind files when in containers"""
 
 CONTAINER_SCRIPT = Path(CONTAINER_DIR, "script").as_posix()
