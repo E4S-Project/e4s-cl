@@ -416,11 +416,12 @@ class InitCommand(AbstractCommand):
                 and _special_clauses(args)):
             try:
                 status = _analyze_binary(args)
-
-                if status == EXIT_FAILURE:
-                    controller.delete(profile.eid)
             except KeyboardInterrupt:
-                controller.delete(profile.eid)
+                status = EXIT_FAILURE
+
+        if status == EXIT_FAILURE:
+            controller.delete(profile.eid)
+            return status
 
         if Profile.selected().get('name') == INIT_TEMP_PROFILE_NAME:
             hash_ = util.hash256(json.dumps(Profile.selected()))

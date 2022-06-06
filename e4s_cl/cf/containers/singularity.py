@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.util import which, run_subprocess
-from e4s_cl.cf.libraries import host_libraries
+from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
 LOGGER = logger.get_logger(__name__)
@@ -68,15 +68,17 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable, 'exec', *self._working_dir(),
-            *nvidia_flag, self.image, *command
+            self.executable, 'exec', *self._working_dir(), *nvidia_flag,
+            self.image, *command
         ]
 
     def bind_env_var(self, key, value):
         self.env.update({f"SINGULARITYENV_{key}": value})
 
     def _has_nvidia(self):
-        if 'nvidia' not in " ".join(host_libraries()):
+        # Assume that the proper ldconfig call has been run and that nvidia
+        # libraries are listed in the cache
+        if 'nvidia' not in " ".join(cache_libraries()):
             LOGGER.debug("Disabling Nvidia support: no libraries found")
             return False
         return True

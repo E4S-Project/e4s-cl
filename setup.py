@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 from setuptools import setup, find_packages
 from pathlib import Path
 import importlib.util
@@ -14,10 +15,16 @@ NAME = "e4s-cl"
 
 VERSION = metadata.__version__
 
-DEPENDENCIES = [
-    "python-ptrace>=0.9.7", "pyelftools==0.27", "requests==2.26.0",
-    "tinydb==4.5.2", "python-sotools==0.0.3"
-]
+DEPENDENCIES = []
+DEPENDENCY_FILE_PATH = "./requirements/core.txt"
+
+try:
+    with open(DEPENDENCY_FILE_PATH, 'r') as dependency_file:
+        DEPENDENCIES = dependency_file.readlines()
+except Exception as err:
+    print(
+        f"Failed to lookup dependencies from {DEPENDENCY_FILE_PATH}: {str(err)}",
+        file=sys.stderr)
 
 # Package author information
 AUTHOR = "Jean-Baptiste Skutnik"
