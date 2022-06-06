@@ -54,7 +54,7 @@ class ExecuteTests(tests.TestCase):
     @tests.skipIf(not linker.resolve("libmpi.so"), "No test library available")
     def test_select_import_method(self):
         entry = Entrypoint()
-        container = Container(name="podman")
+        container = Container(name="containerless")
         lib_set = libraryset.LibrarySet.create_from(
             [linker.resolve("libmpi.so")])
 

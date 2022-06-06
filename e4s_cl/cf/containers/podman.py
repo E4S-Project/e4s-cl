@@ -136,7 +136,7 @@ class PodmanContainer(Container):
                     params['ro'] = 'true'
 
                 yield "--mount=" + ",".join(f"{k}={v}"
-                                           for (k, v) in params.items())
+                                            for (k, v) in params.items())
 
         return list(_format())
 
@@ -164,6 +164,8 @@ class PodmanContainer(Container):
             raise BackendNotAvailableError(self.executable)
 
         container_cmd = self._prepare(command)
+
+        LOGGER.debug("Running podman using: `%s'", " ".join(container_cmd))
 
         with FDFiller():
             return run_subprocess(container_cmd, env=self.env)
