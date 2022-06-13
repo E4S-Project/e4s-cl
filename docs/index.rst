@@ -11,6 +11,9 @@ This is useful when the binary has been compiled using a different library than 
 
 E4S Container Launcher includes tools to automatically detect the MPI binary's necessary files, making it seamless to set up and use. These tools are first touched in the :ref:`quick start<qstart>` section.
 
+.. raw:: html
+
+        <iframe width="747" height="420" src="https://www.youtube.com/embed/6eZflZpHldk" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>
 
 .. toctree::
    :maxdepth: 1
