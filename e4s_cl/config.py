@@ -5,7 +5,7 @@ confxGlobal = {'container directory': 'CONTAINER_DIR'}
 
 user_home = expanduser('~')
 default_config_path = user_home + "/.config/e4s-cl.yaml"
-alternate_config_path = user_home + "/etc/e4s-cl/e4s-cl.yaml"
+alternate_config_path = "/etc/e4s-cl/e4s-cl.yaml"
 configuration_file = ""
 
 class Configuration:
