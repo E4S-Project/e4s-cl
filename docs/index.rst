@@ -19,6 +19,7 @@ E4S Container Launcher includes tools to automatically detect the MPI binary's n
    quickstart
    installation
    reference/index
+   configuration_file
    compatibility/software
    compatibility/system
    examples
