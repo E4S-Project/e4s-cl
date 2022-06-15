@@ -1,2 +1,3 @@
 ---
 container directory: '/newdirectory'
+launcher options: "-n 8"

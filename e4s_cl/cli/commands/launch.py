@@ -92,9 +92,9 @@ def _format_execute(parameters):
 
     return execute_command
 
-def configuration_options():
-    if CONFIGURATION_VALUES:
-        return CONFIGURATION_VALUES.get('LAUNCHER_OPTIONS').split()
+def configuration_options(conf_values):
+    if conf_values:
+        return conf_values.get('LAUNCHER_OPTIONS').split()
     else:
         return []
 
@@ -177,7 +177,7 @@ class LaunchCommand(AbstractCommand):
                 'bin', 'mpirun').as_posix()
             launcher += shlex.split(parameters.get('wi4mpi_options', ""))
 
-        full_command = launcher + configuration_options() + execute_command + program
+        full_command = launcher + configuration_options(CONFIGURATION_VALUES) + execute_command + program
 
         if variables.is_dry_run():
             print(' '.join(full_command))
