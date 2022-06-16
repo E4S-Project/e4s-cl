@@ -17,10 +17,29 @@ The full details on execution and configuration can be found [here](https://e4s-
 
 ## How it works
 
-`e4s-cl` wraps around launchers to execute a small amount of pre-processing before launching a container.
-It recursively calls itself with the launcher used by the user before executing the command, analyses the library environment from the host, and uses on the container technology to bind the necessary files and libraries in the guest container.
+### Creating containers
+
+`e4s-cl` wraps around standard MPI-capable launchers to execute a small amount of pre-processing before creating containers in which to run commands.
+This processing includes analyzing the library environment from the host, to bind select libraries to the container in order to make them accessible to the running process.
 
 ![structure](https://github.com/E4S-Project/e4s-cl/raw/master/assets/images/e4scl_structure.png)
+
+### The concept of profile
+
+One of the core components of the tool are profiles. They contain specific information about an execution environment that can be reproduced, such as container image and technology, or files and libraries to import in the containers.
+
+They can be accessed and modified using the `e4s-cl profile` commands.
+```
+[jskutnik@spoutnik ~]$ e4s-cl profile list
+============= Profile Configurations (/home/jskutnik/.local/e4s_cl/user.json) ==
++----------+------------+-------------+------------+-----------+-------+--------+
+| Selected |    Name    |   Backend   |   Image    | Libraries | Files | WI4MPI |
++==========+============+=============+============+===========+=======+========+
+|          |  MPICH_3.4 | singularity |       None |    16     |   1   |   No   |
++----------+------------+-------------+------------+-----------+-------+--------+
+```
+
+Profiles are also used as intermediate outputs of the program. `e4s-cl profile detect` will analyze a given binary to list all its library and file dependencies. Those results are stored into a given profile to be reused.
 
 ## Installation
 
