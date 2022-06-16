@@ -202,7 +202,6 @@ class Container:
 
         with TemporaryFile() as buffer:
             sys.stdout = buffer
-
             code = self.run(['ldd', '--version'])
 
             if code:

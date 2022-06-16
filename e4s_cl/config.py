@@ -1,7 +1,7 @@
 import yaml
 from os.path import expanduser, exists
 
-confxGlobal = {'container directory': 'CONTAINER_DIR', 'launcher options': 'LAUNCHER_OPTIONS'}
+confxGlobal = {'container directory': 'CONTAINER_DIR', 'launcher options': 'LAUNCHER_OPTIONS', 'container options': 'CONTAINER_OPTIONS'}
 
 user_home = expanduser('~')
 default_config_path = user_home + "/.config/e4s-cl.yaml"
