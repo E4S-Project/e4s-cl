@@ -93,7 +93,7 @@ def _format_execute(parameters):
     return execute_command
 
 def configuration_launcher_options(conf_values):
-    if conf_values:
+    if conf_values.get('LAUNCHER_OPTIONS'):
         return conf_values.get('LAUNCHER_OPTIONS').split()
     else:
         return []
