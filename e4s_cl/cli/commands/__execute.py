@@ -215,16 +215,24 @@ class ExecuteCommand(AbstractCommand):
         # Setup the final command and metadata relating to the execution
         params.command = args.cmd
         params.debug = logger.debug_mode()
-        params.library_dir = container.import_library_dir.as_posix()
+
+        # Setup the linker search path for the process in the container
+        params.linker_library_path.append(container.import_library_dir)
+
+        if hasattr(container.__class__, 'linker_path'):
+            paths = container.__class__.linker_path
+            paths.reverse()
+            for path in paths:
+                params.linker_library_path.insert(0, path)
 
         if wi4mpi_enabled():
-            linker_paths = map(lambda x: x.as_posix(),
-                               wi4mpi_libpath(wi4mpi_root()))
-            params.library_dir = ':'.join(
-                [*linker_paths,
-                 container.import_library_dir.as_posix()])
+            linker_paths = list(
+                map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_root())))
+            linker_paths.reverse()
 
-        if wi4mpi_enabled():
+            for linker_path in linker_paths:
+                params.linker_library_path.insert(0, linker_path)
+
             # Import relevant files
             wi4mpi_import(container, wi4mpi_root())
 

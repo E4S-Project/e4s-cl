@@ -1,40 +1,59 @@
 """
 This modules parses data in the asset dirs to list all assets available during execution
 """
-
+from pathlib import Path
 from e4s_cl import logger
-from e4s_cl.cf.storage.levels import USER_STORAGE
+from e4s_cl.model.profile import Profile
+from e4s_cl.cf.storage.levels import ORDERED_LEVELS, highest_writable_storage
 
 LOGGER = logger.get_logger(__name__)
 
 SAMPLE_BINARY_TABLE = "precompiled_binaries"
 BUILTIN_PROFILE_TABLE = "builtin_profiles"
 
+TARGET_STORAGE = highest_writable_storage()
 
-def precompiled_binaries(storage=USER_STORAGE) -> dict:
+
+def precompiled_binaries(storage=None) -> dict:
     """
     List all the precompiled binaries available
     """
-    records = storage.search(table_name=SAMPLE_BINARY_TABLE)
+    records = {}
     transform = lambda r: (r['soname'], r['path'])
 
-    return dict(map(transform, records))
+    levels = reversed(ORDERED_LEVELS)
+    if storage:
+        levels = [storage]
+
+    for level in levels:
+        entries = level.search(table_name=SAMPLE_BINARY_TABLE)
+        records = dict(map(transform, entries), **records)
+
+    return records
 
 
-def builtin_profiles(storage=USER_STORAGE) -> dict:
+def builtin_profiles(storage=None) -> dict:
     """
     List all the builtin profiles available
     """
-    records = storage.search(table_name=BUILTIN_PROFILE_TABLE)
+    records = {}
     transform = lambda r: (r['system'], r['configuration'])
 
-    return dict(map(transform, records))
+    levels = reversed(ORDERED_LEVELS)
+    if storage:
+        levels = [storage]
+
+    for level in levels:
+        entries = level.search(table_name=BUILTIN_PROFILE_TABLE)
+        records = dict(map(transform, entries), **records)
+
+    return records
 
 
 def _import_asset(primary_key: str,
                   data: dict,
                   table_name: str,
-                  storage=USER_STORAGE) -> bool:
+                  storage=TARGET_STORAGE) -> bool:
     """
     Import `data` into the database.
 
@@ -66,10 +85,13 @@ def _import_asset(primary_key: str,
     return True
 
 
-def add_builtin_profile(system, configuration, storage=USER_STORAGE):
+def add_builtin_profile(system, configuration, storage=TARGET_STORAGE):
     """
     Record a configuration to be used as a built-in profile
     """
+
+    check_builtin_profile(system, configuration)
+
     record = {
         'system': system,
         'configuration': configuration,
@@ -77,7 +99,60 @@ def add_builtin_profile(system, configuration, storage=USER_STORAGE):
     _import_asset('system', record, BUILTIN_PROFILE_TABLE, storage)
 
 
-def remove_builtin_profile(system, storage=USER_STORAGE):
+def check_builtin_profile(system, configuration):
+    """
+    Checks the downloaded profile for format validity
+    """
+
+    def check_list(path_list):
+        for path in path_list:
+            if not Path(path).exists():
+                LOGGER.warning(
+                    "Builtin profile %s has a non-existent"
+                    " %s path: %s!", system, key, path)
+
+    def check_string(path):
+        if not Path(path).exists():
+            LOGGER.warning(
+                "Builtin profile %s has a non-existent"
+                " %s path: %s!", system, key, path)
+
+    profile_types = {'string': str, 'list': list}
+
+    profile_paths = {
+        'files': check_list,
+        'libraries': check_list,
+        'wi4mpi': check_string,
+        'source': check_string
+    }
+
+    # Checks if the profile is a dict
+    if not isinstance(configuration, dict):
+        raise ValueError(f"Profile {system} data is not a dictionary!"
+                         " Profile import cancelled.")
+
+    attr = Profile.attributes
+    for key in configuration:
+        key_values = configuration[key]
+        # Checks if the keys are correct
+        if key not in attr:
+            raise ValueError(
+                f"Profile {system}'s keys don't match with"
+                f" e4s-cl's profiles keys: '{key}' not an authorised key!"
+                " Profile import cancelled.")
+        key_type = profile_types.get(attr[key]['type'])
+        # Checks if the values are of the correct type
+        if not isinstance(key_values, key_type):
+            raise ValueError(f"Profile {system} has values of the wrong"
+                             f" type: '{type(key_values)}', and don't match"
+                             f" with e4s-cl's {key}'s type: '{key_type}'!"
+                             " Profile import cancelled.")
+        # Checks if the path values point to an existing file
+        if key in profile_paths:
+            profile_paths.get(key)(key_values)
+
+
+def remove_builtin_profile(system, storage=TARGET_STORAGE):
     """
     Remove a configuration used as a built-in profile
     """
@@ -85,7 +160,7 @@ def remove_builtin_profile(system, storage=USER_STORAGE):
         database.remove({'system': system})
 
 
-def add_precompiled_binary(soname, path, storage=USER_STORAGE):
+def add_precompiled_binary(soname, path, storage=TARGET_STORAGE):
     """
     Record a path towards a precompiled MPI binary
     """

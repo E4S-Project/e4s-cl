@@ -147,7 +147,7 @@ class DeleteCommand(AbstractCliView):
             help=
             f"{key_attr.capitalize()} of {self.model_name} configuration to delete",
             nargs="+",
-            type=arguments.defined_object(self.model, key_attr),
+            type=arguments.wildcard_defined_object(self.model, key_attr),
             metavar=f"<{self.model_name}_{key_attr}>")
         if self.include_storage_flag:
             arguments.add_storage_flag(parser, "delete", self.model_name)
@@ -170,7 +170,8 @@ class DeleteCommand(AbstractCliView):
         store = arguments.parse_storage_flag(args)[0]
         objects = getattr(args, self.model.key_attribute)
         for obj in objects:
-            self._delete_record(store, obj)
+            for elem in obj:
+                self._delete_record(store, elem)
         return EXIT_SUCCESS
 
 

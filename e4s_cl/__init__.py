@@ -38,13 +38,21 @@ Please install the required Python version or raise an issue on Github for suppo
 """)
     sys.exit(EXIT_FAILURE)
 
-E4S_CL_HOME = os.path.realpath(
-    os.path.abspath(
-        os.environ.get('__E4S_CL_HOME__',
-                       os.path.join(os.path.dirname(__file__), '..', '..'))))
+# Use a file to brand installation directories
+_HOME_MARKER = '.e4s-cl-home'
+__install_home = None
+
+# Look at all the parent of the package to look for the marker
+for parent in Path(__file__).resolve().parents:
+    if Path(parent, _HOME_MARKER).exists():
+        __install_home = parent
+
+E4S_CL_HOME = Path(
+    os.environ.get('__E4S_CL_HOME__', __install_home
+                   or Path(__file__).parents[1])).resolve().as_posix()
 """str: Absolute path to the top-level E4S Container Launcher directory.
 
-This directory contains at least `bin`, `docs`, and `packages` directories and is the root
+This directory contains at least `bin` and `conda` directories and is the root
 for system-level package installation paths. **Do not** change it once it is set.
 """
 

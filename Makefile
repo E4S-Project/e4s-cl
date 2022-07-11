@@ -112,6 +112,7 @@ install: $(PYTHON_EXE)
 	$(PYTHON) -m pip install --use-feature=in-tree-build -q -rrequirements/core.txt --compile .
 	$(MKDIR) $(INSTALL_BIN_DIR)
 	ln -fs $(CONDA_BIN)/e4s-cl $(INSTALL_BIN_DIR)/e4s-cl
+	touch $(INSTALLDIR)/$(shell $(PYTHON) -c "import e4s_cl; print(e4s_cl._HOME_MARKER)")
 
 #>============================================================================<
 # Data fetching targets
@@ -119,7 +120,7 @@ install: $(PYTHON_EXE)
 ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
 
 download_assets: $(PYTHON_EXE)
-	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(SYSTEM)
+	cd scripts; $(PYTHON) download_assets.py $(ASSET_URL) $(HOST_ARCH) $(E4SCL_TARGETSYSTEM)
 
 COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
 COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)

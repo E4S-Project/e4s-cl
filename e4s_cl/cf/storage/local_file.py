@@ -34,6 +34,7 @@ class _JsonFileStorage(tinydb.JSONStorage):
     TinyDB's default storage (:any:`tinydb.JSONStorage`) assumes write access to the JSON file.
     This isn't the case for system-level storage and possibly others.
     """
+
     def __init__(self, path, encoding=None):
         self.path = path
 
@@ -126,6 +127,7 @@ class LocalFileStorage(AbstractStorage):
             return False
         try:
             with tempfile.NamedTemporaryFile(dir=self.prefix(),
+                                             mode='w',
                                              delete=True) as tmp_file:
                 tmp_file.write("Write test. Delete this file.")
         except (OSError, IOError):
@@ -209,6 +211,7 @@ class LocalFileStorage(AbstractStorage):
     @staticmethod
     def _query(keys, match_any):
         """Construct a TinyDB query object."""
+
         def _and(lhs, rhs):
             return lhs & rhs
 

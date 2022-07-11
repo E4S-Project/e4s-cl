@@ -5,9 +5,9 @@ execution environment and allows for arbitrary code execution (e.g.
 library loading)
 """
 
-import os
-import tempfile
-import shlex
+from os import chmod, unlink, pathsep
+from tempfile import NamedTemporaryFile
+from shlex import split
 from e4s_cl import logger
 from e4s_cl.error import InternalError
 
@@ -26,7 +26,6 @@ export LD_LIBRARY_PATH=%(library_dir)s${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
 # Preload select libraries to ensure they are used, even if RPATHs are set in
 # guest libraries.
-# Additionally, the imported linker may be set at this step.
 export LD_PRELOAD=%(preload)s${LD_PRELOAD:+:${LD_PRELOAD}}
 
 # Finally run the command, using the imported linker if applicable
@@ -39,6 +38,10 @@ class Entrypoint:
     Objects with exection information that convert to scripts on command
     """
 
+    @property
+    def library_dir(self):
+        raise NotImplementedError("Deprecated attribute")
+
     def __init__(self, debug=False):
         self.file_name = None
 
@@ -48,8 +51,9 @@ class Entrypoint:
         # Script to source before running anything
         self.source_script_path = ''
 
-        # Path to a directory where the host libraries were bound
-        self.library_dir = ''
+        # Directories to add to the runtime linker search path, will take
+        # precedence over any paths set before and in the source script
+        self.linker_library_path = []
 
         # List of libraries to preload
         self.preload = []
@@ -66,7 +70,7 @@ class Entrypoint:
     @command.setter
     def command(self, rhs):
         if isinstance(rhs, str):
-            self.__command = shlex.split(rhs)
+            self.__command = split(rhs)
         elif isinstance(rhs, list):
             self.__command = rhs
         else:
@@ -92,8 +96,8 @@ class Entrypoint:
         fields = {
             'source_script': self.source_script,
             'command': self.command,
-            'library_dir': self.library_dir,
-            'linker': linker_statement,
+            'library_dir': pathsep.join(map(str, self.linker_library_path)),
+            'linker': self.linker or '',
             'preload': ':'.join(preload),
             'debugging': "export LD_DEBUG=files" if self.debug else ''
         }
@@ -104,11 +108,11 @@ class Entrypoint:
         """
         Create a temporary file and print the script in it
         """
-        with tempfile.NamedTemporaryFile('w', delete=False) as script:
+        with NamedTemporaryFile('w', delete=False) as script:
             self.file_name = script.name
             script.write(str(self))
 
-        os.chmod(self.file_name, 0o755)
+        chmod(self.file_name, 0o755)
 
         sep = "\n" + "".join('=' for _ in range(80))
         LOGGER.debug("Running templated script:%(sep)s\n%(script)s%(sep)s", {
@@ -120,4 +124,4 @@ class Entrypoint:
 
     def teardown(self):
         if getattr(self, 'file_name', False):
-            os.unlink(self.file_name)
+            unlink(self.file_name)

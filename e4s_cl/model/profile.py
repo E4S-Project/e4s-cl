@@ -21,7 +21,7 @@ def attributes():
             'description': 'profile name',
         },
         "wi4mpi": {
-            'type': 'boolean',
+            'type': 'string',
             'description': 'root of the wi4mpi to use, if any',
         },
         "wi4mpi_options": {

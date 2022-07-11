@@ -14,6 +14,7 @@ from e4s_cl import logger, util
 from e4s_cl.cli import USAGE_FORMAT
 from e4s_cl.util import add_dot
 from e4s_cl.error import InternalError
+from e4s_cl.cf.storage import StorageError
 from e4s_cl.cf.storage.levels import ORDERED_LEVELS, STORAGE_LEVELS
 
 Action = argparse.Action
@@ -551,7 +552,7 @@ def get_model_identifier(model,
     parser.add_argument(
         model_name,
         nargs='?',
-        type=defined_object(model, key_attr),
+        type=single_defined_object(model, key_attr),
         help=
         f"The target {model_name}. If omitted, defaults to the selected {model_name}",
         default=_default,
@@ -629,7 +630,19 @@ def existing_posix_path_list(string):
     return [existing_posix_path(data) for data in string.split(',')]
 
 
-def defined_object(model, field):
+def _search_available_databases(model, field, regex):
+    matches = []
+
+    for level in ORDERED_LEVELS:
+        try:
+            matches.extend(model.controller(storage=level).match(field, regex))
+        except StorageError as err:
+            LOGGER.debug("Failed to access records from level %s", level.name)
+
+    return matches
+
+
+def single_defined_object(model, field):
     """Argument type callback.
     Asserts that the string corresponds to an existing object."""
 
@@ -638,13 +651,8 @@ def defined_object(model, field):
             raise argparse.ArgumentTypeError(
                 f"no {model.name} selected nor specified")
 
-        matches = []
-
-        for level in ORDERED_LEVELS:
-            matches.extend(
-                model.controller(storage=level).match(
-                    field, regex=(f"^{re.escape(string)}.*")))
-
+        matches = _search_available_databases(model, field,
+                                              f"^{re.escape(string)}.*")
         exact_matches = list(filter(lambda x: x.get(field) == string, matches))
 
         # If multiple matches occur, return the first occurence
@@ -662,6 +670,30 @@ def defined_object(model, field):
         if exact_matches:
             return exact_matches.pop()
         return matches.pop()
+
+    wrapper.__name__ = f"defined_{model.name.lower()}"
+
+    return wrapper
+
+
+def wildcard_defined_object(model, field):
+    """Argument type callback.
+    Asserts that the string corresponds to an existing object."""
+
+    def wrapper(string):
+        if string == UNSELECTED:
+            raise argparse.ArgumentTypeError(
+                f"no {model.name} selected nor specified")
+
+        wildcard_string = re.sub(re.escape('\#'), '.*', re.escape(string))
+        matches = _search_available_databases(model, field,
+                                              f"^{wildcard_string}$")
+
+        if not matches:
+            raise argparse.ArgumentTypeError(
+                f"Pattern '{string}' does not identify any {model.name.lower()}: "
+                f"{len(matches)} {model.name.lower()}s match")
+        return matches
 
     wrapper.__name__ = f"defined_{model.name.lower()}"
 
