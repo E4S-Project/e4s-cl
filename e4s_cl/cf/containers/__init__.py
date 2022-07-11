@@ -19,7 +19,7 @@ import re
 import sys
 import json
 from importlib import import_module
-from tempfile import TemporaryFile
+from tempfile import TemporaryFile, NamedTemporaryFile
 from pathlib import Path
 from typing import Union
 from e4s_cl import (EXIT_FAILURE, CONTAINER_DIR, CONTAINER_LIBRARY_DIR,
@@ -29,6 +29,8 @@ from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import ConfigurationError
+
+from sotools.dl_cache import cache_libraries
 
 LOGGER = logger.get_logger(__name__)
 
@@ -219,9 +221,13 @@ class Container:
             if code:
                 raise AnalysisError(code)
 
-            from sotools.dl_cache import _cache_libraries
+            cache_buffer = NamedTemporaryFile('wb', delete=False)
             sys.stdout.seek(0, 0)
-            self.libs = _cache_libraries(sys.stdout.read())
+            cache_buffer.write(sys.stdout.read())
+            buffer_name = cache_buffer.name
+            del cache_buffer
+
+            self.libs = cache_libraries(buffer_name)
 
         sys.stdout = outstream
 
