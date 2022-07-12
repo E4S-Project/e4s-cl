@@ -14,10 +14,11 @@ CONFIGURATION_VALUES = e4s_cl.config.Configuration(configuration_file).updated_g
 class ConfigTest(tests.TestCase):
     """Unit tests for e4s-cl's configuration file use"""
     def test_container_dir(self):
-        self.assertEqual(CONFIGURATION_VALUES.get('CONTAINER_DIR'), "/newdirectory")
+        self.assertEqual(CONFIGURATION_VALUES.get('CONTAINER_DIR'), "/diffdirectory")
 
-    def test_launcher_options(self):
-        self.assertEqual(configuration_options('LAUNCHER_OPTIONS'), ['-n', '8'])
+    def test_configuration_options(self):
+        self.assertEqual(configuration_options('LAUNCHER_OPTIONS', CONFIGURATION_VALUES), ['-n', '8'])
+        self.assertEqual(configuration_options('CONTAINER_OPTIONS', CONFIGURATION_VALUES), ['--hostname', 'diffname'])
 
         self.assertEqual(configuration_options(None), [])
         
