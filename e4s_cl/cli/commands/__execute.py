@@ -9,6 +9,7 @@ This command is used internally and thus cloaked from the UI
 from pathlib import Path
 from sotools.libraryset import LibrarySet, Library
 from e4s_cl import (EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables)
+from e4s_cl.util import which
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -66,7 +67,11 @@ def overlay_libraries(library_set, container, entrypoint):
     This method selects all the libraries defined in the list, along with
     with the host's (implicitly newer) linker.
     """
-    selected = library_set
+    # Determine what the host's bash binary depends on
+    bash_requirements = LibrarySet.create_from([which('bash')])
+
+    # Import the library set passed as an argument along with the bash dependencies
+    selected = LibrarySet(library_set.union(bash_requirements))
 
     # Figure out what to if multiple linkers are required
     if len(library_set.linkers) != 1:
@@ -74,24 +79,21 @@ def overlay_libraries(library_set, container, entrypoint):
             f"{len(library_set.linkers)} linkers detected. This should not happen."
         )
 
-    for lib in library_set.glib:
-        if lib.soname in container.libs:
-            LOGGER.debug("Overriding %s with %s", container.libs[lib.soname],
-                         lib.binary_path)
-            container.bind_file(lib.binary_path,
-                                dest=container.libs[lib.soname])
-
-    libdl = library_set.find('libdl.so.2')
-    if libdl is not None:
-        container.bind_file(libdl.binary_path,
-                            dest=container.libs[libdl.soname])
-
+    # Override linkers in the container
     for linker in library_set.linkers:
         entrypoint.linker = Path(container.import_library_dir,
                                  Path(linker.binary_path).name).as_posix()
         container.bind_file(linker.binary_path,
                             dest=Path(container.import_library_dir,
                                       Path(linker.binary_path).name))
+
+    # Override the container's glib with the host's
+    for lib in library_set.glib:
+        if lib.soname in container.libs:
+            LOGGER.debug("Overriding %s with %s", container.libs[lib.soname],
+                         lib.binary_path)
+            container.bind_file(lib.binary_path,
+                                dest=container.libs[lib.soname])
 
     return selected
 
