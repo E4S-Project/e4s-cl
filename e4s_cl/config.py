@@ -27,3 +27,10 @@ CONFIGURATION_VALUES = None
 
 if CONFIGURATION_VALUES is None and configuration_file:
     CONFIGURATION_VALUES = Configuration(configuration_file).updated_globals
+
+
+def configuration_options(option):
+    if CONFIGURATION_VALUES:
+        if CONFIGURATION_VALUES.get(option):
+            return CONFIGURATION_VALUES.get(option).split()
+    return []

@@ -8,7 +8,7 @@ from e4s_cl import logger
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.cf.libraries import host_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
-from e4s_cl.config import CONFIGURATION_VALUES
+from e4s_cl.config import configuration_options
 
 LOGGER = logger.get_logger(__name__)
 
@@ -16,12 +16,6 @@ NAME = 'singularity'
 MIMES = ['.simg', '.sif']
 
 OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
-
-def configuration_singularity_options(conf_values):
-    if conf_values:
-        if conf_values.get('CONTAINER_OPTIONS'):
-            return conf_values.get('CONTAINER_OPTIONS').split()
-    return []
 
 class SingularityContainer(Container):
     """
@@ -75,7 +69,7 @@ class SingularityContainer(Container):
 
         return [
             self.executable, 'exec',
-            *configuration_singularity_options(CONFIGURATION_VALUES),
+            *configuration_options('CONTAINER_OPTIONS'),
             *self._working_dir(), *nvidia_flag, self.image, *command
         ]
 
