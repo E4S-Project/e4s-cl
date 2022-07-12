@@ -17,12 +17,12 @@ MIMES = ['.simg', '.sif']
 OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
 
 
-class SingularityContainer(Container):
+class ApptainerContainer(Container):
     """
     Class to use when formatting bound files for a singularity execution
     """
 
-    executable_name = 'singularity'
+    executable_name = 'apptainer'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -59,10 +59,11 @@ class SingularityContainer(Container):
 
         Return the command to run in a list of string
         """
+        # as of the 12th of July 2022, apptainer v1.0.1 still uses the `.singularity.d` folder
         self.add_ld_library_path("/.singularity.d/libs")
-        self.env.update({'APPTAINERENV_LD_PRELOAD': ":".join(self.ld_preload)})
         self.env.update(
-            {'APPTAINERENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
+            dict(APPTAINERENV_LD_PRELOAD=":".join(self.ld_preload),
+                 APPTAINERENV_LD_LIBRARY_PATH=":".join(self.ld_lib_path)))
         self._format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
@@ -91,4 +92,4 @@ class SingularityContainer(Container):
         return run_subprocess(container_cmd, env=self.env)
 
 
-CLASS = SingularityContainer
+CLASS = ApptainerContainer
