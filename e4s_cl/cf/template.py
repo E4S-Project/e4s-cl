@@ -8,6 +8,7 @@ library loading)
 from os import chmod, unlink, pathsep
 from tempfile import NamedTemporaryFile
 from shlex import split
+from sotools import is_elf
 from e4s_cl import logger
 from e4s_cl.error import InternalError
 
@@ -87,20 +88,24 @@ class Entrypoint:
         # Convert to a set to remove duplicates, then as a list to get order
         preload = list(dict.fromkeys(self.preload))
 
+        # The linker statement to prefix to the command
+        rtdl = []
         if self.linker:
-            linker_statement = f"{self.linker} /bin/bash"
-            #preload.append(self.linker)
-        else:
-            linker_statement = ''
+            # In case of an ELF binary, start it with the linker; if the
+            # command is a script, run bash with the linker to ensure the
+            # imported libc is loaded
+            if len(self.command) and is_elf(self.command[0]):
+                rtdl = [self.linker]
+            else:
+                rtdl = [self.linker, '/.e4s-cl/hostlibs/bash']
 
-        fields = {
-            'source_script': self.source_script,
-            'command': self.command,
-            'library_dir': pathsep.join(map(str, self.linker_library_path)),
-            'linker': self.linker or '',
-            'preload': ':'.join(preload),
-            'debugging': "export LD_DEBUG=files" if self.debug else ''
-        }
+        fields = dict(source_script=self.source_script,
+                      command=self.command,
+                      library_dir=pathsep.join(
+                          map(str, self.linker_library_path)),
+                      linker=' '.join(rtdl),
+                      preload=':'.join(preload),
+                      debugging="export LD_DEBUG=files" if self.debug else '')
 
         return TEMPLATE % fields
 
