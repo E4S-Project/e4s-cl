@@ -22,6 +22,7 @@ from importlib import import_module
 from tempfile import TemporaryFile, NamedTemporaryFile
 from pathlib import Path
 from typing import Union
+from sotools.dl_cache import cache_libraries, get_generator
 from e4s_cl import (EXIT_FAILURE, CONTAINER_DIR, CONTAINER_LIBRARY_DIR,
                     CONTAINER_SCRIPT, logger)
 from e4s_cl.variables import ParentStatus
@@ -29,8 +30,6 @@ from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import ConfigurationError
-
-from sotools.dl_cache import cache_libraries
 
 LOGGER = logger.get_logger(__name__)
 
@@ -205,27 +204,26 @@ class Container:
         with TemporaryFile() as buffer:
             sys.stdout = buffer
 
-            code = self.run(['ldd', '--version'])
-
-            if code:
-                raise AnalysisError(code)
-
-            sys.stdout.seek(0, 0)
-            out = sys.stdout.read().decode()
-            LOGGER.debug("Output of ldd --version: %s", out)
-            self.libc_v = Version(out)
-
-            sys.stdout.seek(0, 0)
             code = self.run(['cat', '/etc/ld.so.cache'])
 
             if code:
                 raise AnalysisError(code)
 
-            cache_buffer = NamedTemporaryFile('wb', delete=False)
             sys.stdout.seek(0, 0)
-            cache_buffer.write(sys.stdout.read())
-            buffer_name = cache_buffer.name
-            del cache_buffer
+            cache_data = sys.stdout.read()
+
+            # Extract version info from the cache
+            # No information indicates the version is anterior to 2.27
+            glib_version_string = get_generator(cache_data)
+            if glib_version_string is None:
+                self.libc = Version('2.27')
+            else:
+                self.libc = Version(glib_version_string)
+
+            # Extract libraries with matching architecture from the cache
+            with NamedTemporaryFile('wb', delete=False) as cache_buffer:
+                cache_buffer.write(cache_data)
+                buffer_name = cache_buffer.name
 
             self.libs = cache_libraries(buffer_name)
 
