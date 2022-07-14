@@ -189,7 +189,7 @@ class Container:
 
     def get_data(self):
         """
-        Run the e4s-cl analyze command in the container to analyze the
+        Run analysis commands in the container to get informations about the
         environment inside of it. The results will be used to tailor the
         library import to ensure compatibility of the shared objects.
 
@@ -201,6 +201,7 @@ class Container:
         """
         outstream = sys.stdout
 
+        # Obfuscate stdout to access the output of the below commands
         with TemporaryFile() as buffer:
             sys.stdout = buffer
 
@@ -213,14 +214,21 @@ class Container:
             cache_data = sys.stdout.read()
 
             # Extract version info from the cache
-            # No information indicates the version is anterior to 2.27
             glib_version_string = get_generator(cache_data)
-            if glib_version_string is None:
-                self.libc = Version('2.27')
+            if glib_version_string is not None:
+                self.libc_v = Version(glib_version_string)
             else:
-                self.libc = Version(glib_version_string)
+                # for older caches, grab the version from the ldconfig binary
+                sys.stdout.seek(0, 0)
+                sys.stdout.truncate(0)
+                code = self.run(['ldconfig', '--version'])
+                sys.stdout.seek(0, 0)
+                glib_version = sys.stdout.read().decode()
+                self.libc_v = Version(glib_version)
 
-            # Extract libraries with matching architecture from the cache
+            LOGGER.debug("Detected container glibc version: %s", self.libc_v)
+
+            # Extract libraries from the cache
             with NamedTemporaryFile('wb', delete=False) as cache_buffer:
                 cache_buffer.write(cache_data)
                 buffer_name = cache_buffer.name
