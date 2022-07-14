@@ -14,7 +14,7 @@ from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
 
-TEMPLATE = """#!/bin/bash -x
+TEMPLATE = """#!/bin/bash
 # Source a user-provided script for convenience
 %(source_script)s
 
@@ -94,7 +94,7 @@ class Entrypoint:
             # In case of an ELF binary, start it with the linker; if the
             # command is a script, run bash with the linker to ensure the
             # imported libc is loaded
-            if len(self.command) and is_elf(self.command[0]):
+            if len(self.__command) and is_elf(self.__command[0]):
                 rtdl = [self.linker]
             else:
                 rtdl = [self.linker, '/.e4s-cl/hostlibs/bash']
