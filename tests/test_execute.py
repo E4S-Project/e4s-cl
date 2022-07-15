@@ -1,6 +1,8 @@
 import tests
 from pathlib import Path
-from sotools import Library, libraryset, linker
+from sotools import Library, linker
+from sotools.libraryset import LibrarySet
+from e4s_cl.util import which
 from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container
@@ -28,7 +30,7 @@ class ExecuteTests(tests.TestCase):
 
     @tests.skipIf(not linker.resolve("libmpi.so"), "No test library available")
     def test_filter_libraries(self):
-        lib_set = libraryset.LibrarySet.create_from(["libmpi.so"])
+        lib_set = LibrarySet.create_from(["libmpi.so"])
 
         self.assertTrue(lib_set.glib)
 
@@ -40,8 +42,9 @@ class ExecuteTests(tests.TestCase):
     def test_overlay_libraries(self):
         entry = Entrypoint()
         container = Container(name="containerless")
-        lib_set = libraryset.LibrarySet.create_from(
-            [linker.resolve("libmpi.so")])
+        host_libraries = LibrarySet.create_from([linker.resolve("libmpi.so")])
+        host_bash = LibrarySet.create_from([which('bash')])
+        lib_set = LibrarySet(host_libraries.union(host_bash))
 
         overlain = overlay_libraries(lib_set, container, entry)
 
@@ -55,8 +58,7 @@ class ExecuteTests(tests.TestCase):
     def test_select_import_method(self):
         entry = Entrypoint()
         container = Container(name="podman")
-        lib_set = libraryset.LibrarySet.create_from(
-            [linker.resolve("libmpi.so")])
+        lib_set = LibrarySet.create_from([linker.resolve("libmpi.so")])
 
         self.assertTrue(select_libraries(lib_set, container, entry))
 
