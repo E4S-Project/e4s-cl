@@ -28,7 +28,6 @@ from e4s_cl import (EXIT_FAILURE, CONTAINER_DIR, CONTAINER_LIBRARY_DIR,
 from e4s_cl.variables import ParentStatus
 from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
-from e4s_cl.cf.libraries import LibrarySet
 from e4s_cl.error import ConfigurationError
 
 LOGGER = logger.get_logger(__name__)
@@ -170,7 +169,7 @@ class Container:
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
 
         self.libc_v = Version('0.0.0')
-        self.libraries = LibrarySet()
+        self.cache = {}
 
         if hasattr(self, '__setup__'):
             self.__setup__()
@@ -233,7 +232,7 @@ class Container:
                 cache_buffer.write(cache_data)
                 buffer_name = cache_buffer.name
 
-            self.libs = cache_libraries(buffer_name)
+            self.cache = cache_libraries(buffer_name)
 
         sys.stdout = outstream
 

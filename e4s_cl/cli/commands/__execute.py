@@ -89,11 +89,11 @@ def overlay_libraries(library_set, container, entrypoint):
 
     # Override the container's glib with the host's
     for lib in library_set.glib:
-        if lib.soname in container.libs:
-            LOGGER.debug("Overriding %s with %s", container.libs[lib.soname],
+        if lib.soname in container.cache:
+            LOGGER.debug("Overriding %s with %s", container.cache[lib.soname],
                          lib.binary_path)
             container.bind_file(lib.binary_path,
-                                dest=container.libs[lib.soname])
+                                dest=container.cache[lib.soname])
 
     return selected
 
@@ -258,8 +258,7 @@ class ExecuteCommand(AbstractCommand):
                                 Path(library.binary_path).name).as_posix()
 
                 for import_path in map(_path, libset.top_level):
-                    pass
-                    #params.preload.append(import_path)
+                    params.preload.append(import_path)
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()
