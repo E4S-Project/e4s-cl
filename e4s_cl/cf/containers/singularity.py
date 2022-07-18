@@ -68,7 +68,7 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         # Check for additional options in config files
-        config = configuration.options('SINGULARITY_OPTIONS', 'cli_options'),
+        config = configuration.options('SINGULARITY_OPTIONS', 'cli_options')
         additional_options = []
         if config is not None:
             additional_options = config
