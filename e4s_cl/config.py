@@ -1,7 +1,11 @@
 import yaml
 from os.path import expanduser, exists
 
-confxGlobal = {'container directory': 'CONTAINER_DIR', 'launcher options': 'LAUNCHER_OPTIONS', 'singularity': 'SINGULARITY_OPTIONS'}
+confxGlobal = {'container directory': 'CONTAINER_DIR',
+        'launcher options': 'LAUNCHER_OPTIONS',
+        'top level libraries preload': 'PRELOAD',
+        'singularity': 'SINGULARITY_OPTIONS'
+        }
 
 user_home = expanduser('~')
 default_config_path = user_home + "/.config/e4s-cl.yaml"
@@ -22,7 +26,9 @@ class Configuration:
     def options(self, option, sub_option=None):
         if self.updated_globals and self.updated_globals.get(option):
             value = self.updated_globals.get(option)
-            if isinstance(value, dict):
+            if isinstance(value, bool):
+                return value
+            elif isinstance(value, dict):
                 return value.get(sub_option).split()
             return value.split()
         return []
