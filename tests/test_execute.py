@@ -57,7 +57,7 @@ class ExecuteTests(tests.TestCase):
     @tests.skipIf(not linker.resolve("libmpi.so"), "No test library available")
     def test_select_import_method(self):
         entry = Entrypoint()
-        container = Container(name="podman")
+        container = Container(name="containerless")
         lib_set = LibrarySet.create_from([linker.resolve("libmpi.so")])
 
         self.assertTrue(select_libraries(lib_set, container, entry))
@@ -68,5 +68,18 @@ class ExecuteTests(tests.TestCase):
 
         self.assertCommandReturnValue(0, COMMAND, [
             '--backend', 'containerless', '--image', '', '--libraries',
-            linker.resolve('libmpi.so')
+            linker.resolve('libmpi.so'), '--files',
+            Path.home().as_posix(), 'ls'
+        ])
+
+        set_dry_run(False)
+
+        self.assertCommandReturnValue(0, COMMAND, [
+            '--backend', 'containerless', '--image', '', '--libraries',
+            linker.resolve('libmpi.so'), 'ls'
+        ])
+
+        self.assertCommandReturnValue(123, COMMAND, [
+            '--backend', 'containerless', '--image', '', '--libraries',
+            linker.resolve('libmpi.so'), 'bash', '-c', '"exit 123"'
         ])

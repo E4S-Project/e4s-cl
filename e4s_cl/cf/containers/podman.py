@@ -167,7 +167,6 @@ class PodmanContainer(Container):
             raise BackendNotAvailableError(self.executable)
 
         container_cmd = self._prepare(command)
-        LOGGER.debug("Running command '%s'", " ".join(map(str, container_cmd)))
 
         with FDFiller():
             return run_subprocess(container_cmd, env=self.env)
