@@ -68,19 +68,26 @@ def overlay_libraries(library_set, container, entrypoint):
     with the host's (implicitly newer) linker.
     """
     # Determine what the host's bash binary depends on
-    bash_requirements = LibrarySet.create_from([which('bash')])
+    full = LibrarySet.create_from([which('bash')])
+    bash_binary = full.top_level
+    bash_requirements = full - bash_binary
+
+    # Import the bash binary in the container
+    # TODO find a standard path for it/binaries
+    container.bind_file(bash_binary.pop().binary_path,
+                        dest=Path(container.import_library_dir, 'bash'))
 
     # Import the library set passed as an argument along with the bash dependencies
-    selected = LibrarySet(library_set.union(bash_requirements))
+    selected = LibrarySet(library_set | bash_requirements)
 
     # Figure out what to if multiple linkers are required
-    if len(library_set.linkers) != 1:
+    if len(selected.linkers) != 1:
         raise InternalError(
-            f"{len(library_set.linkers)} linkers detected. This should not happen."
+            f"{len(selected.linkers)} linkers detected. This should not happen."
         )
 
     # Override linkers in the container
-    for linker in library_set.linkers:
+    for linker in selected.linkers:
         entrypoint.linker = Path(container.import_library_dir,
                                  Path(linker.binary_path).name).as_posix()
         container.bind_file(linker.binary_path,
@@ -88,7 +95,7 @@ def overlay_libraries(library_set, container, entrypoint):
                                       Path(linker.binary_path).name))
 
     # Override the container's glib with the host's
-    for lib in library_set.glib:
+    for lib in selected.glib:
         if lib.soname in container.cache:
             LOGGER.debug("Overriding %s with %s", container.cache[lib.soname],
                          lib.binary_path)
