@@ -8,7 +8,7 @@ from e4s_cl import logger
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.cf.libraries import host_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
-from e4s_cl.config import configuration
+from e4s_cl.config import CONFIGURATION
 
 LOGGER = logger.get_logger(__name__)
 
@@ -68,7 +68,7 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         # Check for additional options in config files
-        config = configuration.options('SINGULARITY_OPTIONS', 'cli_options')
+        config = CONFIGURATION.singularity_cli_options
         additional_options = []
         if config is not None:
             additional_options = config

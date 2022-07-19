@@ -4,13 +4,6 @@ import yaml
 from pathlib import Path
 from os.path import expanduser, exists
 
-confxGlobal = {
-    'container_directory': 'CONTAINER_DIR',
-    'launcher options': 'LAUNCHER_OPTIONS',
-    'top level libraries preload': 'PRELOAD',
-    'singularity': 'SINGULARITY_OPTIONS'
-}
-
 user_home = expanduser('~')
 default_config_path = user_home + "/.config/e4s-cl.yaml"
 alternate_config_path = "/etc/e4s-cl/e4s-cl.yaml"
@@ -45,7 +38,8 @@ ALLOWED_CONFIG = list(
     map(lambda x: ConfigurationField(*x),
         [('container_directory', str, lambda: e4s_cl.CONTAINER_DIR),
          ('launcher_options', list, lambda: []),
-         ('singularity_cli_options', list, lambda: [])]))
+         ('singularity_cli_options', list, lambda: []),
+         ('preload_root_libraries', bool, lambda: False)]))
 
 
 class Configuration:
@@ -55,10 +49,11 @@ class Configuration:
         config = cls()
 
         data = {}
-        if confFile and Path(confFile).exists():
-            with open(confFile) as f:
+        if config_file and Path(config_file).exists():
+            with open(config_file) as f:
                 data = flatten(yaml.safe_load(f))
 
+        field = {}
         for parameter in ALLOWED_CONFIG:
             if parameter.key in data:
                 field = {parameter.key: data[parameter.key]}

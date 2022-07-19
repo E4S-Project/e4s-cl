@@ -46,7 +46,7 @@ from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, variables
 from e4s_cl.cli import arguments
 from e4s_cl.util import run_e4scl_subprocess
-from e4s_cl.config import configuration 
+from e4s_cl.config import CONFIGURATION 
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.launchers import interpret
 from e4s_cl.model.profile import Profile
@@ -171,7 +171,7 @@ class LaunchCommand(AbstractCommand):
                 'bin', 'mpirun').as_posix()
             launcher += shlex.split(parameters.get('wi4mpi_options', ""))
 
-        full_command = launcher + configuration.options('LAUNCHER_OPTIONS') + execute_command + program
+        full_command = launcher + CONFIGURATION.launcher_options + execute_command + program
 
         if variables.is_dry_run():
             print(' '.join(full_command))

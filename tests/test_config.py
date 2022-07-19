@@ -16,26 +16,21 @@ from e4s_cl.cli.commands.launch import COMMAND as launch_command
 
 configuration_file = Path(Path(__file__).parent, "assets",
                           "e4s-cl.yaml").as_posix()
-configuration = e4s_cl.config.Configuration(configuration_file)
+configuration = e4s_cl.config.Configuration.create_from(configuration_file)
 
 
 class ConfigTest(tests.TestCase):
     """Unit tests for e4s-cl's configuration file use"""
 
     def test_container_dir(self):
-        self.assertEqual(configuration.raw_data.get('CONTAINER_DIR'),
-                         "/diffdirectory")
+        self.assertEqual(configuration.container_directory, "/diffdirectory")
 
     def test_configuration_options(self):
-        self.assertEqual(configuration.options('LAUNCHER_OPTIONS'),
-                         ['-n', '8'])
-        self.assertEqual(
-            configuration.options('SINGULARITY_OPTIONS', 'cli_options'),
-            ['--hostname', 'diffname'])
+        self.assertEqual(configuration.launcher_options, ['-n', '8'])
+        self.assertEqual(configuration.singularity_cli_options,
+                         ['--hostname', 'diffname'])
 
-        self.assertEqual(configuration.options(None), [])
-
-        self.assertEqual(configuration.options('OPTION_NONE'), [])
+        self.assertEqual(configuration.none_options, [])
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_configured_launch(self, stdout):

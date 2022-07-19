@@ -1,6 +1,6 @@
 ---
-container directory: /diffdirectory
-launcher options: -n 8
+container_directory: /diffdirectory
+launcher_options: -n 8
 singularity:
   cli_options: --hostname diffname
   build_options: -s
