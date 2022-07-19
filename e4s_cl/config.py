@@ -50,8 +50,9 @@ ALLOWED_CONFIG = list(
 
 class Configuration:
 
-    def __init__(self, confFile):
-        self._fields = {}
+    @classmethod
+    def create_from(cls, config_file, complete=False):
+        config = cls()
 
         data = {}
         if confFile and Path(confFile).exists():
@@ -61,10 +62,23 @@ class Configuration:
         for parameter in ALLOWED_CONFIG:
             if parameter.key in data:
                 field = {parameter.key: data[parameter.key]}
-            else:
+            elif complete:
                 field = {parameter.key: parameter.default()}
 
-            self._fields.update(field)
+            config._fields.update(field)
+
+        return config
+
+    @classmethod
+    @property
+    def default(cls):
+        return cls.create_from('', complete=True)
+
+    def __init__(self, defaults=None):
+        if isinstance(defaults, dict):
+            self._fields = defaults
+        else:
+            self._fields = {}
 
     def __getattr__(self, identifier):
         if identifier in self._fields:
@@ -73,15 +87,14 @@ class Configuration:
             f"'{self.__class__.__name__}' object has no attribute '{identifier}'"
         )
 
+    def __or__(self, rhs):
+        if not isinstance(rhs, Configuration):
+            raise TypeError(
+                f"unsupported operand type(s) for |: '{type(self)}' and '{type(rhs)}'"
+            )
 
-if exists(default_config_path):
-    configuration_file = default_config_path
-elif exists(alternate_config_path):
-    configuration_file = alternate_config_path
+        return Configuration(self._fields | rhs._fields)
 
-CONFIGURATION_VALUES = None
 
-if CONFIGURATION_VALUES is None and configuration_file:
-    CONFIGURATION_VALUES = Configuration(configuration_file).raw_data
-
-configuration = Configuration(configuration_file)
+CONFIGURATION = Configuration.default | Configuration.create_from(
+    alternate_config_path) | Configuration.create_from(default_config_path)

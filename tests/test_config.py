@@ -9,7 +9,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 import e4s_cl.config
-from e4s_cl.config import flatten
+from e4s_cl.config import flatten, Configuration
 from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.containers import Container
 from e4s_cl.cli.commands.launch import COMMAND as launch_command
@@ -56,14 +56,27 @@ class ConfigTest(tests.TestCase):
             'launcher options': '-n 8',
             'singularity': {
                 'cli_options': '--hostname diffname',
-                'build_options': '-s'
+                'build_options': {
+                    'location': '-s'
+                }
             }
         }
         flat_data = {
             'container directory': '/diffdirectory',
             'launcher options': '-n 8',
-            'singularity.cli_options': '--hostname diffname',
-            'singularity.build_options': '-s'  
+            'singularity_cli_options': '--hostname diffname',
+            'singularity_build_options_location': '-s'
         }
         self.assertEqual(flatten(data), flat_data)
 
+    def test_merge(self):
+        fields1 = {'a': 1, 'b': 3}
+        fields2 = {'a': 5}
+        fields3 = {'c': 0, 'd': 0, 'e': 0}
+        c1, c2, c3 = Configuration(fields1), Configuration(
+            fields2), Configuration(fields3)
+
+        merged = c1 | c2 | c3
+        expected = Configuration(dict(a=5, b=3, c=0, d=0, e=0))
+
+        self.assertEqual(merged._fields, expected._fields)
