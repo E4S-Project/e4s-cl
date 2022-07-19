@@ -1,8 +1,11 @@
+import e4s_cl
+from dataclasses import dataclass
 import yaml
+from pathlib import Path
 from os.path import expanduser, exists
 
 confxGlobal = {
-    'container directory': 'CONTAINER_DIR',
+    'container_directory': 'CONTAINER_DIR',
     'launcher options': 'LAUNCHER_OPTIONS',
     'top level libraries preload': 'PRELOAD',
     'singularity': 'SINGULARITY_OPTIONS'
@@ -15,7 +18,9 @@ configuration_file = ""
 
 
 def flatten(data):
+    SEPARATOR = '_'
     flat = dict()
+
     for key in data.keys():
         value = data.get(key)
         if isinstance(value, str):
@@ -23,7 +28,7 @@ def flatten(data):
         elif isinstance(value, dict):
             for value_key in value:
                 flat.update({
-                    '.'.join((str(key), str(value_key))):
+                    SEPARATOR.join((str(key), str(value_key))):
                     value.get(value_key)
                 })
     return flat
@@ -37,31 +42,36 @@ class ConfigurationField:
 
 
 ALLOWED_CONFIG = list(
-    map(lambda x: ConfigurationField(*x), [
-        ('container dir', str, lambda: e4s_cl.CONTAINER_DIR),
-        ('launcher options', list, lambda: []),
-    ]))
+    map(lambda x: ConfigurationField(*x),
+        [('container_directory', str, lambda: e4s_cl.CONTAINER_DIR),
+         ('launcher_options', list, lambda: []),
+         ('singularity_cli_options', list, lambda: [])]))
 
 
 class Configuration:
-    raw_data = dict()
 
     def __init__(self, confFile):
-        if confFile:
-            with open(confFile) as f:
-                self.data = yaml.safe_load(f)
-            for key in self.data.keys():
-                self.raw_data.update({confxGlobal[key]: self.data[key]})
+        self._fields = {}
 
-    def options(self, option, sub_option=None):
-        if self.raw_data and self.raw_data.get(option):
-            value = self.raw_data.get(option)
-            if isinstance(value, bool):
-                return value
-            elif isinstance(value, dict):
-                return value.get(sub_option).split()
-            return value.split()
-        return []
+        data = {}
+        if confFile and Path(confFile).exists():
+            with open(confFile) as f:
+                data = flatten(yaml.safe_load(f))
+
+        for parameter in ALLOWED_CONFIG:
+            if parameter.key in data:
+                field = {parameter.key: data[parameter.key]}
+            else:
+                field = {parameter.key: parameter.default()}
+
+            self._fields.update(field)
+
+    def __getattr__(self, identifier):
+        if identifier in self._fields:
+            return self._fields[identifier]
+        raise AttributeError(
+            f"'{self.__class__.__name__}' object has no attribute '{identifier}'"
+        )
 
 
 if exists(default_config_path):
