@@ -9,7 +9,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 import e4s_cl.config
-from e4s_cl.config import flatten, Configuration
+from e4s_cl.config import flatten, Configuration, ALLOWED_CONFIG
 from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.containers import Container
 from e4s_cl.cli.commands.launch import COMMAND as launch_command
@@ -21,29 +21,6 @@ configuration = e4s_cl.config.Configuration.create_from(configuration_file)
 
 class ConfigTest(tests.TestCase):
     """Unit tests for e4s-cl's configuration file use"""
-
-    def test_container_dir(self):
-        self.assertEqual(configuration.container_directory, "/diffdirectory")
-
-    def test_configuration_options(self):
-        self.assertEqual(configuration.launcher_options, ['-n', '8'])
-        self.assertEqual(configuration.singularity_cli_options,
-                         ['--hostname', 'diffname'])
-
-        self.assertEqual(configuration.none_options, [])
-
-    @patch('sys.stdout', new_callable=StringIO)
-    def test_configured_launch(self, stdout):
-        set_dry_run(True)
-        launch_command.main(
-            shlex.split(
-                f"--backend containerless --image None mpirun hostname"))
-        self.assertIn('-n 8', stdout.getvalue())
-
-    def test_configured_sing_container(self):
-        container = Container(name='singularity')
-        command = ['']
-        self.assertIn('diffname', container._prepare(command))
 
     def test_flat(self):
         data = {
@@ -75,3 +52,16 @@ class ConfigTest(tests.TestCase):
         expected = Configuration(dict(a=5, b=3, c=0, d=0, e=0))
 
         self.assertEqual(merged._fields, expected._fields)
+
+    def test_completion(self):
+        c = Configuration.default
+
+        for field in ALLOWED_CONFIG:
+            self.assertEqual(getattr(c, field.key, None), field.default())
+
+    def test_access(self):
+        fields = {'a': 1, 'b': 2}
+        c = Configuration(fields)
+        self.assertEqual(getattr(c, 'a', None), 1)
+        self.assertEqual(getattr(c, 'b', None), 2)
+        self.assertIsNone(getattr(c, 'c', None))
