@@ -171,7 +171,13 @@ class LaunchCommand(AbstractCommand):
                 'bin', 'mpirun').as_posix()
             launcher += shlex.split(parameters.get('wi4mpi_options', ""))
 
-        full_command = launcher + CONFIGURATION.launcher_options + execute_command + program
+        # Check for additional options in config files
+        config = CONFIGURATION.launcher_options
+        additional_options = []
+        if config is not None:
+            additional_options = config
+
+        full_command = launcher + additional_options + execute_command + program
 
         if variables.is_dry_run():
             print(' '.join(full_command))

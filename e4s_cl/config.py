@@ -56,7 +56,11 @@ class Configuration:
         field = {}
         for parameter in ALLOWED_CONFIG:
             if parameter.key in data:
-                field = {parameter.key: data[parameter.key]}
+                field = {
+                    parameter.key:
+                    data[parameter.key].split()
+                    if parameter.expected_type == list else data[parameter.key]
+                }
             elif complete:
                 field = {parameter.key: parameter.default()}
 
@@ -89,7 +93,6 @@ class Configuration:
             )
 
         return Configuration(self._fields | rhs._fields)
-
 
 CONFIGURATION = Configuration.default | Configuration.create_from(
     alternate_config_path) | Configuration.create_from(default_config_path)
