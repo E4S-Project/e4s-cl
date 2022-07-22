@@ -70,7 +70,6 @@ class Configuration:
         return config
 
     @classmethod
-    @property
     def default(cls):
         return cls.create_from('', complete=True)
 
@@ -96,5 +95,5 @@ class Configuration:
         return Configuration(self._fields | rhs._fields)
 
 
-CONFIGURATION = Configuration.default | Configuration.create_from(
+CONFIGURATION = Configuration.default() | Configuration.create_from(
     ALTERNATE_CONFIG_PATH) | Configuration.create_from(DEFAULT_CONFIG_PATH)

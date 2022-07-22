@@ -54,7 +54,7 @@ class ConfigTest(tests.TestCase):
         self.assertEqual(merged._fields, expected._fields)
 
     def test_completion(self):
-        c = Configuration.default
+        c = Configuration.default()
 
         for field in ALLOWED_CONFIG:
             self.assertEqual(getattr(c, field.key, None), field.default())
