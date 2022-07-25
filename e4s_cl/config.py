@@ -1,17 +1,27 @@
-import yaml
+"""
+Load and propagate the contents of configuration files in YAML format
+"""
+
+import sys
 from dataclasses import dataclass
 from pathlib import Path
+import yaml
 import e4s_cl
 
 
 def flatten(data):
-    SEPARATOR = '_'
+    """
+    Transform nested dictionaries into key value pairs by prefixing the
+    parent's key, under the assumption that all keys are str.
+    >>> flatten({'root': {'key1': 0, 'key2': 'test'} })
+    """
+    separator = '_'
 
-    def _p(prefix, string):
-        return str(SEPARATOR.join(filter(None, [prefix, string])))
+    def _pre(prefix, string):
+        return str(separator.join(filter(None, [prefix, string])))
 
     def _intermediate(prefix, data: dict):
-        flat = dict()
+        flat = {}
 
         if not data:
             return flat
@@ -19,9 +29,9 @@ def flatten(data):
         for key, value in data.items():
             if isinstance(value, dict):
                 for ckey, cval in _intermediate(str(key), value).items():
-                    flat.update({_p(prefix, ckey): cval})
+                    flat.update({_pre(prefix, ckey): cval})
             else:
-                flat.update({_p(prefix, key): value})
+                flat.update({_pre(prefix, key): value})
 
         return flat
 
@@ -40,21 +50,31 @@ class ConfigurationError(Exception):
     Do not pass through logger nor error as those depend on configuration
     """
 
-    def handle(self, etype, value, tb):
-        print(self.args[0], file=stderr)
-        return EXIT_FAILURE
+    def handle(self, _etype, _value, _tb):
+        print(self.args[0], file=sys.stderr)
+        return e4s_cl.EXIT_FAILURE
 
 
 class Configuration:
+    """
+    Class of objects abstracting configuration values. Can be created using a
+    dict or class methods to complete it with defined configuration fields,
+    then merged with other Configuration objects using the bitwise or operation.
+    """
 
     @classmethod
     def create_from_string(cls, string, complete=False):
-        config = cls()
+        """
+        Create a Configuration object from a YAML string, with type checking.
+        Will complete with default values for missing fields if complete is set
+        to True.
+        """
 
+        config = cls()
         data = flatten(yaml.safe_load(string)) or {}
 
-        field = {}
         for parameter in ALLOWED_CONFIG:
+            field = {}
             if parameter.key in data:
                 value = data[parameter.key]
 
@@ -76,8 +96,8 @@ class Configuration:
     def create_from_file(cls, config_file, complete=False):
         yaml_contents = ''
         if config_file and Path(config_file).exists():
-            with open(config_file) as f:
-                yaml_contents = f.read()
+            with open(config_file, encoding='utf-8') as file:
+                yaml_contents = file.read()
 
         return Configuration.create_from_string(yaml_contents,
                                                 complete=complete)
