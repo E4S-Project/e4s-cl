@@ -6,7 +6,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 import yaml
-import e4s_cl
+from e4s_cl import E4S_CL_HOME, E4S_CL_TEST, CONTAINER_DIR, EXIT_FAILURE
 
 
 def flatten(data):
@@ -52,7 +52,7 @@ class ConfigurationError(Exception):
 
     def handle(self, _etype, _value, _tb):
         print(self.args[0], file=sys.stderr)
-        return e4s_cl.EXIT_FAILURE
+        return EXIT_FAILURE
 
 
 class Configuration:
@@ -120,6 +120,10 @@ class Configuration:
         )
 
     def __or__(self, rhs):
+        """
+        Merge configuration objects
+        The right hand side has priority, and its keys will take precedence
+        """
         if not isinstance(rhs, Configuration):
             raise TypeError(f"unsupported operand type(s) for |: "
                             f"'{type(self)}' and '{type(rhs)}'")
@@ -128,19 +132,21 @@ class Configuration:
         return Configuration({**self._fields, **rhs._fields})
 
 
-DEFAULT_CONFIG_PATH = Path.home() / ".config/e4s-cl.yaml"
-ALTERNATE_CONFIG_PATH = "/etc/e4s-cl/e4s-cl.yaml"
+USER_CONFIG_PATH = Path.home() / ".config/e4s-cl.yaml"
+INSTALL_CONFIG_PATH = Path(E4S_CL_HOME) / "e4s-cl.yaml"
+SYSTEM_CONFIG_PATH = "/etc/e4s-cl/e4s-cl.yaml"
 
 ALLOWED_CONFIG = list(
     map(lambda x: ConfigurationField(*x),
-        [('container_directory', str, lambda: e4s_cl.CONTAINER_DIR),
+        [('container_directory', str, lambda: CONTAINER_DIR),
          ('launcher_options', list, lambda: []),
          ('singularity_cli_options', list, lambda: []),
          ('preload_root_libraries', bool, lambda: False),
          ('disable_ranked_log', bool, lambda: False)]))
 
 CONFIGURATION = Configuration.default()
-if not e4s_cl.E4S_CL_TEST:
+if not E4S_CL_TEST:
     CONFIGURATION = CONFIGURATION  \
-        | Configuration.create_from_file(ALTERNATE_CONFIG_PATH) \
-        | Configuration.create_from_file(DEFAULT_CONFIG_PATH)
+        | Configuration.create_from_file(SYSTEM_CONFIG_PATH) \
+        | Configuration.create_from_file(INSTALL_CONFIG_PATH) \
+        | Configuration.create_from_file(USER_CONFIG_PATH)
