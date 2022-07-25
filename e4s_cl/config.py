@@ -104,7 +104,8 @@ class Configuration:
             raise TypeError(f"unsupported operand type(s) for |: "
                             f"'{type(self)}' and '{type(rhs)}'")
 
-        return Configuration(self._fields | rhs._fields)
+        # Merge the two dictionaries (Use | on py39)
+        return Configuration({**self._fields, **rhs._fields})
 
 
 DEFAULT_CONFIG_PATH = Path.home() / ".config/e4s-cl.yaml"
