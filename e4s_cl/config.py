@@ -43,7 +43,8 @@ ALLOWED_CONFIG = list(
         [('container_directory', str, lambda: e4s_cl.CONTAINER_DIR),
          ('launcher_options', list, lambda: []),
          ('singularity_cli_options', list, lambda: []),
-         ('preload_root_libraries', bool, lambda: False)]))
+         ('preload_root_libraries', bool, lambda: False),
+         ('disable_ranked_log', bool, lambda: False)]))
 
 
 class Configuration:

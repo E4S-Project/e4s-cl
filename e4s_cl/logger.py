@@ -26,6 +26,7 @@ from logging import handlers
 from datetime import datetime
 from e4s_cl import USER_PREFIX, E4S_CL_VERSION
 from e4s_cl.variables import is_parent
+from e4s_cl.config import CONFIGURATION
 
 try:
     import termcolor
@@ -525,7 +526,6 @@ if is_parent():
              'frozen': getattr(sys, 'frozen', False),
              'logid': LOG_ID,
          })
-
-else:
+elif not CONFIGURATION.disable_ranked_log:
     _log_file = Path(_LOG_FILE_PREFIX, LOG_ID, f"e4s_cl.{os.getpid()}")
     add_file_handler(_log_file, _ROOT_LOGGER)
