@@ -14,10 +14,6 @@ from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.containers import Container
 from e4s_cl.cli.commands.launch import COMMAND as launch_command
 
-configuration_file = Path(Path(__file__).parent, "assets",
-                          "e4s-cl.yaml").as_posix()
-configuration = e4s_cl.config.Configuration.create_from(configuration_file)
-
 
 class ConfigTest(tests.TestCase):
     """Unit tests for e4s-cl's configuration file use"""
@@ -40,6 +36,14 @@ class ConfigTest(tests.TestCase):
             'singularity_build_options_location': '-s'
         }
         self.assertEqual(flatten(data), flat_data)
+
+    def test_bad_type(self):
+        data = """---
+launcher options: 8
+"""
+
+        with self.assertRaises(Exception):
+            Configuration.create_from_string(data)
 
     def test_merge(self):
         fields1 = {'a': 1, 'b': 3}

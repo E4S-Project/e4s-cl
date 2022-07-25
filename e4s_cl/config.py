@@ -16,6 +16,9 @@ def flatten(data):
     def _intermediate(prefix, data: dict):
         flat = dict()
 
+        if not data:
+            return flat
+
         for key, value in data.items():
             if isinstance(value, dict):
                 for ckey, cval in _intermediate(str(key), value).items():
@@ -46,13 +49,10 @@ ALLOWED_CONFIG = list(
 class Configuration:
 
     @classmethod
-    def create_from(cls, config_file, complete=False):
+    def create_from_string(cls, string, complete=False):
         config = cls()
 
-        data = {}
-        if config_file and Path(config_file).exists():
-            with open(config_file) as f:
-                data = flatten(yaml.safe_load(f))
+        data = flatten(yaml.safe_load(string)) or {}
 
         field = {}
         for parameter in ALLOWED_CONFIG:
@@ -70,8 +70,18 @@ class Configuration:
         return config
 
     @classmethod
+    def create_from_file(cls, config_file, complete=False):
+        yaml_contents = ''
+        if config_file and Path(config_file).exists():
+            with open(config_file) as f:
+                yaml_contents = f.read()
+
+        return Configuration.create_from_string(yaml_contents,
+                                                complete=complete)
+
+    @classmethod
     def default(cls):
-        return cls.create_from('', complete=True)
+        return cls.create_from_string('', complete=True)
 
     def __init__(self, defaults=None):
         if isinstance(defaults, dict):
@@ -95,5 +105,6 @@ class Configuration:
         return Configuration(self._fields | rhs._fields)
 
 
-CONFIGURATION = Configuration.default() | Configuration.create_from(
-    ALTERNATE_CONFIG_PATH) | Configuration.create_from(DEFAULT_CONFIG_PATH)
+CONFIGURATION = Configuration.default() | Configuration.create_from_file(
+    ALTERNATE_CONFIG_PATH) | Configuration.create_from_file(
+        DEFAULT_CONFIG_PATH)
