@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import yaml
 from pathlib import Path
 
-DEFAULT_CONFIG_PATH = Path.home() / "/.config/e4s-cl.yaml"
+DEFAULT_CONFIG_PATH = Path.home() / ".config/e4s-cl.yaml"
 ALTERNATE_CONFIG_PATH = "/etc/e4s-cl/e4s-cl.yaml"
 
 
