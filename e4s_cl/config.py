@@ -1,7 +1,8 @@
-import e4s_cl
-from dataclasses import dataclass
+import os
 import yaml
+from dataclasses import dataclass
 from pathlib import Path
+import e4s_cl
 
 
 def flatten(data):
@@ -118,6 +119,8 @@ ALLOWED_CONFIG = list(
          ('preload_root_libraries', bool, lambda: False),
          ('disable_ranked_log', bool, lambda: False)]))
 
-CONFIGURATION = Configuration.default() | Configuration.create_from_file(
-    ALTERNATE_CONFIG_PATH) | Configuration.create_from_file(
-        DEFAULT_CONFIG_PATH)
+CONFIGURATION = Configuration.default()
+if not os.environ.get('__E4S_CL_TEST__'):
+    CONFIGURATION = CONFIGURATION  \
+        | Configuration.create_from_file(ALTERNATE_CONFIG_PATH) \
+        | Configuration.create_from_file(DEFAULT_CONFIG_PATH)
