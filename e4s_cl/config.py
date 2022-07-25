@@ -1,4 +1,3 @@
-import os
 import yaml
 from dataclasses import dataclass
 from pathlib import Path
@@ -120,7 +119,7 @@ ALLOWED_CONFIG = list(
          ('disable_ranked_log', bool, lambda: False)]))
 
 CONFIGURATION = Configuration.default()
-if not os.environ.get('__E4S_CL_TEST__'):
+if not e4s_cl.E4S_CL_TEST:
     CONFIGURATION = CONFIGURATION  \
         | Configuration.create_from_file(ALTERNATE_CONFIG_PATH) \
         | Configuration.create_from_file(DEFAULT_CONFIG_PATH)
