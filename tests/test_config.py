@@ -9,7 +9,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 import e4s_cl.config
-from e4s_cl.config import flatten, Configuration, ALLOWED_CONFIG
+from e4s_cl.config import flatten, Configuration, ALLOWED_CONFIG, ConfigurationError
 from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.containers import Container
 from e4s_cl.cli.commands.launch import COMMAND as launch_command
@@ -20,8 +20,8 @@ class ConfigTest(tests.TestCase):
 
     def test_flat(self):
         data = {
-            'container directory': '/diffdirectory',
-            'launcher options': '-n 8',
+            'container_directory': '/diffdirectory',
+            'launcher_options': '-n 8',
             'singularity': {
                 'cli_options': '--hostname diffname',
                 'build_options': {
@@ -30,8 +30,8 @@ class ConfigTest(tests.TestCase):
             }
         }
         flat_data = {
-            'container directory': '/diffdirectory',
-            'launcher options': '-n 8',
+            'container_directory': '/diffdirectory',
+            'launcher_options': '-n 8',
             'singularity_cli_options': '--hostname diffname',
             'singularity_build_options_location': '-s'
         }
@@ -39,11 +39,10 @@ class ConfigTest(tests.TestCase):
 
     def test_bad_type(self):
         data = """---
-launcher options: 8
-"""
+launcher_options: 8"""
 
-        with self.assertRaises(Exception):
-            Configuration.create_from_string(data)
+        with self.assertRaises(ConfigurationError):
+            config = Configuration.create_from_string(data)
 
     def test_merge(self):
         fields1 = {'a': 1, 'b': 3}
