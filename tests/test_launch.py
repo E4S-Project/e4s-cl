@@ -14,6 +14,7 @@ import e4s_cl.config as config
 
 configuration_file = Path(Path(__file__).parent, "assets",
                           "e4s-cl.yaml").as_posix()
+DEFAULT_CONFIGURATION = config.CONFIGURATION 
 TEST_CONFIGURATION = config.Configuration.create_from_file(configuration_file) 
 
 class LaunchTest(tests.TestCase):
@@ -40,6 +41,7 @@ class LaunchTest(tests.TestCase):
             shlex.split(
                 f"--backend containerless --image None mpirun hostname"))
         self.assertIn('-n 8', stdout.getvalue())
+        config.update_configuration(DEFAULT_CONFIGURATION)
 
 def wrapper(launcher):
 
