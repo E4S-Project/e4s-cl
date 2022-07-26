@@ -10,9 +10,11 @@ from sotools import is_elf, library_links
 # pylint: disable=W0611
 from sotools.ldd import ldd
 # pylint: disable=W0611
-from sotools.linker import resolve, host_libraries
+from sotools.linker import resolve
 # pylint: disable=W0611
 from sotools.libraryset import LibrarySet, Library
+# pylint: disable=W0611
+from sotools.dl_cache import cache_libraries
 
 from e4s_cl.error import InternalError
 from e4s_cl.logger import get_logger
