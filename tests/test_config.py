@@ -1,6 +1,5 @@
-"""Test functions.
-
-Functions used for unit tests of help.py.
+"""
+Assert basic configuration capabilities are supported
 """
 
 import tests
@@ -68,3 +67,8 @@ launcher_options: 8"""
         self.assertEqual(getattr(c, 'a', None), 1)
         self.assertEqual(getattr(c, 'b', None), 2)
         self.assertIsNone(getattr(c, 'c', None))
+
+    def test_assets(self):
+        self.assertNotEqual(
+            Configuration.create_from_file(tests.ASSETS / "e4s-cl.yaml"),
+            Configuration.default())
