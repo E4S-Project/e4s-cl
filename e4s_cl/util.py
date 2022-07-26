@@ -148,12 +148,14 @@ def run_subprocess(cmd, cwd=None, env=None) -> int:
 
     # In case of error, output information
     if returncode:
-        LOGGER.error("Process %d failed with code %d:", pid, returncode)
+        LOGGER.error("Process %d failed with code %d", pid, returncode)
         for line in buffer:
             LOGGER.error(line)
-        log_file = getattr(process_logger.handlers[0], 'baseFilename', None)
-        if log_file:
-            LOGGER.error("See %s for details.", log_file)
+        if process_logger.handlers:
+            log_file = getattr(process_logger.handlers[0], 'baseFilename',
+                               None)
+            if log_file:
+                LOGGER.error("See %s for details.", log_file)
     else:
         LOGGER.debug("Process %d returned %d", pid, returncode)
 

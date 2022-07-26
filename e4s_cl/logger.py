@@ -377,6 +377,7 @@ def setup_process_logger(name: str) -> logging.Logger:
     Create and setup handlers of a Logger object meant to log errors of
     a subprocess
     """
+
     # Locate and ensure the log file directory is writeable
     # - Compatible with symlinks in LOG_ID
     log_file = Path(_LOG_FILE_PREFIX, LOG_ID, name).resolve()
@@ -384,19 +385,23 @@ def setup_process_logger(name: str) -> logging.Logger:
 
     # Create a logger in debug mode
     process_logger = logging.getLogger(name)
-    process_logger.setLevel(logging.DEBUG)
+    if CONFIGURATION.disable_ranked_log:
+        process_logger.setLevel(logging.ERROR)
+        process_logger.propagate = False
+    else:
+        process_logger.setLevel(logging.DEBUG)
 
-    # Log process data to file
-    handler = logging.FileHandler(log_file,
-                                  mode='a',
-                                  encoding='utf-8',
-                                  delay=True)
-    handler.setFormatter(LogFormatter(line_width=120, allow_colors=False))
-    process_logger.addHandler(handler)
+        # Log process data to file
+        handler = logging.FileHandler(log_file,
+                                      mode='a',
+                                      encoding='utf-8',
+                                      delay=True)
+        handler.setFormatter(LogFormatter(line_width=120, allow_colors=False))
+        process_logger.addHandler(handler)
 
-    # This disables the propagation along the logger tree, to avoid getting
-    # everything on stderr
-    process_logger.propagate = False
+        # This disables the propagation along the logger tree, to avoid getting
+        # everything on stderr
+        process_logger.propagate = False
 
     return process_logger
 
