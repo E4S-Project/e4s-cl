@@ -8,6 +8,9 @@ from pathlib import Path
 import yaml
 from e4s_cl import E4S_CL_HOME, E4S_CL_TEST, CONTAINER_DIR, EXIT_FAILURE
 
+def update_configuration(configuration):
+    global CONFIGURATION
+    CONFIGURATION = configuration
 
 def flatten(data):
     """
