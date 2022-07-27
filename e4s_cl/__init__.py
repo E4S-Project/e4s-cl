@@ -38,6 +38,9 @@ Please install the required Python version or raise an issue on Github for suppo
 """)
     sys.exit(EXIT_FAILURE)
 
+E4S_CL_TEST = bool(os.environ.get('__E4S_CL_TEST__', False))
+"""bool: True if the package is run in a test environment"""
+
 # Use a file to brand installation directories
 _HOME_MARKER = '.e4s-cl-home'
 __install_home = None

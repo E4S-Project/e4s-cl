@@ -8,6 +8,7 @@ from e4s_cl import logger
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
+import e4s_cl.config as config
 
 LOGGER = logger.get_logger(__name__)
 
@@ -68,8 +69,8 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable, 'exec', *self._working_dir(), *nvidia_flag,
-            self.image, *command
+            self.executable, 'exec', *config.CONFIGURATION.singularity_cli_options,
+            *self._working_dir(), *nvidia_flag, self.image, *command
         ]
 
     def bind_env_var(self, key, value):

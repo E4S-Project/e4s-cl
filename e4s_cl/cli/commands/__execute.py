@@ -18,6 +18,8 @@ from e4s_cl.cf.libraries import (libc_version, library_links)
 from e4s_cl.cf.wi4mpi import (wi4mpi_enabled, wi4mpi_root, wi4mpi_import,
                               wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload)
 
+from e4s_cl.config import CONFIGURATION
+
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
 
@@ -243,8 +245,10 @@ class ExecuteCommand(AbstractCommand):
                     return Path(container.import_library_dir,
                                 Path(library.binary_path).name).as_posix()
 
-                for import_path in map(_path, libset.top_level):
-                    params.preload.append(import_path)
+                # Check if preloading libraries asked in configuration file
+                if CONFIGURATION.preload_root_libraries:
+                    for import_path in map(_path, libset.top_level):
+                        params.preload.append(import_path)
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()

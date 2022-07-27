@@ -9,6 +9,7 @@ import atexit
 import tempfile
 import unittest
 from unittest import skipIf, skipUnless
+from pathlib import Path
 from e4s_cl.util import get_command_output
 import warnings
 from io import StringIO
@@ -18,6 +19,8 @@ from e4s_cl.cf.storage.levels import USER_STORAGE, SYSTEM_STORAGE
 from e4s_cl.cf.assets import SAMPLE_BINARY_TABLE, BUILTIN_PROFILE_TABLE
 
 _NOT_IMPLEMENTED = []
+
+ASSETS = Path(__file__).parent / "assets"
 
 
 def not_implemented(cls):
