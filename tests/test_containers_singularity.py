@@ -5,6 +5,13 @@ import tests
 from e4s_cl.util import which
 from e4s_cl.cf.containers import Container, BackendUnsupported, FileOptions
 
+import e4s_cl.config as config
+
+configuration_file = Path(Path(__file__).parent, "assets",
+                          "e4s-cl.yaml").as_posix()
+DEFAULT_CONFIGURATION = config.CONFIGURATION 
+TEST_CONFIGURATION = config.Configuration.create_from_file(configuration_file) 
+
 
 class ContainerTestSingularity(tests.TestCase):
 
@@ -17,7 +24,6 @@ class ContainerTestSingularity(tests.TestCase):
         self.assertFalse(type(container) == Container)
         self.assertTrue(isinstance(container, Container))
 
-    @skipIf(singularity_check(), "Singularity absent from system")
     def test_run_backend(self):
         container = Container(name='singularity')
         command = ['']
@@ -75,3 +81,9 @@ class ContainerTestSingularity(tests.TestCase):
         files = set(map(lambda x: x[0], container.bound))
 
         self.assertSetEqual({ref, file, home}, files)
+    
+    def test_configured_container(self):
+        container = Container(name='singularity')
+        command = ['']
+        config.update_configuration(TEST_CONFIGURATION)
+        self.assertIn('diffname', container._prepare(command))
