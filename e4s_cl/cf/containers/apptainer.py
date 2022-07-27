@@ -8,22 +8,21 @@ from e4s_cl import logger
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
-import e4s_cl.config as config
 
 LOGGER = logger.get_logger(__name__)
 
-NAME = 'singularity'
+NAME = 'apptainer'
 MIMES = ['.simg', '.sif']
 
 OPTION_STRINGS = {FileOptions.READ_ONLY: 'ro', FileOptions.READ_WRITE: 'rw'}
 
 
-class SingularityContainer(Container):
+class ApptainerContainer(Container):
     """
     Class to use when formatting bound files for a singularity execution
     """
 
-    executable_name = 'singularity'
+    executable_name = 'apptainer'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -52,7 +51,7 @@ class SingularityContainer(Container):
             for source, dest, options_val in self.bound:
                 yield f"{source}:{dest}:{OPTION_STRINGS[options_val]}"
 
-        self.env.update({"SINGULARITY_BIND": ','.join(_format())})
+        self.env.update({"APPTAINER_BIND": ','.join(_format())})
 
     def _prepare(self, command):
         """
@@ -60,21 +59,21 @@ class SingularityContainer(Container):
 
         Return the command to run in a list of string
         """
+        # as of the 12th of July 2022, apptainer v1.0.1 still uses the `.singularity.d` folder
         self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
-            {'SINGULARITYENV_LD_PRELOAD': ":".join(self.ld_preload)})
-        self.env.update(
-            {'SINGULARITYENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
+            dict(APPTAINERENV_LD_PRELOAD=":".join(self.ld_preload),
+                 APPTAINERENV_LD_LIBRARY_PATH=":".join(self.ld_lib_path)))
         self._format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable, 'exec', *config.CONFIGURATION.singularity_cli_options,
-            *self._working_dir(), *nvidia_flag, self.image, *command
+            self.executable, 'exec', *self._working_dir(), *nvidia_flag,
+            self.image, *command
         ]
 
     def bind_env_var(self, key, value):
-        self.env.update({f"SINGULARITYENV_{key}": value})
+        self.env.update({f"APPTAINERENV_{key}": value})
 
     def _has_nvidia(self):
         # Assume that the proper ldconfig call has been run and that nvidia
@@ -93,4 +92,4 @@ class SingularityContainer(Container):
         return run_subprocess(container_cmd, env=self.env)
 
 
-CLASS = SingularityContainer
+CLASS = ApptainerContainer

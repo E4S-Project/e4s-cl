@@ -19,6 +19,8 @@ from e4s_cl.cf.libraries import (libc_version, library_links)
 from e4s_cl.cf.wi4mpi import (wi4mpi_enabled, wi4mpi_root, wi4mpi_import,
                               wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload)
 
+from e4s_cl.config import CONFIGURATION
+
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
 

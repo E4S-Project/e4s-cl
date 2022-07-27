@@ -1,8 +1,8 @@
 import os
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from shlex import split
 from sotools.linker import resolve
-from pathlib import Path
 import tests
 from e4s_cl.util import which
 from e4s_cl.variables import ParentStatus
@@ -11,8 +11,7 @@ from e4s_cl.cli.commands.profile.detect import (filter_files, COMMAND)
 from e4s_cl.model.profile import Profile
 
 __TEST_LIBRARY_SONAME__ = "libmpi.so"
-__TEST_LIBRARY_NON_STANDARD__ = Path(
-    Path(__file__).parent, "assets", "libgver.so.0").as_posix()
+__TEST_LIBRARY_NON_STANDARD__ = tests.ASSETS / "libgver.so.0"
 __BLACKLISTED_FILES__ = {
     "/dev/null", "/proc/self/fd/0", "/root", "/root/file", "/etc/ld.so.cache"
 }
@@ -37,10 +36,10 @@ class ProfileDetectTest(tests.TestCase):
         self.assertFalse(files)
 
     def test_filter_files_non_std_lib(self):
-        libraries, files = filter_files([Path(__TEST_LIBRARY_NON_STANDARD__)])
+        libraries, files = filter_files([__TEST_LIBRARY_NON_STANDARD__])
 
         self.assertFalse(libraries)
-        self.assertIn(__TEST_LIBRARY_NON_STANDARD__, files)
+        self.assertIn(__TEST_LIBRARY_NON_STANDARD__.as_posix(), files)
 
     def test_filter_files_existing_file(self):
         with NamedTemporaryFile(dir=os.getcwd()) as datafile:
