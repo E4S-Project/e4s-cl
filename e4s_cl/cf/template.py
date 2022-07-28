@@ -6,6 +6,7 @@ library loading)
 """
 
 from os import chmod, unlink, pathsep
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from shlex import split
 from sotools import is_elf
@@ -90,14 +91,18 @@ class Entrypoint:
 
         # The linker statement to prefix to the command
         rtdl = []
+        command = self.command
         if self.linker:
             # In case of an ELF binary, start it with the linker; if the
             # command is a script, run bash with the linker to ensure the
             # imported libc is loaded
             if len(self.__command) and is_elf(self.__command[0]):
                 rtdl = [self.linker]
-            else:
+            elif Path(self.command[0]).exists():
                 rtdl = [self.linker, '/.e4s-cl/hostlibs/bash']
+            else:
+                rtdl = [self.linker, '/.e4s-cl/hostlibs/bash', '-c']
+                command = " ".join(['"', *self.__command, '"'])
 
         fields = dict(source_script=self.source_script,
                       command=self.command,
