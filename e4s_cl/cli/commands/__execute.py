@@ -117,7 +117,7 @@ def overlay_libraries(library_set, container, entrypoint):
                                       Path(linker.binary_path).name))
 
     # Override the container's glib with the host's
-    for lib in selected.glib:
+    for lib in selected.glib | glib_set:
         if lib.soname in container.cache:
             LOGGER.debug("Overriding guest `%s` with host `%s`",
                          container.cache[lib.soname], lib.binary_path)
@@ -126,7 +126,7 @@ def overlay_libraries(library_set, container, entrypoint):
 
     # Remove all the glib libraries from the import list as they have been
     # bound above
-    return LibrarySet(selected - selected.glib)
+    return LibrarySet(selected - glib_set)
 
 
 def select_libraries(library_set, container, entrypoint):

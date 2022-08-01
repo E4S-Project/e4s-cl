@@ -44,11 +44,11 @@ class ExecuteTests(tests.TestCase):
         container = Container(name="containerless")
         host_libraries = LibrarySet.create_from([linker.resolve("libmpi.so")])
         host_bash = LibrarySet.create_from([which('bash')])
-        lib_set = LibrarySet(host_libraries.union(host_bash))
+        lib_set = LibrarySet(host_libraries | host_bash)
 
         overlain = overlay_libraries(lib_set, container, entry)
 
-        self.assertEqual(lib_set, overlain)
+        self.assertTrue(lib_set.intersection(overlain))
 
         self.assertEqual(
             Path(entry.linker).name,
