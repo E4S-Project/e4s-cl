@@ -7,6 +7,7 @@ This command is used internally and thus cloaked from the UI
 """
 
 from pathlib import Path
+from sotools.linker import resolve
 from sotools.libraryset import LibrarySet, Library
 from e4s_cl import (EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables)
 from e4s_cl.util import which
@@ -65,22 +66,41 @@ def overlay_libraries(library_set, container, entrypoint):
 
     library_paths: list[pathlib.Path]
     container: e4s_cl.cf.containers.Container
+    entrypoint: e4s_cl.cf.template.Entrypoint
 
-    This method selects all the libraries defined in the list, along with
-    with the host's (implicitly newer) linker.
+    This method binds the libraries defined in the set, along with
+    with the host's (implicitly newer) glib library suite and a bash binary
+    to enable running scripts.
+
+    Those bounds are necessary to run libraries that might depend on the more
+    recent libraries of the host. glib binaries often use private symbols that
+    are version dependent (GLIBC_PRIVATE) and this step ensures a match.
     """
+
     # Determine what the host's bash binary depends on
     full = LibrarySet.create_from([which('bash')])
     bash_binary = full.top_level
     bash_requirements = full - bash_binary
+
+    # Hardcoded glib libraries sonames
+    glib_sonames = [
+        'libcrypt.so.1', 'libc.so.6', 'libm.so.6', 'libmvec.so.1',
+        'libnsl.so.1', 'libnss_compat.so.2', 'libnss_db.so.2',
+        'libnss_dns.so.2', 'libnss_files.so.2', 'libnss_hesiod.so.2',
+        'libpthread.so.0', 'libresolv.so.2', 'librt.so.1'
+    ]
+    # Find the available libraries on the host, and bundle them in a set
+    paths = filter(None, map(resolve, glib_sonames))
+    glib_set = LibrarySet.create_from(paths)
 
     # Import the bash binary in the container
     # TODO find a standard path for it/binaries
     container.bind_file(bash_binary.pop().binary_path,
                         dest=Path(container.import_library_dir, 'bash'))
 
-    # Import the library set passed as an argument along with the bash dependencies
-    selected = LibrarySet(library_set | bash_requirements)
+    # Import the library set passed as an argument along with the bash
+    # dependencies and the host's glib
+    selected = LibrarySet(library_set | bash_requirements | glib_set)
 
     # Figure out what to if multiple linkers are required
     if len(selected.linkers) != 1:
@@ -99,12 +119,14 @@ def overlay_libraries(library_set, container, entrypoint):
     # Override the container's glib with the host's
     for lib in selected.glib:
         if lib.soname in container.cache:
-            LOGGER.debug("Overriding %s with %s", container.cache[lib.soname],
-                         lib.binary_path)
+            LOGGER.debug("Overriding guest `%s` with host `%s`",
+                         container.cache[lib.soname], lib.binary_path)
             container.bind_file(lib.binary_path,
                                 dest=container.cache[lib.soname])
 
-    return selected
+    # Remove all the glib libraries from the import list as they have been
+    # bound above
+    return LibrarySet(selected - selected.glib)
 
 
 def select_libraries(library_set, container, entrypoint):
