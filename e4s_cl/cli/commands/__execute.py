@@ -15,12 +15,10 @@ from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
-from e4s_cl.cf.containers import Container, BackendError, FileOptions
+from e4s_cl.cf.containers import Container, FileOptions
 from e4s_cl.cf.libraries import (libc_version, library_links)
 from e4s_cl.cf.wi4mpi import (wi4mpi_enabled, wi4mpi_root, wi4mpi_import,
                               wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload)
-
-from e4s_cl.config import CONFIGURATION
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -96,7 +94,7 @@ def overlay_libraries(library_set, container, entrypoint):
     # Import the bash binary in the container
     # TODO find a standard path for it/binaries
     container.bind_file(bash_binary.pop().binary_path,
-                        dest=Path(container.import_library_dir, 'bash'))
+                        dest=Path(container.import_binary_dir, 'bash'))
 
     # Import the library set passed as an argument along with the bash
     # dependencies and the host's glib
@@ -110,11 +108,11 @@ def overlay_libraries(library_set, container, entrypoint):
 
     # Override linkers in the container
     for linker in selected.linkers:
-        entrypoint.linker = Path(container.import_library_dir,
-                                 Path(linker.binary_path).name).as_posix()
         container.bind_file(linker.binary_path,
-                            dest=Path(container.import_library_dir,
+                            dest=Path(container.import_binary_dir,
                                       Path(linker.binary_path).name))
+        entrypoint.linker = Path(container.import_binary_dir,
+                                 Path(linker.binary_path).name).as_posix()
 
     # Override the container's glib with the host's
     for lib in selected.glib | glib_set:

@@ -23,14 +23,15 @@ from tempfile import TemporaryFile, NamedTemporaryFile
 from pathlib import Path
 from typing import Union
 from sotools.dl_cache import cache_libraries, get_generator
+from e4s_cl.logger import get_logger, debug_mode
 from e4s_cl import (EXIT_FAILURE, CONTAINER_DIR, CONTAINER_LIBRARY_DIR,
-                    CONTAINER_SCRIPT, logger)
+                    CONTAINER_BINARY_DIR, CONTAINER_SCRIPT)
 from e4s_cl.variables import ParentStatus
 from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
 from e4s_cl.cf.version import Version
 from e4s_cl.error import ConfigurationError
 
-LOGGER = logger.get_logger(__name__)
+LOGGER = get_logger(__name__)
 
 # List of available modules, accessible by their "executable" or cli tool names
 BACKENDS = {}
@@ -146,7 +147,7 @@ class Container:
         driver = object.__new__(module.CLASS)
 
         # If in debugging mode, print out the config before running
-        if logger.debug_mode():
+        if debug_mode():
             driver.run = dump(driver.run)
         driver.__str__ = dump(driver.__str__)
 
@@ -185,6 +186,10 @@ class Container:
     @property
     def import_library_dir(self):
         return Path(CONTAINER_LIBRARY_DIR)
+
+    @property
+    def import_binary_dir(self):
+        return Path(CONTAINER_BINARY_DIR)
 
     def get_data(self):
         """

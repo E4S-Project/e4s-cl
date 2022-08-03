@@ -99,13 +99,13 @@ class Entrypoint:
             if len(self.__command) and is_elf(self.__command[0]):
                 rtdl = [self.linker]
             elif Path(self.command[0]).exists():
-                rtdl = [self.linker, '/.e4s-cl/hostlibs/bash']
+                rtdl = [self.linker, '/.e4s-cl/executables/bash']
             else:
-                rtdl = [self.linker, '/.e4s-cl/hostlibs/bash', '-c']
+                rtdl = [self.linker, '/.e4s-cl/executables/bash', '-c']
                 command = " ".join(['"', *self.__command, '"'])
 
         fields = dict(source_script=self.source_script,
-                      command=self.command,
+                      command=command,
                       library_dir=pathsep.join(
                           map(str, self.linker_library_path)),
                       linker=' '.join(rtdl),
