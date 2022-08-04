@@ -92,9 +92,10 @@ def overlay_libraries(library_set, container, entrypoint):
     glib_set = LibrarySet.create_from(paths)
 
     # Import the bash binary in the container
-    # TODO find a standard path for it/binaries
+    entrypoint.interpreter = Path(container.import_binary_dir,
+                                  'bash').as_posix()
     container.bind_file(bash_binary.pop().binary_path,
-                        dest=Path(container.import_binary_dir, 'bash'))
+                        dest=entrypoint.interpreter)
 
     # Import the library set passed as an argument along with the bash
     # dependencies and the host's glib
@@ -108,11 +109,9 @@ def overlay_libraries(library_set, container, entrypoint):
 
     # Override linkers in the container
     for linker in selected.linkers:
-        container.bind_file(linker.binary_path,
-                            dest=Path(container.import_binary_dir,
-                                      Path(linker.binary_path).name))
         entrypoint.linker = Path(container.import_binary_dir,
                                  Path(linker.binary_path).name).as_posix()
+        container.bind_file(linker.binary_path, dest=entrypoint.linker)
 
     # Override the container's glib with the host's
     for lib in selected.glib | glib_set:

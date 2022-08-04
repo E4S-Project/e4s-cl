@@ -63,6 +63,9 @@ class Entrypoint:
         # Path to the imported host linker
         self.linker = None
 
+        # Path to the imported host bash/interpreter
+        self.interpreter = None
+
         self.debug = debug
 
     @property
@@ -95,14 +98,20 @@ class Entrypoint:
         if self.linker:
             # In case of an ELF binary, start it with the linker; if the
             # command is a script, run bash with the linker to ensure the
-            # imported libc is loaded
+            # imported libc is loaded and to resolve what the user asked
             if len(self.__command) and is_elf(self.__command[0]):
                 rtdl = [self.linker]
-            elif Path(self.command[0]).exists():
-                rtdl = [self.linker, '/.e4s-cl/executables/bash']
+            elif self.interpreter:
+                if Path(self.command[0]).exists():
+                    rtdl = [self.linker, self.interpreter]
+                else:
+                    rtdl = [self.linker, self.interpreter, '-c']
+                    command = " ".join(['"', *self.__command, '"'])
             else:
-                rtdl = [self.linker, '/.e4s-cl/executables/bash', '-c']
-                command = " ".join(['"', *self.__command, '"'])
+                LOGGER.error(
+                    "Running a script or command from path is not "
+                    "supported in this configuration: missing interpreter"
+                    "(linker: %s)", self.linker)
 
         fields = dict(source_script=self.source_script,
                       command=command,
