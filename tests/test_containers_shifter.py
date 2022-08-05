@@ -1,5 +1,5 @@
 from os import getenv, getcwd
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from unittest import skipIf
 from pathlib import Path
 import tests
@@ -99,3 +99,54 @@ class ContainerTestShifter(tests.TestCase):
         files = set(map(lambda x: x[0], container.bound))
 
         self.assertSetEqual({ref, file}, files)
+
+    def test_prepare_import_container_dir(self):
+        """
+        Assert CONTAINER_DIR imports will trigger the creation of a mock directory
+        """
+
+        def contents(directory: Path):
+            return set(map(lambda x: x.name, directory.iterdir()))
+
+        container = Container(name='shifter')
+        temp = TemporaryDirectory()
+        path = Path(temp.name)
+
+        container.bind_file(
+            Path(__file__),
+            Path(container.import_binary_dir) / Path(__file__).name)
+
+        volumes = container._setup_import(path)
+
+        self.assertIn(container.import_binary_dir.name, contents(path))
+        self.assertIn(
+            Path(__file__).name,
+            contents(path / container.import_binary_dir.name))
+
+        temp.cleanup()
+
+    def test_prepare_import_etc_files(self):
+        """
+        Assert importing /etc files fails
+        """
+
+        def contents(directory: Path):
+            return set(map(lambda x: x.name, directory.iterdir()))
+
+        container = Container(name='shifter')
+        temp = TemporaryDirectory()
+        path = Path(temp.name)
+
+        # Files to attempt binding, must ideally be present on every system
+        files = ['/etc/ld.so.cache', '/etc/ld.so.conf.d/']
+
+        for file in files:
+            container.bind_file(file, file)
+
+        volumes = container._setup_import(path)
+
+        for bind in volumes:
+            for file in files:
+                self.assertNotIn(file, volumes)
+
+        temp.cleanup()
