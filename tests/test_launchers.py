@@ -42,5 +42,5 @@ class LauncherTest(tests.TestCase):
         text = "mpirun -E 'two words' command"
         launcher, command = interpret(split(text))
 
-        self.assertEqual(launcher[0], 'mpirun')
-        self.assertEqual(command, ['-E','two words', 'command'])
+        self.assertEqual(launcher, ['mpirun', '-E','two words'])
+        self.assertEqual(command, ['command'])
