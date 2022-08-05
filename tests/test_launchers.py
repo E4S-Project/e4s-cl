@@ -37,3 +37,10 @@ class LauncherTest(tests.TestCase):
 
         self.assertEqual(launcher[0], 'mylauncher')
         self.assertEqual(command, ['command'])
+
+    def test_E_flag_split(self):
+        text = "mpirun -E 'two words' command"
+        launcher, command = interpret(split(text))
+
+        self.assertEqual(launcher, ['mpirun', '-E','two words'])
+        self.assertEqual(command, ['command'])

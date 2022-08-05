@@ -156,7 +156,9 @@ _hydra_options = {
 }
 
 _wi4mpi_options = {
-    # TODO decide if -E | -extra | --extra is supported
+    "-E": 1, 
+    "-extra": 1,
+    "--extra": 1,
     "--from": 1,
     "--help": 0,
     "--hostfile": 1,
