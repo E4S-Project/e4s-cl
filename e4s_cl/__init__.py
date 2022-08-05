@@ -87,6 +87,9 @@ CONTAINER_SCRIPT = Path(CONTAINER_DIR, "script").as_posix()
 CONTAINER_LIBRARY_DIR = Path(CONTAINER_DIR, "hostlibs").as_posix()
 """str: Path of the libraries bound in the container"""
 
+CONTAINER_BINARY_DIR = Path(CONTAINER_DIR, "executables").as_posix()
+"""str: Path of the libraries bound in the container"""
+
 
 def version_banner():
     """Return a human readable text banner describing the E4S Container Launcher installation."""

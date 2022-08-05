@@ -7,18 +7,18 @@ This command is used internally and thus cloaked from the UI
 """
 
 from pathlib import Path
+from sotools.linker import resolve
 from sotools.libraryset import LibrarySet, Library
 from e4s_cl import (EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables)
+from e4s_cl.util import which
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
-from e4s_cl.cf.containers import Container, BackendError, FileOptions
+from e4s_cl.cf.containers import Container, FileOptions
 from e4s_cl.cf.libraries import (libc_version, library_links)
 from e4s_cl.cf.wi4mpi import (wi4mpi_enabled, wi4mpi_root, wi4mpi_import,
                               wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload)
-
-from e4s_cl.config import CONFIGURATION
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -64,32 +64,70 @@ def overlay_libraries(library_set, container, entrypoint):
 
     library_paths: list[pathlib.Path]
     container: e4s_cl.cf.containers.Container
+    entrypoint: e4s_cl.cf.template.Entrypoint
 
-    This method selects all the libraries defined in the list, along with
-    with the host's (implicitly newer) linker.
+    This method binds the libraries defined in the set, along with
+    with the host's (implicitly newer) glib library suite and a bash binary
+    to enable running scripts.
+
+    Those bounds are necessary to run libraries that might depend on the more
+    recent libraries of the host. glib binaries often use private symbols that
+    are version dependent (GLIBC_PRIVATE) and this step ensures a match.
     """
-    selected = library_set
+
+    # Determine what the host's bash binary depends on
+    full = LibrarySet.create_from([which('bash')])
+    bash_binary = full.top_level
+    bash_requirements = full - bash_binary
+
+    # Hardcoded glib libraries sonames
+    glib_sonames = [
+        'libcrypt.so.1', 'libc.so.6', 'libm.so.6', 'libmvec.so.1',
+        'libnsl.so.1', 'libnss_compat.so.2', 'libnss_db.so.2',
+        'libnss_dns.so.2', 'libnss_files.so.2', 'libnss_hesiod.so.2',
+        'libpthread.so.0', 'libresolv.so.2', 'librt.so.1'
+    ]
+    # Find the available libraries on the host, and bundle them in a set
+    paths = filter(None, map(resolve, glib_sonames))
+    glib_set = LibrarySet.create_from(paths)
+
+    # Import the bash binary in the container
+    entrypoint.interpreter = Path(container.import_binary_dir,
+                                  'bash').as_posix()
+    container.bind_file(bash_binary.pop().binary_path,
+                        dest=entrypoint.interpreter)
+
+    # Import the library set passed as an argument along with the bash
+    # dependencies and the host's glib
+    selected = LibrarySet(library_set | bash_requirements | glib_set)
 
     # Figure out what to if multiple linkers are required
-    if len(library_set.linkers) != 1:
+    if len(selected.linkers) != 1:
         raise InternalError(
-            f"{len(library_set.linkers)} linkers detected. This should not happen."
+            f"{len(selected.linkers)} linkers detected. This should not happen."
         )
 
-    for linker in library_set.linkers:
-        entrypoint.linker = Path(container.import_library_dir,
+    # Override linkers in the container
+    for linker in selected.linkers:
+        entrypoint.linker = Path(container.import_binary_dir,
                                  Path(linker.binary_path).name).as_posix()
-        container.bind_file(linker.binary_path,
-                            dest=Path(container.import_library_dir,
-                                      Path(linker.binary_path).name))
+        container.bind_file(linker.binary_path, dest=entrypoint.linker)
 
-    return selected
+    # Override the container's glib with the host's
+    for lib in selected.glib | glib_set:
+        if lib.soname in container.cache:
+            LOGGER.debug("Overriding guest `%s` with host `%s`",
+                         container.cache[lib.soname], lib.binary_path)
+            container.bind_file(lib.binary_path,
+                                dest=container.cache[lib.soname])
+
+    # Remove all the glib libraries from the import list as they have been
+    # bound above
+    return LibrarySet(selected - glib_set)
 
 
 def select_libraries(library_set, container, entrypoint):
     """ Select the libraries to make available in the future container
-
-    library_paths: list[pathlib.Path]
 
     This method checks the libc versions compatibilities and returns a
     list of libraries safe to bind dependending on that check.
@@ -113,8 +151,10 @@ def select_libraries(library_set, container, entrypoint):
     host_newer = True
     guest_newer = False
 
-    host_libc = libc_version()
+    # Analyze the container to get glibc information
+    container.get_data()
     guest_libc = container.libc_v
+    host_libc = libc_version()
 
     methods = {host_newer: overlay_libraries, guest_newer: filter_libraries}
 
@@ -123,7 +163,31 @@ def select_libraries(library_set, container, entrypoint):
     LOGGER.debug("Host libc: %s %s Guest libc: %s", str(host_libc),
                  '>' if host_precedence else '<=', str(guest_libc))
 
-    return methods[host_precedence](library_set, container, entrypoint)
+    selected_libraries = methods[host_precedence](library_set, container,
+                                                  entrypoint)
+
+    for line in selected_libraries.ldd_format():
+        LOGGER.debug(line)
+
+    return selected_libraries
+
+
+def generate_rtld_path(container):
+    """
+    Create the final path list to be passed to LD_LIBRARY_PATH in the container
+    """
+    path_list = []
+
+    if wi4mpi_enabled():
+        wi4mpi_paths = list(
+            map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_root())))
+
+        path_list += wi4mpi_paths
+
+    if hasattr(container.__class__, 'linker_path'):
+        path_list += container.__class__.linker_path
+
+    return path_list + [container.import_library_dir]
 
 
 class ExecuteCommand(AbstractCommand):
@@ -151,6 +215,7 @@ class ExecuteCommand(AbstractCommand):
         parser.add_argument('--files',
                             type=arguments.existing_posix_path_list,
                             help="Files to bind, comma-separated",
+                            default=[],
                             metavar='files')
 
         parser.add_argument('--libraries',
@@ -175,21 +240,14 @@ class ExecuteCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        try:
-            container = Container(name=args.backend, image=args.image)
-        except BackendError as err:
-            return err.handle(type(err), err, None)
+        # This object automatically mutates to one of the defined container
+        # classes, and holds information about what is bound to the future
+        # container launch
+        container = Container(name=args.backend, image=args.image)
 
-        # Setup a entrypoint object that will later be bound as a bash script
+        # All execute does is build this object that translates to a bash
+        # script, that is then bound to the container to be executed
         params = Entrypoint()
-
-        # Bind files to make the sourced script accessible
-        if args.files:
-            for path in args.files:
-                container.bind_file(path, option=FileOptions.READ_WRITE)
-
-        # This script is sourced before any other command in the container
-        params.source_script_path = args.source
 
         # If WI4MPI is enabled, analyze the libraries it uses
         required_libraries = args.libraries + wi4mpi_libraries(wi4mpi_root())
@@ -202,53 +260,49 @@ class ExecuteCommand(AbstractCommand):
             # it offers, using the entrypoint and the above libraries
             container.get_data()
 
+        # Bind files to make the sourced script accessible
+        if args.files:
+            for path in args.files:
+                container.bind_file(path, option=FileOptions.READ_WRITE)
+
+        # This script is sourced before any other command in the container
+        params.source_script_path = args.source
+
         # Setup the final command and metadata relating to the execution
         params.command = args.cmd
         params.debug = logger.debug_mode()
+        params.linker_library_path = generate_rtld_path(container)
 
-        # Setup the linker search path for the process in the container
-        params.linker_library_path.append(container.import_library_dir)
+        files = args.files or []
+        libraries = (args.libraries or []) + wi4mpi_libraries(wi4mpi_root())
 
-        if hasattr(container.__class__, 'linker_path'):
-            paths = container.__class__.linker_path
-            paths.reverse()
-            for path in paths:
-                params.linker_library_path.insert(0, path)
+        for path in files:
+            container.bind_file(path, option=FileOptions.READ_WRITE)
 
-        if wi4mpi_enabled():
-            linker_paths = list(
-                map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_root())))
-            linker_paths.reverse()
+        # Create a set of libraries to import using a library_set object,
+        # then filtering it according to the contents of the container
+        final_libset = select_libraries(LibrarySet.create_from(libraries),
+                                        container, params)
 
-            for linker_path in linker_paths:
-                params.linker_library_path.insert(0, linker_path)
+        # Import each library along with all symlinks pointing to it
+        for shared_object in final_libset:
+            import_library(shared_object, container)
 
-            # Import relevant files
+        if not wi4mpi_enabled():
+            # Preload the top-level libraries of the imported set to bypass
+            # any potential RPATH settings
+            def _path(library: Library):
+                return Path(container.import_library_dir,
+                            Path(library.binary_path).name).as_posix()
+
+            for imported_library_path in map(_path, final_libset.top_level):
+                params.preload.append(imported_library_path)
+        else:
+            # If WI4MPI is found in the environment, import its files and
+            # preload its required components
             wi4mpi_import(container, wi4mpi_root())
 
             params.preload += wi4mpi_preload(wi4mpi_root())
-
-        if libset:
-            # Create a set of libraries to import
-            libset = select_libraries(libset, container, params)
-
-            for line in libset.ldd_format():
-                LOGGER.debug(line)
-
-            # Import each library along with all symlinks pointing to it
-            for shared_object in libset:
-                import_library(shared_object, container)
-
-            if not wi4mpi_enabled():
-                # Preload the roots of all the set's trees
-                def _path(library: Library):
-                    return Path(container.import_library_dir,
-                                Path(library.binary_path).name).as_posix()
-
-                # Check if preloading libraries asked in configuration file
-                if CONFIGURATION.preload_root_libraries:
-                    for import_path in map(_path, libset.top_level):
-                        params.preload.append(import_path)
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()

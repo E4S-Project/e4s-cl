@@ -19,7 +19,9 @@ def precompiled_binaries(storage=None) -> dict:
     List all the precompiled binaries available
     """
     records = {}
-    transform = lambda r: (r['soname'], r['path'])
+
+    def _transform(record):
+        return (record['soname'], record['path'])
 
     levels = reversed(ORDERED_LEVELS)
     if storage:
@@ -27,7 +29,7 @@ def precompiled_binaries(storage=None) -> dict:
 
     for level in levels:
         entries = level.search(table_name=SAMPLE_BINARY_TABLE)
-        records = dict(map(transform, entries), **records)
+        records = dict(map(_transform, entries), **records)
 
     return records
 
@@ -37,7 +39,9 @@ def builtin_profiles(storage=None) -> dict:
     List all the builtin profiles available
     """
     records = {}
-    transform = lambda r: (r['system'], r['configuration'])
+
+    def _transform(record):
+        return (record['system'], record['configuration'])
 
     levels = reversed(ORDERED_LEVELS)
     if storage:
@@ -45,7 +49,7 @@ def builtin_profiles(storage=None) -> dict:
 
     for level in levels:
         entries = level.search(table_name=BUILTIN_PROFILE_TABLE)
-        records = dict(map(transform, entries), **records)
+        records = dict(map(_transform, entries), **records)
 
     return records
 

@@ -316,7 +316,7 @@ class ConsoleHelpFormatter(HelpFormatter):
             for subaction in self._iter_indented_subactions(action):
                 invocations.append(get_invocation(subaction))
             invocation_length = max(
-                [len(util.uncolor_text(s)) for s in invocations])
+                len(util.uncolor_text(s)) for s in invocations)
             action_length = invocation_length + self._current_indent
             self._action_max_length = max(self._action_max_length,
                                           action_length)
@@ -636,7 +636,7 @@ def _search_available_databases(model, field, regex):
     for level in ORDERED_LEVELS:
         try:
             matches.extend(model.controller(storage=level).match(field, regex))
-        except StorageError as err:
+        except StorageError:
             LOGGER.debug("Failed to access records from level %s", level.name)
 
     return matches

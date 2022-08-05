@@ -91,6 +91,9 @@ class ShifterContainer(Container):
     @classmethod
     @property
     def linker_path(cls):
+        """
+        Fetch the LD_LIBRARY_PATH from the configuration file
+        """
         config = _parse_config(_DEFAULT_CONFIG_PATH)
 
         path = []
@@ -106,6 +109,7 @@ class ShifterContainer(Container):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.temp_dir = None
         self.executable = which(self.__class__.executable_name)
 
     def _setup_import(self, where: Path) -> str:
@@ -155,6 +159,9 @@ class ShifterContainer(Container):
         for env_var in self.env.items():
             env_list.append(f'--env={env_var}={env_var}')
 
+        # The following is a variable linked to a directory created on the disk
+        # Erasing this variable will erase the directory, thus the bind to self
+        # pylint: disable=R1732
         self.temp_dir = tempfile.TemporaryDirectory()
         volumes = self._setup_import(Path(self.temp_dir.name))
         return [

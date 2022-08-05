@@ -20,6 +20,9 @@ STORAGE_LEVELS = {level.name: level for level in ORDERED_LEVELS}
 
 
 def highest_writable_storage():
+    """
+    Return the first storage location in order that can be accessed to write in
+    """
     try:
         return highest_writable_storage.value
     except AttributeError as err:

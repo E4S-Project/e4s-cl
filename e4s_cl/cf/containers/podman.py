@@ -120,7 +120,10 @@ class PodmanContainer(Container):
         return len(fds)
 
     def _working_dir(self):
-        return ['--workdir', os.getcwd()]
+        cwd = os.getcwd()
+        if cwd in map(lambda x: x[0], self.bound):
+            return ['--workdir', cwd]
+        return []
 
     def _format_bound(self):
 
@@ -136,7 +139,7 @@ class PodmanContainer(Container):
                     params['ro'] = 'true'
 
                 yield "--mount=" + ",".join(f"{k}={v}"
-                                           for (k, v) in params.items())
+                                            for (k, v) in params.items())
 
         return list(_format())
 

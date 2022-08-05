@@ -6,8 +6,10 @@ library loading)
 """
 
 from os import chmod, unlink, pathsep
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from shlex import split
+from sotools import is_elf
 from e4s_cl import logger
 from e4s_cl.error import InternalError
 
@@ -61,6 +63,9 @@ class Entrypoint:
         # Path to the imported host linker
         self.linker = None
 
+        # Path to the imported host bash/interpreter
+        self.interpreter = None
+
         self.debug = debug
 
     @property
@@ -87,17 +92,34 @@ class Entrypoint:
         # Convert to a set to remove duplicates, then as a list to get order
         preload = list(dict.fromkeys(self.preload))
 
+        # The linker statement to prefix to the command
+        rtdl = []
+        command = self.command
         if self.linker:
-            preload.append(self.linker)
+            # In case of an ELF binary, start it with the linker; if the
+            # command is a script, run bash with the linker to ensure the
+            # imported libc is loaded and to resolve what the user asked
+            if self.__command and is_elf(self.__command[0]):
+                rtdl = [self.linker]
+            elif self.interpreter:
+                if Path(self.command[0]).exists():
+                    rtdl = [self.linker, self.interpreter]
+                else:
+                    rtdl = [self.linker, self.interpreter, '-c']
+                    command = " ".join(['"', *self.__command, '"'])
+            else:
+                LOGGER.error(
+                    "Running a script or command from path is not "
+                    "supported in this configuration: missing interpreter"
+                    "(linker: %s)", self.linker)
 
-        fields = {
-            'source_script': self.source_script,
-            'command': self.command,
-            'library_dir': pathsep.join(map(str, self.linker_library_path)),
-            'linker': self.linker or '',
-            'preload': ':'.join(preload),
-            'debugging': "export LD_DEBUG=files" if self.debug else ''
-        }
+        fields = dict(source_script=self.source_script,
+                      command=command,
+                      library_dir=pathsep.join(
+                          map(str, self.linker_library_path)),
+                      linker=' '.join(rtdl),
+                      preload=':'.join(preload),
+                      debugging="export LD_DEBUG=files" if self.debug else '')
 
         return TEMPLATE % fields
 
