@@ -5,7 +5,8 @@ Delete the profile associated with the name passed as an argument.
 Delete multiple profiles
 -------------------------
 
-You can delete multiple profiles at once by using the '#' wildcard, which will match with any single or multiple characters. 
+You can delete multiple profiles at once by using the '#' wildcard, which will \
+match with any single or multiple characters. 
 
 
 .. code::

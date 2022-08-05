@@ -25,6 +25,7 @@ class DiffCommand(AbstractCliView):
     """
     Command outlining differences between models
     """
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt', "Compare %(model_name)ss.")
         super().__init__(*args, **kwargs)
@@ -52,8 +53,11 @@ class DiffCommand(AbstractCliView):
         if not (lhs and rhs):
             self.parser.error("Missing profile argument")
 
-        _order_r = lambda x, y: (list(set(x) - set(y)), '<')
-        _order_l = lambda x, y: (list(set(y) - set(x)), '>')
+        def _order_r(lhs, rhs):
+            return (list(set(lhs) - set(rhs)), '<')
+
+        def _order_l(lhs, rhs):
+            return (list(set(rhs) - set(lhs)), '>')
 
         def _diff_member(attr, order):
             diff, sign = order(lhs.get(attr, []), rhs.get(attr, []))

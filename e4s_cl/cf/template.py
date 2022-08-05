@@ -99,7 +99,7 @@ class Entrypoint:
             # In case of an ELF binary, start it with the linker; if the
             # command is a script, run bash with the linker to ensure the
             # imported libc is loaded and to resolve what the user asked
-            if len(self.__command) and is_elf(self.__command[0]):
+            if self.__command and is_elf(self.__command[0]):
                 rtdl = [self.linker]
             elif self.interpreter:
                 if Path(self.command[0]).exists():
