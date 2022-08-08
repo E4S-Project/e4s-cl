@@ -32,6 +32,7 @@ class Parser:
     PARSER = Parser(ARGUMENTS)
     ```
     """
+
     def __init__(self, arguments):
         self.arguments = arguments
 
@@ -78,29 +79,43 @@ for _, _module_name, _ in walk_packages(path=__path__, prefix=__name__ + '.'):
         LAUNCHERS.update({script_name: _module_name})
 
 
-def parse_cli(cmd):
+def get_launcher(cmd):
     """
-    Determine if the launcher is supported
-    import its module and parse the command line
+    Return a launcher module for the given command
     """
     script = Path(cmd[0]).name
 
     module_name = LAUNCHERS.get(script)
 
     if module_name:
-        return sys.modules[module_name].PARSER.parse(cmd)
-    raise NotImplementedError(f"Launcher {script} is not supported")
+        return sys.modules[module_name]
+    return None
+
+
+def parse_cli(cmd):
+    """
+    Parse a command line to split it into launcher and command
+    """
+    if not cmd:
+        return [], []
+
+    module = get_launcher(cmd)
+
+    if module:
+        return module.PARSER.parse(cmd)
+    raise NotImplementedError(f"Launcher {Path(cmd[0]).name} is not supported")
 
 
 def interpret(cmd):
-    """Parses a command line to split the launcher command and application commands.
+    """
+    Parses a command line to split the launcher command and application commands.
 
-       Args:
-           cmd (list[str]): Command line.
+    Args:
+       cmd (list[str]): Command line.
 
-       Returns:
-           tuple: (Launcher command, possibly empty list of application commands).
-       """
+    Returns:
+       tuple: (Launcher command, possibly empty list of application commands).
+    """
     launcher_cmd = []
 
     # If '--' appears in the command then everything before it is a launcher + args

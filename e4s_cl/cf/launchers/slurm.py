@@ -4,8 +4,6 @@ from e4s_cl.cf.launchers import Parser
 
 SCRIPT_NAMES = ['srun']
 
-# Every argument of form --flag=value is caught by default
-
 ARGUMENTS = {
     # Parallel options
     "-A": 1,  # Account name
@@ -76,5 +74,7 @@ ARGUMENTS = {
     "-V": 0,
     "--version": 0,
 }
+
+META = dict(reserved_directories=['/var/spool/slurm', '/var/spool/slurmd'])
 
 PARSER = Parser(ARGUMENTS)

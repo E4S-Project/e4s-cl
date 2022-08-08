@@ -32,19 +32,23 @@ Examples
 
 """
 
+import os
 import sys
 from json import JSONDecodeError
 from pathlib import Path
-from typing import List
+from types import ModuleType
+from typing import List, Optional
 
-from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger, INIT_TEMP_PROFILE_NAME
+from e4s_cl import (EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger,
+                    INIT_TEMP_PROFILE_NAME)
 
 from e4s_cl import variables
 from e4s_cl.error import ProfileSelectionError
-from e4s_cl.util import run_e4scl_subprocess, flatten, json_dumps, json_loads
+from e4s_cl.util import (run_e4scl_subprocess, flatten, json_dumps, json_loads,
+                         path_contains)
 from e4s_cl.cf.trace import opened_files
 from e4s_cl.cf.libraries import is_elf, resolve, Library
-from e4s_cl.cf.launchers import interpret
+from e4s_cl.cf.launchers import interpret, get_launcher
 from e4s_cl.cli import arguments
 from e4s_cl.model.profile import Profile
 from e4s_cl.cli.cli_view import AbstractCliView
@@ -52,7 +56,8 @@ from e4s_cl.cli.cli_view import AbstractCliView
 LOGGER = logger.get_logger(__name__)
 
 
-def filter_files(path_list: List[Path]):
+def filter_files(path_list: List[Path],
+                 launcher_module: Optional[ModuleType] = None):
     """
     Categorize paths into libraries or files
 
@@ -64,12 +69,25 @@ def filter_files(path_list: List[Path]):
     """
     libraries, files = set(), set()
 
+    launcher_reserved_paths = []
+    if launcher_module:
+        launcher_meta = getattr(launcher_module, 'META', {})
+        if launcher_meta:
+            launcher_reserved_paths = list(
+                map(Path,
+                    launcher_meta.get('reserved_directories') or []))
+
     for path in path_list:
         try:
             if not path.exists() or path.is_dir():
                 continue
         except PermissionError:
             continue
+
+        for launcher_path in launcher_reserved_paths:
+            if path_contains(launcher_path, path):
+                files.add(launcher_path)
+                continue
 
         # Process shared objects
         if is_elf(path):
@@ -140,7 +158,9 @@ class ProfileDetectCommand(AbstractCliView):
         launcher, program = interpret(args.cmd)
 
         if launcher:
+
             with variables.ParentStatus():
+                os.environ['__E4S_CL_LAUNCHER'] = launcher[0]
                 # If a launcher is present, act as a launcher
                 returncode, json_data = run_e4scl_subprocess(
                     [
@@ -164,9 +184,14 @@ class ProfileDetectCommand(AbstractCliView):
                 libs = list(set(flatten(library_paths)))
 
         else:
+            launcher_module = None
+            launcher = os.environ.get('__E4S_CL_LAUNCHER')
+            if launcher:
+                launcher_module = get_launcher([Path(launcher).name])
+
             # No launcher, analyse the command
             returncode, accessed_files = opened_files(args.cmd)
-            libs, files = filter_files(accessed_files)
+            libs, files = filter_files(accessed_files, launcher_module)
 
         if returncode:
             if variables.is_parent():

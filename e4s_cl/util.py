@@ -459,3 +459,12 @@ def update_ld_path(path: Path):
 def catchtime() -> float:
     start = perf_counter()
     yield lambda: perf_counter() - start
+
+
+def path_contains(lhs: Path, rhs: Path):
+    """
+    Returns true if rhs is in the tree of which lhs is the root
+    pathlib's < operator compares alphabetically, so here we are
+    """
+    index = len(lhs.parts)
+    return lhs.parts[:index] == rhs.parts[:index]
