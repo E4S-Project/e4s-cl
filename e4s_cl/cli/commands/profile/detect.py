@@ -55,6 +55,8 @@ from e4s_cl.cli.cli_view import AbstractCliView
 
 LOGGER = logger.get_logger(__name__)
 
+LAUNCHER_VAR = '__E4S_CL_DETECT_LAUNCHER'
+
 
 def filter_files(path_list: List[Path],
                  launcher_module: Optional[ModuleType] = None):
@@ -128,6 +130,45 @@ def filter_files(path_list: List[Path],
     return libraries, files
 
 
+def save_to_profile(profile_name, libraries, files) -> int:
+    """
+    Save the libraries and files to a profile with the name profile_name
+    """
+    controller = Profile.controller()
+    if profile_name:
+        identifier = {'name': profile_name}
+        profile = controller.one(identifier)
+
+        if not profile:
+            try:
+                profile = controller.create(identifier)
+            except Exception as err:  #TODO check what errors can arise
+                LOGGER.error("Profile creation failed: %s", str(err))
+                return EXIT_FAILURE
+    else:
+        try:
+            profile = controller.selected()
+        except ProfileSelectionError:
+            LOGGER.error("No output profile selected or given as an argument.")
+            return EXIT_FAILURE
+
+        if profile.get('name') != INIT_TEMP_PROFILE_NAME:
+            LOGGER.warning(
+                "No profile specified: currently selected profile will be updated."
+            )
+
+        identifier = {'name': profile.get('name')}
+
+    data = {'libraries': list(libraries), 'files': list(files)}
+    try:
+        controller.update(data, identifier)
+    except Exception as err:  # TODO same as above
+        LOGGER.error("Profile update failed: %s", str(err))
+        return EXIT_FAILURE
+
+    return EXIT_SUCCESS
+
+
 class ProfileDetectCommand(AbstractCliView):
     """``profile create`` subcommand."""
 
@@ -149,6 +190,35 @@ class ProfileDetectCommand(AbstractCliView):
                             nargs=arguments.REMAINDER)
         return parser
 
+    def detect_subprocesses(self, launcher, program):
+        """
+        Run process profiling in subprocesses with the detected launcher
+        """
+        with variables.ParentStatus():
+            os.environ[LAUNCHER_VAR] = launcher[0]
+            # If a launcher is present, act as a launcher
+            returncode, json_data = run_e4scl_subprocess([
+                *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect",
+                *program
+            ],
+                                                         capture_output=True)
+
+        if not returncode:
+            file_paths, library_paths = [], []
+
+            for line in json_data.split('\n'):
+                try:
+                    data = json_loads(line)
+                    file_paths.append(data['files'])
+                    library_paths.append(data['libraries'])
+                except (JSONDecodeError, TypeError):
+                    pass
+
+            files = list(set(flatten(file_paths)))
+            libs = list(set(flatten(library_paths)))
+
+        return libs, files
+
     def main(self, argv):
         args = self._parse_args(argv)
 
@@ -157,35 +227,12 @@ class ProfileDetectCommand(AbstractCliView):
 
         launcher, program = interpret(args.cmd)
 
+        libs, files = [], []
         if launcher:
-
-            with variables.ParentStatus():
-                os.environ['__E4S_CL_LAUNCHER'] = launcher[0]
-                # If a launcher is present, act as a launcher
-                returncode, json_data = run_e4scl_subprocess(
-                    [
-                        *launcher, sys.executable, E4S_CL_SCRIPT, "profile",
-                        "detect", *program
-                    ],
-                    capture_output=True)
-
-            if not returncode:
-                file_paths, library_paths = [], []
-
-                for line in json_data.split('\n'):
-                    try:
-                        data = json_loads(line)
-                        file_paths.append(data['files'])
-                        library_paths.append(data['libraries'])
-                    except (JSONDecodeError, TypeError):
-                        pass
-
-                files = list(set(flatten(file_paths)))
-                libs = list(set(flatten(library_paths)))
-
+            libs, files = self.detect_subprocesses(launcher, program)
         else:
             launcher_module = None
-            launcher = os.environ.get('__E4S_CL_LAUNCHER')
+            launcher = os.environ.get(LAUNCHER_VAR)
             if launcher:
                 launcher_module = get_launcher([Path(launcher).name])
 
@@ -210,41 +257,7 @@ class ProfileDetectCommand(AbstractCliView):
             }))
             return EXIT_SUCCESS
 
-        # Save the resuling list to a profile
-        controller = Profile.controller()
-        if args.profile_name:
-            identifier = {'name': args.profile_name}
-            profile = controller.one(identifier)
-
-            if not profile:
-                try:
-                    profile = controller.create(identifier)
-                except Exception as err:  #TODO check what errors can arise
-                    LOGGER.error("Profile creation failed: %s", str(err))
-                    return EXIT_FAILURE
-        else:
-            try:
-                profile = controller.selected()
-            except ProfileSelectionError:
-                LOGGER.error(
-                    "No output profile selected or given as an argument.")
-                return EXIT_FAILURE
-
-            if profile.get('name') != INIT_TEMP_PROFILE_NAME:
-                LOGGER.warning(
-                    "No profile specified: currently selected profile will be updated."
-                )
-
-            identifier = {'name': profile.get('name')}
-
-        data = {'libraries': list(libs), 'files': list(files)}
-        try:
-            controller.update(data, identifier)
-        except Exception as err:  # TODO same as above
-            LOGGER.error("Profile update failed: %s", str(err))
-            return EXIT_FAILURE
-
-        return EXIT_SUCCESS
+        return save_to_profile(args.profile_name, libs, files)
 
 
 COMMAND = ProfileDetectCommand(Profile, __name__)
