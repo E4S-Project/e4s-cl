@@ -46,7 +46,6 @@ from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, variables
 from e4s_cl.cli import arguments
 from e4s_cl.util import run_e4scl_subprocess
-import e4s_cl.config as config 
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.launchers import interpret
 from e4s_cl.model.profile import Profile
@@ -92,8 +91,10 @@ def _format_execute(parameters):
 
     return execute_command
 
+
 class LaunchCommand(AbstractCommand):
     """``launch`` subcommand."""
+
     def _construct_parser(self):
         usage = f"{self.command} [arguments] [launcher] [launcher_arguments] [--] <command> [command_arguments]"
         parser = arguments.get_parser(prog=self.command,
@@ -158,20 +159,19 @@ class LaunchCommand(AbstractCommand):
         for field in ['backend', 'image']:
             if not parameters.get(field, None):
                 self.parser.error(
-                    f"Missing field: '{field}'. Specify it using the appropriate option or by selecting a profile."
-                )
+                    f"Missing field: '{field}'. Specify it using the "
+                    "appropriate option or by selecting a profile.")
 
         launcher, program = interpret(args.cmd)
         execute_command = _format_execute(parameters)
 
         # Override the launcher in case wi4mpi is used
-        # TODO make sure the launcher options are passed to the underlying launcher with --extra
         if launcher and parameters.get('wi4mpi'):
             launcher[0] = Path(parameters['wi4mpi']).joinpath(
                 'bin', 'mpirun').as_posix()
             launcher += shlex.split(parameters.get('wi4mpi_options', ""))
 
-        full_command = launcher + config.CONFIGURATION.launcher_options + execute_command + program
+        full_command = [*launcher, *execute_command, *program]
 
         if variables.is_dry_run():
             print(' '.join(full_command))
@@ -183,5 +183,4 @@ class LaunchCommand(AbstractCommand):
 
 
 SUMMARY = "Launch a process with a tailored environment."
-
 COMMAND = LaunchCommand(__name__, summary_fmt=SUMMARY)

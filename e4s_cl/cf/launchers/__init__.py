@@ -3,10 +3,11 @@ Entry point for supported program launchers"""
 
 import sys
 import re
+from os import environ
 from pathlib import Path
 from importlib import import_module
-from os import environ
-from e4s_cl import logger
+from shlex import split
+from e4s_cl import logger, config
 from e4s_cl.util import walk_packages
 from e4s_cl.error import InternalError
 
@@ -126,9 +127,7 @@ def interpret(cmd):
     elif Path(cmd[0]).name in LAUNCHERS:
         launcher_cmd, cmd = parse_cli(cmd)
 
-    env_args = environ.get('E4SCL_LAUNCHER_ARGS')
+    env_options = split(environ.get('E4SCL_LAUNCHER_ARGS', ''))
+    config_options = config.CONFIGURATION.launcher_options
 
-    if launcher_cmd and env_args:
-        launcher_cmd += env_args.split(' ')
-
-    return launcher_cmd, cmd
+    return [*launcher_cmd, *env_options, *config_options], cmd
