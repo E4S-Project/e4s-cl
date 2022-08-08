@@ -4,6 +4,7 @@ Entry point for supported program launchers"""
 import sys
 import re
 from os import environ
+from typing import List
 from pathlib import Path
 from importlib import import_module
 from shlex import split
@@ -80,7 +81,7 @@ for _, _module_name, _ in walk_packages(path=__path__, prefix=__name__ + '.'):
         LAUNCHERS.update({script_name: _module_name})
 
 
-def get_launcher(cmd: list[str]):
+def get_launcher(cmd: List[str]):
     """
     Return a launcher module for the given command
     """
@@ -93,7 +94,7 @@ def get_launcher(cmd: list[str]):
     return None
 
 
-def get_reserved_directories(cmd: list[str]):
+def get_reserved_directories(cmd: List[str]):
     launcher_module = get_launcher(cmd)
     if launcher_module is not None and getattr(launcher_module, 'META', False):
         if 'reserved_directories' in launcher_module.META:
