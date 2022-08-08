@@ -47,7 +47,7 @@ from e4s_cl import logger, variables
 from e4s_cl.cli import arguments
 from e4s_cl.util import run_e4scl_subprocess
 from e4s_cl.cli.command import AbstractCommand
-from e4s_cl.cf.launchers import interpret
+from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
 
@@ -64,7 +64,13 @@ def _parameters(args):
     if isinstance(args, Namespace):
         args = vars(args)
 
-    parameters = dict(args.get('profile', {}))
+    default_profile = dict(image='',
+                           backend='',
+                           libraries=[],
+                           files=[],
+                           source='')
+
+    parameters = dict(args.get('profile', default_profile))
 
     for attr in ['image', 'backend', 'libraries', 'files', 'source']:
         if args.get(attr, None):
@@ -163,6 +169,11 @@ class LaunchCommand(AbstractCommand):
                     "appropriate option or by selecting a profile.")
 
         launcher, program = interpret(args.cmd)
+
+        for path in get_reserved_directories(launcher):
+            if path not in parameters['files']:
+                parameters['files'].append(path)
+
         execute_command = _format_execute(parameters)
 
         # Override the launcher in case wi4mpi is used

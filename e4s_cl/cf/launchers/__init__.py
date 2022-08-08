@@ -80,7 +80,7 @@ for _, _module_name, _ in walk_packages(path=__path__, prefix=__name__ + '.'):
         LAUNCHERS.update({script_name: _module_name})
 
 
-def get_launcher(cmd):
+def get_launcher(cmd: list[str]):
     """
     Return a launcher module for the given command
     """
@@ -91,6 +91,15 @@ def get_launcher(cmd):
     if module_name:
         return sys.modules[module_name]
     return None
+
+
+def get_reserved_directories(cmd: list[str]):
+    launcher_module = get_launcher(cmd)
+    if launcher_module is not None and getattr(launcher_module, 'META', False):
+        if 'reserved_directories' in launcher_module.META:
+            return launcher_module.META['reserved_directories']
+
+    return []
 
 
 def parse_cli(cmd):
