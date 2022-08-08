@@ -194,6 +194,8 @@ class ProfileDetectCommand(AbstractCliView):
         """
         Run process profiling in subprocesses with the detected launcher
         """
+        files, libs = [], []
+
         with variables.ParentStatus():
             os.environ[LAUNCHER_VAR] = launcher[0]
             # If a launcher is present, act as a launcher
@@ -203,19 +205,25 @@ class ProfileDetectCommand(AbstractCliView):
             ],
                                                          capture_output=True)
 
-        if not returncode:
-            file_paths, library_paths = [], []
+        if returncode:
+            LOGGER.error(
+                "Failed to determine necessary libraries: program exited with code %d",
+                returncode)
+            return libs, files
 
-            for line in json_data.split('\n'):
-                try:
-                    data = json_loads(line)
-                    file_paths.append(data['files'])
-                    library_paths.append(data['libraries'])
-                except (JSONDecodeError, TypeError):
-                    pass
+        # Merge all the data sent back into files and libraries
+        file_paths, library_paths = [], []
 
-            files = list(set(flatten(file_paths)))
-            libs = list(set(flatten(library_paths)))
+        for line in json_data.split('\n'):
+            try:
+                data = json_loads(line)
+                file_paths.append(data['files'])
+                library_paths.append(data['libraries'])
+            except (JSONDecodeError, TypeError):
+                pass
+
+        files = list(set(flatten(file_paths)))
+        libs = list(set(flatten(library_paths)))
 
         return libs, files
 
@@ -240,16 +248,9 @@ class ProfileDetectCommand(AbstractCliView):
             returncode, accessed_files = opened_files(args.cmd)
             libs, files = filter_files(accessed_files, launcher_module)
 
-        if returncode:
-            if variables.is_parent():
-                LOGGER.error(
-                    "Failed to determine necessary libraries: program exited with code %d",
-                    returncode)
-            return EXIT_FAILURE
-
-        # There are two cases: this is a parent process, in which case the output
-        # must be processed, or this is a slave process, where we just print it
-        # all on stdout in a format the parent process will understand
+        # There are two cases: this is a parent process, in which case we
+        # interpret the output of children, or this is a child process, where
+        # we just print data on stdout
         if not variables.is_parent():
             print(json_dumps({
                 'files': files,
