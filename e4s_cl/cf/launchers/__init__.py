@@ -100,7 +100,8 @@ def get_reserved_directories(cmd: List[str]):
     launcher_module = get_launcher(cmd)
     if launcher_module is not None and getattr(launcher_module, 'META', False):
         if 'reserved_directories' in launcher_module.META:
-            return launcher_module.META['reserved_directories']
+            return list(map(Path,
+                            launcher_module.META['reserved_directories']))
 
     return []
 
