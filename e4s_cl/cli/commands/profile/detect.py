@@ -36,8 +36,7 @@ import os
 import sys
 from json import JSONDecodeError
 from pathlib import Path
-from types import ModuleType
-from typing import List, Optional
+from typing import List
 
 from e4s_cl import (EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger,
                     INIT_TEMP_PROFILE_NAME)
@@ -48,7 +47,7 @@ from e4s_cl.util import (run_e4scl_subprocess, flatten, json_dumps, json_loads,
                          path_contains)
 from e4s_cl.cf.trace import opened_files
 from e4s_cl.cf.libraries import is_elf, resolve, Library
-from e4s_cl.cf.launchers import interpret, get_launcher
+from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.cli import arguments
 from e4s_cl.model.profile import Profile
 from e4s_cl.cli.cli_view import AbstractCliView
@@ -58,8 +57,7 @@ LOGGER = logger.get_logger(__name__)
 LAUNCHER_VAR = '__E4S_CL_DETECT_LAUNCHER'
 
 
-def filter_files(path_list: List[Path],
-                 launcher_module: Optional[ModuleType] = None):
+def filter_files(path_list: List[Path], launcher: List[str] = None):
     """
     Categorize paths into libraries or files
 
@@ -71,13 +69,7 @@ def filter_files(path_list: List[Path],
     """
     libraries, files = set(), set()
 
-    launcher_reserved_paths = []
-    if launcher_module:
-        launcher_meta = getattr(launcher_module, 'META', {})
-        if launcher_meta:
-            launcher_reserved_paths = list(
-                map(Path,
-                    launcher_meta.get('reserved_directories') or []))
+    launcher_reserved_paths = get_reserved_directories(launcher)
 
     for path in path_list:
         try:
@@ -86,15 +78,19 @@ def filter_files(path_list: List[Path],
         except PermissionError:
             continue
 
+        waived_launcher = False
         for launcher_path in launcher_reserved_paths:
             if path_contains(launcher_path, path):
                 files.add(str(launcher_path))
-                continue
+                waived_launcher = True
+                break
+
+        if waived_launcher:
+            continue
 
         # Process shared objects
         if is_elf(path):
             library = Library.from_path(path)
-
             resolved_path = resolve(library.soname)
 
             if resolved_path and Path(path).resolve() == Path(
@@ -239,14 +235,11 @@ class ProfileDetectCommand(AbstractCliView):
         if launcher:
             libs, files = self.detect_subprocesses(launcher, program)
         else:
-            launcher_module = None
-            launcher = os.environ.get(LAUNCHER_VAR)
-            if launcher:
-                launcher_module = get_launcher([Path(launcher).name])
+            launcher = os.environ.get(LAUNCHER_VAR, '').split(' ')
 
             # No launcher, analyse the command
             returncode, accessed_files = opened_files(args.cmd)
-            libs, files = filter_files(accessed_files, launcher_module)
+            libs, files = filter_files(accessed_files, launcher)
             LOGGER.debug("Accessed files: %s, %s", libs, files)
 
         # There are two cases: this is a parent process, in which case we

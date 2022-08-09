@@ -85,13 +85,15 @@ def get_launcher(cmd: List[str]):
     """
     Return a launcher module for the given command
     """
-    script = Path(cmd[0]).name
+    if not cmd or cmd is None:
+        return None
 
+    script = Path(cmd[0]).name
     module_name = LAUNCHERS.get(script)
 
-    if module_name:
-        return sys.modules[module_name]
-    return None
+    if not module_name:
+        return None
+    return sys.modules[module_name]
 
 
 def get_reserved_directories(cmd: List[str]):
