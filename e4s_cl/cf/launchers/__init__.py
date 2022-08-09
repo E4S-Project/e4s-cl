@@ -58,7 +58,7 @@ class Parser:
                 to_skip = self.arguments[flag]
 
             # Catch generic --flag=value
-            elif re.match(r'^--[\-A-Za-z]+=.*$', flag):
+            elif re.match(r'^--[\-A-Za-z0-9]+=.*$', flag):
                 to_skip = 0
 
             else:
