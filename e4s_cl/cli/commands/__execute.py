@@ -190,6 +190,16 @@ def generate_rtld_path(container):
     return path_list + [container.import_library_dir]
 
 
+def _check_access(p: Path | str) -> bool:
+    check = Path(p).exists()
+
+    if not check:
+        LOGGER.warning("Omitting file '%s' from bind list: file not found",
+                       Path(p).as_posix())
+
+    return check
+
+
 class ExecuteCommand(AbstractCommand):
     """``execute`` subcommand."""
 
@@ -260,10 +270,9 @@ class ExecuteCommand(AbstractCommand):
             # it offers, using the entrypoint and the above libraries
             container.get_data()
 
-        # Bind files to make the sourced script accessible
-        if args.files:
-            for path in args.files:
-                container.bind_file(path, option=FileOptions.READ_WRITE)
+        # Bind all accessible requested files
+        for path in filter(_check_access, args.files):
+            container.bind_file(path, option=FileOptions.READ_WRITE)
 
         # This script is sourced before any other command in the container
         params.source_script_path = args.source
