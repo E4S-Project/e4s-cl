@@ -88,7 +88,7 @@ def filter_files(path_list: List[Path],
 
         for launcher_path in launcher_reserved_paths:
             if path_contains(launcher_path, path):
-                files.add(launcher_path)
+                files.add(str(launcher_path))
                 continue
 
         # Process shared objects
@@ -247,6 +247,7 @@ class ProfileDetectCommand(AbstractCliView):
             # No launcher, analyse the command
             returncode, accessed_files = opened_files(args.cmd)
             libs, files = filter_files(accessed_files, launcher_module)
+            LOGGER.debug("Accessed files: %s, %s", libs, files)
 
         # There are two cases: this is a parent process, in which case we
         # interpret the output of children, or this is a child process, where

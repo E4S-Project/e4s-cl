@@ -182,6 +182,7 @@ def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
                     subproc_env[key] = val
                     _heavy_debug("%s=%s", key, val)
 
+        LOGGER.debug("Running with parent status: %s", cmd)
         with subprocess.Popen(
                 cmd,
                 cwd=cwd,
