@@ -88,12 +88,14 @@ def _format_execute(parameters):
         execute_command = [execute_command[0], '-v'] + execute_command[1:]
 
     for attr in ['image', 'backend', 'source']:
-        if parameters.get(attr, None):
-            execute_command += [f"--{attr}", parameters[attr]]
+        value = parameters.get(attr, None)
+        if value:
+            execute_command += [f"--{attr}", str(value)]
 
     for attr in ['libraries', 'files']:
-        if parameters.get(attr, None):
-            execute_command += [f"--{attr}", ",".join(parameters[attr])]
+        value = parameters.get(attr, None)
+        if value:
+            execute_command += [f"--{attr}", ",".join(map(str, value))]
 
     return execute_command
 
