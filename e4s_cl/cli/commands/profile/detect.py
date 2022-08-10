@@ -36,7 +36,11 @@ import os
 import sys
 from json import JSONDecodeError
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Any
+
+from sotools import is_elf
+from sotools.linker import resolve
+from sotools.libraryset import Library
 
 from e4s_cl import (EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger,
                     INIT_TEMP_PROFILE_NAME)
@@ -46,7 +50,6 @@ from e4s_cl.error import ProfileSelectionError
 from e4s_cl.util import (run_e4scl_subprocess, flatten, json_dumps, json_loads,
                          path_contains)
 from e4s_cl.cf.trace import opened_files
-from e4s_cl.cf.libraries import is_elf, resolve, Library
 from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.cli import arguments
 from e4s_cl.model.profile import Profile
@@ -57,7 +60,22 @@ LOGGER = logger.get_logger(__name__)
 LAUNCHER_VAR = '__E4S_CL_DETECT_LAUNCHER'
 
 
-def filter_files(path_list: List[Path], launcher: List[str] = None):
+def _same_file(lhs: Any, rhs: Any) -> bool:
+    """Assert two files are the same file, even through symbolic links"""
+
+    def _force_cast(val: Any) -> bool:
+        allowed = [str, bytes, os.PathLike]
+        for check in allowed:
+            if isinstance(val, check):
+                return Path(val)
+        return Path()
+
+    return _force_cast(lhs).resolve() == _force_cast(rhs).resolve()
+
+
+def filter_files(path_list: List[Path],
+                 launcher: List[str] = None,
+                 original_binary: Optional[Library] = None):
     """
     Categorize paths into libraries or files
 
@@ -68,16 +86,23 @@ def filter_files(path_list: List[Path], launcher: List[str] = None):
     location. They can be ELF objects that are dynamically loaded by the library.
     """
     libraries, files = set(), set()
+    orig_rpath, orig_runpath = [], []
+
+    if original_binary is not None:
+        orig_rpath = original_binary.rpath
+        orig_runpath = original_binary.runpath
 
     launcher_reserved_paths = get_reserved_directories(launcher)
 
     for path in path_list:
+        # Assert the file still exists and is accessible
         try:
             if not path.exists() or path.is_dir():
                 continue
         except PermissionError:
             continue
 
+        # Assert the file path does not correspond to a directory used by the launcher
         waived_launcher = False
         for launcher_path in launcher_reserved_paths:
             if path_contains(launcher_path, path):
@@ -91,10 +116,11 @@ def filter_files(path_list: List[Path], launcher: List[str] = None):
         # Process shared objects
         if is_elf(path):
             library = Library.from_path(path)
-            resolved_path = resolve(library.soname)
+            resolved_path = resolve(library.soname,
+                                    rpath=orig_rpath,
+                                    runpath=orig_runpath)
 
-            if resolved_path and Path(path).resolve() == Path(
-                    resolved_path).resolve():
+            if _same_file(resolved_path, path):
                 # The library is resolved by the linker, treat it as a library
                 libraries.add(path.as_posix())
                 LOGGER.debug("File %s is a library", path.name)
@@ -239,7 +265,15 @@ class ProfileDetectCommand(AbstractCliView):
 
             # No launcher, analyse the command
             returncode, accessed_files = opened_files(args.cmd)
-            libs, files = filter_files(accessed_files, launcher)
+
+            # Access the binary to check ELF metadata
+            binary = None
+            if is_elf(args.cmd[0]):
+                binary = Library.from_path(args.cmd[0])
+
+            libs, files = filter_files(accessed_files,
+                                       launcher,
+                                       original_binary=binary)
             LOGGER.debug("Accessed files: %s, %s", libs, files)
 
         # There are two cases: this is a parent process, in which case we
