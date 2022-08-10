@@ -6,6 +6,7 @@ argument.
 This command is used internally and thus cloaked from the UI
 """
 
+from typing import Union
 from pathlib import Path
 from sotools.linker import resolve
 from sotools.libraryset import LibrarySet, Library
@@ -190,7 +191,7 @@ def generate_rtld_path(container):
     return path_list + [container.import_library_dir]
 
 
-def _check_access(p: Path | str) -> bool:
+def _check_access(p: Union[Path, str]) -> bool:
     check = Path(p).exists()
 
     if not check:
