@@ -7,7 +7,7 @@ import re
 import copy
 import argparse
 import textwrap
-import pathlib
+from pathlib import Path
 from gettext import gettext as _
 from operator import attrgetter
 from e4s_cl import logger, util
@@ -602,20 +602,20 @@ def posix_path(string):
     """
     Argument type callback.
     Returns a posix-compliant path."""
-    return pathlib.Path(string.strip()).as_posix()
+    return Path(string.strip()).as_posix()
 
 
 def posix_path_list(string):
     """Argument type callback.
     Asserts that the string corresponds to a list of paths."""
-    return [posix_path(data) for data in string.split(',')]
+    return list(map(posix_path, string.split(',')))
 
 
 def existing_posix_path(string):
     """
     Argument type callback.
     Returns a posix-compliant path if it exists."""
-    path = pathlib.Path(string.strip())
+    path = Path(string.strip())
 
     if not path.exists():
         raise argparse.ArgumentTypeError(
@@ -627,7 +627,7 @@ def existing_posix_path(string):
 def existing_posix_path_list(string):
     """Argument type callback.
     Asserts that the string corresponds to a list of existing paths."""
-    return [existing_posix_path(data) for data in string.split(',')]
+    return list(map(existing_posix_path, string.split(',')))
 
 
 def _search_available_databases(model, field, regex):

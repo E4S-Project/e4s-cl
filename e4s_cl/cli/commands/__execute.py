@@ -224,7 +224,7 @@ class ExecuteCommand(AbstractCommand):
                             metavar='image')
 
         parser.add_argument('--files',
-                            type=arguments.existing_posix_path_list,
+                            type=arguments.posix_path_list,
                             help="Files to bind, comma-separated",
                             default=[],
                             metavar='files')
