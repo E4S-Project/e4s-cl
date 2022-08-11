@@ -127,12 +127,28 @@ def filter_files(path_list: List[Path],
     library_set = LibrarySet.create_from(elf_objects)
 
     def _resolved(path: Path) -> bool:
+        """Assert the given path (assuming it to be an elf object) corresponds
+        to a library that is resolved via the linker and present in the dynamic
+        dependencies of the set.
+
+        This allows us to filter out libraries that are loaded randomly from
+        the process from the ones loaded using the standard linux run-time
+        linker system. 
+
+        This influences the import method of the objects, as we can control the
+        linker system using LD_LIBRARY_PATH, but manually loaded libraries are
+        expected to be found at an hardcoded path, and need to be present in
+        a container at the same path."""
+        # Extract a soname from the given path
         library = Library.from_path(path)
+
+        # Try resolving this soname using the linking rules
         resolved_path = resolve(library.soname,
                                 rpath=orig_rpath + library_set.rpath,
                                 runpath=orig_runpath + library_set.runpath)
 
-        return _same_file(path, resolved_path)
+        return _same_file(
+            path, resolved_path) or not library in library_set.top_level
 
     libraries = set(filter(_resolved, elf_objects))
     orphan_libraries = elf_objects - libraries
