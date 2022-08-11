@@ -195,8 +195,8 @@ def _check_access(p: Union[Path, str]) -> bool:
     check = Path(p).exists()
 
     if not check:
-        LOGGER.warning("Omitting file '%s' from bind list: file not found",
-                       Path(p).as_posix())
+        LOGGER.debug("Omitting file '%s' from bind list: file not found",
+                     Path(p).as_posix())
 
     return check
 
@@ -272,7 +272,7 @@ class ExecuteCommand(AbstractCommand):
             container.get_data()
 
         # Bind all accessible requested files
-        for path in filter(_check_access, args.files):
+        for path in filter(_check_access, args.files or []):
             container.bind_file(path, option=FileOptions.READ_WRITE)
 
         # This script is sourced before any other command in the container
@@ -283,16 +283,9 @@ class ExecuteCommand(AbstractCommand):
         params.debug = logger.debug_mode()
         params.linker_library_path = generate_rtld_path(container)
 
-        files = args.files or []
-        libraries = (args.libraries or []) + wi4mpi_libraries(wi4mpi_root())
-
-        for path in files:
-            container.bind_file(path, option=FileOptions.READ_WRITE)
-
         # Create a set of libraries to import using a library_set object,
         # then filtering it according to the contents of the container
-        final_libset = select_libraries(LibrarySet.create_from(libraries),
-                                        container, params)
+        final_libset = select_libraries(libset, container, params)
 
         # Import each library along with all symlinks pointing to it
         for shared_object in final_libset:
