@@ -48,7 +48,7 @@ from e4s_cl import (EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger,
 from e4s_cl import variables
 from e4s_cl.error import ProfileSelectionError
 from e4s_cl.util import (run_e4scl_subprocess, flatten, json_dumps, json_loads,
-                         path_contains)
+                         path_contains, apply_filters)
 from e4s_cl.cf.trace import opened_files
 from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.cli import arguments
@@ -137,9 +137,10 @@ def filter_files(path_list: List[Path],
     libraries = set(filter(_resolved, elf_objects))
     orphan_libraries = elf_objects - libraries
 
-    files = set(filter(_not_blacklisted,
-                       filter(_not_cache,
-                              regul_files))).union(orphan_libraries)
+    filtered_files = set(
+        apply_filters([_not_cache, _not_blacklisted, _waived_launcher],
+                      regul_files))
+    files = filtered_files.union(orphan_libraries)
 
     return set(map(str, libraries)), set(map(str, files))
 

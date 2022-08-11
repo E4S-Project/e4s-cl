@@ -11,6 +11,7 @@ import pkgutil
 from pathlib import Path
 import hashlib
 import json
+from typing import List, Callable, Iterable, Any
 from functools import lru_cache
 from shutil import which as sh_which
 from collections import deque
@@ -469,3 +470,13 @@ def path_contains(lhs: Path, rhs: Path):
     """
     index = len(lhs.parts)
     return lhs.parts[:index] == rhs.parts[:index]
+
+
+def apply_filters(filters: List[Callable[[Any], bool]],
+                  iterable: Iterable) -> Iterable:
+    result = iterable
+
+    for func in filters:
+        result = filter(func, result)
+
+    return result
