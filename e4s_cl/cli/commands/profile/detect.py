@@ -40,7 +40,7 @@ from typing import List, Optional, Any
 
 from sotools import is_elf
 from sotools.linker import resolve
-from sotools.libraryset import Library
+from sotools.libraryset import Library, LibrarySet
 
 from e4s_cl import (EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger,
                     INIT_TEMP_PROFILE_NAME)
@@ -94,62 +94,54 @@ def filter_files(path_list: List[Path],
 
     launcher_reserved_paths = get_reserved_directories(launcher)
 
-    for path in path_list:
-        # Assert the file still exists and is accessible
+    def _not_cache(path: Path) -> bool:
+        return path != Path('/etc/ld.so.cache')
+
+    def _not_blacklisted(path: Path) -> bool:
+        blacklist = map(Path, ["/tmp", "/sys", "/proc", "/dev", "/run"])
+        for entry in blacklist:
+            if path_contains(entry, path):
+                return False
+        return True
+
+    def _existence(path: Path) -> bool:
+        """Assert the file still exists and is accessible"""
         try:
             if not path.exists() or path.is_dir():
-                continue
+                return False
         except PermissionError:
-            continue
+            return False
+        return True
 
-        # Assert the file path does not correspond to a directory used by the launcher
-        waived_launcher = False
+    def _waived_launcher(path: Path) -> bool:
+        """Assert the file path does not correspond to a directory used by the launcher"""
         for launcher_path in launcher_reserved_paths:
             if path_contains(launcher_path, path):
-                files.add(str(launcher_path))
-                waived_launcher = True
-                break
+                return False
+        return True
 
-        if waived_launcher:
-            continue
+    valid_files = set(filter(_existence, path_list))
+    elf_objects = set(filter(is_elf, valid_files))
+    regul_files = valid_files - elf_objects
 
-        # Process shared objects
-        if is_elf(path):
-            library = Library.from_path(path)
-            resolved_path = resolve(library.soname,
-                                    rpath=orig_rpath,
-                                    runpath=orig_runpath)
+    library_set = LibrarySet.create_from(elf_objects)
 
-            if _same_file(resolved_path, path):
-                # The library is resolved by the linker, treat it as a library
-                libraries.add(path.as_posix())
-                LOGGER.debug("File %s is a library", path.name)
+    def _resolved(path: Path) -> bool:
+        library = Library.from_path(path)
+        resolved_path = resolve(library.soname,
+                                rpath=orig_rpath + library_set.rpath,
+                                runpath=orig_runpath + library_set.runpath)
 
-            else:
-                # It is a library BUT must be imported with a full path
-                files.add(path.as_posix())
-                LOGGER.debug("File %s is a library (non-standard)", path.name)
+        return _same_file(path, resolved_path)
 
-            continue
+    libraries = set(filter(_resolved, elf_objects))
+    orphan_libraries = elf_objects - libraries
 
-        # Discard the linker cache, opened by default for every binary
-        if path.name == 'ld.so.cache':
-            continue
+    files = set(filter(_not_blacklisted,
+                       filter(_not_cache,
+                              regul_files))).union(orphan_libraries)
 
-        # Process files
-        blacklist = ["/tmp", "/sys", "/proc", "/dev", "/run"]
-        filtered = False
-        for expr in blacklist:
-            if not filtered and path.as_posix().startswith(expr):
-                filtered = True
-                break
-
-        if not filtered:
-            files.add(path.as_posix())
-            LOGGER.debug("File %s is a regular file (non-blacklisted)",
-                         path.name)
-
-    return libraries, files
+    return set(map(str, libraries)), set(map(str, files))
 
 
 def save_to_profile(profile_name, libraries, files) -> int:
