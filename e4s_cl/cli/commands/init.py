@@ -246,7 +246,10 @@ def _analyze_binary(args):
     LOGGER.warning(
         "Simulating MPI execution using:\nCompiler: %s\nLauncher %s", compiler,
         " ".join([launcher, *launcher_args]))
-    _check_mpirun(launcher)
+
+    # If no arguments were given, check the default behaviour of the launcher
+    if not launcher_args:
+        _check_mpirun(launcher)
 
     # Run the program using the detect command and get a file list
     returncode = detect_command.main([launcher, *launcher_args, binary])
