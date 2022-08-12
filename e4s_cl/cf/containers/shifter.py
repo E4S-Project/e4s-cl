@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 from e4s_cl import logger, CONTAINER_DIR
-from e4s_cl.util import which, run_subprocess
+from e4s_cl.util import which, run_subprocess, path_contains
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
 LOGGER = logger.get_logger(__name__)
@@ -119,6 +119,11 @@ class ShifterContainer(Container):
         volumes = [(where.as_posix(), CONTAINER_DIR)]
 
         for source, destination, _ in self.bound:
+            if path_contains(Path('/var'), destination):
+                LOGGER.debug("Omitting bind of %s to %s: forbidden bind path",
+                             str(source), str(destination))
+                continue
+
             if destination.as_posix().startswith(CONTAINER_DIR):
                 rebased = destination.as_posix()[len(CONTAINER_DIR) + 1:]
                 temporary = Path(where, rebased)
