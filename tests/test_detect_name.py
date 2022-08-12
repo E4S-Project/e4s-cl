@@ -6,12 +6,11 @@ from pathlib import Path
 import tests
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.libraries import resolve
-from e4s_cl.cf.detect_name import (try_rename, detect_name, version_info,
-                                   _suffix_name, _extract_mvapich_version,
-                                   _extract_intel_mpi_version,
-                                   _extract_mpich_version,
-                                   _extract_cray_mpich_version,
-                                   _extract_open_mpi_version, _extract_vinfo)
+from e4s_cl.cf.detect_name import (
+    try_rename, detect_MPI, _get_MPI_library_version, _suffix_name,
+    _extract_mvapich_version, _extract_intel_mpi_version,
+    _extract_mpich_version, _extract_cray_mpich_version,
+    _extract_open_mpi_version, _get_MPI_handle)
 
 EMPTY_LIB = Path(Path(__file__).parent, 'assets', 'libgver.so.0')
 
@@ -72,48 +71,50 @@ MPI BUILD INFO : Built Tue May 19 13:54:36 2020 (git hash e25eab9) MT-G
 
     @tests.skipIf(not resolve('libmpi.so'), "No library to test with")
     def test_extract_handle(self):
-        self.assertIsNotNone(_extract_vinfo(Path(resolve('libmpi.so'))))
+        self.assertIsNotNone(_get_MPI_handle(Path(resolve('libmpi.so'))))
 
     def test_extract_handle_inexistent_path(self):
-        self.assertIsNone(_extract_vinfo(Path('/tmp/sikenolib')))
+        self.assertIsNone(_get_MPI_handle(Path('/tmp/sikenolib')))
 
     def test_extract_handle_bad_path(self):
-        self.assertIsNone(_extract_vinfo(Path('/root')))
+        self.assertIsNone(_get_MPI_handle(Path('/root')))
 
     def test_extract_handle_incomplete_library(self):
-        self.assertIsNone(_extract_vinfo(EMPTY_LIB))
+        self.assertIsNone(_get_MPI_handle(EMPTY_LIB))
 
     @tests.skipIf(not resolve('libmpi.so'), "No library to test with")
-    def test_get_version_info(self):
-        self.assertIsNotNone(version_info(Path(resolve('libmpi.so'))))
+    def test_get_MPI_library_version(self):
+        self.assertIsNotNone(
+            _get_MPI_library_version(Path(resolve('libmpi.so'))))
 
         self.assertIsNotNone(
-            version_info(Path(resolve('libmpi.so')).as_posix()))
+            _get_MPI_library_version(Path(resolve('libmpi.so')).as_posix()))
 
     def test_get_version_info_inexistent_path(self):
-        self.assertIsNone(version_info(Path('/tmp/sikenolib')))
+        self.assertFalse(_get_MPI_library_version(Path('/tmp/sikenolib')))
 
     def test_get_version_info_bad_path(self):
-        self.assertIsNone(version_info(Path('/root')))
+        self.assertFalse(_get_MPI_library_version(Path('/root')))
 
     def test_get_version_info_incomplete_library(self):
-        self.assertIsNone(
-            version_info(Path(Path(__file__).parent, 'assets',
-                              'libgver.so.0')))
+        self.assertFalse(
+            _get_MPI_library_version(
+                Path(Path(__file__).parent, 'assets', 'libgver.so.0')))
 
     @tests.skipIf(not resolve('libmpi.so'), "No library to test with")
-    def test_detect_name(self):
-        self.assertTrue(detect_name([resolve('libmpi.so')]))
+    def test_detect_MPI(self):
+        self.assertTrue(detect_MPI([resolve('libmpi.so')]))
 
-    def test_detect_name_no_mpi(self):
-        self.assertFalse(detect_name([EMPTY_LIB]))
+    def test_detect_MPI_no_mpi(self):
+        self.assertFalse(detect_MPI([EMPTY_LIB]))
 
     @tests.skipIf(not resolve('libmpi.so'), "No library to test with")
     def test_rename_profile(self):
         name = '__test_profile_rename'
 
         profile = Profile.controller().create({
-            'name': name,
+            'name':
+            name,
             'libraries': [resolve('libmpi.so')]
         })
 
@@ -127,7 +128,8 @@ MPI BUILD INFO : Built Tue May 19 13:54:36 2020 (git hash e25eab9) MT-G
         name = '__test_profile_rename'
 
         profile = Profile.controller().create({
-            'name': name,
+            'name':
+            name,
             'libraries': [resolve('libc.so.6')]
         })
 
