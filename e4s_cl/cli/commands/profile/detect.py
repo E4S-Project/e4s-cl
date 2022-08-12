@@ -15,7 +15,7 @@ of the network stack;
 Failure to do so may result in erroneous detection of communication libraries \
 and thus may create communication errors when using the profile.
 
-Use :code:`-p/--profile` to select a output profile. If the option is not \
+Use :code:`-p/--profile` to select an output profile. If the option is not \
 present, the selected profile will be overwritten instead.
 
 .. warning::
@@ -63,7 +63,7 @@ LAUNCHER_VAR = '__E4S_CL_DETECT_LAUNCHER'
 def _same_file(lhs: Any, rhs: Any) -> bool:
     """Assert two files are the same file, even through symbolic links"""
 
-    def _force_cast(val: Any) -> bool:
+    def _force_cast(val: Any) -> Path:
         allowed = [str, bytes, os.PathLike]
         for check in allowed:
             if isinstance(val, check):
@@ -85,7 +85,6 @@ def filter_files(path_list: List[Path],
     Files are referenced using their paths and have to be imported at the same
     location. They can be ELF objects that are dynamically loaded by the library.
     """
-    libraries, files = set(), set()
     orig_rpath, orig_runpath = [], []
 
     if original_binary is not None:
@@ -122,7 +121,7 @@ def filter_files(path_list: List[Path],
 
     valid_files = set(filter(_existence, path_list))
     elf_objects = set(filter(is_elf, valid_files))
-    regul_files = valid_files - elf_objects
+    regular_files = valid_files - elf_objects
 
     library_set = LibrarySet.create_from(elf_objects)
 
@@ -137,7 +136,7 @@ def filter_files(path_list: List[Path],
 
         This influences the import method of the objects, as we can control the
         linker system using LD_LIBRARY_PATH, but manually loaded libraries are
-        expected to be found at an hardcoded path, and need to be present in
+        expected to be found at a hardcoded path, and need to be present in
         a container at the same path."""
         # Extract a soname from the given path
         library = Library.from_path(path)
@@ -155,7 +154,7 @@ def filter_files(path_list: List[Path],
 
     filtered_files = set(
         apply_filters([_not_cache, _not_blacklisted, _waived_launcher],
-                      regul_files))
+                      regular_files))
     files = filtered_files.union(orphan_libraries)
 
     return set(map(str, libraries)), set(map(str, files))
@@ -172,8 +171,8 @@ def save_to_profile(profile_name, libraries, files) -> int:
 
         if not profile:
             try:
-                profile = controller.create(identifier)
-            except Exception as err:  #TODO check what errors can arise
+                controller.create(identifier)
+            except Exception as err:  # TODO check what errors can arise
                 LOGGER.error("Profile creation failed: %s", str(err))
                 return EXIT_FAILURE
     else:
@@ -200,6 +199,42 @@ def save_to_profile(profile_name, libraries, files) -> int:
     return EXIT_SUCCESS
 
 
+def detect_subprocesses(launcher, program):
+    """Run process profiling in subprocesses with the detected launcher"""
+    files, libs = [], []
+
+    with variables.ParentStatus():
+        os.environ[LAUNCHER_VAR] = launcher[0]
+        # If a launcher is present, act as a launcher
+        return_code, json_data = run_e4scl_subprocess([
+            *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect",
+            *program
+        ],
+                                                     capture_output=True)
+
+    if return_code:
+        LOGGER.error(
+            "Failed to determine necessary libraries: program exited with code %d",
+            return_code)
+        return libs, files
+
+    # Merge all the data sent back into files and libraries
+    file_paths, library_paths = [], []
+
+    for line in json_data.split('\n'):
+        try:
+            data = json_loads(line)
+            file_paths.append(data['files'])
+            library_paths.append(data['libraries'])
+        except (JSONDecodeError, TypeError):
+            pass
+
+    files = list(set(flatten(file_paths)))
+    libs = list(set(flatten(library_paths)))
+
+    return libs, files
+
+
 class ProfileDetectCommand(AbstractCliView):
     """``profile create`` subcommand."""
 
@@ -221,43 +256,6 @@ class ProfileDetectCommand(AbstractCliView):
                             nargs=arguments.REMAINDER)
         return parser
 
-    def detect_subprocesses(self, launcher, program):
-        """
-        Run process profiling in subprocesses with the detected launcher
-        """
-        files, libs = [], []
-
-        with variables.ParentStatus():
-            os.environ[LAUNCHER_VAR] = launcher[0]
-            # If a launcher is present, act as a launcher
-            returncode, json_data = run_e4scl_subprocess([
-                *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect",
-                *program
-            ],
-                                                         capture_output=True)
-
-        if returncode:
-            LOGGER.error(
-                "Failed to determine necessary libraries: program exited with code %d",
-                returncode)
-            return libs, files
-
-        # Merge all the data sent back into files and libraries
-        file_paths, library_paths = [], []
-
-        for line in json_data.split('\n'):
-            try:
-                data = json_loads(line)
-                file_paths.append(data['files'])
-                library_paths.append(data['libraries'])
-            except (JSONDecodeError, TypeError):
-                pass
-
-        files = list(set(flatten(file_paths)))
-        libs = list(set(flatten(library_paths)))
-
-        return libs, files
-
     def main(self, argv):
         args = self._parse_args(argv)
 
@@ -266,18 +264,17 @@ class ProfileDetectCommand(AbstractCliView):
 
         launcher, program = interpret(args.cmd)
 
-        libs, files = [], []
         if launcher:
-            libs, files = self.detect_subprocesses(launcher, program)
+            libs, files = detect_subprocesses(launcher, program)
         else:
             launcher = os.environ.get(LAUNCHER_VAR, '').split(' ')
 
             # No launcher, analyse the command
-            returncode, accessed_files = opened_files(args.cmd)
+            return_code, accessed_files = opened_files(args.cmd)
 
-            if returncode:
+            if return_code:
                 LOGGER.warning("Command %s failed with error code %d",
-                               args.cmd, returncode)
+                               args.cmd, return_code)
 
             # Access the binary to check ELF metadata
             binary = None

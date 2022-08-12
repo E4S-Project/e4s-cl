@@ -2,7 +2,7 @@
 Profile data model.
 """
 
-import pathlib
+from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.error import ProfileSelectionError
 from e4s_cl.mvc.model import Model

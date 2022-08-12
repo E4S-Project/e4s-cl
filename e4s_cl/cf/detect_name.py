@@ -4,11 +4,10 @@ Automatic name detector based on mpi vendor
 
 import re
 import ctypes
-from typing import Optional, Callable, List, Tuple
+from typing import Optional, Callable, Iterable, Tuple
 from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.model.profile import Profile
-from e4s_cl.cf.libraries import LibrarySet
 
 LOGGER = logger.get_logger(__name__)
 
@@ -16,16 +15,16 @@ LOGGER = logger.get_logger(__name__)
 def _suffix_name(name: str, existing_names: set) -> str:
     """Compute a '-N' suffix for new profiles"""
     # Do not append a suffix for the first unique profile
-    if not name in existing_names:
+    if name not in existing_names:
         return name
 
-    # An exact match exists, filter the occurences of 'name-N' (clones)
+    # An exact match exists, filter the occurrences of 'name-N' (clones)
     # and return name-max(N)+1
     clones = set(
         filter(
             None,
             map(
-                lambda x: re.match(f"{re.escape(name)}-(?P<ordinal>[0-9]*)", x
+                lambda x: re.match(fr"{re.escape(name)}-(?P<ordinal>\d*)", x
                                    ), existing_names)))
 
     # Try to list all clones of this profile
@@ -122,14 +121,13 @@ distro_dict = {
 }
 
 
-def _get_MPI_handle(path: Path) -> Optional[Callable]:
-    """Get the a handle to the MPI_Get_library_version symbol given
-    a path to a shared object"""
+def _get_mpi_handle(path: Path) -> Optional[Callable]:
+    """Get a handle to the MPI_Get_library_version symbol given a path to a shared object"""
     if not path.exists():
         return None
 
     try:
-        handle = ctypes.CDLL(path)
+        handle = ctypes.CDLL(path.as_posix())
         return getattr(handle, 'MPI_Get_library_version', None)
     except OSError as err:
         LOGGER.debug("Error loading shared object %s: %s", path.as_posix(),
@@ -137,9 +135,8 @@ def _get_MPI_handle(path: Path) -> Optional[Callable]:
         return None
 
 
-def _get_MPI_library_version(path: Path) -> str:
-    """Return the output of the MPI_Get_library_version symbol in the MPI binary
-    passed as an argument"""
+def _get_mpi_library_version(path: Path) -> str:
+    """Return the output of the MPI_Get_library_version symbol in the MPI binary passed as an argument"""
 
     if isinstance(path, str):
         path = Path(path)
@@ -149,7 +146,7 @@ def _get_MPI_library_version(path: Path) -> str:
     length = ctypes.c_int()
 
     # Get a callable towards the C code
-    handle = _get_MPI_handle(path)
+    handle = _get_mpi_handle(path)
     if not handle:
         LOGGER.debug("Extracting MPI_Get_library_version from %s failed",
                      path.as_posix())
@@ -163,10 +160,10 @@ def _get_MPI_library_version(path: Path) -> str:
     return ''
 
 
-def _get_MPI_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
+def _get_mpi_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
     """Return a tuple of string according to the vendor and version of the MPI
     binary passed as an argument"""
-    raw_str = _get_MPI_library_version(path)
+    raw_str = _get_mpi_library_version(path)
 
     # Check for vendor keywords in the buffer
     filtered_buffer = list(filter(lambda x: x in raw_str, distro_dict.keys()))
@@ -184,17 +181,17 @@ def _get_MPI_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
     try:
         version_str = distro_dict.get(vendor_name,
                                       lambda x: 'UNKNOWN_VERSION')(raw_str)
-    except Exception:
+    except IndexError:
         return None
 
-    return (vendor_name, version_str)
+    return vendor_name, version_str
 
 
-def detect_MPI(path_list: List[Path]) -> str:
+def detect_mpi(path_list: Iterable[Path]) -> str:
     profile_name = ''
 
     # Set of all MPI vendors and versions found in the binaries
-    version_data = set(filter(None, map(_get_MPI_vendor_version, path_list)))
+    version_data = set(filter(None, map(_get_mpi_vendor_version, path_list)))
 
     # Set of all unique vendors
     found_vendors = set(map(lambda x: x[0], version_data))
@@ -225,7 +222,7 @@ def try_rename(profile_eid: int) -> None:
     mpi_libs = set(filter(_filter_mpi, detected_libs))
 
     # Run the methods in the libraries to get a version
-    new_name = detect_MPI(mpi_libs)
+    new_name = detect_mpi(mpi_libs)
 
     if not new_name:
         LOGGER.debug("Profile naming failed: no symbol found in %s",
