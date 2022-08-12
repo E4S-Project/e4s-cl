@@ -51,13 +51,15 @@ def attributes():
     }
 
 
-def homogenize_files(data):
+def homogenize_files(data: dict) -> None:
+    """Cast all paths to posix-compliant format"""
     if not isinstance(data, dict):
         return
 
-    files = data.get('files', [])
-    if files:
-        data['files'] = list({pathlib.Path(f).as_posix() for f in files})
+    def _sanitize(path: str) -> str:
+        return Path(path).as_posix()
+
+    data['files'] = list(map(_sanitize, data.get('files', [])))
 
 
 class ProfileController(Controller):

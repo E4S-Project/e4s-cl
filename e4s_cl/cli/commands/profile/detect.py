@@ -148,7 +148,7 @@ def filter_files(path_list: List[Path],
                                 runpath=orig_runpath + library_set.runpath)
 
         return _same_file(
-            path, resolved_path) or not library in library_set.top_level
+            path, resolved_path) or library not in library_set.top_level
 
     libraries = set(filter(_resolved, elf_objects))
     orphan_libraries = elf_objects - libraries
@@ -274,6 +274,10 @@ class ProfileDetectCommand(AbstractCliView):
 
             # No launcher, analyse the command
             returncode, accessed_files = opened_files(args.cmd)
+
+            if returncode:
+                LOGGER.warning("Command %s failed with error code %d",
+                               args.cmd, returncode)
 
             # Access the binary to check ELF metadata
             binary = None
