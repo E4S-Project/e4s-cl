@@ -53,7 +53,7 @@ def attributes():
 
 def homogenize_files(data: dict) -> None:
     """Cast all paths to posix-compliant format"""
-    if not isinstance(data, dict):
+    if not isinstance(data, dict) or 'files' not in data:
         return
 
     def _sanitize(path: str) -> str:
