@@ -243,9 +243,8 @@ def _analyze_binary(args):
             "or `--launcher` options to specify the launcher program to use.")
         return EXIT_FAILURE
 
-    LOGGER.warning(
-        "Simulating MPI execution using:\nCompiler: %s\nLauncher %s", compiler,
-        " ".join([launcher, *launcher_args]))
+    LOGGER.warning("Tracing MPI execution using:\nCompiler: %s\nLauncher %s",
+                   compiler, " ".join([launcher, *launcher_args]))
 
     # If no arguments were given, check the default behaviour of the launcher
     if not launcher_args:
