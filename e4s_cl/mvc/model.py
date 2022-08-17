@@ -101,7 +101,6 @@ class Model(StorageRecord, metaclass=ModelMeta):
         super().__init__(
             record.storage, record.eid,
             (item for item in record.items() if item[0] not in deprecated))
-        self._populated = None
 
     def __setitem__(self, key, value):
         raise InternalError(
@@ -137,34 +136,6 @@ class Model(StorageRecord, metaclass=ModelMeta):
 
     def on_delete(self):
         """Callback to be invoked before a data record is deleted."""
-
-    def populate(self, attribute=None, defaults=False):
-        """Shorthand for ``self.controller(self.storage).populate(self, attribute, defaults)``.
-        
-        Result is cached in the object instance when possible so this should be faster
-        than populating directly from the controller.
-        
-        Args:
-            attribute (Optional[str]): If given, return only the populated attribute.
-            defaults (Optional[bool]): If given, set undefined attributes to their default values.
-        
-        Returns:
-            If attribute is None, a dictionary of controlled data merged with associated records.
-            If attribute is not None, the value of the populated attribute. 
-            
-        Raises:
-            KeyError: `attribute` is undefined in the record. 
-        """
-        if attribute:
-            if self._populated is not None and not defaults:
-                return self._populated[attribute]
-            return self.controller(self.storage).populate(
-                self, attribute, defaults)
-
-        if self._populated is None:
-            self._populated = self.controller(self.storage).populate(
-                self, attribute, defaults)
-        return self._populated
 
     @classmethod
     def controller(cls, storage):

@@ -20,6 +20,11 @@ class DetectNameTests(tests.TestCase):
     Tests relating to mpi library version detection
     """
 
+    def tearDown(self):
+        Profile.controller().unselect()
+        self.resetStorage()
+        self.assertFalse(Profile.controller().all())
+
     def test_suffix(self):
         self.assertEqual(_suffix_name('apple', {}), 'apple')
         self.assertEqual(_suffix_name('apple', {'advanced'}), 'apple')
