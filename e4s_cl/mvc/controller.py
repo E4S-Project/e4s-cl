@@ -227,12 +227,29 @@ class Controller():
             data (dict): New data for existing records.
             keys: Fields or element identifiers to match.
         """
-        for attr in data:
+        old_records = self.search(keys)
+
+        if not old_records:
+            raise ModelError(self.model,
+                             f"No matching models for query {keys}")
+
+        for attr, value in data.items():
             if attr not in self.model.attributes:
                 raise ModelError(self.model, f"no attribute named '{attr}'")
+
+            if attr == self.model.key_attribute:
+                if len(old_records) > 1:
+                    raise ModelError(
+                        self.model,
+                        f"Updating {len(old_records)} {self.model.name.lower()}s"
+                        f" with {attr}={value} would break unicity rules")
+
+                existing_record = self.one({attr: value})
+                if existing_record and existing_record not in old_records:
+                    raise UniqueAttributeError(self.model, {attr: value})
+
         with self.storage as database:
             # Get the list of affected records **before** updating the data so foreign keys are correct
-            old_records = self.search(keys)
             database.update(data, keys, table_name=self.model.name)
             changes = {}
             for model in old_records:

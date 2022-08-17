@@ -82,8 +82,14 @@ class ProfileController(Controller):
 
         super().delete(keys)
 
-    def select(self, profile):
-        self.storage['selected_profile'] = profile.eid
+    def select(self, keys):
+        """Mark a profile as selected"""
+        to_select = self.one(keys)
+
+        if to_select is not None:
+            self.storage['selected_profile'] = to_select.eid
+        else:
+            raise ProfileSelectionError('No matching profile')
 
     def unselect(self):
         if self.storage.contains({'key': 'selected_profile'}):
