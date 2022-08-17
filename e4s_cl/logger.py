@@ -454,10 +454,10 @@ def add_file_handler(
 
 
 def update_symlink_latest():
-    if os.path.exists(Path(LOG_FILE.parent, LOG_ID)):
+    if Path(LOG_FILE.parent, LOG_ID).exists():
         try:
-            os.unlink(LOG_LATEST)
-            os.symlink(Path(LOG_FILE.parent, LOG_ID), LOG_LATEST)
+            LOG_LATEST.unlink(missing_ok=True)
+            LOG_LATEST.symlink_to(Path(LOG_FILE.parent, LOG_ID))
         except OSError as err:
             _ROOT_LOGGER.debug("Updating symlink %s failed: %s",
                                LOG_LATEST.as_posix(), str(err))
