@@ -20,6 +20,7 @@ import platform
 import string
 import logging
 import hashlib
+import atexit
 from pathlib import Path
 from time import time
 from logging import handlers
@@ -451,6 +452,22 @@ def add_file_handler(
 
     return True
 
+def symlink_latest():
+    if os.path.exists(Path(LOG_FILE.parent, LOG_ID)):
+        try:
+            os.unlink(LOG_LATEST)
+        except OSError as err:
+            _ROOT_LOGGER.debug("Unlink %s failed: %s", LOG_LATEST.as_posix(),
+                               str(err))
+
+        try:
+            os.symlink(Path(LOG_FILE.parent, LOG_ID), LOG_LATEST)
+        except OSError as err:
+            _ROOT_LOGGER.debug("Symlink %s failed: %s", LOG_LATEST.as_posix(),
+                               str(err))
+        else:
+            os.environ[LOG_ID_MARKER] = LOG_LATEST.name
+
 
 _ROOT_LOGGER = logging.getLogger()
 if not _ROOT_LOGGER.handlers:
@@ -490,20 +507,9 @@ if is_parent():
                              fmt=f"%(asctime)s\t{LOG_ID}\t%(message)s"))
         index_logger.info(" ".join(sys.argv))
 
-        # Create a symlink towards the latest log directory
-        try:
-            os.unlink(LOG_LATEST)
-        except OSError as err:
-            _ROOT_LOGGER.debug("Unlink %s failed: %s", LOG_LATEST.as_posix(),
-                               str(err))
-
-        try:
-            os.symlink(Path(LOG_FILE.parent, LOG_ID), LOG_LATEST)
-        except OSError as err:
-            _ROOT_LOGGER.debug("Symlink %s failed: %s", LOG_LATEST.as_posix(),
-                               str(err))
-        else:
-            os.environ[LOG_ID_MARKER] = LOG_LATEST.name
+        # Create a symlink towards the latest log directory at the end
+        # of the program execution
+        atexit.register(symlink_latest)
 
     # pylint: disable=logging-not-lazy
     _ROOT_LOGGER.debug(
