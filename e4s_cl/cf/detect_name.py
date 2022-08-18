@@ -23,9 +23,8 @@ def _suffix_name(name: str, existing_names: set) -> str:
     clones = set(
         filter(
             None,
-            map(
-                lambda x: re.match(fr"{re.escape(name)}-(?P<ordinal>\d*)", x
-                                   ), existing_names)))
+            map(lambda x: re.match(fr"{re.escape(name)}-(?P<ordinal>\d*)", x),
+                existing_names)))
 
     # Try to list all clones of this profile
     ordinals = []
@@ -203,7 +202,7 @@ def detect_mpi(path_list: Iterable[Path]) -> str:
     return profile_name
 
 
-def try_rename(profile_eid: int) -> None:
+def rename_profile_mpi_version(profile_eid: int) -> bool:
     """
     Analyze the profile with the given eid for MPI libraries and rename it
     according to the vendor/version info in the shared object
@@ -212,7 +211,7 @@ def try_rename(profile_eid: int) -> None:
     if not data:
         LOGGER.debug("Error renaming profile: profile id '%d' not found",
                      profile_eid)
-        return
+        return False
 
     def _filter_mpi(path: Path):
         return re.match(r'libmpi.*so.*', path.name)
@@ -222,22 +221,24 @@ def try_rename(profile_eid: int) -> None:
     mpi_libs = set(filter(_filter_mpi, detected_libs))
 
     # Run the methods in the libraries to get a version
-    new_name = detect_mpi(mpi_libs)
+    mpi_id = detect_mpi(mpi_libs)
 
-    if not new_name:
+    if not mpi_id:
         LOGGER.debug("Profile naming failed: no symbol found in %s",
                      " ".join(map(str, mpi_libs)))
-        return
+        return False
 
-    LOGGER.debug("Found library %s", new_name)
+    LOGGER.debug("Found identifier %s from profile's MPI libraries", mpi_id)
 
     # Get all profiles matching the new name
     matches = Profile.controller().match('name',
-                                         regex=f"{re.escape(new_name)}.*")
-    names = set(filter(None, map(lambda x: x.get('name'), matches)))
+                                         regex=f"{re.escape(mpi_id)}.*")
+    matching_names = set(filter(None, map(lambda x: x.get('name'), matches)))
 
     # Add a suffix to the name to avoid conflict
-    profile_name = _suffix_name(new_name, names)
+    profile_name = _suffix_name(mpi_id, matching_names)
 
     # Update the profile name
     Profile.controller().update({'name': profile_name}, profile_eid)
+
+    return True

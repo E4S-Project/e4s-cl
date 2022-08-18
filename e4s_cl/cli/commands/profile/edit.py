@@ -12,7 +12,7 @@ The name argument can be omitted, in which case the selected profile is modified
 """
 
 from pathlib import Path
-from e4s_cl import EXIT_SUCCESS
+from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE
 from e4s_cl.error import UniqueAttributeError
 from e4s_cl.cli import arguments
 from e4s_cl.logger import get_logger

@@ -7,8 +7,8 @@ import tests
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.libraries import resolve
 from e4s_cl.cf.detect_name import (
-    try_rename, detect_mpi, _get_mpi_library_version, _suffix_name,
-    _extract_mvapich_version, _extract_intel_mpi_version,
+    rename_profile_mpi_version, detect_mpi, _get_mpi_library_version,
+    _suffix_name, _extract_mvapich_version, _extract_intel_mpi_version,
     _extract_mpich_version, _extract_cray_mpich_version,
     _extract_open_mpi_version, _get_mpi_handle)
 
@@ -123,7 +123,7 @@ MPI BUILD INFO : Built Tue May 19 13:54:36 2020 (git hash e25eab9) MT-G
             'libraries': [resolve('libmpi.so')]
         })
 
-        try_rename(profile.eid)
+        rename_profile_mpi_version(profile.eid)
 
         profile = Profile.controller().one(profile.eid)
 
@@ -138,11 +138,11 @@ MPI BUILD INFO : Built Tue May 19 13:54:36 2020 (git hash e25eab9) MT-G
             'libraries': [resolve('libc.so.6')]
         })
 
-        try_rename(profile.eid)
+        rename_profile_mpi_version(profile.eid)
 
         profile = Profile.controller().one(profile.eid)
 
         self.assertEqual(profile.get('name'), name)
 
     def test_rename_profile_bad_eid(self):
-        try_rename(256)
+        rename_profile_mpi_version(256)
