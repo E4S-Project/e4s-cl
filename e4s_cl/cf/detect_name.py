@@ -207,7 +207,8 @@ def rename_profile_mpi_version(profile_eid: int) -> bool:
     Analyze the profile with the given eid for MPI libraries and rename it
     according to the vendor/version info in the shared object
     """
-    data = Profile.controller().one(profile_eid)
+    controller = Profile.controller()
+    data = controller.one(profile_eid)
     if not data:
         LOGGER.debug("Error renaming profile: profile id '%d' not found",
                      profile_eid)
@@ -239,6 +240,12 @@ def rename_profile_mpi_version(profile_eid: int) -> bool:
     profile_name = _suffix_name(mpi_id, matching_names)
 
     # Update the profile name
-    Profile.controller().update({'name': profile_name}, profile_eid)
+    try:
+        controller.update({'name': profile_name}, profile_eid)
+    except UniqueAttributeError:
+        LOGGER.error(
+            "Error updating profile '%s' name to '%s': another profile exists",
+            data['name'], profile_name)
+        return False
 
     return True
