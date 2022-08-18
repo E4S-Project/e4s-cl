@@ -124,6 +124,8 @@ def filter_files(path_list: List[Path],
     regular_files = valid_files - elf_objects
 
     library_set = LibrarySet.create_from(elf_objects)
+    if original_binary:
+        library_set.add(original_binary)
 
     def _resolved(path: Path) -> bool:
         """Assert the given path (assuming it to be an elf object) corresponds
@@ -142,12 +144,19 @@ def filter_files(path_list: List[Path],
         library = Library.from_path(path)
 
         # Try resolving this soname using the linking rules
-        resolved_path = resolve(library.soname,
-                                rpath=orig_rpath + library_set.rpath,
-                                runpath=orig_runpath + library_set.runpath)
+        resolved_soname = resolve(library.soname,
+                                  rpath=orig_rpath + library_set.rpath,
+                                  runpath=orig_runpath + library_set.runpath)
 
-        return _same_file(
-            path, resolved_path) or library not in library_set.top_level
+        # For some libraries that disregard SONAME rules (CRAY), try resolving
+        # using the file name as it is the one that is actually relevant
+        resolved_filename = resolve(path.name,
+                                    rpath=orig_rpath + library_set.rpath,
+                                    runpath=orig_runpath + library_set.runpath)
+
+        return (_same_file(path, resolved_soname)
+                or _same_file(path, resolved_filename)
+                or library not in library_set.top_level)
 
     libraries = set(filter(_resolved, elf_objects))
     orphan_libraries = elf_objects - libraries
@@ -210,7 +219,7 @@ def detect_subprocesses(launcher, program):
             *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect",
             *program
         ],
-                                                     capture_output=True)
+                                                      capture_output=True)
 
     if return_code:
         LOGGER.error(
