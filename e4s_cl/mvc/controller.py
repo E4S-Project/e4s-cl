@@ -3,7 +3,7 @@ Controller definition of the MVC architecture
 """
 
 from e4s_cl import logger
-from e4s_cl.error import InternalError, UniqueAttributeError, ModelError
+from e4s_cl.error import UniqueAttributeError, ModelError
 
 LOGGER = logger.get_logger(__name__)
 

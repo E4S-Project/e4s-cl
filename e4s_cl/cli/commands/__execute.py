@@ -191,12 +191,12 @@ def generate_rtld_path(container):
     return path_list + [container.import_library_dir]
 
 
-def _check_access(p: Union[Path, str]) -> bool:
-    check = Path(p).exists()
+def _check_access(path: Union[Path, str]) -> bool:
+    check = Path(path).exists()
 
     if not check:
         LOGGER.debug("Omitting file '%s' from bind list: file not found",
-                     Path(p).as_posix())
+                     Path(path).as_posix())
 
     return check
 

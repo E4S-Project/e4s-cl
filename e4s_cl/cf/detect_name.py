@@ -7,6 +7,7 @@ import ctypes
 from typing import Optional, Callable, Iterable, Tuple
 from pathlib import Path
 from e4s_cl import logger
+from e4s_cl.error import UniqueAttributeError
 from e4s_cl.model.profile import Profile
 
 LOGGER = logger.get_logger(__name__)
@@ -187,6 +188,7 @@ def _get_mpi_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
 
 
 def detect_mpi(path_list: Iterable[Path]) -> str:
+    """Parse the binaries from paths passed as arguments to get a `VENDOR@VERSION` string"""
     profile_name = ''
 
     # Set of all MPI vendors and versions found in the binaries

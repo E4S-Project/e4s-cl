@@ -157,7 +157,7 @@ class ProfileEditCommand(EditCommand):
 
         try:
             controller.update(updates, {'name': profile_name})
-        except UniqueAttributeError as err:
+        except UniqueAttributeError:
             LOGGER.error("Invalid parameters for edition: %s=%s",
                          Profile.key_attribute, updates[Profile.key_attribute])
             return EXIT_FAILURE
