@@ -270,6 +270,9 @@ def _skip_analysis(args) -> bool:
     if getattr(args, 'backend', '') == 'shifter':
         return False
 
+    if getattr(args, 'wi4mpi', ''):
+        return False
+
     return True
 
 
@@ -416,8 +419,7 @@ class InitCommand(AbstractCommand):
         controller = Profile.controller()
 
         # Erase any leftover temporary profiles
-        if controller.one({"name": profile_data['name']}):
-            controller.delete({"name": profile_data['name']})
+        controller.delete({"name": profile_data['name']})
 
         # Create and select a profile for use
         profile = controller.create(profile_data)
