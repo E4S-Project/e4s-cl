@@ -11,6 +11,7 @@ import pkgutil
 from pathlib import Path
 import hashlib
 import json
+from typing import List, Callable, Iterable, Any
 from functools import lru_cache
 from shutil import which as sh_which
 from collections import deque
@@ -182,6 +183,7 @@ def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
                     subproc_env[key] = val
                     _heavy_debug("%s=%s", key, val)
 
+        LOGGER.debug("Running with parent status: %s", cmd)
         with subprocess.Popen(
                 cmd,
                 cwd=cwd,
@@ -459,3 +461,22 @@ def update_ld_path(path: Path):
 def catchtime() -> float:
     start = perf_counter()
     yield lambda: perf_counter() - start
+
+
+def path_contains(lhs: Path, rhs: Path):
+    """
+    Returns true if rhs is in the tree of which lhs is the root
+    pathlib's < operator compares alphabetically, so here we are
+    """
+    index = len(lhs.parts)
+    return lhs.parts[:index] == rhs.parts[:index]
+
+
+def apply_filters(filters: List[Callable[[Any], bool]],
+                  iterable: Iterable) -> Iterable:
+    result = iterable
+
+    for func in filters:
+        result = filter(func, result)
+
+    return result

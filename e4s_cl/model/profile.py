@@ -2,7 +2,7 @@
 Profile data model.
 """
 
-import pathlib
+from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.error import ProfileSelectionError
 from e4s_cl.mvc.model import Model
@@ -51,13 +51,15 @@ def attributes():
     }
 
 
-def homogenize_files(data):
-    if not isinstance(data, dict):
+def homogenize_files(data: dict) -> None:
+    """Cast all paths to posix-compliant format"""
+    if not isinstance(data, dict) or 'files' not in data:
         return
 
-    files = data.get('files', [])
-    if files:
-        data['files'] = list({pathlib.Path(f).as_posix() for f in files})
+    def _sanitize(path: str) -> str:
+        return Path(path).as_posix()
+
+    data['files'] = list(map(_sanitize, data.get('files', [])))
 
 
 class ProfileController(Controller):
@@ -80,8 +82,14 @@ class ProfileController(Controller):
 
         super().delete(keys)
 
-    def select(self, profile):
-        self.storage['selected_profile'] = profile.eid
+    def select(self, keys):
+        """Mark a profile as selected"""
+        to_select = self.one(keys)
+
+        if to_select is not None:
+            self.storage['selected_profile'] = to_select.eid
+        else:
+            raise ProfileSelectionError('No matching profile')
 
     def unselect(self):
         if self.storage.contains({'key': 'selected_profile'}):

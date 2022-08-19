@@ -5,19 +5,27 @@ import tests
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
+from e4s_cl import config
 from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.launchers import LAUNCHERS
 from e4s_cl.cli.commands.launch import COMMAND
 from e4s_cl.cli.cli_view import CreateCommand
 from e4s_cl.model.profile import Profile
-import e4s_cl.config as config
-
-CONFIGURATION_FILE = tests.ASSETS / "e4s-cl.yaml"
-DEFAULT_CONFIGURATION = config.CONFIGURATION
-TEST_CONFIGURATION = config.Configuration.create_from_file(CONFIGURATION_FILE)
 
 
 class LaunchTest(tests.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        tests.TestCase.setUpClass()
+        CONFIGURATION_FILE = tests.ASSETS / "e4s-cl.yaml"
+        TEST_CONFIGURATION = config.Configuration.create_from_file(
+            CONFIGURATION_FILE)
+        config.update_configuration(TEST_CONFIGURATION)
+
+    @classmethod
+    def tearDownClass(cls):
+        config.update_configuration(config.Configuration.default())
 
     def setUp(self):
         self.resetStorage()
@@ -36,12 +44,10 @@ class LaunchTest(tests.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     def test_configured_launch(self, stdout):
         set_dry_run(True)
-        config.update_configuration(TEST_CONFIGURATION)
         COMMAND.main(
             shlex.split(
                 f"--backend containerless --image None mpirun hostname"))
         self.assertIn('-n 8', stdout.getvalue())
-        config.update_configuration(DEFAULT_CONFIGURATION)
 
 
 def wrapper(launcher):

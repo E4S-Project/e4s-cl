@@ -3,10 +3,12 @@ Entry point for supported program launchers"""
 
 import sys
 import re
+from os import environ
+from typing import List
 from pathlib import Path
 from importlib import import_module
-from os import environ
-from e4s_cl import logger
+from shlex import split
+from e4s_cl import logger, config
 from e4s_cl.util import walk_packages
 from e4s_cl.error import InternalError
 
@@ -32,6 +34,7 @@ class Parser:
     PARSER = Parser(ARGUMENTS)
     ```
     """
+
     def __init__(self, arguments):
         self.arguments = arguments
 
@@ -55,7 +58,7 @@ class Parser:
                 to_skip = self.arguments[flag]
 
             # Catch generic --flag=value
-            elif re.match(r'^--[\-A-Za-z]+=.*$', flag):
+            elif re.match(r'^--[\-A-Za-z0-9]+=.*$', flag):
                 to_skip = 0
 
             else:
@@ -78,29 +81,55 @@ for _, _module_name, _ in walk_packages(path=__path__, prefix=__name__ + '.'):
         LAUNCHERS.update({script_name: _module_name})
 
 
-def parse_cli(cmd):
+def get_launcher(cmd: List[str]):
     """
-    Determine if the launcher is supported
-    import its module and parse the command line
+    Return a launcher module for the given command
     """
-    script = Path(cmd[0]).name
+    if not cmd or cmd is None:
+        return None
 
+    script = Path(cmd[0]).name
     module_name = LAUNCHERS.get(script)
 
-    if module_name:
-        return sys.modules[module_name].PARSER.parse(cmd)
-    raise NotImplementedError(f"Launcher {script} is not supported")
+    if not module_name:
+        return None
+    return sys.modules[module_name]
+
+
+def get_reserved_directories(cmd: List[str]):
+    launcher_module = get_launcher(cmd)
+    if launcher_module is not None and getattr(launcher_module, 'META', False):
+        if 'reserved_directories' in launcher_module.META:
+            return list(map(Path,
+                            launcher_module.META['reserved_directories']))
+
+    return []
+
+
+def parse_cli(cmd):
+    """
+    Parse a command line to split it into launcher and command
+    """
+    if not cmd:
+        return [], []
+
+    module = get_launcher(cmd)
+
+    if module:
+        return module.PARSER.parse(cmd)
+    raise NotImplementedError(f"Launcher {Path(cmd[0]).name} is not supported")
 
 
 def interpret(cmd):
-    """Parses a command line to split the launcher command and application commands.
+    """
+    Parses a command line to split the launcher command and application commands.
 
-       Args:
-           cmd (list[str]): Command line.
+    Args:
+       cmd (list[str]): Command line.
 
-       Returns:
-           tuple: (Launcher command, possibly empty list of application commands).
-       """
+    Returns:
+       tuple: (Launcher command, possibly empty list of application commands).
+    """
     launcher_cmd = []
 
     # If '--' appears in the command then everything before it is a launcher + args
@@ -111,9 +140,7 @@ def interpret(cmd):
     elif Path(cmd[0]).name in LAUNCHERS:
         launcher_cmd, cmd = parse_cli(cmd)
 
-    env_args = environ.get('E4SCL_LAUNCHER_ARGS')
+    env_options = split(environ.get('E4SCL_LAUNCHER_ARGS', ''))
+    config_options = config.CONFIGURATION.launcher_options
 
-    if launcher_cmd and env_args:
-        launcher_cmd += env_args.split(' ')
-
-    return launcher_cmd, cmd
+    return [*launcher_cmd, *env_options, *config_options], cmd

@@ -89,14 +89,15 @@ from pathlib import Path
 from sotools.linker import resolve
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_NAME
 from e4s_cl import logger, util
-from e4s_cl.cli import arguments
-from e4s_cl.cf.detect_name import try_rename
+from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
+from e4s_cl.cf.detect_name import rename_profile_mpi_version
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
-from e4s_cl.sample import PROGRAM
+from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
+from e4s_cl.error import UniqueAttributeError
 from e4s_cl.model.profile import Profile
-from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
+from e4s_cl.sample import PROGRAM
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
@@ -243,30 +244,33 @@ def _analyze_binary(args):
             "or `--launcher` options to specify the launcher program to use.")
         return EXIT_FAILURE
 
-    LOGGER.warning(
-        "Simulating MPI execution using:\nCompiler: %s\nLauncher %s", compiler,
-        " ".join([launcher, *launcher_args]))
-    _check_mpirun(launcher)
+    LOGGER.warning("Tracing MPI execution using:\nCompiler: %s\nLauncher %s",
+                   compiler, " ".join([launcher, *launcher_args]))
+
+    # If no arguments were given, check the default behaviour of the launcher
+    if not launcher_args:
+        _check_mpirun(launcher)
 
     # Run the program using the detect command and get a file list
     returncode = detect_command.main([launcher, *launcher_args, binary])
 
     if returncode != EXIT_SUCCESS:
-        LOGGER.error("MPI execution failed.")
+        LOGGER.error("Tracing of MPI execution failed")
         return EXIT_FAILURE
-
-    try_rename(Profile.selected().eid)
 
     return EXIT_SUCCESS
 
 
-def _special_clauses(args) -> bool:
+def _skip_analysis(args) -> bool:
     """
     Skip analysis step when certain conditions are met
     """
 
     # If using shifter, do not try to profile a library
     if getattr(args, 'backend', '') == 'shifter':
+        return False
+
+    if getattr(args, 'wi4mpi', ''):
         return False
 
     return True
@@ -281,6 +285,18 @@ def launcher_argument(string):
         raise ArgumentTypeError(
             f"Launcher argument '{string}' could not be resolved to a binary")
     return path
+
+
+def _rename_hash_or_delete(profile):
+    """Rename the given profile to a hash of its own contents, or delete
+    it if a similar profile already exists"""
+    controller = Profile.controller()
+    hash_ = util.hash256(json.dumps(profile))
+    try:
+        controller.update({'name': f"default-{hash_[:16]}"}, profile.eid)
+    except UniqueAttributeError:
+        LOGGER.debug('Profile already exists, deleting temporary profile')
+        controller.delete(profile.eid)
 
 
 class InitCommand(AbstractCommand):
@@ -403,8 +419,7 @@ class InitCommand(AbstractCommand):
         controller = Profile.controller()
 
         # Erase any leftover temporary profiles
-        if controller.one({"name": profile_data['name']}):
-            controller.delete({"name": profile_data['name']})
+        controller.delete({"name": profile_data['name']})
 
         # Create and select a profile for use
         profile = controller.create(profile_data)
@@ -412,8 +427,7 @@ class InitCommand(AbstractCommand):
 
         status = EXIT_SUCCESS
 
-        if (profile_data['name'] == INIT_TEMP_PROFILE_NAME
-                and _special_clauses(args)):
+        if not system_args and _skip_analysis(args):
             try:
                 status = _analyze_binary(args)
             except KeyboardInterrupt:
@@ -423,18 +437,23 @@ class InitCommand(AbstractCommand):
             controller.delete(profile.eid)
             return status
 
-        if Profile.selected().get('name') == INIT_TEMP_PROFILE_NAME:
-            hash_ = util.hash256(json.dumps(Profile.selected()))
-            controller.update({'name': f"default-{hash_[:16]}"}, profile.eid)
+        # Reload the profile created above in case it was modified by the analysis
+        selected_profile = Profile.selected()
+        requested_name = getattr(args, 'profile_name', None)
 
-        # Rename the profile to the name passed as an argument
-        requested_name = getattr(args, 'profile_name', '')
+        # Rename the profile. This is done last to allow dynamic renaming
         if requested_name:
+            # Rename the profile to the name passed as an argument
             # Erase any potential existing profile
             if controller.one({"name": requested_name}):
                 controller.delete({"name": requested_name})
             # Rename the profile created and selected above
             controller.update({'name': requested_name}, profile.eid)
+        elif selected_profile.get('name') == INIT_TEMP_PROFILE_NAME:
+            mpi_renaming = rename_profile_mpi_version(selected_profile)
+            # Renaming according to MPI failed, hash renaming instead
+            if not mpi_renaming:
+                _rename_hash_or_delete(selected_profile)
 
         return status
 

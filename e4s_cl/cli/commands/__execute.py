@@ -6,6 +6,7 @@ argument.
 This command is used internally and thus cloaked from the UI
 """
 
+from typing import Union
 from pathlib import Path
 from sotools.linker import resolve
 from sotools.libraryset import LibrarySet, Library
@@ -190,6 +191,16 @@ def generate_rtld_path(container):
     return path_list + [container.import_library_dir]
 
 
+def _check_access(path: Union[Path, str]) -> bool:
+    check = Path(path).exists()
+
+    if not check:
+        LOGGER.debug("Omitting file '%s' from bind list: file not found",
+                     Path(path).as_posix())
+
+    return check
+
+
 class ExecuteCommand(AbstractCommand):
     """``execute`` subcommand."""
 
@@ -213,7 +224,7 @@ class ExecuteCommand(AbstractCommand):
                             metavar='image')
 
         parser.add_argument('--files',
-                            type=arguments.existing_posix_path_list,
+                            type=arguments.posix_path_list,
                             help="Files to bind, comma-separated",
                             default=[],
                             metavar='files')
@@ -260,10 +271,9 @@ class ExecuteCommand(AbstractCommand):
             # it offers, using the entrypoint and the above libraries
             container.get_data()
 
-        # Bind files to make the sourced script accessible
-        if args.files:
-            for path in args.files:
-                container.bind_file(path, option=FileOptions.READ_WRITE)
+        # Bind all accessible requested files
+        for path in filter(_check_access, args.files or []):
+            container.bind_file(path, option=FileOptions.READ_WRITE)
 
         # This script is sourced before any other command in the container
         params.source_script_path = args.source
@@ -273,16 +283,9 @@ class ExecuteCommand(AbstractCommand):
         params.debug = logger.debug_mode()
         params.linker_library_path = generate_rtld_path(container)
 
-        files = args.files or []
-        libraries = (args.libraries or []) + wi4mpi_libraries(wi4mpi_root())
-
-        for path in files:
-            container.bind_file(path, option=FileOptions.READ_WRITE)
-
         # Create a set of libraries to import using a library_set object,
         # then filtering it according to the contents of the container
-        final_libset = select_libraries(LibrarySet.create_from(libraries),
-                                        container, params)
+        final_libset = select_libraries(libset, container, params)
 
         # Import each library along with all symlinks pointing to it
         for shared_object in final_libset:

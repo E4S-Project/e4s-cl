@@ -5,7 +5,7 @@
 
 import os
 import sys
-from e4s_cl.cf.detect_name import version_info
+from e4s_cl.cf.detect_name import _get_mpi_library_version
 
 USAGE = "Usage: %s <libmpi.so.x>" % sys.argv[0]
 
@@ -23,5 +23,5 @@ if __name__ == '__main__':
         print(DESCRIPTION, end='')
         sys.exit(1)
 
-    print(version_info(sys.argv[1]), end='')
+    print(_get_mpi_library_version(sys.argv[1]), end='')
     sys.exit(0)

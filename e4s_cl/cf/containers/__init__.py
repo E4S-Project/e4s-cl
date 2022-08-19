@@ -27,7 +27,8 @@ from e4s_cl.logger import get_logger, debug_mode
 from e4s_cl import (EXIT_FAILURE, CONTAINER_DIR, CONTAINER_LIBRARY_DIR,
                     CONTAINER_BINARY_DIR, CONTAINER_SCRIPT)
 from e4s_cl.variables import ParentStatus
-from e4s_cl.util import walk_packages, which, json_loads, run_e4scl_subprocess
+from e4s_cl.util import (walk_packages, which, json_loads,
+                         run_e4scl_subprocess, path_contains)
 from e4s_cl.cf.version import Version
 from e4s_cl.error import ConfigurationError
 
@@ -263,14 +264,6 @@ class Container:
             Returns a list of all the directories referenced by a relative path
             """
 
-            def _contains(path1, path2):
-                """
-                Returns true if path2 is in the tree of which path1 is the root
-                pathlib's < operator compares alphabetically, so here we are
-                """
-                index = len(path1.parts)
-                return path1.parts[:index] == path2.parts[:index]
-
             path = Path(string)
             visited = {path, path.resolve()}
             deps = set()
@@ -282,7 +275,7 @@ class Container:
             for element in visited:
                 contained = False
                 for path in visited:
-                    if path != element and _contains(path, element):
+                    if path != element and path_contains(path, element):
                         contained = True
 
                 if not contained:

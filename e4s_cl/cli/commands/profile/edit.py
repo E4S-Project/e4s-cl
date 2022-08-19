@@ -1,7 +1,7 @@
 """
 Modify the profile associated to the name passed as an argument.
 
-Passing a value to the options **--new_name**, **--backend**, \
+Passing a value to the options **--name**, **--backend**, \
 **--image**, **--source** will overwrite the profile's corresponding field.
 
 Passing a value to **--add-files**, **--remove-files**, **--add-libraries**, \
@@ -12,7 +12,8 @@ The name argument can be omitted, in which case the selected profile is modified
 """
 
 from pathlib import Path
-from e4s_cl import EXIT_SUCCESS
+from e4s_cl import EXIT_SUCCESS, EXIT_FAILURE
+from e4s_cl.error import UniqueAttributeError
 from e4s_cl.cli import arguments
 from e4s_cl.logger import get_logger
 from e4s_cl.cli.cli_view import EditCommand
@@ -24,6 +25,7 @@ LOGGER = get_logger(__name__)
 
 class ProfileEditCommand(EditCommand):
     """``profile edit`` subcommand."""
+
     def _construct_parser(self):
         usage = f"{self.command} <profile_name> [arguments]"
         parser = arguments.get_model_identifier(self.model,
@@ -31,10 +33,10 @@ class ProfileEditCommand(EditCommand):
                                                 usage=usage,
                                                 description=self.summary)
 
-        parser.add_argument('--new_name',
+        parser.add_argument('--name',
                             help="change the profile's name",
-                            metavar='<new_name>',
-                            dest='new_name',
+                            metavar='<name>',
+                            dest='name',
                             default=arguments.SUPPRESS)
 
         parser.add_argument(
@@ -131,6 +133,7 @@ class ProfileEditCommand(EditCommand):
 
     def main(self, argv):
         args = self._parse_args(argv)
+        controller = Profile.controller()
 
         profile = args.profile
         profile_name = profile.get('name')
@@ -140,11 +143,9 @@ class ProfileEditCommand(EditCommand):
         fields = {
             'name', 'backend', 'image', 'source', 'wi4mpi', 'wi4mpi_options'
         }
-        special_fields = {'name': 'new_name'}
 
         for field in fields:
-            field_arg = special_fields.get(field, field)
-            updates[field] = getattr(args, field_arg, profile.get(field))
+            updates[field] = getattr(args, field, profile.get(field))
 
         for data in self._parse_add_args(args, updates):
             self.logger.info("Added %s to profile configuration '%s'.", data,
@@ -154,7 +155,12 @@ class ProfileEditCommand(EditCommand):
             self.logger.info("Removed %s from profile configuration '%s'.",
                              data, profile_name)
 
-        Profile.controller().update(updates, {'name': profile_name})
+        try:
+            controller.update(updates, {'name': profile_name})
+        except UniqueAttributeError:
+            LOGGER.error("Invalid parameters for edition: %s=%s",
+                         Profile.key_attribute, updates[Profile.key_attribute])
+            return EXIT_FAILURE
 
         return EXIT_SUCCESS
 

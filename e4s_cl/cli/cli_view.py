@@ -48,6 +48,7 @@ class AbstractCliView(AbstractCommand):
 
 class RootCommand(AbstractCliView):
     """A command with subcommands for actions."""
+
     def _construct_parser(self):
         usage = f"{self.command} <subcommand> [arguments]"
         epilog = [
@@ -77,6 +78,7 @@ class RootCommand(AbstractCliView):
 
 class CreateCommand(AbstractCliView):
     """Base class for the `create` command of command line views."""
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Create %(model_name)s configurations.")
@@ -127,6 +129,7 @@ class CreateCommand(AbstractCliView):
 
 class DeleteCommand(AbstractCliView):
     """Base class for the `delete` subcommand of command line views."""
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Delete %(model_name)s configurations.")
@@ -177,6 +180,7 @@ class DeleteCommand(AbstractCliView):
 
 class EditCommand(AbstractCliView):
     """Base class for the `edit` subcommand of command line views."""
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Modify %(model_name)s configurations.")
@@ -231,6 +235,7 @@ class EditCommand(AbstractCliView):
 
 class ListCommand(AbstractCliView):
     """Base class for the `list` subcommand of command line views."""
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Show %(model_name)s configuration data.")
@@ -282,19 +287,17 @@ class ListCommand(AbstractCliView):
         header_row = [col['header'] for col in self.dashboard_columns]
         rows = [header_row]
         for record in records:
-            populated = record.populate()
             row = []
             for col in self.dashboard_columns:
                 if 'value' in col:
                     try:
-                        cell = populated[col['value']]
+                        cell = record[col['value']]
                     except KeyError:
                         cell = 'N/A'
                 elif 'yesno' in col:
-                    cell = 'Yes' if populated.get(col['yesno'],
-                                                  False) else 'No'
+                    cell = 'Yes' if record.get(col['yesno'], False) else 'No'
                 elif 'function' in col:
-                    cell = col['function'](populated)
+                    cell = col['function'](record)
                 else:
                     raise InternalError(f"Invalid column definition: {col}")
                 row.append(cell)
@@ -353,16 +356,14 @@ class ListCommand(AbstractCliView):
         retval = [title]
         for record in records:
             rows = [['Attribute', 'Value', 'Description']]
-            populated = record.populate()
-            for key, val in sorted(populated.items()):
+            for key, val in sorted(record.items()):
                 if key != self.model.key_attribute:
                     rows.append(self._format_long_item(key, val))
             table = Texttable(logger.LINE_WIDTH)
             table.set_cols_align(['r', 'c', 'l'])
             table.set_deco(Texttable.HEADER | Texttable.VLINES)
             table.add_rows(rows)
-            retval.append(
-                util.hline(populated[self.model.key_attribute], 'cyan'))
+            retval.append(util.hline(record[self.model.key_attribute], 'cyan'))
             retval.extend([table.draw(), ''])
         return retval
 
@@ -542,6 +543,7 @@ class DumpCommand(AbstractCliView):
     """
     Dump json data from the database
     """
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Dump %(model_name)s configuration data.")
@@ -651,6 +653,7 @@ class ShowCommand(AbstractCliView):
     """
     Print details on an object
     """
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt',
                           "Show %(model_name)s configuration data.")
@@ -676,6 +679,7 @@ class ShowCommand(AbstractCliView):
 
 class CopyCommand(CreateCommand):
     """Base class for the `copy` subcommand of command line views."""
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('summary_fmt', "Copy %(model_name)s.")
         super().__init__(*args, **kwargs)

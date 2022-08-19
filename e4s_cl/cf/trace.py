@@ -1,5 +1,5 @@
 """
-Use python-ptrace to catch all open and openat syscalls, effectively listing
+Use python-ptrace to catch all open and openat system calls, effectively listing
 all files accessed by a program
 """
 
@@ -16,7 +16,7 @@ LOGGER = logger.get_logger(__name__)
 
 def opened_files(command):
     """
-    Use python-ptrace to list open syscalls from the command.
+    Use python-ptrace to list open system calls from the command.
     """
     files = []
     debugger = PtraceDebugger()
@@ -36,11 +36,11 @@ def opened_files(command):
     process = debugger.addProcess(pid, is_attached=True)
     logger.set_log_level(bkp_level)
 
-    returncode = 0
+    return_code = 0
 
     def list_syscalls():
-        # Access the returncode above - Python 3 only
-        nonlocal returncode
+        # Access the return code above - Python 3 only
+        nonlocal return_code
         process.syscall()
 
         while debugger:
@@ -48,21 +48,21 @@ def opened_files(command):
             try:
                 event = debugger.waitSyscall()
             except ProcessExit as event:
-                returncode = event.exitcode
+                return_code = event.exitcode
                 continue
             except ProcessSignal as event:
                 event.process.syscall(event.signum)
                 continue
-            except NewProcessEvent as event:
+            except NewProcessEvent:
                 continue
             except ProcessExecution as event:
                 print(event)
                 continue
 
             # Process syscall enter or exit
-            syscall = event.process.syscall_state.event(FunctionCallOptions())
-            if syscall and (syscall.result is not None):
-                yield syscall
+            caught_syscall = event.process.syscall_state.event(FunctionCallOptions())
+            if caught_syscall and (caught_syscall.result is not None):
+                yield caught_syscall
 
             # Break at next syscall
             event.process.syscall()
@@ -76,4 +76,4 @@ def opened_files(command):
             files.append(syscall.arguments[1].getText())
 
     paths = {name.strip("'") for name in files}
-    return returncode, [pathlib.Path(p) for p in paths]
+    return return_code, [pathlib.Path(p) for p in paths]
