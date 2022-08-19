@@ -144,6 +144,7 @@ ALLOWED_CONFIG = list(
         [('container_directory', str, lambda: CONTAINER_DIR),
          ('launcher_options', list, lambda: []),
          ('singularity_cli_options', list, lambda: []),
+         ('profile_list_columns', list, lambda: []),
          ('preload_root_libraries', bool, lambda: False),
          ('disable_ranked_log', bool, lambda: False)]))
 
