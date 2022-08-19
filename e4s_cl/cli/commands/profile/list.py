@@ -36,6 +36,8 @@ Pass option **-s** to print only the names and disable formatting.
 from e4s_cl.cli.cli_view import ListCommand
 from e4s_cl.model.profile import Profile
 
+from e4s_cl.config import CONFIGURATION
+
 
 class ProfileListCommand(ListCommand):
     """
@@ -88,6 +90,10 @@ class ProfileListCommand(ListCommand):
         }]
 
         default_columns = ["Selected", "Name", "Backend", "Image"]
+
+        if CONFIGURATION.profile_list_columns:
+            default_columns = CONFIGURATION.profile_list_columns
+
 
         dashboard_columns = list(filter(lambda d: d['header'] in default_columns, all_dashboard_columns))
 
