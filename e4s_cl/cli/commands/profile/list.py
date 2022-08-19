@@ -42,7 +42,9 @@ class ProfileListCommand(ListCommand):
     Abstraction of the ListCommand to define profile specific fields to
     show in the list.
     """
+
     def __init__(self):
+
         def _count(attr):
             return lambda x: len(x.get(attr, []))
 
@@ -51,6 +53,7 @@ class ProfileListCommand(ListCommand):
                 attr] else ' '
 
         def _wi4mpi():
+
             def __defined(profile):
                 if profile.get('wi4mpi') and profile.get('wi4mpi_options'):
                     return "Yes"
@@ -58,7 +61,7 @@ class ProfileListCommand(ListCommand):
 
             return __defined
 
-        dashboard_columns = [{
+        all_dashboard_columns = [{
             'header': 'Selected',
             'function': _selected('name')
         }, {
@@ -83,6 +86,10 @@ class ProfileListCommand(ListCommand):
             'header': 'WI4MPI',
             'function': _wi4mpi()
         }]
+
+        default_columns = ["Selected", "Name", "Backend", "Image"]
+
+        dashboard_columns = list(filter(lambda d: d['header'] in default_columns, all_dashboard_columns))
 
         super().__init__(Profile,
                          __name__,
