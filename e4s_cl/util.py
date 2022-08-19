@@ -301,7 +301,7 @@ def hline(title, *args, **kwargs):
     Returns:
         str: The horizontal rule.
     """
-    text = f"== {title} ==".rjust(logger.LINE_WIDTH, '=')
+    text = f"== {title} ==".ljust(logger.LINE_WIDTH, '=')
     return color_text(text, *args, **kwargs)
 
 
