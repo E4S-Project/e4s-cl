@@ -173,8 +173,12 @@ class LaunchCommand(AbstractCommand):
         launcher, program = interpret(args.cmd)
 
         for path in get_reserved_directories(launcher):
-            if path.as_posix() not in parameters.get('files', []):
-                parameters['files'].append(path.as_posix())
+            files = parameters.get('files', [])
+
+            if path.as_posix() not in files:
+                files.append(path.as_posix())
+
+            parameters['files'] = files
 
         execute_command = _format_execute(parameters)
 
