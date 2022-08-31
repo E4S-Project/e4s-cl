@@ -11,6 +11,7 @@ import pkgutil
 from pathlib import Path
 import hashlib
 import json
+from git import Repo
 from typing import List, Callable, Iterable, Any
 from functools import lru_cache
 from shutil import which as sh_which
@@ -43,6 +44,27 @@ _PY_SUFFEXES = ('.py', '.pyo', '.pyc')
 
 # Don't make this a raw string!  \033 is unicode for '\x1b'.
 _COLOR_CONTROL_RE = re.compile('\033\\[([0-9]|3[0-8]|4[0-8])m')
+
+def install_wi4mpi():
+    wi4mpi_url = "https://github.com/cea-hpc/wi4mpi.git"
+    repo_dir = os.path.expanduser("~/.local/share/wi4mpi")
+    build_dir = repo_dir + "/BUILD"
+
+    Repo.clone_from(wi4mpi_url, os.path.expanduser(repo_dir))
+    LOGGER.warning("cloned wi4mpi repo")
+
+    os.mkdir(build_dir)
+    os.chdir(build_dir)
+
+    cmakeCmd = ['cmake', \
+            '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
+            '-DWI4MPI_COMPILER=GNU', '..']
+    makeCmd = ['make', '-j', '4']
+    makeInstallCmd = ['make', 'install']
+
+    subprocess.run(cmakeCmd, shell=False)
+    subprocess.run(makeCmd, shell=False)
+    subprocess.run(makeInstallCmd, shell=False)
 
 
 def mkdirp(path: Path) -> bool:
