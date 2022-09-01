@@ -50,21 +50,28 @@ def install_wi4mpi():
     repo_dir = os.path.expanduser("~/.local/share/wi4mpi")
     build_dir = repo_dir + "/BUILD"
 
-    Repo.clone_from(wi4mpi_url, os.path.expanduser(repo_dir))
-    LOGGER.warning("cloned wi4mpi repo")
+    if not os.path.exists(repo_dir):
+        Repo.clone_from(wi4mpi_url, repo_dir)
+        LOGGER.warning(f"Cloned wi4mpi repo at {repo_dir}")
 
-    os.mkdir(build_dir)
+    if not os.path.exists(build_dir):
+        os.mkdir(build_dir)
+    
     os.chdir(build_dir)
 
-    cmakeCmd = ['cmake', \
-            '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
-            '-DWI4MPI_COMPILER=GNU', '..']
-    makeCmd = ['make', '-j', '4']
-    makeInstallCmd = ['make', 'install']
+    if not os.path.exists(build_dir + "Makefile"):
+        cmakeCmd = ['cmake', \
+                '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
+                '-DWI4MPI_COMPILER=GNU', '..']
+        makeCmd = ['make', '-j', '4']
+        makeInstallCmd = ['make', 'install']
 
-    subprocess.run(cmakeCmd, shell=False)
-    subprocess.run(makeCmd, shell=False)
-    subprocess.run(makeInstallCmd, shell=False)
+        subprocess.run(cmakeCmd, shell=False)
+
+    if not os.path.exists(build_dir + "install_manifest.txt"):
+        subprocess.run(makeCmd, shell=False)
+        subprocess.run(makeInstallCmd, shell=False)
+        LOGGER.warning(f"Built and installed wi4mpi")
 
 
 def mkdirp(path: Path) -> bool:
