@@ -47,28 +47,30 @@ _COLOR_CONTROL_RE = re.compile('\033\\[([0-9]|3[0-8]|4[0-8])m')
 
 def install_wi4mpi():
     wi4mpi_url = "https://github.com/cea-hpc/wi4mpi.git"
-    repo_dir = os.path.expanduser("~/.local/share/wi4mpi")
-    build_dir = repo_dir + "/BUILD"
+    repo_dir = Path(os.path.expanduser("~/.local/share/wi4mpi)"))
+    build_dir = repo_dir / "BUILD"
+    cmakeCmd = ['cmake', \
+            '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
+            '-DWI4MPI_COMPILER=GNU', '..']
+    makeCmd = ['make', '-j', '4']
+    makeInstallCmd = ['make', 'install']
+
 
     if not os.path.exists(repo_dir):
         Repo.clone_from(wi4mpi_url, repo_dir)
         LOGGER.warning(f"Cloned wi4mpi repo at {repo_dir}")
 
-    if not os.path.exists(build_dir):
-        os.mkdir(build_dir)
-    
-    os.chdir(build_dir)
+    try:
+        build_dir.mkdir(exist_ok = True)
+        os.chdir(build_dir)
+    except PermissionError as err:
+        LOGGER.debug("Failed to create directory %s: %s", path.as_posix(),
+                     str(err))
 
-    if not os.path.exists(build_dir + "Makefile"):
-        cmakeCmd = ['cmake', \
-                '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
-                '-DWI4MPI_COMPILER=GNU', '..']
-        makeCmd = ['make', '-j', '4']
-        makeInstallCmd = ['make', 'install']
-
+    if not os.path.exists(build_dir / "Makefile"):
         subprocess.run(cmakeCmd, shell=False)
 
-    if not os.path.exists(build_dir + "install_manifest.txt"):
+    if not os.path.exists(build_dir / "install_manifest.txt"):
         subprocess.run(makeCmd, shell=False)
         subprocess.run(makeInstallCmd, shell=False)
         LOGGER.warning(f"Built and installed wi4mpi")
