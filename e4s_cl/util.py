@@ -46,6 +46,11 @@ _PY_SUFFEXES = ('.py', '.pyo', '.pyc')
 _COLOR_CONTROL_RE = re.compile('\033\\[([0-9]|3[0-8]|4[0-8])m')
 
 def install_wi4mpi():
+    """Clones and installs wi4mpi from git run
+    
+    Installs in ~/.local/share/wi4mpi using a GNU compiler
+    
+    """
     wi4mpi_url = "https://github.com/cea-hpc/wi4mpi.git"
     repo_dir = Path(os.path.expanduser("~/.local/share/wi4mpi)"))
     build_dir = repo_dir / "BUILD"
