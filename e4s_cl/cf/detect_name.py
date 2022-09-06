@@ -186,7 +186,6 @@ def _get_mpi_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
 
     return vendor_name, version_str
 
-
 def detect_mpi(path_list: Iterable[Path]) -> str:
     """Parse the binaries from paths passed as arguments to get a `VENDOR@VERSION` string"""
     profile_name = ''
@@ -203,6 +202,15 @@ def detect_mpi(path_list: Iterable[Path]) -> str:
 
     return profile_name
 
+def filter_mpi_libs(data):
+
+    def _filter_mpi(path: Path):
+        return re.match(r'libmpi.*so.*', path.name)
+
+    detected_libs = set(map(Path, data.get('libraries', [])))
+    mpi_libs = set(filter(_filter_mpi, detected_libs))
+
+    return mpi_libs
 
 def rename_profile_mpi_version(profile_eid: int) -> bool:
     """
@@ -216,13 +224,9 @@ def rename_profile_mpi_version(profile_eid: int) -> bool:
                      profile_eid)
         return False
 
-    def _filter_mpi(path: Path):
-        return re.match(r'libmpi.*so.*', path.name)
-
     # Extract all libmpi* libraries from the profile
-    detected_libs = set(map(Path, data.get('libraries', [])))
-    mpi_libs = set(filter(_filter_mpi, detected_libs))
-
+    mpi_libs = filter_mpi_libs(data)
+    
     # Run the methods in the libraries to get a version
     mpi_id = detect_mpi(mpi_libs)
 
