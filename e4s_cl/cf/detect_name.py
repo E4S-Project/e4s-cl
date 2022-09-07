@@ -9,6 +9,7 @@ from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.error import UniqueAttributeError
 from e4s_cl.model.profile import Profile
+from e4s_cl.util import install_wi4mpi
 
 LOGGER = logger.get_logger(__name__)
 
@@ -110,14 +111,19 @@ def _extract_mvapich_version(version_buffer_str):
     """
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
+def _install_wi4mpi():
+    install_wi4mpi()
+
+def nop():
+    pass
 
 distro_dict = {
-    'Intel(R) MPI': _extract_intel_mpi_version,
-    'Open MPI': _extract_open_mpi_version,
-    'Spectrum MPI': _extract_spectrum_mpi_version,
-    'CRAY MPICH': _extract_cray_mpich_version,
-    'MPICH': _extract_mpich_version,
-    'MVAPICH': _extract_mvapich_version
+    'Intel(R) MPI': (_extract_intel_mpi_version, nop),
+    'Open MPI': (_extract_open_mpi_version, _install_wi4mpi),
+    'Spectrum MPI': (_extract_spectrum_mpi_version, nop),
+    'CRAY MPICH': (_extract_cray_mpich_version, nop),
+    'MPICH': (_extract_mpich_version, nop),
+    'MVAPICH': (_extract_mvapich_version, nop)
 }
 
 
@@ -180,7 +186,7 @@ def _get_mpi_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
     # In case of an error, skip this function
     try:
         version_str = distro_dict.get(vendor_name,
-                                      lambda x: 'UNKNOWN_VERSION')(raw_str)
+                                      lambda x: 'UNKNOWN_VERSION')[0](raw_str)
     except IndexError:
         return None
 
@@ -211,6 +217,13 @@ def filter_mpi_libs(data):
     mpi_libs = set(filter(_filter_mpi, detected_libs))
 
     return mpi_libs
+
+def check_wi4mpi(profile):
+    mpi_libs = filter_mpi_libs(profile)
+    vendor_list = list(filter(None, map(_get_mpi_vendor_version, mpi_libs)))
+    if vendor_list:
+        vendor = vendor_list[0][0]
+        distro_dict.get(vendor)[1]()
 
 def rename_profile_mpi_version(profile_eid: int) -> bool:
     """
