@@ -442,7 +442,7 @@ class InitCommand(AbstractCommand):
         requested_name = getattr(args, 'profile_name', None)
 
         # Determine if wi4mpi is needed depending on mpi version detected
-        check_wi4mpi(selected_profile)
+        INSTALLED = check_wi4mpi(selected_profile)
 
         # Rename the profile. This is done last to allow dynamic renaming
         if requested_name:

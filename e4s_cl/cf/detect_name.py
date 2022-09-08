@@ -112,18 +112,18 @@ def _extract_mvapich_version(version_buffer_str):
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
 def _install_wi4mpi():
-    install_wi4mpi()
+    return install_wi4mpi()
 
-def nop():
+def _nop():
     pass
 
 distro_dict = {
-    'Intel(R) MPI': (_extract_intel_mpi_version, nop),
+    'Intel(R) MPI': (_extract_intel_mpi_version, _nop),
     'Open MPI': (_extract_open_mpi_version, _install_wi4mpi),
-    'Spectrum MPI': (_extract_spectrum_mpi_version, nop),
-    'CRAY MPICH': (_extract_cray_mpich_version, nop),
-    'MPICH': (_extract_mpich_version, nop),
-    'MVAPICH': (_extract_mvapich_version, nop)
+    'Spectrum MPI': (_extract_spectrum_mpi_version, _nop),
+    'CRAY MPICH': (_extract_cray_mpich_version, _nop),
+    'MPICH': (_extract_mpich_version, _nop),
+    'MVAPICH': (_extract_mvapich_version, _nop)
 }
 
 
@@ -219,11 +219,17 @@ def filter_mpi_libs(data):
     return mpi_libs
 
 def check_wi4mpi(profile):
+    """
+    Checks if the mpi vendor detected needs wi4mpi in order to function
+    correctly with e4s-cl, and if so installs it.
+    """
+    INSTALLED = False
     mpi_libs = filter_mpi_libs(profile)
     vendor_list = list(filter(None, map(_get_mpi_vendor_version, mpi_libs)))
     if vendor_list:
         vendor = vendor_list[0][0]
-        distro_dict.get(vendor)[1]()
+        INSTALLED = distro_dict.get(vendor)[1]()
+    return INSTALLED
 
 def rename_profile_mpi_version(profile_eid: int) -> bool:
     """
