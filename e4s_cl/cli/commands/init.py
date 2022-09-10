@@ -443,6 +443,8 @@ class InitCommand(AbstractCommand):
 
         # Determine if wi4mpi is needed depending on mpi version detected
         INSTALLED = check_wi4mpi(selected_profile)
+        if INSTALLED:
+            controller.update({'wi4mpi': 'TODO', 'wi4mpi_options': '-T mpich -F openmpi'}, profile.eid)
 
         # Rename the profile. This is done last to allow dynamic renaming
         if requested_name:
