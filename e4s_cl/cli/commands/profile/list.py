@@ -33,8 +33,94 @@ Pass option **-s** to print only the names and disable formatting.
 
 """
 
+from typing import List, Dict, Callable
+from e4s_cl.logger import get_logger
 from e4s_cl.cli.cli_view import ListCommand
 from e4s_cl.model.profile import Profile
+from e4s_cl.config import CONFIGURATION
+
+LOGGER = get_logger(__name__)
+
+
+def _count(attr: str) -> Callable[[Dict], int]:
+    """
+    Display a count of the attribute's items
+    """
+    return lambda x: len(x.get(attr, []))
+
+
+def _selected(attr: str) -> Callable[[Dict], str]:
+    """
+    Display an asterisk if the given profile data matches the selected profile
+    """
+    return lambda x: '*' if Profile.selected().get(attr) == x[attr] else ' '
+
+
+def _wi4mpi() -> Callable[[Dict], str]:
+    """
+    Display Yes or No if the given profile data has WI4MPI directives defined
+    """
+
+    def _defined(profile):
+        if profile.get('wi4mpi') and profile.get('wi4mpi_options'):
+            return "Yes"
+        return "No"
+
+    return _defined
+
+
+# All available columns and the actions they require
+DEFINED_DASHBOARD_COLUMNS = [{
+    'header': 'Selected',
+    'function': _selected('name')
+}, {
+    'header': 'Name',
+    'value': 'name',
+    'align': 'r'
+}, {
+    'header': 'Backend',
+    'value': 'backend',
+    'align': 'r'
+}, {
+    'header': 'Image',
+    'value': 'image',
+    'align': 'r'
+}, {
+    'header': 'Libraries',
+    'function': _count('libraries')
+}, {
+    'header': 'Files',
+    'function': _count('files')
+}, {
+    'header': 'WI4MPI',
+    'function': _wi4mpi()
+}]
+
+# Fallback definition of columns
+DEFAULT_COLUMNS = ["selected", "name", "backend", "image"]
+
+
+def _valid_columns(l: List[str]) -> List[Dict]:
+    """
+    Return a list of column definitions as requested by the entry list of column names
+    """
+
+    def column(name):
+        """
+        Compare lowercase names to support case insensitivity
+        """
+        matches = list(
+            filter(lambda x: x['header'].lower() == name.lower(),
+                   DEFINED_DASHBOARD_COLUMNS))
+        if matches:
+            return matches[0]
+
+        LOGGER.warning("Configuration error: Unrecognized column name: %s",
+                       name)
+        return None
+
+    # Return a list of all the columns, filtering out Nones
+    return list(filter(None, map(column, l)))
 
 
 class ProfileListCommand(ListCommand):
@@ -42,51 +128,15 @@ class ProfileListCommand(ListCommand):
     Abstraction of the ListCommand to define profile specific fields to
     show in the list.
     """
+
     def __init__(self):
-        def _count(attr):
-            return lambda x: len(x.get(attr, []))
+        selected_columns = _valid_columns(DEFAULT_COLUMNS)
 
-        def _selected(attr):
-            return lambda x: '*' if Profile.selected().get(attr) == x[
-                attr] else ' '
+        config_columns = _valid_columns(CONFIGURATION.profile_list_columns)
+        if config_columns:
+            selected_columns = config_columns
 
-        def _wi4mpi():
-            def __defined(profile):
-                if profile.get('wi4mpi') and profile.get('wi4mpi_options'):
-                    return "Yes"
-                return "No"
-
-            return __defined
-
-        dashboard_columns = [{
-            'header': 'Selected',
-            'function': _selected('name')
-        }, {
-            'header': 'Name',
-            'value': 'name',
-            'align': 'r'
-        }, {
-            'header': 'Backend',
-            'value': 'backend',
-            'align': 'r'
-        }, {
-            'header': 'Image',
-            'value': 'image',
-            'align': 'r'
-        }, {
-            'header': 'Libraries',
-            'function': _count('libraries')
-        }, {
-            'header': 'Files',
-            'function': _count('files')
-        }, {
-            'header': 'WI4MPI',
-            'function': _wi4mpi()
-        }]
-
-        super().__init__(Profile,
-                         __name__,
-                         dashboard_columns=dashboard_columns)
+        super().__init__(Profile, __name__, dashboard_columns=selected_columns)
 
 
 COMMAND = ProfileListCommand()
