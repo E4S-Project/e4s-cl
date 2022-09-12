@@ -88,3 +88,4 @@ class ContainerTestSingularity(tests.TestCase):
         command = ['']
         config.update_configuration(TEST_CONFIGURATION)
         self.assertIn('diffname', container._prepare(command))
+        config.update_configuration(DEFAULT_CONFIGURATION)

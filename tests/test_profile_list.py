@@ -3,24 +3,36 @@ Ensure the profile list command functions as intended
 """
 
 import tests
+from e4s_cl import config
 from e4s_cl.model.profile import Profile
-from e4s_cl.cli.commands.profile.list import COMMAND as command
+
+tests.TestCase.setUpClass()
+CONFIGURATION_FILE = tests.ASSETS / "e4s-cl.yaml"
+TEST_CONFIGURATION = config.Configuration.create_from_file(
+    CONFIGURATION_FILE)
+config.update_configuration(TEST_CONFIGURATION)
+from e4s_cl.cli.commands.profile.list import COMMAND
 
 
 class ProfileListTest(tests.TestCase):
     """
     Partial class, as methods are added manually below
     """
+
+    @classmethod
+    def tearDownClass(cls):
+        config.update_configuration(config.Configuration.default())
+
     def tearDown(self):
         self.resetStorage()
 
     def test_list(self):
         Profile.controller().create({"name": 'test01'})
-        self.assertCommandReturnValue(0, command, "test01")
+        self.assertCommandReturnValue(0, COMMAND, "test01")
     
     def test_existence(self):
         _, stderr = self.assertNotCommandReturnValue(
-            0, command, ['test01'])
+            0, COMMAND, ['test01'])
         self.assertIn('profile list [profile_name] [profile_name]', stderr)
         self.assertIn('profile list: error:', stderr)
 
@@ -28,14 +40,14 @@ class ProfileListTest(tests.TestCase):
         Profile.controller().create({"name": 'test01'})
         Profile.controller().create({"name": 'test02'})
         Profile.controller().create({"name": 'otherName01'})
-        stdout, _ = self.assertCommandReturnValue(0, command, ['test0'])
+        stdout, _ = self.assertCommandReturnValue(0, COMMAND, ['test0'])
         self.assertIn('test01', stdout)
         self.assertIn('test02', stdout)
         self.assertNotIn('otherName01', stdout)
 
     def test_wi4mpi(self):
         Profile.controller().create({"name": 'test01', "wi4mpi": '/usr/packages/wi4mpi', "wi4mpi_options": 'mpich'})
-        stdout, _ = self.assertCommandReturnValue(0, command, ['test01'])
+        stdout, _ = self.assertCommandReturnValue(0, COMMAND, ['test01'])
         self.assertIn('Yes', stdout)
 
 def wrapper(key, value, test_name):
@@ -44,7 +56,7 @@ def wrapper(key, value, test_name):
     """
     def generated_test(self):
         Profile.controller().create({'name': 'test01', key: value})
-        stdout, _ = self.assertCommandReturnValue(0, command, '')
+        stdout, _ = self.assertCommandReturnValue(0, COMMAND, '')
         if isinstance(value, list):
             self.assertIn(str(len(value)), stdout)
         else:
