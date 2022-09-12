@@ -3,6 +3,7 @@ Module housing support for WI4MPI compatibility
 """
 
 import os
+from typing import Dict, List
 from pathlib import Path
 from functools import lru_cache
 from e4s_cl import logger
@@ -29,9 +30,7 @@ def wi4mpi_root() -> Path:
     return Path(string)
 
 
-# TODO unit test
-#def __read_cfg(cfg_file: Path) -> dict[str, str]:
-def __read_cfg(cfg_file: Path):
+def __read_cfg(cfg_file: Path) -> Dict[str, str]:
     config = {}
 
     try:
@@ -53,9 +52,8 @@ def __read_cfg(cfg_file: Path):
     return config
 
 
-#def wi4mpi_config(install_dir: Path) -> dict[str, str]:
 @lru_cache()
-def wi4mpi_config(install_dir: Path):
+def wi4mpi_config(install_dir: Path) -> Dict[str, str]:
     global_cfg = __read_cfg(install_dir.joinpath('etc/wi4mpi.cfg'))
     user_cfg = __read_cfg(
         Path(os.path.expanduser('~')).joinpath('.wi4mpi.cfg'))
@@ -80,8 +78,7 @@ def wi4mpi_import(container: Container, install_dir: Path) -> None:
                 Path(value).joinpath('lib').as_posix())
 
 
-#def wi4mpi_libraries() -> list[Path]:
-def wi4mpi_libraries(install_dir: Path):
+def wi4mpi_libraries(install_dir: Path) -> List[Path]:
     """
     Use the environment to output a list of libraries required by wi4mpi
     """
@@ -121,8 +118,7 @@ def wi4mpi_libpath(install_dir: Path):
             yield Path(filename)
 
 
-#def wi4mpi_preload(install_dir: Path = wi4mpi_root()) -> list[str]:
-def wi4mpi_preload(install_dir: Path = wi4mpi_root()):
+def wi4mpi_preload(install_dir: Path = wi4mpi_root()) -> List[str]:
     """
     Returns a list of libraries to preload for WI4MPI
     """

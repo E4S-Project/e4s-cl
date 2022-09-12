@@ -9,7 +9,6 @@ from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.error import UniqueAttributeError
 from e4s_cl.model.profile import Profile
-from e4s_cl.util import install_wi4mpi
 
 LOGGER = logger.get_logger(__name__)
 
@@ -111,19 +110,14 @@ def _extract_mvapich_version(version_buffer_str):
     """
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
-def _install_wi4mpi():
-    return install_wi4mpi()
 
-def _nop():
-    pass
-
-distro_dict = {
-    'Intel(R) MPI': (_extract_intel_mpi_version, _nop),
-    'Open MPI': (_extract_open_mpi_version, _install_wi4mpi),
-    'Spectrum MPI': (_extract_spectrum_mpi_version, _nop),
-    'CRAY MPICH': (_extract_cray_mpich_version, _nop),
-    'MPICH': (_extract_mpich_version, _nop),
-    'MVAPICH': (_extract_mvapich_version, _nop)
+DISTRO_DICT = {
+    'Intel(R) MPI': _extract_intel_mpi_version,
+    'Open MPI': _extract_open_mpi_version,
+    'Spectrum MPI': _extract_spectrum_mpi_version,
+    'CRAY MPICH': _extract_cray_mpich_version,
+    'MPICH': _extract_mpich_version,
+    'MVAPICH': _extract_mvapich_version
 }
 
 
@@ -172,7 +166,7 @@ def _get_mpi_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
     raw_str = _get_mpi_library_version(path)
 
     # Check for vendor keywords in the buffer
-    filtered_buffer = list(filter(lambda x: x in raw_str, distro_dict.keys()))
+    filtered_buffer = list(filter(lambda x: x in raw_str, DISTRO_DICT.keys()))
 
     # Skip this binary if none were found
     if not filtered_buffer:
@@ -185,12 +179,13 @@ def _get_mpi_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
     # Run the corresponding function on the buffer
     # In case of an error, skip this function
     try:
-        version_str = distro_dict.get(vendor_name,
-                                      lambda x: 'UNKNOWN_VERSION')[0](raw_str)
+        version_str = DISTRO_DICT.get(vendor_name,
+                                      lambda x: 'UNKNOWN_VERSION')(raw_str)
     except IndexError:
         return None
 
     return vendor_name, version_str
+
 
 def detect_mpi(path_list: Iterable[Path]) -> str:
     """Parse the binaries from paths passed as arguments to get a `VENDOR@VERSION` string"""
@@ -208,6 +203,7 @@ def detect_mpi(path_list: Iterable[Path]) -> str:
 
     return profile_name
 
+
 def filter_mpi_libs(data):
 
     def _filter_mpi(path: Path):
@@ -218,18 +214,6 @@ def filter_mpi_libs(data):
 
     return mpi_libs
 
-def check_wi4mpi(profile):
-    """
-    Checks if the mpi vendor detected needs wi4mpi in order to function
-    correctly with e4s-cl, and if so installs it.
-    """
-    INSTALLED = False
-    mpi_libs = filter_mpi_libs(profile)
-    vendor_list = list(filter(None, map(_get_mpi_vendor_version, mpi_libs)))
-    if vendor_list:
-        vendor = vendor_list[0][0]
-        INSTALLED = distro_dict.get(vendor)[1]()
-    return INSTALLED
 
 def rename_profile_mpi_version(profile_eid: int) -> bool:
     """
@@ -245,7 +229,7 @@ def rename_profile_mpi_version(profile_eid: int) -> bool:
 
     # Extract all libmpi* libraries from the profile
     mpi_libs = filter_mpi_libs(data)
-    
+
     # Run the methods in the libraries to get a version
     mpi_id = detect_mpi(mpi_libs)
 
