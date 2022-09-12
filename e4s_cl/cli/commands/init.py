@@ -91,7 +91,7 @@ from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_
 from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_name import rename_profile_mpi_version
-from e4s_cl.cf.wi4mpi.install import check_wi4mpi
+from e4s_cl.cf.wi4mpi.install import check_wi4mpi, WI4MPI_DIR
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -447,7 +447,7 @@ class InitCommand(AbstractCommand):
         if INSTALLED:
             controller.update(
                 {
-                    'wi4mpi': 'TODO',
+                    'wi4mpi': str(WI4MPI_DIR),
                     'wi4mpi_options': '-T mpich -F openmpi'
                 }, profile.eid)
 

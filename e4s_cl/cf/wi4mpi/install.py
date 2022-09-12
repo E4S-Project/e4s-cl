@@ -7,6 +7,7 @@ from e4s_cl.cf.detect_name import _get_mpi_vendor_version, filter_mpi_libs
 
 LOGGER = get_logger(__name__)
 
+WI4MPI_DIR = Path(os.path.expanduser('~/.local/share/wi4mpi'))
 
 def _install_wi4mpi():
     return install_wi4mpi()
@@ -48,7 +49,7 @@ def install_wi4mpi():
     """
     nofail = True
     wi4mpi_url = "https://github.com/cea-hpc/wi4mpi.git"
-    repo_dir = Path(os.path.expanduser("~/.local/share/wi4mpi)"))
+    repo_dir = WI4MPI_DIR
     build_dir = repo_dir / "BUILD"
     cmakeCmd = ['cmake', \
             '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
