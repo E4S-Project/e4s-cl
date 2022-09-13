@@ -99,24 +99,32 @@ def install_wi4mpi() -> bool:
         return False
 
     def _run_wi4mpi_install_cmd(cmd, discard_output=True):
-
-        stdout = None
-        stderr = None
+        """
+        Run a command. Disables output on discard_output=True
+        """
+        # None is the default; no redirection
+        stdout, stderr = None, None
         if discard_output:
-            stdout = DEVNULL
-            stderr = STDOUT
+            # Redirect output to null and error to output (to null)
+            stdout, stderr = DEVNULL, STDOUT
 
         with subprocess.Popen(cmd, stdout=stdout, stderr=stderr) as proc:
-            if proc.wait():
-                if discard_output:
-                    LOGGER.warning("WI4MPI installation failed. Retrying")
-                    nofail = _run_wi4mpi_install_cmd(cmd, discard_output=False)
-                if not nofail:
-                    LOGGER.warning(
-                        "WI4MPI installation failed. Proceeding with profile initialisation"
-                    )
-                    return False
-            return True
+            status = proc.wait()
+        return status == 0
+
+    def _double_tap(cmd):
+        """
+        Run a given command (cmake/make) discarding the output. If the
+        returncode indicates an error, run it again with the out/err streams
+        enabled; this ensures a concise error output as recommended on the GNU
+        make's website.
+        """
+
+        success = _run_wi4mpi_install_cmd(cmd, discard_output=True)
+        if not success:
+            _run_wi4mpi_install_cmd(cmd, discard_output=False)
+
+        return success
 
     build_dir = WI4MPI_DIR / 'build'
     source_dir = download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
@@ -124,19 +132,22 @@ def install_wi4mpi() -> bool:
         LOGGER.error("Failed to access Wi4MPI release")
         return False
 
-    nofail = True
-
-    cmakeCmd = [
+    configure_cmd = [
         cmake_executable, \
         '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
         '-DWI4MPI_COMPILER=GNU', \
         source_dir.as_posix()
     ]
 
-    makeCmd = [
+    build_cmd = [
         cmake_executable, \
         '--build', '.', \
         '--parallel', \
+    ]
+
+    install_cmd = [
+        cmake_executable, \
+        '--build', '.', \
         '--target', 'install'
     ]
 
@@ -146,17 +157,12 @@ def install_wi4mpi() -> bool:
     except PermissionError as err:
         LOGGER.debug("Failed to create directory %s: %s", build_dir.as_posix(),
                      str(err))
-        nofail = False
-        return nofail
+        return False
 
-    if nofail and not os.path.exists(build_dir / "Makefile"):
-        nofail = _run_wi4mpi_install_cmd(cmakeCmd)
+    if _double_tap(configure_cmd) \
+            and _double_tap(build_cmd) \
+            and _double_tap(install_cmd):
+        LOGGER.warning(f"Wi4MPI is built and installed")
+        return True
 
-    if nofail and not os.path.exists(build_dir / "install_manifest.txt"):
-        LOGGER.warning("Installing WI4MPI")
-        nofail = _run_wi4mpi_install_cmd(makeCmd)
-
-    if nofail:
-        LOGGER.warning(f"WI4MPI is built and installed")
-
-    return nofail
+    return False
