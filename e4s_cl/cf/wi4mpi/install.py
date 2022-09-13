@@ -91,7 +91,8 @@ def install_wi4mpi() -> bool:
     Installs in ~/.local/share/wi4mpi using a GNU compiler
     """
 
-    if not which("cmake"):
+    cmake_executable = which("cmake")
+    if not cmake_executable:
         LOGGER.warning(
             "WI4MPI installation failed: cmake is missing. Proceeding with profile initialisation"
         )
@@ -126,13 +127,18 @@ def install_wi4mpi() -> bool:
     nofail = True
 
     cmakeCmd = [
-        'cmake', \
+        cmake_executable, \
         '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
         '-DWI4MPI_COMPILER=GNU', \
         source_dir.as_posix()
     ]
-    makeCmd = ['cmake', '--build', '.', '--parallel', '-t', 'install']
-    makeInstallCmd = ['make', 'install']
+
+    makeCmd = [
+        cmake_executable, \
+        '--build', '.', \
+        '--parallel', \
+        '--target', 'install'
+    ]
 
     try:
         build_dir.mkdir(exist_ok=True)
@@ -149,8 +155,6 @@ def install_wi4mpi() -> bool:
     if nofail and not os.path.exists(build_dir / "install_manifest.txt"):
         LOGGER.warning("Installing WI4MPI")
         nofail = _run_wi4mpi_install_cmd(makeCmd)
-        #if nofail:
-        #   nofail = _run_wi4mpi_install_cmd(makeInstallCmd)
 
     if nofail:
         LOGGER.warning(f"WI4MPI is built and installed")
