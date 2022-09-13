@@ -4,7 +4,6 @@ import tarfile
 import urllib.request
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from git import Repo
 from e4s_cl import E4S_CL_HOME
 from e4s_cl.util import safe_tar
 from e4s_cl.logger import get_logger
@@ -97,13 +96,13 @@ def install_wi4mpi() -> bool:
         with subprocess.Popen(cmd) as proc:
             if proc.wait():
                 LOGGER.warning(
-                    f"Wi4mpi installation failed. Proceeding with profile initialisation"
+                    "Wi4mpi installation failed. Proceeding with profile initialisation"
                 )
                 return False
             return True
 
     if not download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR):
-        LOGGER.error(f"Failed to access Wi4MPI release")
+        LOGGER.error("Failed to access Wi4MPI release")
         return False
 
     try:
@@ -124,6 +123,6 @@ def install_wi4mpi() -> bool:
             nofail = _run_wi4mpi_install_cmd(makeInstallCmd)
 
     if nofail:
-        LOGGER.warning(f"Wi4mpi is built and installed")
+        LOGGER.warning("Wi4MPI is built and installed")
 
     return nofail
