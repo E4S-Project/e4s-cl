@@ -1,16 +1,22 @@
 import os
 import subprocess
 from subprocess import DEVNULL, STDOUT
+import tarfile
+import urllib.request
 from pathlib import Path
-from git import Repo
+from tempfile import NamedTemporaryFile
 from e4s_cl import E4S_CL_HOME
+from e4s_cl.util import safe_tar
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
 from e4s_cl.cf.detect_name import _get_mpi_vendor_version, filter_mpi_libs
 
 LOGGER = get_logger(__name__)
 
+WI4MPI_RELEASE_URL = 'https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v3.6.1.tar.gz'
+
 WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
+
 
 def _install_wi4mpi():
     return install_wi4mpi()
@@ -44,11 +50,42 @@ def check_wi4mpi(profile):
     return installed
 
 
-def install_wi4mpi():
+def download_wi4mpi(url: str, destination: Path) -> bool:
+    """
+    Download and extract the TAR archive from 'url' into the directory 'destination'
+    """
+    with urllib.request.urlopen(url) as request:
+        if not request.status == 200:
+            LOGGER.error("Failed to download Wi4MPI release; aborting")
+            return False
+
+        with NamedTemporaryFile(delete=False) as buffer:
+            buffer.write(request.read())
+            archive = buffer.name
+
+    if not tarfile.is_tarfile(archive):
+        LOGGER.error("Downloaded file is not an archive; aborting")
+        return False
+
+    with tarfile.open(archive) as data:
+        if not safe_tar(data):
+            LOGGER.error("Unsafe paths detected in archive; aborting")
+            return False
+
+        data.extractall(destination)
+
+    try:
+        Path(archive).unlink()
+    except OSError as err:
+        LOGGER.error("Failed to delete downloaded data: %s", str(err))
+
+    return True
+
+
+def install_wi4mpi() -> bool:
     """Clones and installs wi4mpi from git run
     
     Installs in ~/.local/share/wi4mpi using a GNU compiler
-    
     """
 
     if not which("cmake"):
@@ -57,9 +94,7 @@ def install_wi4mpi():
         )
         return False
     nofail = True
-    wi4mpi_url = "https://github.com/cea-hpc/wi4mpi.git"
-    repo_dir = WI4MPI_DIR
-    build_dir = repo_dir / "BUILD"
+    build_dir = WI4MPI_DIR / 'build'
     cmakeCmd = ['cmake', \
             '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
             '-DWI4MPI_COMPILER=GNU', '..']
@@ -88,9 +123,9 @@ def install_wi4mpi():
                     return False
             return True
 
-    if not os.path.exists(repo_dir):
-        Repo.clone_from(wi4mpi_url, repo_dir)
-        LOGGER.warning(f"Cloned WI4MPI repo at {repo_dir}")
+    if not download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR):
+        LOGGER.error("Failed to access Wi4MPI release")
+        return False
 
     try:
         build_dir.mkdir(exist_ok=True)

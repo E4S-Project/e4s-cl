@@ -12,11 +12,12 @@ from pathlib import Path
 import hashlib
 import json
 from typing import List, Callable, Iterable, Any
-from functools import lru_cache
+from functools import lru_cache, reduce
 from shutil import which as sh_which
 from collections import deque
 from time import perf_counter
 from contextlib import contextmanager
+from tarfile import TarFile
 from e4s_cl import logger
 from e4s_cl.variables import ParentStatus
 from e4s_cl.error import InternalError
@@ -480,3 +481,39 @@ def apply_filters(filters: List[Callable[[Any], bool]],
         result = filter(func, result)
 
     return result
+
+
+def safe_tar(archive: TarFile) -> bool:
+    """
+    Assert a tarfile does not possess members whose paths are not contained in
+    the extracted data, e.g. absolute paths or relative paths that escape
+    using '..'
+
+    'archive-v1.2.3/build'  -> safe
+    '/etc/config'           -> unsafe
+    '../../../weird_file'   -> unsafe
+    """
+
+    def child(path: Path) -> bool:
+        """Check a single path's status as a child from where it started"""
+
+        def weigh(token: str) -> int:
+            """Define weights for path tokens"""
+            token_weights = {'.': 0, '..': -1, '/': -4096}
+            return token_weights.get(token, 1)
+
+        def contains(depth: int, weight: int) -> int:
+            """Assert the depth never dips below 0 -> we never escape"""
+            depth += weight
+
+            if depth < 0:
+                return -4096
+            return depth
+
+        ordered_weights = list(map(weigh, path.parts))
+        return reduce(contains, [0, *ordered_weights]) >= 0
+
+    for member in archive.getmembers():
+        if not child(Path(member.name)):
+            return False
+    return True
