@@ -1,9 +1,11 @@
 import os
 import subprocess
+from subprocess import DEVNULL, STDOUT
 from pathlib import Path
 from git import Repo
 from e4s_cl import E4S_CL_HOME
 from e4s_cl.logger import get_logger
+from e4s_cl.util import which
 from e4s_cl.cf.detect_name import _get_mpi_vendor_version, filter_mpi_libs
 
 LOGGER = get_logger(__name__)
@@ -48,6 +50,12 @@ def install_wi4mpi():
     Installs in ~/.local/share/wi4mpi using a GNU compiler
     
     """
+
+    if not which("cmake"):
+        LOGGER.warning(
+                "WI4MPI installation failed: cmake is missing. Proceeding with profile initialisation"
+        )
+        return False
     nofail = True
     wi4mpi_url = "https://github.com/cea-hpc/wi4mpi.git"
     repo_dir = WI4MPI_DIR
@@ -55,21 +63,34 @@ def install_wi4mpi():
     cmakeCmd = ['cmake', \
             '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
             '-DWI4MPI_COMPILER=GNU', '..']
-    makeCmd = ['make', '-j', '4']
+    makeCmd = ['cmake', '--build', '.', '--parallel', '-t', 'install']
     makeInstallCmd = ['make', 'install']
 
-    def _run_wi4mpi_install_cmd(cmd):
-        with subprocess.Popen(cmd) as proc:
+    def _run_wi4mpi_install_cmd(cmd, discard_output=True):
+
+        stdout = None
+        stderr = None
+        if discard_output:
+            stdout = DEVNULL
+            stderr = STDOUT
+
+        with subprocess.Popen(cmd, stdout=stdout, stderr=stderr) as proc:
             if proc.wait():
-                LOGGER.warning(
-                    f"Wi4mpi installation failed. Proceeding with profile initialisation"
-                )
-                return False
+                if discard_output:
+                    LOGGER.warning(
+                        "WI4MPI installation failed. Retrying"
+                    )
+                    nofail = _run_wi4mpi_install_cmd(cmd, discard_output=False)
+                if not nofail:
+                    LOGGER.warning(
+                        "WI4MPI installation failed. Proceeding with profile initialisation"
+                    )
+                    return False
             return True
 
     if not os.path.exists(repo_dir):
         Repo.clone_from(wi4mpi_url, repo_dir)
-        LOGGER.warning(f"Cloned wi4mpi repo at {repo_dir}")
+        LOGGER.warning(f"Cloned WI4MPI repo at {repo_dir}")
 
     try:
         build_dir.mkdir(exist_ok=True)
@@ -84,11 +105,14 @@ def install_wi4mpi():
         nofail = _run_wi4mpi_install_cmd(cmakeCmd)
 
     if nofail and not os.path.exists(build_dir / "install_manifest.txt"):
+        LOGGER.warning(
+                "Installing WI4MPI"
+        )
         nofail = _run_wi4mpi_install_cmd(makeCmd)
-        if nofail:
-            nofail = _run_wi4mpi_install_cmd(makeInstallCmd)
+        #if nofail:
+         #   nofail = _run_wi4mpi_install_cmd(makeInstallCmd)
 
     if nofail:
-        LOGGER.warning(f"Wi4mpi is built and installed")
+        LOGGER.warning(f"WI4MPI is built and installed")
 
     return nofail
