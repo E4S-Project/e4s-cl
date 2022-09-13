@@ -4,6 +4,7 @@ from subprocess import DEVNULL, STDOUT
 import tarfile
 import urllib.request
 from pathlib import Path
+from typing import Optional
 from tempfile import NamedTemporaryFile
 from e4s_cl import E4S_CL_HOME
 from e4s_cl.util import safe_tar
@@ -50,14 +51,14 @@ def check_wi4mpi(profile):
     return installed
 
 
-def download_wi4mpi(url: str, destination: Path) -> bool:
+def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
     """
     Download and extract the TAR archive from 'url' into the directory 'destination'
     """
     with urllib.request.urlopen(url) as request:
         if not request.status == 200:
             LOGGER.error("Failed to download Wi4MPI release; aborting")
-            return False
+            return None
 
         with NamedTemporaryFile(delete=False) as buffer:
             buffer.write(request.read())
@@ -65,21 +66,23 @@ def download_wi4mpi(url: str, destination: Path) -> bool:
 
     if not tarfile.is_tarfile(archive):
         LOGGER.error("Downloaded file is not an archive; aborting")
-        return False
+        return None
 
     with tarfile.open(archive) as data:
         if not safe_tar(data):
             LOGGER.error("Unsafe paths detected in archive; aborting")
-            return False
+            return None
 
         data.extractall(destination)
+
+        release_root_dir = min(data.getnames())
 
     try:
         Path(archive).unlink()
     except OSError as err:
         LOGGER.error("Failed to delete downloaded data: %s", str(err))
 
-    return True
+    return destination / release_root_dir
 
 
 def install_wi4mpi() -> bool:
@@ -90,16 +93,9 @@ def install_wi4mpi() -> bool:
 
     if not which("cmake"):
         LOGGER.warning(
-                "WI4MPI installation failed: cmake is missing. Proceeding with profile initialisation"
+            "WI4MPI installation failed: cmake is missing. Proceeding with profile initialisation"
         )
         return False
-    nofail = True
-    build_dir = WI4MPI_DIR / 'build'
-    cmakeCmd = ['cmake', \
-            '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
-            '-DWI4MPI_COMPILER=GNU', '..']
-    makeCmd = ['cmake', '--build', '.', '--parallel', '-t', 'install']
-    makeInstallCmd = ['make', 'install']
 
     def _run_wi4mpi_install_cmd(cmd, discard_output=True):
 
@@ -112,9 +108,7 @@ def install_wi4mpi() -> bool:
         with subprocess.Popen(cmd, stdout=stdout, stderr=stderr) as proc:
             if proc.wait():
                 if discard_output:
-                    LOGGER.warning(
-                        "WI4MPI installation failed. Retrying"
-                    )
+                    LOGGER.warning("WI4MPI installation failed. Retrying")
                     nofail = _run_wi4mpi_install_cmd(cmd, discard_output=False)
                 if not nofail:
                     LOGGER.warning(
@@ -123,9 +117,22 @@ def install_wi4mpi() -> bool:
                     return False
             return True
 
-    if not download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR):
+    build_dir = WI4MPI_DIR / 'build'
+    source_dir = download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
+    if source_dir is None:
         LOGGER.error("Failed to access Wi4MPI release")
         return False
+
+    nofail = True
+
+    cmakeCmd = [
+        'cmake', \
+        '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
+        '-DWI4MPI_COMPILER=GNU', \
+        source_dir.as_posix()
+    ]
+    makeCmd = ['cmake', '--build', '.', '--parallel', '-t', 'install']
+    makeInstallCmd = ['make', 'install']
 
     try:
         build_dir.mkdir(exist_ok=True)
@@ -140,12 +147,10 @@ def install_wi4mpi() -> bool:
         nofail = _run_wi4mpi_install_cmd(cmakeCmd)
 
     if nofail and not os.path.exists(build_dir / "install_manifest.txt"):
-        LOGGER.warning(
-                "Installing WI4MPI"
-        )
+        LOGGER.warning("Installing WI4MPI")
         nofail = _run_wi4mpi_install_cmd(makeCmd)
         #if nofail:
-         #   nofail = _run_wi4mpi_install_cmd(makeInstallCmd)
+        #   nofail = _run_wi4mpi_install_cmd(makeInstallCmd)
 
     if nofail:
         LOGGER.warning(f"WI4MPI is built and installed")
