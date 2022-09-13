@@ -2,12 +2,13 @@ import os
 import subprocess
 from pathlib import Path
 from git import Repo
+from e4s_cl import E4S_CL_HOME
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.detect_name import _get_mpi_vendor_version, filter_mpi_libs
 
 LOGGER = get_logger(__name__)
 
-WI4MPI_DIR = Path(os.path.expanduser('~/.local/share/wi4mpi'))
+WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
 
 def _install_wi4mpi():
     return install_wi4mpi()
