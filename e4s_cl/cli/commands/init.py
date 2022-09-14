@@ -447,7 +447,7 @@ class InitCommand(AbstractCommand):
         if INSTALLED:
             controller.update(
                 {
-                    'wi4mpi': str(WI4MPI_DIR),
+                    'wi4mpi': str(WI4MPI_DIR / 'install'),
                     'wi4mpi_options': '-T mpich -F openmpi'
                 }, profile.eid)
 

@@ -126,15 +126,17 @@ def install_wi4mpi() -> bool:
 
         return success
 
-    build_dir = WI4MPI_DIR / 'build'
     source_dir = download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
+    build_dir = WI4MPI_DIR / 'build'
+    install_dir = WI4MPI_DIR / 'install'
+
     if source_dir is None:
         LOGGER.error("Failed to access Wi4MPI release")
         return False
 
     configure_cmd = [
         cmake_executable, \
-        '-DCMAKE_INSTALL_PREFIX=~/.local/wi4mpi', \
+        f"-DCMAKE_INSTALL_PREFIX={install_dir}", \
         '-DWI4MPI_COMPILER=GNU', \
         source_dir.as_posix()
     ]
