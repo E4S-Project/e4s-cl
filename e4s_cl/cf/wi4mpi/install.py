@@ -18,6 +18,8 @@ WI4MPI_RELEASE_URL = 'https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v3.6.1
 
 WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
 
+CPU_COUNT = os.cpu_count() or 2
+
 
 def _install_wi4mpi():
     return install_wi4mpi()
@@ -144,7 +146,7 @@ def install_wi4mpi() -> bool:
     build_cmd = [
         cmake_executable, \
         '--build', '.', \
-        '--parallel', \
+        '--parallel', str(CPU_COUNT) \
     ]
 
     install_cmd = [
