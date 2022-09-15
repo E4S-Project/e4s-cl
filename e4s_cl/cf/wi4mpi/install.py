@@ -1,5 +1,6 @@
 import os
 import subprocess
+from shutil import rmtree
 from subprocess import DEVNULL, STDOUT
 import tarfile
 import urllib.request
@@ -157,7 +158,7 @@ def install_wi4mpi() -> bool:
 
     try:
         if build_dir.exists():
-            build_dir.unlink()
+            rmtree(build_dir)
 
         build_dir.mkdir(exist_ok=True)
         os.chdir(build_dir)
