@@ -156,11 +156,14 @@ def install_wi4mpi() -> bool:
     ]
 
     try:
+        if build_dir.exists():
+            build_dir.unlink()
+
         build_dir.mkdir(exist_ok=True)
         os.chdir(build_dir)
     except PermissionError as err:
-        LOGGER.debug("Failed to create directory %s: %s", build_dir.as_posix(),
-                     str(err))
+        LOGGER.debug("Failed to create build directory %s: %s",
+                     build_dir.as_posix(), str(err))
         return False
 
     if _double_tap(configure_cmd) \
