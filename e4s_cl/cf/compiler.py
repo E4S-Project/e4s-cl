@@ -6,6 +6,59 @@ from e4s_cl.logger import get_logger
 LOGGER = get_logger(__name__)
 
 
+def _gnu_check(string: str) -> bool:
+    return 'GCC' in string
+
+
+def _llvm_check(string: str) -> bool:
+    return 'clang' in string
+
+
+def _intel_check(string: str) -> bool:
+    return False
+
+
+def _amd_check(string: str) -> bool:
+    return 'AMD' in string
+
+
+def _pgi_check(string: str) -> bool:
+    return False
+
+
+def _armclang_check(string: str) -> bool:
+    return False
+
+
+def _fujitsu_check(string: str) -> bool:
+    return False
+
+
+class CompilerVendor:
+    GNU = 0
+    LLVM = 1
+    INTEL = 2
+    AMD = 3
+    PGI = 4
+    ARMCLANG = 5
+    FUJITSU = 6
+
+    checks = {
+        GNU: _gnu_check,
+        LLVM: _llvm_check,
+        INTEL: _intel_check,
+        AMD: _amd_check,
+        PGI: _pgi_check,
+        ARMCLANG: _armclang_check,
+        FUJITSU: _fujitsu_check
+    }
+
+    # All tested binaries contained 'GCC', and ROCm-compiled contained 'AMD',
+    # 'clang' and 'GCC'. Establishing an order for the checks is a simple way
+    # of ensuring the right value is returned
+    precendence = [AMD, LLVM, GNU]
+
+
 def _get_comment(elf_file: Path) -> str:
     """
     Returns the contents of the .comment sections of the ELF file passed as an argument
@@ -22,3 +75,18 @@ def _get_comment(elf_file: Path) -> str:
         LOGGER.debug("Error reading comments of file %s: %s", str(elf_file),
                      str(err))
         return ''
+
+
+def compiler_vendor(elf_file: Path) -> int:
+    """
+    Returns a value from CompilerVendor according to the contents of the .comment section of a binary
+    """
+    comment = _get_comment(elf_file)
+
+    for vendor in CompilerVendor.precendence:
+        check = CompilerVendor.checks.get(vendor)
+        if check and check(comment):
+            return vendor
+
+    # By default, return GNU
+    return CompilerVendor.GNU
