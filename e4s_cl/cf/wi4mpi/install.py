@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 from tempfile import NamedTemporaryFile
 from e4s_cl import E4S_CL_HOME
-from e4s_cl.util import safe_tar
+from e4s_cl.util import safe_tar, run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
 from e4s_cl.cf.detect_name import _get_mpi_vendor_version, filter_mpi_libs
@@ -100,20 +100,6 @@ def install_wi4mpi() -> bool:
         )
         return False
 
-    def _run_wi4mpi_install_cmd(cmd, discard_output=True):
-        """
-        Run a command. Disables output on discard_output=True
-        """
-        # None is the default; no redirection
-        stdout, stderr = None, None
-        if discard_output:
-            # Redirect output to null and error to output (to null)
-            stdout, stderr = DEVNULL, STDOUT
-
-        with subprocess.Popen(cmd, stdout=stdout, stderr=stderr) as proc:
-            status = proc.wait()
-        return status == 0
-
     def _double_tap(cmd):
         """
         Run a given command (cmake/make) discarding the output. If the
@@ -122,11 +108,12 @@ def install_wi4mpi() -> bool:
         make's website.
         """
 
-        success = _run_wi4mpi_install_cmd(cmd, discard_output=True)
-        if not success:
-            _run_wi4mpi_install_cmd(cmd, discard_output=False)
+        success = run_subprocess(cmd, discard_output=True)
+        if success:
+            LOGGER.debug(f"Command run failed: {cmd}, running with visible output.")
+            run_subprocess(cmd, discard_output=False)
 
-        return success
+        return not success
 
     source_dir = download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
     build_dir = WI4MPI_DIR / 'build'
@@ -162,11 +149,13 @@ def install_wi4mpi() -> bool:
         LOGGER.debug("Failed to create directory %s: %s", build_dir.as_posix(),
                      str(err))
         return False
+    LOGGER.warning(f"Attempting to install WI4MPI at {WI4MPI_DIR}")
 
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
             and _double_tap(install_cmd):
-        LOGGER.warning(f"Wi4MPI is built and installed")
+        LOGGER.warning("WI4MPI is built and installed")
         return True
 
+    LOGGER.warning("WI4MPI installation failed. Proceeding with profile initialisation")
     return False
