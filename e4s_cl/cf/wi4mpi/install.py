@@ -39,19 +39,25 @@ DISTRO_DICT = {
     'MVAPICH': _nop
 }
 
+VENDOR_DICT = {
+    'Intel(R) MPI': 'intelmpi',
+    'Open MPI': 'openmpi',
+    'MPICH': 'mpich',
+}
+
 
 def check_wi4mpi(profile):
     """
     Checks if the mpi vendor detected needs wi4mpi in order to function
     correctly with e4s-cl, and if so installs it.
     """
-    installed = False
+    installed, vendor = False, None
     mpi_libs = filter_mpi_libs(profile)
     vendor_list = list(filter(None, map(_get_mpi_vendor_version, mpi_libs)))
     if vendor_list:
         vendor = vendor_list[0][0]
         installed = DISTRO_DICT.get(vendor)()
-    return installed
+    return (installed, vendor)
 
 
 def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
