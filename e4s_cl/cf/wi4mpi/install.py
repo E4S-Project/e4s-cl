@@ -88,6 +88,18 @@ def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
     return destination / release_root_dir
 
 
+def update_config(config_path: Path, key: str, value: str) -> None:
+    with open(config_path, 'r') as config_file:
+        config = config_file.readlines()
+
+    for index, line in enumerate(config):
+        if line.startswith(key):
+            config[index] = f"{key}=\"{value}\"\n"
+
+    with open(config_path, 'w') as config_file:
+        config_file.writelines(config)
+
+
 def install_wi4mpi() -> bool:
     """Clones and installs wi4mpi from git run
     
