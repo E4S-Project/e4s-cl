@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import subprocess
+from subprocess import DEVNULL, STDOUT
 import pkgutil
 from pathlib import Path
 import hashlib
@@ -110,13 +111,17 @@ def path_accessible(path: Path, mode: str = 'r') -> bool:
         path.as_posix(), modebits)
 
 
-def run_subprocess(cmd, cwd=None, env=None) -> int:
+def run_subprocess(cmd, cwd=None, env=None, discard_output=False) -> int:
     """
     cmd: list[str],
     env: Optional[dict]
     Run a subprocess, tailored for end subrocesses
     """
+
     subproc_env = os.environ
+    stdout, stderr = sys.stdout, subprocess.PIPE
+    if discard_output:
+        stdout, stderr = DEVNULL, STDOUT
     if env:
         for key, val in env.items():
             if val is None:
@@ -132,8 +137,8 @@ def run_subprocess(cmd, cwd=None, env=None) -> int:
     with subprocess.Popen(cmd,
                           cwd=cwd,
                           env=subproc_env,
-                          stdout=sys.stdout,
-                          stderr=subprocess.PIPE,
+                          stdout=stdout,
+                          stderr=stderr,
                           close_fds=False,
                           universal_newlines=True,
                           bufsize=1) as proc:
@@ -141,11 +146,12 @@ def run_subprocess(cmd, cwd=None, env=None) -> int:
         pid = proc.pid
         # Setup a logger dedicated to this subprocess
         process_logger = logger.setup_process_logger(f"process.{pid}")
-        with proc.stderr:
-            # Log the errors in a log file
-            for line in proc.stderr.readlines():
-                process_logger.error(line[:-1])
-                buffer.append(line)
+        if not discard_output:
+            with proc.stderr:
+                # Log the errors in a log file
+                for line in proc.stderr.readlines():
+                    process_logger.error(line[:-1])
+                    buffer.append(line)
         returncode = proc.wait()
 
     # In case of error, output information
