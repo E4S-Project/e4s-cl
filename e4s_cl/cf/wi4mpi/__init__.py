@@ -92,19 +92,21 @@ def wi4mpi_libraries(install_dir: Path) -> List[Path]:
             "Error getting WI4MPI libraries: Missing environment variables")
         return []
 
-    wrapper_lib = install_dir.joinpath('libexec', 'wi4mpi',
-                                       f"libwi4mpi_{source}_{target}.so")
+    wrapper_lib = Path(install_dir, 'libexec', 'wi4mpi',
+                       f"libwi4mpi_{source}_{target}.so")
 
     def _get_lib(identifier: str) -> Path:
         config_value = config.get(
             f"{__TRANSLATE.get(identifier)}_DEFAULT_ROOT", "")
-        root = Path(config_value)
-        return root.joinpath('lib', 'libmpi.so')
+
+        return Path(config_value, 'lib', 'libmpi.so')
 
     source_lib = _get_lib(source)
     target_lib = _get_lib(target)
 
-    return [wrapper_lib, source_lib, target_lib]
+    return list(
+        filter(lambda x: x.resolve().exists(),
+               [wrapper_lib, source_lib, target_lib]))
 
 
 def wi4mpi_libpath(install_dir: Path):
