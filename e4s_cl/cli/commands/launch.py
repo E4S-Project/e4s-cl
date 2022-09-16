@@ -183,9 +183,10 @@ class LaunchCommand(AbstractCommand):
         execute_command = _format_execute(parameters)
 
         # Override the launcher in case wi4mpi is used
-        if launcher and parameters.get('wi4mpi'):
-            launcher[0] = Path(parameters['wi4mpi']).joinpath(
-                'bin', 'mpirun').as_posix()
+        wi4mpi_root = parameters.get('wi4mpi')
+        if launcher and wi4mpi_root:
+            os.environ['WI4MPI_ROOT'] = wi4mpi_root
+            launcher[0] = Path(wi4mpi_root, 'bin', 'mpirun').as_posix()
             launcher += shlex.split(parameters.get('wi4mpi_options', ""))
 
         full_command = [*launcher, *execute_command, *program]
