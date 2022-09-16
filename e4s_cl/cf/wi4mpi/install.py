@@ -1,5 +1,6 @@
 import os
 import subprocess
+from shutil import rmtree
 from subprocess import DEVNULL, STDOUT
 import tarfile
 import urllib.request
@@ -143,11 +144,14 @@ def install_wi4mpi() -> bool:
     ]
 
     try:
+        if build_dir.exists():
+            rmtree(build_dir)
+
         build_dir.mkdir(exist_ok=True)
         os.chdir(build_dir)
     except PermissionError as err:
-        LOGGER.debug("Failed to create directory %s: %s", build_dir.as_posix(),
-                     str(err))
+        LOGGER.debug("Failed to create build directory %s: %s",
+                     build_dir.as_posix(), str(err))
         return False
     LOGGER.warning(f"Attempting to install WI4MPI at {WI4MPI_DIR}")
 

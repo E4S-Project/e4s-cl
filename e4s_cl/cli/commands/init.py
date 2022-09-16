@@ -448,7 +448,7 @@ class InitCommand(AbstractCommand):
             controller.update(
                 {
                     'wi4mpi': str(WI4MPI_DIR / 'install'),
-                    'wi4mpi_options': '-T mpich -F openmpi'
+                    'wi4mpi_options': '-T openmpi -F mpich'
                 }, profile.eid)
 
         # Rename the profile. This is done last to allow dynamic renaming
