@@ -5,13 +5,13 @@ from subprocess import DEVNULL, STDOUT
 import tarfile
 import urllib.request
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from tempfile import NamedTemporaryFile
 from e4s_cl import E4S_CL_HOME
 from e4s_cl.util import safe_tar, run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
-from e4s_cl.cf.detect_name import _get_mpi_vendor_version, filter_mpi_libs
+from e4s_cl.cf.detect_name import _get_mpi_vendor_version
 
 LOGGER = get_logger(__name__)
 
@@ -21,22 +21,13 @@ WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
 
 CPU_COUNT = os.cpu_count() or 2
 
-
-def _install_wi4mpi():
-    return install_wi4mpi()
-
-
-def _nop():
-    pass
-
-
 DISTRO_DICT = {
-    'Intel(R) MPI': _nop,
-    'Open MPI': _install_wi4mpi,
-    'Spectrum MPI': _nop,
-    'CRAY MPICH': _nop,
-    'MPICH': _nop,
-    'MVAPICH': _nop
+    'Intel(R) MPI': False,
+    'Open MPI': True,
+    'Spectrum MPI': False,
+    'CRAY MPICH': False,
+    'MPICH': False,
+    'MVAPICH': False
 }
 
 VENDOR_DICT = {
@@ -45,19 +36,23 @@ VENDOR_DICT = {
     'MPICH': 'mpich',
 }
 
+CONFIG_KEY_DICT = {
+    'Intel(R) MPI': 'INTELMPI_DEFAULT_ROOT',
+    'Open MPI': 'OPENMPI_DEFAULT_ROOT',
+    'MPICH': 'MPICH_DEFAULT_ROOT',
+}
 
-def check_wi4mpi(profile):
+
+def requires_wi4mpi(libraries: List) -> bool:
     """
     Checks if the mpi vendor detected needs wi4mpi in order to function
     correctly with e4s-cl, and if so installs it.
     """
-    installed, vendor = False, None
-    mpi_libs = filter_mpi_libs(profile)
-    vendor_list = list(filter(None, map(_get_mpi_vendor_version, mpi_libs)))
+    vendor_list = list(filter(None, map(_get_mpi_vendor_version, libraries)))
     if vendor_list:
         vendor = vendor_list[0][0]
-        installed = DISTRO_DICT.get(vendor)()
-    return (installed, vendor)
+        return DISTRO_DICT.get(vendor), vendor
+    return False, ''
 
 
 def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
@@ -106,11 +101,32 @@ def update_config(config_path: Path, key: str, value: str) -> None:
         config_file.writelines(config)
 
 
-def install_wi4mpi() -> bool:
+def _double_tap(cmd):
+    """
+    Run a given command (cmake/make) discarding the output. If the
+    returncode indicates an error, run it again with the out/err streams
+    enabled; this ensures a concise error output as recommended on the GNU
+    make's website.
+    """
+
+    success = run_subprocess(cmd, discard_output=True)
+    if success:
+        LOGGER.debug(
+            f"Command run failed: {cmd}, running with visible output.")
+        run_subprocess(cmd, discard_output=False)
+
+    return not success
+
+
+def install_wi4mpi(vendor, mpi_install_dir) -> bool:
     """Clones and installs wi4mpi from git run
     
     Installs in ~/.local/share/wi4mpi using a GNU compiler
     """
+
+    if vendor not in CONFIG_KEY_DICT:
+        LOGGER.error('Unrecognized MPI distribution: %s', vendor)
+        return False
 
     cmake_executable = which("cmake")
     if not cmake_executable:
@@ -118,21 +134,6 @@ def install_wi4mpi() -> bool:
             "WI4MPI installation failed: cmake is missing. Proceeding with profile initialisation"
         )
         return False
-
-    def _double_tap(cmd):
-        """
-        Run a given command (cmake/make) discarding the output. If the
-        returncode indicates an error, run it again with the out/err streams
-        enabled; this ensures a concise error output as recommended on the GNU
-        make's website.
-        """
-
-        success = run_subprocess(cmd, discard_output=True)
-        if success:
-            LOGGER.debug(f"Command run failed: {cmd}, running with visible output.")
-            run_subprocess(cmd, discard_output=False)
-
-        return not success
 
     source_dir = download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
     build_dir = WI4MPI_DIR / 'build'
@@ -176,8 +177,11 @@ def install_wi4mpi() -> bool:
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
             and _double_tap(install_cmd):
+        update_config(install_dir / 'etc' / 'wi4mpi.cfg',
+                      CONFIG_KEY_DICT.get(vendor), mpi_install_dir)
         LOGGER.warning("WI4MPI is built and installed")
         return True
 
-    LOGGER.warning("WI4MPI installation failed. Proceeding with profile initialisation")
+    LOGGER.warning(
+        "WI4MPI installation failed. Proceeding with profile initialisation")
     return False

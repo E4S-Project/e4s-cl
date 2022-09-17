@@ -90,8 +90,9 @@ from sotools.linker import resolve
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_NAME
 from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
-from e4s_cl.cf.detect_name import rename_profile_mpi_version
-from e4s_cl.cf.wi4mpi.install import check_wi4mpi, WI4MPI_DIR, VENDOR_DICT
+from e4s_cl.cf.detect_name import (rename_profile_mpi_version, filter_mpi_libs,
+                                   install_dir)
+from e4s_cl.cf.wi4mpi.install import requires_wi4mpi, install_wi4mpi, WI4MPI_DIR, VENDOR_DICT
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -440,17 +441,21 @@ class InitCommand(AbstractCommand):
 
         # Reload the profile created above in case it was modified by the analysis
         selected_profile = Profile.selected()
-        requested_name = getattr(args, 'profile_name', None)
+
+        profile_mpi_libraries = filter_mpi_libs(selected_profile)
 
         # Determine if wi4mpi is needed depending on mpi version detected
-        installed, vendor = check_wi4mpi(selected_profile)
-        if installed:
+        need_wi4mpi, vendor = requires_wi4mpi(profile_mpi_libraries)
+        if need_wi4mpi:
+            mpi_install_dir = install_dir(profile_mpi_libraries)
+            install_wi4mpi(vendor, mpi_install_dir)
             controller.update(
                 {
                     'wi4mpi': str(WI4MPI_DIR / 'install'),
                     'wi4mpi_options': f'-T {VENDOR_DICT.get(vendor)} -F mpich'
                 }, profile.eid)
 
+        requested_name = getattr(args, 'profile_name', None)
         # Rename the profile. This is done last to allow dynamic renaming
         if requested_name:
             # Rename the profile to the name passed as an argument

@@ -4,7 +4,7 @@ Automatic name detector based on mpi vendor
 
 import re
 import ctypes
-from typing import Optional, Callable, Iterable, Tuple
+from typing import Optional, Callable, Iterable, Tuple, List, Dict
 from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.error import UniqueAttributeError
@@ -204,7 +204,7 @@ def detect_mpi(path_list: Iterable[Path]) -> str:
     return profile_name
 
 
-def filter_mpi_libs(data):
+def filter_mpi_libs(data: Dict) -> List[Path]:
 
     def _filter_mpi(path: Path):
         return re.match(r'libmpi.*so.*', path.name)
@@ -213,6 +213,27 @@ def filter_mpi_libs(data):
     mpi_libs = set(filter(_filter_mpi, detected_libs))
 
     return mpi_libs
+
+
+def install_dir(libraries: List[Path]) -> Path:
+    """
+    Return the installation directory of a given list of libraries, defined as
+    the common path stub containing the 'lib' folder
+    """
+
+    def _stub(library: Path) -> Optional[Path]:
+        try:
+            lib_index = library.parts.index('lib')
+        except ValueError:
+            return None
+        return Path(*library.parts[:lib_index])
+
+    # Get a set of all the returns of _stub, filtering out the null values
+    potential_installs = set(filter(None, map(_stub, libraries)))
+
+    if len(potential_installs) == 1:
+        return potential_installs.pop()
+    return None
 
 
 def rename_profile_mpi_version(profile_eid: int) -> bool:
