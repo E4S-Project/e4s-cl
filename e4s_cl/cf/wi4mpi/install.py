@@ -1,7 +1,9 @@
+"""
+Collection of functions to fetch and install Wi4MPI for a given mpi installation
+"""
+
 import os
-import subprocess
 from shutil import rmtree
-from subprocess import DEVNULL, STDOUT
 import tarfile
 import urllib.request
 from pathlib import Path
@@ -90,14 +92,14 @@ def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
 
 
 def update_config(config_path: Path, key: str, value: str) -> None:
-    with open(config_path, 'r') as config_file:
+    with open(config_path, mode='r', encoding='utf-8') as config_file:
         config = config_file.readlines()
 
     for index, line in enumerate(config):
         if line.startswith(key):
             config[index] = f"{key}=\"{value}\"\n"
 
-    with open(config_path, 'w') as config_file:
+    with open(config_path, mode='w', encoding='utf-8') as config_file:
         config_file.writelines(config)
 
 
@@ -111,8 +113,8 @@ def _double_tap(cmd):
 
     success = run_subprocess(cmd, discard_output=True)
     if success:
-        LOGGER.debug(
-            f"Command run failed: {cmd}, running with visible output.")
+        LOGGER.debug("Command run failed: %s, running with visible output.",
+                     cmd)
         run_subprocess(cmd, discard_output=False)
 
     return not success
@@ -172,7 +174,7 @@ def install_wi4mpi(vendor, mpi_install_dir) -> bool:
         LOGGER.debug("Failed to create build directory %s: %s",
                      build_dir.as_posix(), str(err))
         return False
-    LOGGER.warning(f"Attempting to install WI4MPI at {WI4MPI_DIR}")
+    LOGGER.warning("Attempting to install WI4MPI at %s", WI4MPI_DIR)
 
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \

@@ -1,3 +1,6 @@
+"""
+Determine what compiler vendor was used to compile a given binary, by checking the .comments ELF section
+"""
 from pathlib import Path
 from elftools.elf.elffile import ELFFile
 from elftools.common.exceptions import ELFError
@@ -14,7 +17,7 @@ def _llvm_check(string: str) -> bool:
     return 'clang' in string
 
 
-def _intel_check(string: str) -> bool:
+def _intel_check(_: str) -> bool:
     return False
 
 
@@ -22,19 +25,22 @@ def _amd_check(string: str) -> bool:
     return 'AMD' in string
 
 
-def _pgi_check(string: str) -> bool:
+def _pgi_check(_: str) -> bool:
     return False
 
 
-def _armclang_check(string: str) -> bool:
+def _armclang_check(_: str) -> bool:
     return False
 
 
-def _fujitsu_check(string: str) -> bool:
+def _fujitsu_check(_: str) -> bool:
     return False
 
 
 class CompilerVendor:
+    """
+    Enum with values describing compiler vendors
+    """
     GNU = 0
     LLVM = 1
     INTEL = 2
@@ -53,8 +59,8 @@ class CompilerVendor:
         FUJITSU: _fujitsu_check
     }
 
-    # All tested binaries contained 'GCC', and ROCm-compiled contained 'AMD',
-    # 'clang' and 'GCC'. Establishing an order for the checks is a simple way
+    # ROCm-compiled binaries contained 'AMD', 'clang' and 'GCC'
+    # Establishing an order for the checks is a simple way
     # of ensuring the right value is returned
     precendence = [AMD, LLVM, GNU]
 
