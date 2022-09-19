@@ -283,13 +283,19 @@ class Container:
 
             return [p.as_posix() for p in deps]
 
+        bound_files = self._Container__bound_files
+        
         if not dest:
             for _path in _unrelative(path):
-                self.__bound_files.update(
-                    {Path(_path): Container.BoundFile(_path, option)})
+                contains_path = list(filter(lambda bound: path_contains(bound, Path(_path)), bound_files))
+                if not contains_path:
+                    self.__bound_files.update(
+                        {Path(_path): Container.BoundFile(_path, option)})
         else:
-            self.__bound_files.update(
-                {Path(dest): Container.BoundFile(path, option)})
+            contains_path = list(filter(lambda bound: path_contains(bound, Path(path)), bound_files))
+            if not contains_path:
+                self.__bound_files.update(
+                    {Path(dest): Container.BoundFile(path, option)})
 
     @property
     def bound(self):
