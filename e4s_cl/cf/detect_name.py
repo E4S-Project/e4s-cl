@@ -7,7 +7,6 @@ import ctypes
 from typing import Optional, Callable, Iterable, Tuple, List, Dict
 from pathlib import Path
 from e4s_cl import logger
-from e4s_cl.error import UniqueAttributeError
 from e4s_cl.model.profile import Profile
 
 LOGGER = logger.get_logger(__name__)
@@ -236,20 +235,12 @@ def install_dir(libraries: List[Path]) -> Path:
     return None
 
 
-def rename_profile_mpi_version(profile_eid: int) -> bool:
+def profile_mpi_name(mpi_libs: List[Path]) -> Optional[str]:
     """
     Analyze the profile with the given eid for MPI libraries and rename it
     according to the vendor/version info in the shared object
     """
     controller = Profile.controller()
-    data = controller.one(profile_eid)
-    if not data:
-        LOGGER.debug("Error renaming profile: profile id '%d' not found",
-                     profile_eid)
-        return False
-
-    # Extract all libmpi* libraries from the profile
-    mpi_libs = filter_mpi_libs(data)
 
     # Run the methods in the libraries to get a version
     mpi_id = detect_mpi(mpi_libs)
@@ -257,25 +248,13 @@ def rename_profile_mpi_version(profile_eid: int) -> bool:
     if not mpi_id:
         LOGGER.debug("Profile naming failed: no symbol found in %s",
                      " ".join(map(str, mpi_libs)))
-        return False
+        return None
 
     LOGGER.debug("Found identifier %s from profile's MPI libraries", mpi_id)
 
     # Get all profiles matching the new name
-    matches = Profile.controller().match('name',
-                                         regex=f"{re.escape(mpi_id)}.*")
+    matches = controller.match('name', regex=f"{re.escape(mpi_id)}.*")
     matching_names = set(filter(None, map(lambda x: x.get('name'), matches)))
 
     # Add a suffix to the name to avoid conflict
-    profile_name = _suffix_name(mpi_id, matching_names)
-
-    # Update the profile name
-    try:
-        controller.update({'name': profile_name}, profile_eid)
-    except UniqueAttributeError:
-        LOGGER.error(
-            "Error updating profile '%s' name to '%s': another profile exists",
-            data['name'], profile_name)
-        return False
-
-    return True
+    return _suffix_name(mpi_id, matching_names)

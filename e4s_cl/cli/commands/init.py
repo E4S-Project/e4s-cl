@@ -90,7 +90,7 @@ from sotools.linker import resolve
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_NAME
 from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
-from e4s_cl.cf.detect_name import (rename_profile_mpi_version, filter_mpi_libs,
+from e4s_cl.cf.detect_name import (profile_mpi_name, filter_mpi_libs,
                                    install_dir)
 from e4s_cl.cf.wi4mpi.install import requires_wi4mpi, install_wi4mpi, WI4MPI_DIR, VENDOR_DICT
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
@@ -455,7 +455,9 @@ class InitCommand(AbstractCommand):
                     'wi4mpi_options': f'-T {VENDOR_DICT.get(vendor)} -F mpich'
                 }, profile.eid)
 
-        requested_name = getattr(args, 'profile_name', None)
+        requested_name = (getattr(args, 'profile_name', None)
+                          or profile_mpi_name(profile_mpi_libraries))
+
         # Rename the profile. This is done last to allow dynamic renaming
         if requested_name:
             # Rename the profile to the name passed as an argument
@@ -465,10 +467,7 @@ class InitCommand(AbstractCommand):
             # Rename the profile created and selected above
             controller.update({'name': requested_name}, profile.eid)
         elif selected_profile.get('name') == INIT_TEMP_PROFILE_NAME:
-            mpi_renaming = rename_profile_mpi_version(selected_profile)
-            # Renaming according to MPI failed, hash renaming instead
-            if not mpi_renaming:
-                _rename_hash_or_delete(selected_profile)
+            _rename_hash_or_delete(selected_profile)
 
         return status
 
