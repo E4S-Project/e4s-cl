@@ -86,6 +86,7 @@ import subprocess
 import shlex
 from argparse import ArgumentTypeError
 from pathlib import Path
+from typing import Optional
 from sotools.linker import resolve
 from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_NAME
 from e4s_cl import logger, util
@@ -289,16 +290,47 @@ def launcher_argument(string):
     return path
 
 
-def _rename_hash_or_delete(profile):
-    """Rename the given profile to a hash of its own contents, or delete
-    it if a similar profile already exists"""
+def rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
+    """Rename the given profile with a given name or create a special unique
+    hash for it"""
+
     controller = Profile.controller()
-    hash_ = util.hash256(json.dumps(profile))
-    try:
-        controller.update({'name': f"default-{hash_[:16]}"}, profile.eid)
-    except UniqueAttributeError:
-        LOGGER.debug('Profile already exists, deleting temporary profile')
-        controller.delete(profile.eid)
+    if requested_name:
+        # Rename the profile to the name passed as an argument
+        # Erase any potential existing profile
+        if controller.one({"name": requested_name}):
+            controller.delete({"name": requested_name})
+        # Rename the profile created and selected above
+        controller.update({'name': requested_name}, profile.eid)
+    elif profile.get('name') == INIT_TEMP_PROFILE_NAME:
+        # Hash the contents of a JSON representation of the profile
+        hash_ = util.hash256(json.dumps(profile))
+        try:
+            controller.update({'name': f"default-{hash_[:16]}"}, profile.eid)
+        except UniqueAttributeError:
+            LOGGER.debug('Profile already exists, deleting temporary profile')
+            controller.delete(profile.eid)
+
+
+def setup_wi4mpi(profile: Profile, mpi_install_dir: Path, vendor: str) -> None:
+    """Install Wi4MPI and update the profile accordingly"""
+
+    controller = Profile.controller()
+    # Fetch Wi4MPI sources, compile and update configuration
+    install_wi4mpi(vendor, mpi_install_dir)
+
+    # Simplify the profile by removing files contained in the MPI
+    # installation directory
+    profile_files = map(Path, profile.get('files', []))
+    filtered_files = filter(
+        lambda x: not util.path_contains(mpi_install_dir, x), profile_files)
+    new_files = list(map(str, filtered_files))
+
+    # Update the profile
+    controller.update(
+        dict(wi4mpi=str(WI4MPI_DIR / 'install'),
+             wi4mpi_options=f'-T {VENDOR_DICT.get(vendor)} -F mpich',
+             files=new_files), profile.eid)
 
 
 class InitCommand(AbstractCommand):
@@ -442,7 +474,6 @@ class InitCommand(AbstractCommand):
         # Reload the profile created above in case it was modified by the analysis
         selected_profile = Profile.selected()
 
-        profile_files = map(Path, selected_profile.get('files', []))
         profile_libraries = map(Path, selected_profile.get('libraries', []))
         profile_mpi_libraries = filter_mpi_libs(profile_libraries)
         mpi_install_dir = install_dir(profile_mpi_libraries)
@@ -450,33 +481,11 @@ class InitCommand(AbstractCommand):
         # Determine if wi4mpi is needed depending on mpi version detected
         need_wi4mpi, vendor = requires_wi4mpi(profile_mpi_libraries)
         if need_wi4mpi and mpi_install_dir:
-            install_wi4mpi(vendor, mpi_install_dir)
-
-            filtered_files = list(
-                map(
-                    str,
-                    filter(
-                        lambda x: not util.path_contains(mpi_install_dir, x),
-                        profile_files)))
-
-            controller.update(
-                dict(wi4mpi=str(WI4MPI_DIR / 'install'),
-                     wi4mpi_options=f'-T {VENDOR_DICT.get(vendor)} -F mpich',
-                     files=filtered_files), profile.eid)
+            setup_wi4mpi(selected_profile, mpi_install_dir, vendor)
 
         requested_name = (getattr(args, 'profile_name', None)
                           or profile_mpi_name(profile_mpi_libraries))
-
-        # Rename the profile. This is done last to allow dynamic renaming
-        if requested_name:
-            # Rename the profile to the name passed as an argument
-            # Erase any potential existing profile
-            if controller.one({"name": requested_name}):
-                controller.delete({"name": requested_name})
-            # Rename the profile created and selected above
-            controller.update({'name': requested_name}, profile.eid)
-        elif selected_profile.get('name') == INIT_TEMP_PROFILE_NAME:
-            _rename_hash_or_delete(selected_profile)
+        rename_profile(selected_profile, requested_name)
 
         return status
 
