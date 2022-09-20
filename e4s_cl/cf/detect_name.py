@@ -4,7 +4,7 @@ Automatic name detector based on mpi vendor
 
 import re
 import ctypes
-from typing import Optional, Callable, Iterable, Tuple, List, Dict
+from typing import Optional, Callable, Iterable, Tuple, List, Dict, Set
 from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.model.profile import Profile
@@ -203,18 +203,18 @@ def detect_mpi(path_list: Iterable[Path]) -> str:
     return profile_name
 
 
-def filter_mpi_libs(data: Dict) -> List[Path]:
+def filter_mpi_libs(libraries: List[Path]) -> Set[Path]:
+    """
+    Return a set of only MPI libraries from a list of libraries
+    """
 
     def _filter_mpi(path: Path):
         return re.match(r'libmpi.*so.*', path.name)
 
-    detected_libs = set(map(Path, data.get('libraries', [])))
-    mpi_libs = set(filter(_filter_mpi, detected_libs))
-
-    return mpi_libs
+    return set(filter(_filter_mpi, libraries))
 
 
-def install_dir(libraries: List[Path]) -> Path:
+def install_dir(libraries: Iterable[Path]) -> Optional[Path]:
     """
     Return the installation directory of a given list of libraries, defined as
     the common path stub containing the 'lib' folder
@@ -235,7 +235,7 @@ def install_dir(libraries: List[Path]) -> Path:
     return None
 
 
-def profile_mpi_name(mpi_libs: List[Path]) -> Optional[str]:
+def profile_mpi_name(mpi_libs: Iterable[Path]) -> Optional[str]:
     """
     Analyze the profile with the given eid for MPI libraries and rename it
     according to the vendor/version info in the shared object
@@ -246,8 +246,7 @@ def profile_mpi_name(mpi_libs: List[Path]) -> Optional[str]:
     mpi_id = detect_mpi(mpi_libs)
 
     if not mpi_id:
-        LOGGER.debug("Profile naming failed: no symbol found in %s",
-                     " ".join(map(str, mpi_libs)))
+        LOGGER.debug("No symbol found in %s", " ".join(map(str, mpi_libs)))
         return None
 
     LOGGER.debug("Found identifier %s from profile's MPI libraries", mpi_id)

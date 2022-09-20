@@ -442,12 +442,14 @@ class InitCommand(AbstractCommand):
         # Reload the profile created above in case it was modified by the analysis
         selected_profile = Profile.selected()
 
-        profile_mpi_libraries = filter_mpi_libs(selected_profile)
+        profile_files = map(Path, selected_profile.get('files', []))
+        profile_libraries = map(Path, selected_profile.get('libraries', []))
+        profile_mpi_libraries = filter_mpi_libs(profile_libraries)
+        mpi_install_dir = install_dir(profile_mpi_libraries)
 
         # Determine if wi4mpi is needed depending on mpi version detected
         need_wi4mpi, vendor = requires_wi4mpi(profile_mpi_libraries)
-        if need_wi4mpi:
-            mpi_install_dir = install_dir(profile_mpi_libraries)
+        if need_wi4mpi and mpi_install_dir:
             install_wi4mpi(vendor, mpi_install_dir)
             controller.update(
                 {
