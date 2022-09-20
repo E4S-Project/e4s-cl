@@ -451,11 +451,18 @@ class InitCommand(AbstractCommand):
         need_wi4mpi, vendor = requires_wi4mpi(profile_mpi_libraries)
         if need_wi4mpi and mpi_install_dir:
             install_wi4mpi(vendor, mpi_install_dir)
+
+            filtered_files = list(
+                map(
+                    str,
+                    filter(
+                        lambda x: not util.path_contains(mpi_install_dir, x),
+                        profile_files)))
+
             controller.update(
-                {
-                    'wi4mpi': str(WI4MPI_DIR / 'install'),
-                    'wi4mpi_options': f'-T {VENDOR_DICT.get(vendor)} -F mpich'
-                }, profile.eid)
+                dict(wi4mpi=str(WI4MPI_DIR / 'install'),
+                     wi4mpi_options=f'-T {VENDOR_DICT.get(vendor)} -F mpich',
+                     files=filtered_files), profile.eid)
 
         requested_name = (getattr(args, 'profile_name', None)
                           or profile_mpi_name(profile_mpi_libraries))
