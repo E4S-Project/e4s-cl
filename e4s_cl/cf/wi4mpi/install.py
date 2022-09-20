@@ -13,7 +13,7 @@ from e4s_cl import E4S_CL_HOME
 from e4s_cl.util import safe_tar, run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
-from e4s_cl.cf.detect_name import _get_mpi_vendor_version
+from e4s_cl.cf.detect_name import detect_mpi
 
 LOGGER = get_logger(__name__)
 
@@ -49,10 +49,9 @@ def requires_wi4mpi(libraries: List) -> bool:
     Checks if the mpi vendor detected needs wi4mpi in order to function
     correctly with e4s-cl, and if so installs it.
     """
-    vendor_list = list(filter(None, map(_get_mpi_vendor_version, libraries)))
-    if vendor_list:
-        vendor = vendor_list[0][0]
-        return DISTRO_DICT.get(vendor), vendor
+    mpi_id = detect_mpi(libraries)
+    if mpi_id:
+        return DISTRO_DICT.get(mpi_id.vendor, False), mpi_id
     return False, ''
 
 
@@ -127,15 +126,15 @@ def _double_tap(cmd):
     return not success
 
 
-def install_wi4mpi(vendor, mpi_install_dir) -> bool:
+def install_wi4mpi(mpi_id, mpi_install_dir) -> bool:
     """Clones and installs wi4mpi from git run
     
     Installs in ~/.local/share/wi4mpi using a GNU compiler
     """
 
     # Needed to update the configuration file
-    if vendor not in CONFIG_KEY_DICT:
-        LOGGER.error('Unrecognized MPI distribution: %s', vendor)
+    if mpi_id.vendor not in CONFIG_KEY_DICT:
+        LOGGER.error('Unrecognized MPI distribution: %s', mpi_id.vendor)
         return False
 
     # Assert CMake is available
@@ -183,14 +182,14 @@ def install_wi4mpi(vendor, mpi_install_dir) -> bool:
         LOGGER.debug("Failed to create build directory %s: %s",
                      build_dir.as_posix(), str(err))
         return False
-    LOGGER.warning("Attempting to install WI4MPI at %s", WI4MPI_DIR)
+    LOGGER.warning("Installing WI4MPI in %s", WI4MPI_DIR)
 
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
             and _double_tap(install_cmd):
         update_config(install_dir / 'etc' / 'wi4mpi.cfg',
-                      CONFIG_KEY_DICT.get(vendor), mpi_install_dir)
-        LOGGER.warning("WI4MPI is built and installed")
+                      CONFIG_KEY_DICT.get(mpi_id.vendor), mpi_install_dir)
+        LOGGER.warning("WI4MPI has been built and installed")
         return True
 
     LOGGER.warning(
