@@ -95,15 +95,15 @@ def update_config(config_path: Path, key: str, value: str) -> None:
         config = config_file.readlines()
 
     done = False
-    line = f"{key}=\"{value}\"\n"
+    directive = f"{key}=\"{value}\"\n"
 
     for index, line in enumerate(config):
         if not done and line.startswith(key):
-            config[index] = line
+            config[index] = directive
             done = True
 
     if not done:
-        config.append(line)
+        config.append(directive)
 
     with open(config_path, mode='w', encoding='utf-8') as config_file:
         config_file.writelines(config)

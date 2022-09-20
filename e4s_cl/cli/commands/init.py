@@ -313,12 +313,12 @@ def rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
 
 
 def setup_wi4mpi(profile: Profile, mpi_install_dir: Path,
-                 vendor: MPIIdentifier) -> None:
+                 mpi_id: MPIIdentifier) -> None:
     """Install Wi4MPI and update the profile accordingly"""
 
     controller = Profile.controller()
     # Fetch Wi4MPI sources, compile and update configuration
-    wi4mpi_install_dir = install_wi4mpi(vendor, mpi_install_dir)
+    wi4mpi_install_dir = install_wi4mpi(mpi_id, mpi_install_dir)
     if wi4mpi_install_dir is None:
         LOGGER.error("Wi4MPI installation resulted in failure")
         return
@@ -333,7 +333,7 @@ def setup_wi4mpi(profile: Profile, mpi_install_dir: Path,
     # Update the profile
     controller.update(
         dict(wi4mpi=str(wi4mpi_install_dir),
-             wi4mpi_options=f'-T {VENDOR_DICT.get(vendor)} -F mpich',
+             wi4mpi_options=f'-T {VENDOR_DICT.get(mpi_id.vendor)} -F mpich',
              files=new_files), profile.eid)
 
 
