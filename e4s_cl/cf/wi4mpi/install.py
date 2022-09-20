@@ -18,7 +18,6 @@ from e4s_cl.cf.detect_name import _get_mpi_vendor_version
 LOGGER = get_logger(__name__)
 
 WI4MPI_RELEASE_URL = 'https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v3.6.1.tar.gz'
-
 WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
 
 CPU_COUNT = os.cpu_count() or 2
@@ -92,12 +91,20 @@ def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
 
 
 def update_config(config_path: Path, key: str, value: str) -> None:
+    """Modify the configuration at a given path for key to hold value"""
     with open(config_path, mode='r', encoding='utf-8') as config_file:
         config = config_file.readlines()
 
+    done = False
+    line = f"{key}=\"{value}\"\n"
+
     for index, line in enumerate(config):
-        if line.startswith(key):
-            config[index] = f"{key}=\"{value}\"\n"
+        if not done and line.startswith(key):
+            config[index] = line
+            done = True
+
+    if not done:
+        config.append(line)
 
     with open(config_path, mode='w', encoding='utf-8') as config_file:
         config_file.writelines(config)
@@ -126,10 +133,12 @@ def install_wi4mpi(vendor, mpi_install_dir) -> bool:
     Installs in ~/.local/share/wi4mpi using a GNU compiler
     """
 
+    # Needed to update the configuration file
     if vendor not in CONFIG_KEY_DICT:
         LOGGER.error('Unrecognized MPI distribution: %s', vendor)
         return False
 
+    # Assert CMake is available
     cmake_executable = which("cmake")
     if not cmake_executable:
         LOGGER.warning(

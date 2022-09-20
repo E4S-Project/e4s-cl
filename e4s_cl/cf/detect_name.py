@@ -4,7 +4,7 @@ Automatic name detector based on mpi vendor
 
 import re
 import ctypes
-from typing import Optional, Callable, Iterable, Tuple, List, Dict, Set
+from typing import Optional, Callable, Iterable, Tuple, List, Set
 from pathlib import Path
 from e4s_cl import logger
 from e4s_cl.model.profile import Profile

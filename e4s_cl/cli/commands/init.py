@@ -421,10 +421,11 @@ class InitCommand(AbstractCommand):
         args = self._parse_args(argv)
 
         system_args = getattr(args, 'system', False)
-        wi4mpi_args = getattr(args, 'wi4mpi', False) or getattr(
-            args, 'wi4mpi_options', False)
-        detect_args = getattr(args, 'mpi', False) or getattr(
-            args, 'launcher', False) or getattr(args, 'launcher_args', False)
+        wi4mpi_args = (getattr(args, 'wi4mpi', False)
+                       or getattr(args, 'wi4mpi_options', False))
+        detect_args = (getattr(args, 'mpi', False)
+                       or getattr(args, 'launcher', False)
+                       or getattr(args, 'launcher_args', False))
 
         if system_args and wi4mpi_args:
             self.parser.error(
@@ -474,11 +475,12 @@ class InitCommand(AbstractCommand):
         # Reload the profile created above in case it was modified by the analysis
         selected_profile = Profile.selected()
 
+        # Check for MPI in the analysis' results
         profile_libraries = map(Path, selected_profile.get('libraries', []))
         profile_mpi_libraries = filter_mpi_libs(profile_libraries)
         mpi_install_dir = install_dir(profile_mpi_libraries)
 
-        # Determine if wi4mpi is needed depending on mpi version detected
+        # Determine if Wi4MPI is needed depending on detected MPI version
         need_wi4mpi, vendor = requires_wi4mpi(profile_mpi_libraries)
         if need_wi4mpi and mpi_install_dir:
             setup_wi4mpi(selected_profile, mpi_install_dir, vendor)
