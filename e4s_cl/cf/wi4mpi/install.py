@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import Optional, List
 from tempfile import NamedTemporaryFile
 from e4s_cl import E4S_CL_HOME
-from e4s_cl.util import safe_tar, run_subprocess
+from e4s_cl.util import safe_tar, run_subprocess, hash256
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
-from e4s_cl.cf.detect_mpi import detect_mpi
+from e4s_cl.cf.detect_mpi import detect_mpi, MPIIdentifier
 
 LOGGER = get_logger(__name__)
 
@@ -126,7 +126,8 @@ def _double_tap(cmd):
     return not success
 
 
-def install_wi4mpi(mpi_id, mpi_install_dir) -> bool:
+def install_wi4mpi(mpi_id: MPIIdentifier,
+                   mpi_install_dir: Path) -> Optional[Path]:
     """Clones and installs wi4mpi from git run
     
     Installs in ~/.local/share/wi4mpi using a GNU compiler
@@ -135,7 +136,7 @@ def install_wi4mpi(mpi_id, mpi_install_dir) -> bool:
     # Needed to update the configuration file
     if mpi_id.vendor not in CONFIG_KEY_DICT:
         LOGGER.error('Unrecognized MPI distribution: %s', mpi_id.vendor)
-        return False
+        return None
 
     # Assert CMake is available
     cmake_executable = which("cmake")
@@ -143,15 +144,15 @@ def install_wi4mpi(mpi_id, mpi_install_dir) -> bool:
         LOGGER.warning(
             "WI4MPI installation failed: cmake is missing. Proceeding with profile initialisation"
         )
-        return False
+        return None
 
     source_dir = download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
     build_dir = WI4MPI_DIR / 'build'
-    install_dir = WI4MPI_DIR / 'install'
+    install_dir = WI4MPI_DIR / f"{str(mpi_id)}_{hash256(mpi_install_dir.as_posix())}"
 
     if source_dir is None:
         LOGGER.error("Failed to access Wi4MPI release")
-        return False
+        return None
 
     configure_cmd = [
         cmake_executable, \
@@ -181,8 +182,15 @@ def install_wi4mpi(mpi_id, mpi_install_dir) -> bool:
     except PermissionError as err:
         LOGGER.debug("Failed to create build directory %s: %s",
                      build_dir.as_posix(), str(err))
-        return False
-    LOGGER.warning("Installing WI4MPI in %s", WI4MPI_DIR)
+        return None
+
+    if install_dir.exists():
+        LOGGER.debug(
+            "Skipping installation for already installed WI4MPI in %s",
+            install_dir)
+        return install_dir
+
+    LOGGER.warning("Installing WI4MPI in %s", install_dir)
 
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
@@ -190,8 +198,9 @@ def install_wi4mpi(mpi_id, mpi_install_dir) -> bool:
         update_config(install_dir / 'etc' / 'wi4mpi.cfg',
                       CONFIG_KEY_DICT.get(mpi_id.vendor), mpi_install_dir)
         LOGGER.warning("WI4MPI has been built and installed")
-        return True
+        return install_dir
 
     LOGGER.warning(
         "WI4MPI installation failed. Proceeding with profile initialisation")
-    return False
+    rmtree(install_dir, ignore_errors=True)
+    return None

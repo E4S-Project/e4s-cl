@@ -92,7 +92,7 @@ from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_
 from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_mpi import (profile_mpi_name, filter_mpi_libs,
-                                  install_dir)
+                                  install_dir, MPIIdentifier)
 from e4s_cl.cf.wi4mpi.install import requires_wi4mpi, install_wi4mpi, WI4MPI_DIR, VENDOR_DICT
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli import arguments
@@ -312,12 +312,16 @@ def rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
             controller.delete(profile.eid)
 
 
-def setup_wi4mpi(profile: Profile, mpi_install_dir: Path, vendor: str) -> None:
+def setup_wi4mpi(profile: Profile, mpi_install_dir: Path,
+                 vendor: MPIIdentifier) -> None:
     """Install Wi4MPI and update the profile accordingly"""
 
     controller = Profile.controller()
     # Fetch Wi4MPI sources, compile and update configuration
-    install_wi4mpi(vendor, mpi_install_dir)
+    wi4mpi_install_dir = install_wi4mpi(vendor, mpi_install_dir)
+    if wi4mpi_install_dir is None:
+        LOGGER.error("Wi4MPI installation resulted in failure")
+        return
 
     # Simplify the profile by removing files contained in the MPI
     # installation directory
@@ -328,7 +332,7 @@ def setup_wi4mpi(profile: Profile, mpi_install_dir: Path, vendor: str) -> None:
 
     # Update the profile
     controller.update(
-        dict(wi4mpi=str(WI4MPI_DIR / 'install'),
+        dict(wi4mpi=str(wi4mpi_install_dir),
              wi4mpi_options=f'-T {VENDOR_DICT.get(vendor)} -F mpich',
              files=new_files), profile.eid)
 
