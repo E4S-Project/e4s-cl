@@ -6,7 +6,7 @@ from pathlib import Path
 import tests
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.libraries import resolve
-from e4s_cl.cf.detect_name import (
+from e4s_cl.cf.detect_mpi import (
     profile_mpi_name, detect_mpi, _get_mpi_library_version, _suffix_name,
     _extract_mvapich_version, _extract_intel_mpi_version,
     _extract_mpich_version, _extract_cray_mpich_version,

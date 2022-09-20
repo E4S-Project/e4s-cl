@@ -1,5 +1,5 @@
 """
-Automatic name detector based on mpi vendor 
+Identify a MPI vendor and version from an ELF binary
 """
 
 import re

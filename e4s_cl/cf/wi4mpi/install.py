@@ -13,7 +13,7 @@ from e4s_cl import E4S_CL_HOME
 from e4s_cl.util import safe_tar, run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
-from e4s_cl.cf.detect_name import detect_mpi
+from e4s_cl.cf.detect_mpi import detect_mpi
 
 LOGGER = get_logger(__name__)
 
