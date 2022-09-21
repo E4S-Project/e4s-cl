@@ -260,11 +260,11 @@ class Container:
             return
 
         def unbind(to_unbind):
-            del self._Container__bound_files[Path(to_unbind[1])] 
+            del self._Container__bound_files[Path(to_unbind[1])]
 
         def _check_bound_files(string):
             """
-            Checks if a file should be binded in relation to previously binded 
+            Checks if a file should be binded in relation to previously binded
             files
             Also checks that binded files are not made irrelevant by a new
             binded file
@@ -275,6 +275,10 @@ class Container:
             opt = option
             if dest:
                 path = Path(dest)
+
+            # Check if the file to be binded is contained in already binded files/folders
+            # If it is, check that the containing files/folders' permissions align with
+            # the new file and update them if need be
             target_contained = list(filter(lambda bound: path_contains(bound[1], path), bound_files))
             for file in target_contained:
                 if option > file[2]:
@@ -282,6 +286,10 @@ class Container:
                     self.__bound_files.update(
                             {file[1]: Container.BoundFile(file[0], option)})
                 return (False, None)
+
+            # Check if the file to be binded is containing already binded files/folders
+            # If it is, check that the new file's permissions align with the contained files/folders
+            # and then unbind them with a new permission level if need be
             target_containing = list(filter(lambda bound: path_contains(path, bound[1]), bound_files))
             for file in target_containing:
                 if opt < file[2]:
