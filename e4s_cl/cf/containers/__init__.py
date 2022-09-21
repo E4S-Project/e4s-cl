@@ -259,6 +259,37 @@ class Container:
         if not path:
             return
 
+        def unbind(to_unbind):
+            del self._Container__bound_files[Path(to_unbind[1])] 
+
+        def _check_bound_files(string):
+            """
+            Checks if a file should be binded in relation to previously binded 
+            files
+            Also checks that binded files are not made irrelevant by a new
+            binded file
+            """
+
+            bound_files = list(self.bound)
+            path = Path(string)
+            opt = option
+            if dest:
+                path = Path(dest)
+            target_contained = list(filter(lambda bound: path_contains(bound[1], path), bound_files))
+            for file in target_contained:
+                if option > file[2]:
+                    unbind(file)
+                    self.__bound_files.update(
+                            {file[1]: Container.BoundFile(file[0], option)})
+                return (False, None)
+            target_containing = list(filter(lambda bound: path_contains(path, bound[1]), bound_files))
+            for file in target_containing:
+                if opt < file[2]:
+                    opt = file[2]
+                unbind(file)
+            return (True, opt)
+
+
         def _unrelative(string):
             """
             Returns a list of all the directories referenced by a relative path
@@ -283,19 +314,18 @@ class Container:
 
             return [p.as_posix() for p in deps]
 
-        bound_files = self._Container__bound_files
-        
         if not dest:
             for _path in _unrelative(path):
-                contains_path = list(filter(lambda bound: path_contains(bound, Path(_path)), bound_files))
-                if not contains_path:
+                passed, option = _check_bound_files(_path)
+                if passed:
                     self.__bound_files.update(
                         {Path(_path): Container.BoundFile(_path, option)})
         else:
-            contains_path = list(filter(lambda bound: path_contains(bound, Path(path)), bound_files))
-            if not contains_path:
+            passed, option = _check_bound_files(path)
+            if passed:
                 self.__bound_files.update(
                     {Path(dest): Container.BoundFile(path, option)})
+
 
     @property
     def bound(self):
@@ -309,6 +339,7 @@ class Container:
                         'source': data.path,
                         'dest': path
                     })
+
 
     def bind_env_var(self, key, value):
         self.env.update({key: value})
