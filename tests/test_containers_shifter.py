@@ -87,6 +87,10 @@ class ContainerTestShifter(tests.TestCase):
 
         container._Container__bound_files = {}
 
+        container.bind_file(target, dest=dest)
+        self.assertIn((target, dest, FileOptions.READ_ONLY),
+                      list(container.bound))
+
         container.bind_file(target, dest=dest, option=option)
         self.assertIn((target, dest, FileOptions.READ_WRITE),
                       list(container.bound))
