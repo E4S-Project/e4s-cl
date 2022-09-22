@@ -7,13 +7,13 @@ from shutil import rmtree
 import tarfile
 import urllib.request
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 from tempfile import NamedTemporaryFile
 from e4s_cl import E4S_CL_HOME
 from e4s_cl.util import safe_tar, run_subprocess, hash256
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
-from e4s_cl.cf.detect_mpi import detect_mpi, MPIIdentifier
+from e4s_cl.cf.detect_mpi import MPIIdentifier
 
 LOGGER = get_logger(__name__)
 
@@ -46,29 +46,38 @@ CONFIG_KEY_DICT = {
 }
 
 
-def requires_wi4mpi(libraries: List) -> bool:
+def requires_wi4mpi(mpi_id: MPIIdentifier) -> bool:
     """
     Checks if the mpi vendor detected needs wi4mpi in order to function
     correctly with e4s-cl, and if so installs it.
     """
-    mpi_id = detect_mpi(libraries)
-    if mpi_id:
-        return DISTRO_DICT.get(mpi_id.vendor, False), mpi_id
-    return False, ''
+    return DISTRO_DICT.get(getattr(mpi_id, 'vendor', ''), False)
+
+
+def _fetch_asset(url: str) -> Optional[Path]:
+    """Fetch an url and write it to a temporary file"""
+    try:
+        with urllib.request.urlopen(url) as request:
+            if not request.status == 200:
+                return None
+
+            with NamedTemporaryFile(mode='wb', delete=False) as buffer:
+                buffer.write(request.read())
+                archive = buffer.name
+    except (ValueError, urllib.error.URLError) as err:
+        LOGGER.error("Error fetching URL: %s", err)
+        return None
+
+    return archive
 
 
 def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
     """
     Download and extract the TAR archive from 'url' into the directory 'destination'
     """
-    with urllib.request.urlopen(url) as request:
-        if not request.status == 200:
-            LOGGER.error("Failed to download Wi4MPI release; aborting")
-            return None
-
-        with NamedTemporaryFile(delete=False) as buffer:
-            buffer.write(request.read())
-            archive = buffer.name
+    archive = _fetch_asset(url)
+    if archive is None:
+        return None
 
     if not tarfile.is_tarfile(archive):
         LOGGER.error("Downloaded file is not an archive; aborting")
@@ -80,7 +89,6 @@ def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
             return None
 
         data.extractall(destination)
-
         release_root_dir = min(data.getnames())
 
     try:
@@ -149,6 +157,10 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
         return None
 
     source_dir = download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
+    if source_dir is None:
+        LOGGER.error("Failed to download Wi4MPI release; aborting")
+        return None
+
     build_dir = WI4MPI_DIR / 'build'
 
     # The install directory name contains a reference to the MPI version and

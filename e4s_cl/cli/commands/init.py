@@ -92,8 +92,8 @@ from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_
 from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_mpi import (profile_mpi_name, filter_mpi_libs,
-                                  install_dir, MPIIdentifier)
-from e4s_cl.cf.wi4mpi.install import requires_wi4mpi, install_wi4mpi, WI4MPI_DIR, VENDOR_DICT
+                                  install_dir, MPIIdentifier, detect_mpi)
+from e4s_cl.cf.wi4mpi.install import requires_wi4mpi, install_wi4mpi, VENDOR_DICT
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -483,11 +483,11 @@ class InitCommand(AbstractCommand):
         profile_libraries = map(Path, selected_profile.get('libraries', []))
         profile_mpi_libraries = filter_mpi_libs(profile_libraries)
         mpi_install_dir = install_dir(profile_mpi_libraries)
+        mpi_vendor = detect_mpi(profile_mpi_libraries)
 
-        # Determine if Wi4MPI is needed depending on detected MPI version
-        need_wi4mpi, vendor = requires_wi4mpi(profile_mpi_libraries)
-        if need_wi4mpi and mpi_install_dir:
-            setup_wi4mpi(selected_profile, mpi_install_dir, vendor)
+        # Install Wi4MPI if needed depending on detected MPI version
+        if requires_wi4mpi(mpi_vendor):
+            setup_wi4mpi(selected_profile, mpi_install_dir, mpi_vendor)
 
         requested_name = (getattr(args, 'profile_name', None)
                           or profile_mpi_name(profile_mpi_libraries))
