@@ -16,8 +16,6 @@ from typing import List, Callable, Iterable, Any
 from functools import lru_cache, reduce
 from shutil import which as sh_which
 from collections import deque
-from time import perf_counter
-from contextlib import contextmanager
 from tarfile import TarFile
 from e4s_cl import logger
 from e4s_cl.variables import ParentStatus
@@ -450,24 +448,6 @@ def add_dot(string: str) -> str:
     if string[-1] in ['.', '!', '?']:
         return string
     return string + '.'
-
-
-def update_ld_path(path: Path):
-    ld_path = os.environ.get('LD_LIBRARY_PATH')
-
-    if ld_path:
-        ld_path = f"{path.as_posix()}{os.pathsep}{ld_path}"
-    else:
-        ld_path = path.as_posix()
-
-    os.environ['LD_LIBRARY_PATH'] = ld_path
-    return ld_path
-
-
-@contextmanager
-def catchtime() -> float:
-    start = perf_counter()
-    yield lambda: perf_counter() - start
 
 
 def path_contains(lhs: Path, rhs: Path):
