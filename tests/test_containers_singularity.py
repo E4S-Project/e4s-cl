@@ -55,6 +55,7 @@ class ContainerTestSingularity(tests.TestCase):
 
         target = Path('/tmp')
         dest = Path('/etc')
+        contained_dest = Path("/etc/skel")
         option = FileOptions.READ_WRITE
 
         container.bind_file(target)
@@ -71,6 +72,16 @@ class ContainerTestSingularity(tests.TestCase):
 
         container.bind_file(target, dest=dest)
         self.assertIn((target, dest, FileOptions.READ_ONLY),
+                      list(container.bound))
+
+        container.bind_file(target, dest=dest, option=option)
+        self.assertIn((target, dest, FileOptions.READ_WRITE),
+                      list(container.bound))
+
+        container._Container__bound_files = {}
+
+        container.bind_file(target, dest=contained_dest)
+        self.assertIn((target, contained_dest, FileOptions.READ_ONLY),
                       list(container.bound))
 
         container.bind_file(target, dest=dest, option=option)
