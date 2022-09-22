@@ -521,5 +521,8 @@ def safe_tar(archive: TarFile) -> bool:
 
     for member in archive.getmembers():
         if not child(Path(member.name)):
+            LOGGER.error(
+                "Safety concern unpacking %s: file %s attempts to write out of the decompressed directory",
+                archive.name, member.name)
             return False
     return True

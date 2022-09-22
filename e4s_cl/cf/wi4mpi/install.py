@@ -20,7 +20,9 @@ LOGGER = get_logger(__name__)
 WI4MPI_RELEASE_URL = 'https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v3.6.1.tar.gz'
 WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
 
-CPU_COUNT = os.cpu_count() or 2
+# Due to an error in Wi4MPI 3.6.1, parallel builds may fail for high process
+# count. We cap at 4 until the fix is merged
+CPU_COUNT = min(os.cpu_count(), 4)
 
 DISTRO_DICT = {
     'Intel(R) MPI': False,
@@ -148,6 +150,9 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
 
     source_dir = download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
     build_dir = WI4MPI_DIR / 'build'
+
+    # The install directory name contains a reference to the MPI version and
+    # where it is installed. This allows subsequent installations to reuse previous builds
     install_dir = WI4MPI_DIR / f"{str(mpi_id)}_{hash256(mpi_install_dir.as_posix())}"
 
     if source_dir is None:
@@ -173,6 +178,12 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
         '--target', 'install'
     ]
 
+    if install_dir.exists():
+        LOGGER.debug(
+            "Skipping installation for already installed WI4MPI in %s",
+            install_dir)
+        return install_dir
+
     try:
         if build_dir.exists():
             rmtree(build_dir)
@@ -183,12 +194,6 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
         LOGGER.debug("Failed to create build directory %s: %s",
                      build_dir.as_posix(), str(err))
         return None
-
-    if install_dir.exists():
-        LOGGER.debug(
-            "Skipping installation for already installed WI4MPI in %s",
-            install_dir)
-        return install_dir
 
     LOGGER.warning("Installing WI4MPI in %s", install_dir)
 
