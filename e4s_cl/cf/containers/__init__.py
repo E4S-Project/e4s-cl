@@ -18,10 +18,11 @@ import os
 import re
 import sys
 import json
+from dataclasses import dataclass
 from importlib import import_module
 from tempfile import TemporaryFile, NamedTemporaryFile
 from pathlib import Path
-from typing import Union
+from typing import Union, List, Tuple, Iterable, Optional
 from sotools.dl_cache import cache_libraries, get_generator
 from e4s_cl.logger import get_logger, debug_mode
 from e4s_cl import (EXIT_FAILURE, CONTAINER_DIR, CONTAINER_LIBRARY_DIR,
@@ -52,6 +53,14 @@ class FileOptions:
     """
     READ_ONLY = 0
     READ_WRITE = 1
+
+
+@dataclass(frozen=True)
+class BoundFile:
+    """Element of the bound file dictionnary"""
+    origin: Path
+    destination: Path
+    option: int
 
 
 class BackendError(ConfigurationError):
@@ -118,20 +127,98 @@ def dump(func):
     return wrapper
 
 
+def optimize_bind_addition(
+        new: BoundFile,
+        bound_files: Iterable[BoundFile]) -> Iterable[BoundFile]:
+    """
+    Adds new to bound_files, if needed. Performs optimizations to prevent
+    double binds/superfluous binds, and returns the optimized bind set
+    """
+
+    new_binds = set(bound_files)
+
+    def contains(bound_lhs, bound_rhs):
+        try:
+            return bound_rhs.origin.relative_to(
+                bound_lhs.origin) == bound_rhs.destination.relative_to(
+                    bound_lhs.destination)
+        except ValueError:
+            return False
+
+    # Check if the file to be bound is contained in already bound files/folders
+    # If it is, check that the containing files/folders' permissions align with
+    # the new file and update them if need be
+    target_contained = set(filter(lambda b: contains(b, new), bound_files))
+
+    if target_contained:
+        # Compute the max permission required by the files containing new. If
+        # they allow a lower level of permissions, re-bind them with the
+        # necessary permissions
+        target_contained_permissions = max(
+            map(lambda x: x.option, target_contained))
+
+        if target_contained_permissions < new.option:
+            # Re create all the binds
+            new_contained = set(
+                map(lambda x: BoundFile(x.origin, x.destination, new.option),
+                    target_contained))
+
+            # Remove the old binds
+            new_binds = new_binds - target_contained
+
+            # Add the ones created above
+            new_binds = new_binds | new_contained
+
+        return new_binds
+
+    # Check if the file to be bound is containing already bound files/folders
+    # If it is, check that the new file's permissions align with the contained files/folders
+    # and then unbind them with a new permission level if need be
+    target_containing = set(filter(lambda b: contains(new, b), bound_files))
+
+    if target_containing:
+        # Check the permissions requires by the files contained by new, and
+        # update new's permissions accordingly
+        target_containing_permissions = max(
+            map(lambda x: x.option, target_containing))
+
+        if target_containing_permissions > new.option:
+            new = BoundFile(new.origin, new.destination,
+                            target_containing_permissions)
+
+    new_binds.add(new)
+    return new_binds - target_containing
+
+
+def _unrelative(string: str) -> Iterable[Path]:
+    """
+    Returns a list of all the directories referenced by a relative path
+    """
+
+    path = Path(string)
+    visited = {path, path.resolve()}
+    deps = set()
+
+    for i, part in enumerate(path.parts):
+        if part == '..':
+            visited.add(Path(*path.parts[:i]).resolve())
+
+    for element in visited:
+        contained = False
+        for path in visited:
+            if path != element and path_contains(path, element):
+                contained = True
+
+        if not contained:
+            deps.add(element)
+
+    return deps
+
+
 class Container:
     """
     Abstract class that auto-completes depending on the container tech
     """
-
-    # pylint: disable=too-few-public-methods
-    class BoundFile:
-        """
-        Element of the bound file dictionnary
-        """
-
-        def __init__(self, path: Path, option: int = FileOptions.READ_ONLY):
-            self.path = Path(path)
-            self.option = option
 
     # pylint: disable=unused-argument
     def __new__(cls, image=None, name=None):
@@ -163,9 +250,8 @@ class Container:
         self.image = image
 
         # User-set parameters
-        # Files to bind: dict(guest_path -> (host_path, options))
-        # dict[Path, Container._bound_file]
-        self.__bound_files = {}
+        # Files to bind: set(BoundFile)
+        self._bound_files = set()
         self.env = {}  # Environment
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
@@ -246,8 +332,8 @@ class Container:
 
     def bind_file(self,
                   path: Union[Path, str],
-                  dest=None,
-                  option=FileOptions.READ_ONLY) -> None:
+                  dest: Optional[Path] = None,
+                  option: int = FileOptions.READ_ONLY) -> None:
         """
         If there is no destination, handle files with relative paths.
         For instance on summit, some files are required as
@@ -259,49 +345,27 @@ class Container:
         if not path:
             return
 
-        def _unrelative(string):
-            """
-            Returns a list of all the directories referenced by a relative path
-            """
-
-            path = Path(string)
-            visited = {path, path.resolve()}
-            deps = set()
-
-            for i, part in enumerate(path.parts):
-                if part == '..':
-                    visited.add(Path(*path.parts[:i]).resolve())
-
-            for element in visited:
-                contained = False
-                for path in visited:
-                    if path != element and path_contains(path, element):
-                        contained = True
-
-                if not contained:
-                    deps.add(element)
-
-            return [p.as_posix() for p in deps]
-
+        new_binds = set()
         if not dest:
             for _path in _unrelative(path):
-                self.__bound_files.update(
-                    {Path(_path): Container.BoundFile(_path, option)})
+                new_binds.add(BoundFile(_path, _path, option))
         else:
-            self.__bound_files.update(
-                {Path(dest): Container.BoundFile(path, option)})
+            new_binds.add(BoundFile(Path(path), Path(dest), option))
+
+        for bind in new_binds:
+            self._bound_files = optimize_bind_addition(bind, self._bound_files)
 
     @property
     def bound(self):
-        for path, data in self._Container__bound_files.items():
-            if data.path.exists():
-                yield data.path, path, data.option
+        for bound in self._bound_files:
+            if bound.origin.exists():
+                yield bound
             else:
                 LOGGER.warning(
                     "Attempting to bind non-existing file: %(source)s to %(dest)s",
                     {
-                        'source': data.path,
-                        'dest': path
+                        'source': bound.origin,
+                        'dest': bound.destination
                     })
 
     def bind_env_var(self, key, value):
@@ -338,8 +402,9 @@ class Container:
         out.append(f"{self.__class__.__name__} object:")
         if self.image:
             out.append(f"- image: {self.image}")
-        bound_files = "\n".join(
-            [f"\t{v[0]} -> {v[1]} ({v[2]})" for v in self.bound])
+        bound_files = "\n".join([
+            f"\t{v.origin} -> {v.destination} ({v.option})" for v in self.bound
+        ])
         out.append(f"- bound:\n{bound_files}")
         if self.env:
             out.append(f"- env: { json.dumps(self.env, indent=2)}")

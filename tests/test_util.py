@@ -1,3 +1,4 @@
+import os
 import tempfile
 import tarfile
 from pathlib import Path
@@ -13,6 +14,7 @@ class UtilTest(tests.TestCase):
         self.assertTrue(executable.is_absolute())
         return executable.as_posix()
 
+    @tests.skipIf("CICD" in os.environ, "gitlab testing environment")
     def test_access(self):
         self.assertTrue(path_accessible('/tmp', 'r'))
         self.assertTrue(path_accessible('/tmp', 'w'))

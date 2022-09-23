@@ -121,21 +121,21 @@ class PodmanContainer(Container):
 
     def _working_dir(self):
         cwd = os.getcwd()
-        if cwd in map(lambda x: x[0], self.bound):
+        if cwd in map(lambda x: x.origin, self.bound):
             return ['--workdir', cwd]
         return []
 
     def _format_bound(self):
 
         def _format():
-            for src, dst, opt in self.bound:
+            for file in self.bound:
                 params = {
                     'type': 'bind',
-                    'src': src.as_posix(),
-                    'dst': dst.as_posix(),
+                    'src': file.origin.as_posix(),
+                    'dst': file.destination.as_posix(),
                 }
 
-                if opt == FileOptions.READ_ONLY:
+                if file.option == FileOptions.READ_ONLY:
                     params['ro'] = 'true'
 
                 yield "--mount=" + ",".join(f"{k}={v}"

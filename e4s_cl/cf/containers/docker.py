@@ -49,13 +49,13 @@ class DockerContainer(Container):
             raise BackendNotAvailableError('docker') from err
 
         mounts = []
-        for source, dest, options_val in self.bound:
+        for file in self.bound:
             mounts.append(
                 docker.types.Mount(
-                    dest.as_posix(),
-                    source.as_posix(),
+                    file.destination.as_posix(),
+                    file.origin.as_posix(),
                     type='bind',
-                    read_only=(options_val == FileOptions.READ_ONLY)))
+                    read_only=(file.option == FileOptions.READ_ONLY)))
 
         container_env = dict(os.environ)
         for key, val in self.env.items():
