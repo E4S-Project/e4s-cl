@@ -55,21 +55,22 @@ class Containerless(Container):
         """
         Create symlinks to bound libraries in a temporary directory
         """
-        for source, destination, _ in self.bound:
+        for file in self.bound:
             # Abort if not a file
-            if not source.resolve().is_file():
+            if not file.origin.resolve().is_file():
                 continue
 
             # Abort if not bound in the special dir
             try:
-                rel = destination.relative_to(self.import_dir)
+                rel = file.destination.relative_to(self.import_dir)
             except ValueError:
-                LOGGER.debug("%s is not in %s", destination, self.import_dir)
+                LOGGER.debug("%s is not in %s", file.destination,
+                             self.import_dir)
                 continue
 
             link = Path(self._lib_dir.name, rel)
             os.makedirs(link.parent, exist_ok=True)
-            os.symlink(source.resolve(), link)
+            os.symlink(file.origin.resolve(), link)
 
         ld_path = os.environ.get("LD_LIBRARY_PATH")
 

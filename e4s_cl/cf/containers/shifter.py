@@ -118,38 +118,39 @@ class ShifterContainer(Container):
         """
         volumes = [(where.as_posix(), CONTAINER_DIR)]
 
-        for source, destination, _ in self.bound:
-            if path_contains(Path('/var'), destination):
+        for file in self.bound:
+            if path_contains(Path('/var'), file.destination):
                 LOGGER.debug("Omitting bind of %s to %s: forbidden bind path",
-                             str(source), str(destination))
+                             str(file.origin), str(file.destination))
                 continue
 
-            if destination.as_posix().startswith(CONTAINER_DIR):
-                rebased = destination.as_posix()[len(CONTAINER_DIR) + 1:]
+            if file.destination.as_posix().startswith(CONTAINER_DIR):
+                rebased = file.destination.as_posix()[len(CONTAINER_DIR) + 1:]
                 temporary = Path(where, rebased)
 
                 LOGGER.debug("Shifter: Creating %s for %s in %s",
-                             temporary.as_posix(), source.as_posix(),
-                             destination.as_posix())
+                             temporary.as_posix(), file.origin.as_posix(),
+                             file.destination.as_posix())
                 os.makedirs(temporary.parent, exist_ok=True)
                 with subprocess.Popen(
                     ['cp', '-r',
-                     source.as_posix(),
+                     file.origin.as_posix(),
                      temporary.as_posix()]) as proc:
                     proc.wait()
 
-            elif source.is_dir():
-                if destination.as_posix().startswith('/etc'):
+            elif file.origin.is_dir():
+                if file.destination.as_posix().startswith('/etc'):
                     LOGGER.error(
                         "Shifter: Backend does not support binding to '/etc'")
                     continue
 
-                volumes.append((source.as_posix(), destination.as_posix()))
+                volumes.append(
+                    (file.origin.as_posix(), file.destination.as_posix()))
 
             else:
                 LOGGER.warning(
                     "Shifter: Failed to bind '%s': Backend does not support file"
-                    "binding. Performance may be impacted.", source)
+                    "binding. Performance may be impacted.", file.origin)
 
         return [f"--volume={source}:{dest}" for (source, dest) in volumes]
 

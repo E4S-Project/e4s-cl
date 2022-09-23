@@ -22,9 +22,9 @@ class ExecuteTests(tests.TestCase):
         import_library(lib, container)
 
         links = set()
-        for src, _, _ in container.bound:
-            if src.resolve() == Path(lib.binary_path).resolve():
-                links.add(src)
+        for bound in container.bound:
+            if bound.origin.resolve() == Path(lib.binary_path).resolve():
+                links.add(bound.origin)
 
         self.assertGreater(len(links), 1)
 

@@ -48,8 +48,8 @@ class ApptainerContainer(Container):
         """
 
         def _format():
-            for source, dest, options_val in self.bound:
-                yield f"{source}:{dest}:{OPTION_STRINGS[options_val]}"
+            for file in self.bound:
+                yield f"{file.origin}:{file.destination}:{OPTION_STRINGS[file.option]}"
 
         self.env.update({"APPTAINER_BIND": ','.join(_format())})
 
