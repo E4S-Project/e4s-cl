@@ -63,6 +63,10 @@ class ContainerTest(tests.TestCase):
                                    Path('/.e4s-cl/hostlibs/libmpi.so'),
                                    FileOptions.READ_ONLY)
         usr = BoundFile(Path('/usr'), Path('/usr'), FileOptions.READ_ONLY)
+
+        external_lib = BoundFile(Path('/opt/openmpi/lib'),
+                                 Path('/usr/openmpi'), FileOptions.READ_ONLY)
+
         bound = {mpi, mpi_translated}
 
         self.assertSetEqual(_check_bound_files(pmi, bound), {pmi} | bound)
@@ -73,6 +77,9 @@ class ContainerTest(tests.TestCase):
         self.assertSetEqual(_check_bound_files(mpi, {usr}), {usr})
         self.assertSetEqual(_check_bound_files(mpi_translated, {usr}),
                             {mpi_translated, usr})
+
+        self.assertSetEqual(_check_bound_files(external_lib, {usr}),
+                            {external_lib, usr})
 
     def test_bind_relative(self):
         container = Container(name='dummy')
