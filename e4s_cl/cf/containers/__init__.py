@@ -127,17 +127,12 @@ def dump(func):
     return wrapper
 
 
-def unbind(to_unbind):
-    pass
-    #del self._bound_files[Path(to_unbind[1])]
-
-
-def _check_bound_files(
+def optimize_bind_addition(
         new: BoundFile,
         bound_files: Iterable[BoundFile]) -> Iterable[BoundFile]:
     """
-    Checks if a file should be bound in relation to previously bound files
-    Also checks that bound files are not made irrelevant by a new bound file
+    Adds new to bound_files, if needed. Performs optimizations to prevent
+    double binds/superfluous binds, and returns the optimized bind set
     """
 
     new_binds = set(bound_files)
@@ -195,7 +190,7 @@ def _check_bound_files(
     return new_binds - target_containing
 
 
-def _unrelative(string: str) -> List[str]:
+def _unrelative(string: str) -> Iterable[Path]:
     """
     Returns a list of all the directories referenced by a relative path
     """
@@ -217,7 +212,7 @@ def _unrelative(string: str) -> List[str]:
         if not contained:
             deps.add(element)
 
-    return [p.as_posix() for p in deps]
+    return deps
 
 
 class Container:
@@ -352,13 +347,13 @@ class Container:
 
         new_binds = set()
         if not dest:
-            for _path in map(Path, _unrelative(path)):
+            for _path in _unrelative(path):
                 new_binds.add(BoundFile(_path, _path, option))
         else:
             new_binds.add(BoundFile(Path(path), Path(dest), option))
 
         for bind in new_binds:
-            self._bound_files = _check_bound_files(bind, self._bound_files)
+            self._bound_files = optimize_bind_addition(bind, self._bound_files)
 
     @property
     def bound(self):

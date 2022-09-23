@@ -2,7 +2,7 @@ from unittest import skipIf
 from pathlib import Path
 import tests
 from e4s_cl.cf.containers import (Container, BackendUnsupported, FileOptions,
-                                  BoundFile, _check_bound_files)
+                                  BoundFile, optimize_bind_addition)
 
 
 class ContainerTest(tests.TestCase):
@@ -69,16 +69,16 @@ class ContainerTest(tests.TestCase):
 
         bound = {mpi, mpi_translated}
 
-        self.assertSetEqual(_check_bound_files(pmi, bound), {pmi} | bound)
-        self.assertSetEqual(_check_bound_files(mpi, bound), bound)
-        self.assertSetEqual(_check_bound_files(usr, bound),
+        self.assertSetEqual(optimize_bind_addition(pmi, bound), {pmi} | bound)
+        self.assertSetEqual(optimize_bind_addition(mpi, bound), bound)
+        self.assertSetEqual(optimize_bind_addition(usr, bound),
                             {usr, mpi_translated})
 
-        self.assertSetEqual(_check_bound_files(mpi, {usr}), {usr})
-        self.assertSetEqual(_check_bound_files(mpi_translated, {usr}),
+        self.assertSetEqual(optimize_bind_addition(mpi, {usr}), {usr})
+        self.assertSetEqual(optimize_bind_addition(mpi_translated, {usr}),
                             {mpi_translated, usr})
 
-        self.assertSetEqual(_check_bound_files(external_lib, {usr}),
+        self.assertSetEqual(optimize_bind_addition(external_lib, {usr}),
                             {external_lib, usr})
 
     def test_bind_relative(self):
