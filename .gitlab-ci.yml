@@ -1,0 +1,39 @@
+default:
+    image: python:3.9
+
+stages:          # List of stages for jobs, and their order of execution
+  - build
+  - test
+  - deploy
+
+build-job:       # This job runs in the build stage, which runs first.
+  stage: build
+  script:
+    - echo "Building e4s-cl..."
+    - mkdir /install
+    - make INSTALLDIR=/install install
+    - echo "Built e4s-cl"
+  artifacts:
+    untracked: true
+
+unit-test-job:   # This job runs in the test stage.
+  stage: test    # It only starts when the job in the build stage completes successfully.
+  script:
+    - export CICD="True"
+    - pip install tox 
+    - echo "Running unit tests..."
+    - tox -e py3,coverage
+
+lint-test-job:   # This job also runs in the test stage.
+  stage: test    # It can run at the same time as unit-test-job (in parallel).
+  script:
+    - echo "Linting code..."
+    - pip install tox
+    - tox -e lint
+
+deploy-job:      # This job runs in the deploy stage.
+  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
+  environment: production
+  script:
+    - echo "Deploying application..."
+    - echo "Application successfully deployed."
