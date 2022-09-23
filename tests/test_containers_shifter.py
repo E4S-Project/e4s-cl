@@ -4,7 +4,8 @@ from unittest import skipIf
 from pathlib import Path
 import tests
 from e4s_cl.util import which
-from e4s_cl.cf.containers import Container, BackendUnsupported, FileOptions
+from e4s_cl.cf.containers import (Container, BackendUnsupported, FileOptions,
+                                  BoundFile)
 from e4s_cl.cf.containers.shifter import _parse_config
 
 SAMPLE_CONFIG = """#system (required)
@@ -77,33 +78,33 @@ class ContainerTestShifter(tests.TestCase):
         option = FileOptions.READ_WRITE
 
         container.bind_file(target)
-        self.assertIn((target, target, FileOptions.READ_ONLY),
+        self.assertIn(BoundFile(target, target, FileOptions.READ_ONLY),
                       list(container.bound))
 
         container._Container__bound_files = {}
 
         container.bind_file(target, dest=dest)
-        self.assertIn((target, dest, FileOptions.READ_ONLY),
+        self.assertIn(BoundFile(target, dest, FileOptions.READ_ONLY),
                       list(container.bound))
 
         container._Container__bound_files = {}
 
         container.bind_file(target, dest=dest)
-        self.assertIn((target, dest, FileOptions.READ_ONLY),
+        self.assertIn(BoundFile(target, dest, FileOptions.READ_ONLY),
                       list(container.bound))
 
         container.bind_file(target, dest=dest, option=option)
-        self.assertIn((target, dest, FileOptions.READ_WRITE),
+        self.assertIn(BoundFile(target, dest, FileOptions.READ_WRITE),
                       list(container.bound))
 
         container._Container__bound_files = {}
 
         container.bind_file(target, dest=contained_dest)
-        self.assertIn((target, contained_dest, FileOptions.READ_ONLY),
+        self.assertIn(BoundFile(target, contained_dest, FileOptions.READ_ONLY),
                       list(container.bound))
 
         container.bind_file(target, dest=dest, option=option)
-        self.assertIn((target, dest, FileOptions.READ_WRITE),
+        self.assertIn(BoundFile(target, dest, FileOptions.READ_WRITE),
                       list(container.bound))
 
     def test_bind_relative(self):
@@ -115,7 +116,7 @@ class ContainerTestShifter(tests.TestCase):
         file = Path('/proc/meminfo')
 
         container.bind_file(target)
-        files = set(map(lambda x: x[0], container.bound))
+        files = set(map(lambda x: x.origin, container.bound))
 
         self.assertSetEqual({ref, file}, files)
 
