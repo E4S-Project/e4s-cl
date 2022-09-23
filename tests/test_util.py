@@ -1,6 +1,7 @@
 import pathlib
 import tests
 from e4s_cl.util import which, path_accessible
+import os
 
 
 class UtilTest(tests.TestCase):
@@ -11,6 +12,7 @@ class UtilTest(tests.TestCase):
         self.assertTrue(executable.is_absolute())
         return executable.as_posix()
 
+    @tests.skipIf("CICD" in os.environ, "gitlab testing environment")
     def test_access(self):
         self.assertTrue(path_accessible('/tmp', 'r'))
         self.assertTrue(path_accessible('/tmp', 'w'))
