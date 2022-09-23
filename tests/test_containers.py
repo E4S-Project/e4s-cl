@@ -70,6 +70,10 @@ class ContainerTest(tests.TestCase):
         self.assertSetEqual(_check_bound_files(usr, bound),
                             {usr, mpi_translated})
 
+        self.assertSetEqual(_check_bound_files(mpi, {usr}), {usr})
+        self.assertSetEqual(_check_bound_files(mpi_translated, {usr}),
+                            {mpi_translated, usr})
+
     def test_bind_relative(self):
         container = Container(name='dummy')
 

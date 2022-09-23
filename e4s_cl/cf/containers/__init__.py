@@ -155,28 +155,44 @@ def _check_bound_files(
     # the new file and update them if need be
     target_contained = set(filter(lambda b: contains(b, new), bound_files))
 
+    if target_contained:
+        # Compute the max permission required by the files containing new. If
+        # they allow a lower level of permissions, re-bind them with the
+        # necessary permissions
+        target_contained_permissions = max(
+            map(lambda x: x.option, target_contained))
+
+        if target_contained_permissions < new.option:
+            # Re create all the binds
+            new_contained = set(
+                map(lambda x: BoundFile(x.origin, x.destination, new.option),
+                    target_contained))
+
+            # Remove the old binds
+            new_binds = new_binds - target_contained
+
+            # Add the ones created above
+            new_binds = new_binds | new_contained
+
+        return new_binds
+
     # Check if the file to be bound is containing already bound files/folders
     # If it is, check that the new file's permissions align with the contained files/folders
     # and then unbind them with a new permission level if need be
     target_containing = set(filter(lambda b: contains(new, b), bound_files))
 
-    if target_contained:
-        return bound_files
+    if target_containing:
+        # Check the permissions requires by the files contained by new, and
+        # update new's permissions accordingly
+        target_containing_permissions = max(
+            map(lambda x: x.option, target_containing))
+
+        if target_containing_permissions > new.option:
+            new = BoundFile(new.origin, new.destination,
+                            target_containing_permissions)
 
     new_binds.add(new)
     return new_binds - target_containing
-
-
-"""
-    for file in target_contained:
-        if new.option > file.option:
-            unbind(file)
-            #self._bound_files.add({file[1]: BoundFile(file[0], option)})
-    for file in target_containing:
-        if new.option < file.option:
-            new.option = file.option
-        unbind(file)
-        """
 
 
 def _unrelative(string: str) -> List[str]:
