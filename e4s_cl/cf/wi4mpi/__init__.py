@@ -3,15 +3,39 @@ Module housing support for WI4MPI compatibility
 """
 
 import os
-from typing import Dict, List
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 from pathlib import Path
 from functools import lru_cache
 from e4s_cl import logger
+from e4s_cl.cf.detect_mpi import MPIIdentifier
 from e4s_cl.cf.containers import Container
 
 LOGGER = logger.get_logger(__name__)
 
 __TRANSLATE = {"OMPI": "OPENMPI", "INTEL": "INTELMPI", "MPICH": "MPICH"}
+
+
+@dataclass(frozen=True)
+class MPIDistribution:
+    cli_name: str
+    env_name: str
+    path_key: str
+
+
+_MPI_DISTRIBUTIONS = {
+    'Intel(R) MPI': MPIDistribution('intelmpi', 'INTEL',
+                                    'INTELMPI_DEFAULT_ROOT'),
+    'Open MPI': MPIDistribution('openmpi', 'OMPI', 'OPENMPI_DEFAULT_ROOT'),
+    'MPICH': MPIDistribution('mpich', 'MPICH', 'MPICH_DEFAULT_ROOT'),
+}
+
+
+def wi4mpi_qualifier(value: MPIIdentifier) -> Optional[str]:
+    match = _MPI_DISTRIBUTIONS.get(value.vendor)
+    if match:
+        return match.cli_name
+    return None
 
 
 def wi4mpi_enabled() -> bool:
@@ -95,11 +119,17 @@ def wi4mpi_libraries(install_dir: Path) -> List[Path]:
     wrapper_lib = Path(install_dir, 'libexec', 'wi4mpi',
                        f"libwi4mpi_{source}_{target}.so")
 
-    def _get_lib(identifier: str) -> Path:
-        config_value = config.get(
-            f"{__TRANSLATE.get(identifier)}_DEFAULT_ROOT", "")
+    def _get_lib(env_name: str) -> Optional[Path]:
+        matches = set(
+            filter(lambda x: x.env_name == env_name,
+                   _MPI_DISTRIBUTIONS.values()))
+        if len(matches) == 1:
+            distribution_data = matches.pop()
 
-        return Path(config_value, 'lib', 'libmpi.so')
+            config_value = config.get(distribution_data.path_key, "")
+
+            return Path(config_value, 'lib', 'libmpi.so')
+        return None
 
     source_lib = _get_lib(source)
     target_lib = _get_lib(target)

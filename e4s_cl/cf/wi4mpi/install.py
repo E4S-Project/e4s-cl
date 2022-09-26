@@ -13,6 +13,7 @@ from e4s_cl import E4S_CL_HOME
 from e4s_cl.util import safe_tar, run_subprocess, hash256
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
+from e4s_cl.cf.wi4mpi import _MPI_DISTRIBUTIONS
 from e4s_cl.cf.detect_mpi import MPIIdentifier
 
 LOGGER = get_logger(__name__)
@@ -31,18 +32,6 @@ DISTRO_DICT = {
     'CRAY MPICH': False,
     'MPICH': False,
     'MVAPICH': False
-}
-
-VENDOR_DICT = {
-    'Intel(R) MPI': 'intelmpi',
-    'Open MPI': 'openmpi',
-    'MPICH': 'mpich',
-}
-
-CONFIG_KEY_DICT = {
-    'Intel(R) MPI': 'INTELMPI_DEFAULT_ROOT',
-    'Open MPI': 'OPENMPI_DEFAULT_ROOT',
-    'MPICH': 'MPICH_DEFAULT_ROOT',
 }
 
 
@@ -144,7 +133,8 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
     """
 
     # Needed to update the configuration file
-    if mpi_id.vendor not in CONFIG_KEY_DICT:
+    mpi_data = _MPI_DISTRIBUTIONS.get(mpi_id.vendor)
+    if not mpi_data:
         LOGGER.error('Unrecognized MPI distribution: %s', mpi_id.vendor)
         return None
 
@@ -212,8 +202,8 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
             and _double_tap(install_cmd):
-        update_config(install_dir / 'etc' / 'wi4mpi.cfg',
-                      CONFIG_KEY_DICT.get(mpi_id.vendor), mpi_install_dir)
+        update_config(install_dir / 'etc' / 'wi4mpi.cfg', mpi_data.path_key,
+                      mpi_install_dir)
         LOGGER.warning("WI4MPI has been built and installed")
         return install_dir
 

@@ -93,7 +93,8 @@ from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_mpi import (profile_mpi_name, filter_mpi_libs,
                                   install_dir, MPIIdentifier, detect_mpi)
-from e4s_cl.cf.wi4mpi.install import requires_wi4mpi, install_wi4mpi, VENDOR_DICT
+from e4s_cl.cf.wi4mpi import wi4mpi_qualifier
+from e4s_cl.cf.wi4mpi.install import requires_wi4mpi, install_wi4mpi
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -333,7 +334,7 @@ def setup_wi4mpi(profile: Profile, mpi_install_dir: Path,
     # Update the profile
     controller.update(
         dict(wi4mpi=str(wi4mpi_install_dir),
-             wi4mpi_options=f'-T {VENDOR_DICT.get(mpi_id.vendor)} -F mpich',
+             wi4mpi_options=f'-T {wi4mpi_qualifier(mpi_id)} -F mpich',
              files=new_files), profile.eid)
 
 
