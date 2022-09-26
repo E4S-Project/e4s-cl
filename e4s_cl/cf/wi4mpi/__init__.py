@@ -13,8 +13,6 @@ from e4s_cl.cf.containers import Container
 
 LOGGER = logger.get_logger(__name__)
 
-__TRANSLATE = {"OMPI": "OPENMPI", "INTEL": "INTELMPI", "MPICH": "MPICH"}
-
 
 @dataclass(frozen=True)
 class MPIDistribution:

@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 from e4s_cl.cf.detect_mpi import MPIIdentifier
 from e4s_cl.cf.wi4mpi.install import (WI4MPI_RELEASE_URL, requires_wi4mpi,
-                                      download_wi4mpi, update_config)
+                                      _download_wi4mpi, _update_config)
 
 
 class Wi4MPITest(tests.TestCase):
@@ -15,17 +15,17 @@ class Wi4MPITest(tests.TestCase):
 
     def test_download(self):
         with TemporaryDirectory() as temp:
-            self.assertTrue(download_wi4mpi(WI4MPI_RELEASE_URL, Path(temp)))
-            self.assertIsNone(download_wi4mpi('', Path(temp)))
-            self.assertIsNone(download_wi4mpi('file:///home', Path(temp)))
+            self.assertTrue(_download_wi4mpi(WI4MPI_RELEASE_URL, Path(temp)))
+            self.assertIsNone(_download_wi4mpi('', Path(temp)))
+            self.assertIsNone(_download_wi4mpi('file:///home', Path(temp)))
 
     def test_update_config(self):
         with NamedTemporaryFile(mode='w', delete=False) as config:
             config_file = config.name
             config.write("MPICH_DEFAULT_ROOT=\"path/to/installation\"")
 
-        update_config(config_file, 'MPICH_DEFAULT_ROOT', 'new/value')
-        update_config(config_file, 'OPENMPI_DEFAULT_ROOT', 'other/value')
+        _update_config(config_file, 'MPICH_DEFAULT_ROOT', 'new/value')
+        _update_config(config_file, 'OPENMPI_DEFAULT_ROOT', 'other/value')
 
         with open(config_file, 'r') as config:
             data = config.read()

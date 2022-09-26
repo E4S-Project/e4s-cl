@@ -25,13 +25,10 @@ WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
 # count. We cap at 4 until the fix is merged
 CPU_COUNT = min(os.cpu_count(), 4)
 
-DISTRO_DICT = {
-    'Intel(R) MPI': False,
+# List of MPI distributions requiring Wi4MPI for proper e4s-cl support
+# The keys correspond to possible values of MPIIdentifier.vendor
+_WI4MPI_DEPENDENT = {
     'Open MPI': True,
-    'Spectrum MPI': False,
-    'CRAY MPICH': False,
-    'MPICH': False,
-    'MVAPICH': False
 }
 
 
@@ -40,7 +37,9 @@ def requires_wi4mpi(mpi_id: MPIIdentifier) -> bool:
     Checks if the mpi vendor detected needs wi4mpi in order to function
     correctly with e4s-cl, and if so installs it.
     """
-    return DISTRO_DICT.get(getattr(mpi_id, 'vendor', ''), False)
+    if not isinstance(mpi_id, MPIIdentifier):
+        return False
+    return mpi_id.vendor in _WI4MPI_DEPENDENT
 
 
 def _fetch_asset(url: str) -> Optional[Path]:
@@ -60,7 +59,7 @@ def _fetch_asset(url: str) -> Optional[Path]:
     return archive
 
 
-def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
+def _download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
     """
     Download and extract the TAR archive from 'url' into the directory 'destination'
     """
@@ -88,7 +87,7 @@ def download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
     return destination / release_root_dir
 
 
-def update_config(config_path: Path, key: str, value: str) -> None:
+def _update_config(config_path: Path, key: str, value: str) -> None:
     """Modify the configuration at a given path for key to hold value"""
     with open(config_path, mode='r', encoding='utf-8') as config_file:
         config = config_file.readlines()
@@ -146,7 +145,7 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
         )
         return None
 
-    source_dir = download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
+    source_dir = _download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
     if source_dir is None:
         LOGGER.error("Failed to download Wi4MPI release; aborting")
         return None
@@ -202,8 +201,8 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
             and _double_tap(install_cmd):
-        update_config(install_dir / 'etc' / 'wi4mpi.cfg', mpi_data.path_key,
-                      mpi_install_dir)
+        _update_config(install_dir / 'etc' / 'wi4mpi.cfg', mpi_data.path_key,
+                       mpi_install_dir)
         LOGGER.warning("WI4MPI has been built and installed")
         return install_dir
 
