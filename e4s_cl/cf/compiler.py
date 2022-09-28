@@ -1,10 +1,13 @@
 """
 Determine what compiler vendor was used to compile a given binary, by checking the .comments ELF section
 """
+from typing import Iterable
+from enum import IntEnum
 from pathlib import Path
 from elftools.elf.elffile import ELFFile
 from elftools.common.exceptions import ELFError
 from e4s_cl.logger import get_logger
+from e4s_cl.util import which
 
 LOGGER = get_logger(__name__)
 
@@ -37,10 +40,8 @@ def _fujitsu_check(_: str) -> bool:
     return False
 
 
-class CompilerVendor:
-    """
-    Enum with values describing compiler vendors
-    """
+class CompilerVendor(IntEnum):
+    """Enum with values describing compiler vendors"""
     GNU = 0
     LLVM = 1
     INTEL = 2
@@ -49,20 +50,21 @@ class CompilerVendor:
     ARMCLANG = 5
     FUJITSU = 6
 
-    checks = {
-        GNU: _gnu_check,
-        LLVM: _llvm_check,
-        INTEL: _intel_check,
-        AMD: _amd_check,
-        PGI: _pgi_check,
-        ARMCLANG: _armclang_check,
-        FUJITSU: _fujitsu_check
-    }
 
-    # ROCm-compiled binaries contained 'AMD', 'clang' and 'GCC'
-    # Establishing an order for the checks is a simple way
-    # of ensuring the right value is returned
-    precendence = [AMD, LLVM, GNU]
+CHECKS = {
+    CompilerVendor.GNU: _gnu_check,
+    CompilerVendor.LLVM: _llvm_check,
+    CompilerVendor.INTEL: _intel_check,
+    CompilerVendor.AMD: _amd_check,
+    CompilerVendor.PGI: _pgi_check,
+    CompilerVendor.ARMCLANG: _armclang_check,
+    CompilerVendor.FUJITSU: _fujitsu_check
+}
+
+# ROCm-compiled binaries contained 'AMD', 'clang' and 'GCC'
+# Establishing an order for the checks is a simple way
+# of ensuring the right value is returned
+PRECENDENCE = [CompilerVendor.AMD, CompilerVendor.LLVM, CompilerVendor.GNU]
 
 
 def _get_comment(elf_file: Path) -> str:
@@ -89,10 +91,30 @@ def compiler_vendor(elf_file: Path) -> int:
     """
     comment = _get_comment(elf_file)
 
-    for vendor in CompilerVendor.precendence:
-        check = CompilerVendor.checks.get(vendor)
+    for vendor in PRECENDENCE:
+        check = CHECKS.get(vendor)
         if check and check(comment):
             return vendor
 
     # By default, return GNU
     return CompilerVendor.GNU
+
+
+def available_compilers() -> Iterable[int]:
+    binaries = {
+        CompilerVendor.GNU: {'gcc', 'g++', 'gfortran'},
+        CompilerVendor.INTEL: {'icc', 'icpc', 'ifort'},
+        CompilerVendor.PGI: {'pgcc', 'pgc++', 'pgfortran'},
+        # We need AMD here
+        CompilerVendor.LLVM: {'clang', 'clang++', 'flang'},
+        CompilerVendor.ARMCLANG: {'armclang', 'armclang++', 'armflang'},
+        CompilerVendor.FUJITSU: {'fcc', 'FCC', 'frt'},
+    }
+
+    available = set()
+    for vendor, requirements in binaries.items():
+        if len(set(filter(None, map(lambda x: which(x),
+                                    requirements)))) == len(requirements):
+            available.add(vendor)
+
+    return available

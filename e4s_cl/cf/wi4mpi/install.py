@@ -15,6 +15,7 @@ from e4s_cl.logger import get_logger
 from e4s_cl.util import which
 from e4s_cl.cf.wi4mpi import _MPI_DISTRIBUTIONS
 from e4s_cl.cf.detect_mpi import MPIIdentifier
+from e4s_cl.cf.compiler import CompilerVendor, available_compilers
 
 LOGGER = get_logger(__name__)
 
@@ -30,6 +31,25 @@ CPU_COUNT = min(os.cpu_count(), 4)
 _WI4MPI_DEPENDENT = {
     'Open MPI': True,
 }
+
+_WI4MPI_COMPILER_STRINGS = {
+    CompilerVendor.GNU: 'GNU',
+    CompilerVendor.INTEL: 'INTEL',
+    CompilerVendor.LLVM: 'LLVM',
+    CompilerVendor.PGI: 'PGI',
+    CompilerVendor.ARMCLANG: 'ARMCLANG',
+    CompilerVendor.FUJITSU: 'FUJITSU',
+}
+
+
+def _select_compiler() -> Optional[str]:
+    """Returns the expected string for the available compiler"""
+    compilers = available_compilers()
+
+    if not compilers:
+        return None
+
+    return _WI4MPI_COMPILER_STRINGS.get(min(compilers))
 
 
 def requires_wi4mpi(mpi_id: MPIIdentifier) -> bool:
@@ -145,6 +165,11 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
         )
         return None
 
+    compiler = _select_compiler()
+    if compiler is None:
+        LOGGER.error("No available compiler to build Wi4MPI: aborting.")
+        return None
+
     source_dir = _download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
     if source_dir is None:
         LOGGER.error("Failed to download Wi4MPI release; aborting")
@@ -156,14 +181,10 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
     # where it is installed. This allows subsequent installations to reuse previous builds
     install_dir = WI4MPI_DIR / f"{str(mpi_id)}_{hash256(mpi_install_dir.as_posix())}"
 
-    if source_dir is None:
-        LOGGER.error("Failed to access Wi4MPI release")
-        return None
-
     configure_cmd = [
         cmake_executable, \
         f"-DCMAKE_INSTALL_PREFIX={install_dir}", \
-        '-DWI4MPI_COMPILER=GNU', \
+        f"-DWI4MPI_COMPILER={compiler}", \
         source_dir.as_posix()
     ]
 
