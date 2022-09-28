@@ -212,14 +212,13 @@ def detect_subprocesses(launcher, program):
     """Run process profiling in subprocesses with the detected launcher"""
     files, libs = [], []
 
-    with variables.ParentStatus():
-        os.environ[LAUNCHER_VAR] = launcher[0]
-        # If a launcher is present, act as a launcher
-        return_code, json_data = run_e4scl_subprocess([
-            *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect",
-            *program
-        ],
-                                                      capture_output=True)
+    os.environ[LAUNCHER_VAR] = launcher[0]
+    # If a launcher is present, act as a launcher
+    return_code, json_data = run_e4scl_subprocess([
+        *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect",
+        *program
+    ],
+                                                  capture_output=True)
 
     if return_code:
         LOGGER.error(
