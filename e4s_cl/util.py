@@ -199,13 +199,12 @@ def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
                 universal_newlines=True,
                 bufsize=1) as proc:
 
-            returncode = proc.wait()
-            if capture_output:
-                output = proc.stdout.read()
+            output, error = proc.communicate()
+            returncode = proc.returncode
 
     if capture_output:
         return returncode, output
-    return returncode
+    return returncode, ''
 
 
 def get_command_output(cmd):
