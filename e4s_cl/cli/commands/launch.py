@@ -200,7 +200,7 @@ class LaunchCommand(AbstractCommand):
             print(' '.join(full_command))
             return EXIT_SUCCESS
 
-        retval = run_e4scl_subprocess(full_command)
+        retval, output = run_e4scl_subprocess(full_command)
 
         return retval
 
