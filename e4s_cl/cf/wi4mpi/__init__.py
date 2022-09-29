@@ -42,12 +42,12 @@ def wi4mpi_enabled() -> bool:
 
 
 @lru_cache()
-def wi4mpi_root() -> Path:
+def wi4mpi_root() -> Optional[Path]:
     string = os.environ.get("WI4MPI_ROOT")
 
-    if string is None:
-        LOGGER.debug("Getting WI4MPI root failed")
-        return Path("")
+    if string is None or not string:
+        LOGGER.debug("Getting Wi4MPI root failed")
+        return None
 
     return Path(string)
 
@@ -76,9 +76,8 @@ def __read_cfg(cfg_file: Path) -> Dict[str, str]:
 
 @lru_cache()
 def wi4mpi_config(install_dir: Path) -> Dict[str, str]:
-    global_cfg = __read_cfg(install_dir.joinpath('etc/wi4mpi.cfg'))
-    user_cfg = __read_cfg(
-        Path(os.path.expanduser('~')).joinpath('.wi4mpi.cfg'))
+    global_cfg = __read_cfg(install_dir / 'etc' / 'wi4mpi.cfg')
+    user_cfg = __read_cfg(Path.home() / '.wi4mpi.cfg')
 
     global_cfg.update(user_cfg)
 
@@ -148,7 +147,7 @@ def wi4mpi_libpath(install_dir: Path):
             yield Path(filename)
 
 
-def wi4mpi_preload(install_dir: Path = wi4mpi_root()) -> List[str]:
+def wi4mpi_preload(install_dir: Path) -> List[str]:
     """
     Returns a list of libraries to preload for WI4MPI
     """
@@ -160,7 +159,7 @@ def wi4mpi_preload(install_dir: Path = wi4mpi_root()) -> List[str]:
 
     source = os.environ.get("WI4MPI_FROM", "")
 
-    fakelib_dir = install_dir.joinpath('libexec', 'wi4mpi', f"fakelib{source}")
+    fakelib_dir = install_dir / 'libexec' / 'wi4mpi' / f"fakelib{source}"
 
     if fakelib_dir.exists():
         for file in fakelib_dir.glob('lib*'):

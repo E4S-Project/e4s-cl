@@ -97,6 +97,10 @@ def _format_execute(parameters):
         if value:
             execute_command += [f"--{attr}", ",".join(map(str, value))]
 
+    wi4mpi_root = parameters.get('wi4mpi', None)
+    if wi4mpi_root is not None:
+        execute_command += ['--wi4mpi', wi4mpi_root]
+
     return execute_command
 
 
