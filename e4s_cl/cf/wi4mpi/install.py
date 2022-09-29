@@ -19,12 +19,12 @@ from e4s_cl.cf.compiler import CompilerVendor, available_compilers
 
 LOGGER = get_logger(__name__)
 
-WI4MPI_RELEASE_URL = 'https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v3.6.1.tar.gz'
+WI4MPI_RELEASE_URL = 'https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v3.6.2.tar.gz'
 WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
 
 # Due to an error in Wi4MPI 3.6.1, parallel builds may fail for high process
 # count. We cap at 4 until the fix is merged
-CPU_COUNT = min(os.cpu_count(), 4)
+CPU_COUNT = os.cpu_count()
 
 # List of MPI distributions requiring Wi4MPI for proper e4s-cl support
 # The keys correspond to possible values of MPIIdentifier.vendor
