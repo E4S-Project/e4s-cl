@@ -13,12 +13,6 @@ class Wi4MPITest(tests.TestCase):
         self.assertFalse(requires_wi4mpi(MPIIdentifier('Open PI', 'v0.0.0')))
         self.assertFalse(requires_wi4mpi(None))
 
-    def test_download(self):
-        with TemporaryDirectory() as temp:
-            self.assertTrue(_download_wi4mpi(WI4MPI_RELEASE_URL, Path(temp)))
-            self.assertIsNone(_download_wi4mpi('', Path(temp)))
-            self.assertIsNone(_download_wi4mpi('file:///home', Path(temp)))
-
     def test_update_config(self):
         with NamedTemporaryFile(mode='w', delete=False) as config:
             config_file = config.name
