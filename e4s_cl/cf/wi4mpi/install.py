@@ -64,9 +64,9 @@ def requires_wi4mpi(mpi_id: MPIIdentifier) -> bool:
     return mpi_id.vendor in _WI4MPI_DEPENDENT
 
 
-def _fetch_release() -> Optional[Path]:
+def _fetch_release(destination: Path) -> Optional[Path]:
     """Fetch an url and write it to a temporary file"""
-    archive_file = WI4MPI_DIR / f"wi4mpi-{WI4MPI_VERSION}.tgz"
+    archive_file = destination / f"wi4mpi-{WI4MPI_VERSION}.tgz"
 
     if not archive_file.exists():
         try:
@@ -90,20 +90,24 @@ def _download_wi4mpi(destination: Path) -> Optional[Path]:
     if not destination.exists():
         destination.mkdir()
 
-    archive = _fetch_release()
-    if archive is None or not tarfile.is_tarfile(archive):
-        LOGGER.error("Downloaded file is not an archive; aborting")
-        return None
-
-    with tarfile.open(archive) as data:
-        if not safe_tar(data):
-            LOGGER.error("Unsafe paths detected in archive; aborting")
+    try:
+        archive = _fetch_release(destination)
+        if archive is None or not tarfile.is_tarfile(archive):
+            LOGGER.error("Downloaded file is not an archive; aborting")
             return None
 
-        release_root_dir = min(data.getnames())
+        with tarfile.open(archive) as data:
+            if not safe_tar(data):
+                LOGGER.error("Unsafe paths detected in archive; aborting")
+                return None
 
-        if not (destination / release_root_dir).exists():
-            data.extractall(destination)
+            release_root_dir = min(data.getnames())
+
+            if not (destination / release_root_dir).exists():
+                data.extractall(destination)
+    except PermissionError as err:
+        LOGGER.error("Failed to download Wi4MPI sources: %s", err)
+        return None
 
     return destination / release_root_dir
 
