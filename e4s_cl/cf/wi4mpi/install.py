@@ -9,7 +9,7 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 from tempfile import NamedTemporaryFile
-from e4s_cl import E4S_CL_HOME
+from e4s_cl import USER_PREFIX
 from e4s_cl.util import safe_tar, run_subprocess, hash256
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
@@ -22,10 +22,8 @@ LOGGER = get_logger(__name__)
 
 WI4MPI_VERSION = Version('3.6.2')
 WI4MPI_RELEASE_URL = f"https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v{WI4MPI_VERSION}.tar.gz"
-WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
+WI4MPI_DIR = Path(USER_PREFIX) / "wi4mpi"
 
-# Due to an error in Wi4MPI 3.6.1, parallel builds may fail for high process
-# count. We cap at 4 until the fix is merged
 CPU_COUNT = os.cpu_count()
 
 # List of MPI distributions requiring Wi4MPI for proper e4s-cl support
@@ -166,7 +164,7 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
     cmake_executable = which("cmake")
     if not cmake_executable:
         LOGGER.warning(
-            "WI4MPI installation failed: cmake is missing. Proceeding with profile initialisation"
+            "Wi4MPI installation failed: cmake is missing. Proceeding with profile initialisation"
         )
         return None
 
@@ -207,7 +205,7 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
 
     if install_dir.exists():
         LOGGER.debug(
-            "Skipping installation for already installed WI4MPI in %s",
+            "Skipping installation for already installed Wi4MPI in %s",
             install_dir)
         return install_dir
 
@@ -222,17 +220,17 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
                      build_dir.as_posix(), str(err))
         return None
 
-    LOGGER.warning("Installing WI4MPI in %s", install_dir)
+    LOGGER.warning("Installing Wi4MPI in %s", install_dir)
 
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
             and _double_tap(install_cmd):
         _update_config(install_dir / 'etc' / 'wi4mpi.cfg', mpi_data.path_key,
                        mpi_install_dir)
-        LOGGER.warning("WI4MPI has been built and installed")
+        LOGGER.warning("Wi4MPI has been built and installed")
         return install_dir
 
     LOGGER.warning(
-        "WI4MPI installation failed. Proceeding with profile initialisation")
+        "Wi4MPI installation failed. Proceeding with profile initialisation")
     rmtree(install_dir, ignore_errors=True)
     return None
