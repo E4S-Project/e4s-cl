@@ -13,13 +13,15 @@ from e4s_cl import E4S_CL_HOME
 from e4s_cl.util import safe_tar, run_subprocess, hash256
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
+from e4s_cl.cf.version import Version
 from e4s_cl.cf.wi4mpi import _MPI_DISTRIBUTIONS
 from e4s_cl.cf.detect_mpi import MPIIdentifier
 from e4s_cl.cf.compiler import CompilerVendor, available_compilers
 
 LOGGER = get_logger(__name__)
 
-WI4MPI_RELEASE_URL = 'https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v3.6.2.tar.gz'
+WI4MPI_VERSION = Version('3.6.2')
+WI4MPI_RELEASE_URL = f"https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v{WI4MPI_VERSION}.tar.gz"
 WI4MPI_DIR = Path(E4S_CL_HOME) / "wi4mpi"
 
 # Due to an error in Wi4MPI 3.6.1, parallel builds may fail for high process
@@ -62,32 +64,34 @@ def requires_wi4mpi(mpi_id: MPIIdentifier) -> bool:
     return mpi_id.vendor in _WI4MPI_DEPENDENT
 
 
-def _fetch_asset(url: str) -> Optional[Path]:
+def _fetch_release() -> Optional[Path]:
     """Fetch an url and write it to a temporary file"""
-    try:
-        with urllib.request.urlopen(url) as request:
-            if not request.status == 200:
-                return None
+    archive_file = WI4MPI_DIR / f"wi4mpi-{WI4MPI_VERSION}.tgz"
 
-            with NamedTemporaryFile(mode='wb', delete=False) as buffer:
-                buffer.write(request.read())
-                archive = buffer.name
-    except (ValueError, urllib.error.URLError) as err:
-        LOGGER.error("Error fetching URL: %s", err)
-        return None
+    if not archive_file.exists():
+        try:
+            with urllib.request.urlopen(WI4MPI_RELEASE_URL) as request:
+                if not request.status == 200:
+                    return None
 
-    return archive
+                with open(archive_file, mode='w+b') as buffer:
+                    buffer.write(request.read())
+        except (ValueError, urllib.error.URLError) as err:
+            LOGGER.error("Error fetching URL: %s", err)
+            return None
+
+    return archive_file
 
 
-def _download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
+def _download_wi4mpi(destination: Path) -> Optional[Path]:
     """
     Download and extract the TAR archive from 'url' into the directory 'destination'
     """
-    archive = _fetch_asset(url)
-    if archive is None:
-        return None
+    if not destination.exists():
+        destination.mkdir()
 
-    if not tarfile.is_tarfile(archive):
+    archive = _fetch_release()
+    if archive is None or not tarfile.is_tarfile(archive):
         LOGGER.error("Downloaded file is not an archive; aborting")
         return None
 
@@ -96,13 +100,10 @@ def _download_wi4mpi(url: str, destination: Path) -> Optional[Path]:
             LOGGER.error("Unsafe paths detected in archive; aborting")
             return None
 
-        data.extractall(destination)
         release_root_dir = min(data.getnames())
 
-    try:
-        Path(archive).unlink()
-    except OSError as err:
-        LOGGER.error("Failed to delete downloaded data: %s", str(err))
+        if not (destination / release_root_dir).exists():
+            data.extractall(destination)
 
     return destination / release_root_dir
 
@@ -170,7 +171,7 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
         LOGGER.error("No available compiler to build Wi4MPI: aborting.")
         return None
 
-    source_dir = _download_wi4mpi(WI4MPI_RELEASE_URL, WI4MPI_DIR)
+    source_dir = _download_wi4mpi(WI4MPI_DIR)
     if source_dir is None:
         LOGGER.error("Failed to download Wi4MPI release; aborting")
         return None
