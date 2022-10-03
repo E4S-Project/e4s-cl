@@ -4,7 +4,7 @@ Entry point for supported program launchers"""
 import sys
 import re
 from os import environ
-from typing import List
+from typing import List, Tuple
 from pathlib import Path
 from importlib import import_module
 from shlex import split
@@ -144,3 +144,23 @@ def interpret(cmd):
     config_options = config.CONFIGURATION.launcher_options
 
     return [*launcher_cmd, *env_options, *config_options], cmd
+
+
+def filter_arguments(parser: Parser,
+                     cmd: List[str]) -> Tuple[List[str], List[str]]:
+    """Filter a list of arguments into the ones defined by the given parser
+    and foreign ones, and return them in two lists"""
+    valid, foreign = [], []
+
+    tokens = list(cmd)
+    while tokens:
+        token = tokens.pop(0)
+        if token in parser.arguments:
+            to_consume = min(parser.arguments[token], len(tokens))
+            valid.append(token)
+            for _ in range(to_consume):
+                valid.append(tokens.pop(0))
+        else:
+            foreign.append(token)
+
+    return valid, foreign

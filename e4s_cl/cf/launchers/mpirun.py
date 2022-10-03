@@ -156,32 +156,35 @@ _hydra_options = {
 }
 
 _wi4mpi_options = {
-    "-E": 1, 
+    "-E": 1,
     "-extra": 1,
     "--extra": 1,
-    "--from": 1,
-    "--help": 0,
-    "--hostfile": 1,
-    "--pm": 1,
-    "--to": 1,
-    "--verbose": 0,
-    "--version": 0,
     "-F": 1,
-    "-T": 1,
-    "-V": 0,
-    "-f": 1,
     "-from": 1,
-    "-h": 0,
-    "-help": 0,
-    "-hostfile": 1,
-    "-n": 1,
-    "-np": 1,
+    "--from": 1,
+    "-T": 1,
+    "-to": 1,
+    "--to": 1,
     "-p": 1,
     "-pm": 1,
-    "-to": 1,
+    "--pm": 1,
+    "-h": 0,
+    "-help": 0,
+    "--help": 0,
+    "-V": 0,
+    "-version": 0,
+    "--version": 0,
+}
+
+_wi4mpi_passed = {
+    "-f": 1,
+    "-hostfile": 1,
+    "--hostfile": 1,
+    "-n": 1,
+    "-np": 1,
     "-v": 0,
     "-verbose": 0,
-    "-version": 0,
+    "--verbose": 0,
 }
 
 PARSER = Parser({
