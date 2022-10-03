@@ -50,6 +50,7 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
+from e4s_cl.cf.wi4mpi import wi4mpi_adapt_arguments
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
 
@@ -195,8 +196,9 @@ class LaunchCommand(AbstractCommand):
             os.environ['WI4MPI_ROOT'] = wi4mpi_root
             os.environ['PATH'] = os.pathsep.join(
                 filter(None, [wi4mpi_bin_path, bin_path]))
-            launcher[0] = Path(wi4mpi_root, 'bin', 'mpirun').as_posix()
             launcher += shlex.split(parameters.get('wi4mpi_options', ""))
+            launcher = wi4mpi_adapt_arguments(launcher)
+            launcher[0] = Path(wi4mpi_root, 'bin', 'mpirun').as_posix()
 
         full_command = [*launcher, *execute_command, *program]
 
