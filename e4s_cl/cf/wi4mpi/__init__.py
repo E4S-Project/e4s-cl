@@ -10,6 +10,8 @@ from functools import lru_cache
 from e4s_cl import logger
 from e4s_cl.cf.detect_mpi import MPIIdentifier
 from e4s_cl.cf.containers import Container
+from e4s_cl.cf.launchers import filter_arguments, Parser
+from e4s_cl.cf.launchers.mpirun import _wi4mpi_options
 
 LOGGER = logger.get_logger(__name__)
 
@@ -166,3 +168,19 @@ def wi4mpi_preload(install_dir: Path) -> List[str]:
             to_preload.append(file.as_posix())
 
     return to_preload
+
+
+def wi4mpi_adapt_arguments(cmd_line: List[str]) -> List[str]:
+    """Quote arguments destined to the implementation mpirun in an --extra block"""
+    launcher = None
+    arguments = cmd_line
+    if cmd_line[0] == 'mpirun':
+        launcher = 'mpirun'
+        arguments = cmd_line[1:]
+
+    wi4mpi, mpi = filter_arguments(Parser(_wi4mpi_options), arguments)
+    extra = []
+    if mpi:
+        extra = ['-E', " ".join(mpi)]
+
+    return list(filter(None, [launcher, *wi4mpi, *extra]))
