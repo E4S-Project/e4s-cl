@@ -484,7 +484,7 @@ if is_parent():
     LOG_ID = grinder.hexdigest()
     os.environ[LOG_ID_MARKER] = LOG_ID
 else:
-    LOG_ID = os.environ.get(LOG_ID_MARKER)
+    LOG_ID = os.environ.get(LOG_ID_MARKER, 'NOID')
 
 if is_parent():
     # Add a file handler, location depending on the status of the process

@@ -4,7 +4,8 @@ from importlib import import_module
 from shlex import split
 import tests
 from e4s_cl.cf import launchers
-from e4s_cl.cf.launchers import interpret, get_reserved_directories
+from e4s_cl.cf.launchers import (Parser, filter_arguments, interpret,
+                                 get_reserved_directories)
 
 
 class LauncherTest(tests.TestCase):
@@ -101,3 +102,14 @@ class LauncherTest(tests.TestCase):
 
         self.assertEqual(launcher, ['mpirun', '-E', 'two words'])
         self.assertEqual(command, ['command'])
+
+    def test_filter_arguments(self):
+        """Check argument filtering support"""
+        parser = Parser({'-a': 1, '-c': 2})
+        command_line = "-a test -b 1 2 3 -c ofi btl -d host1:2,host2:2".split(
+            ' ')
+
+        valid, foreign = filter_arguments(parser, command_line)
+
+        self.assertEqual(valid, "-a test -c ofi btl".split())
+        self.assertEqual(foreign, "-b 1 2 3 -d host1:2,host2:2".split())

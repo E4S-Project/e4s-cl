@@ -358,7 +358,7 @@ class Container:
     @property
     def bound(self):
         for bound in self._bound_files:
-            if bound.origin.exists():
+            if bound.origin.exists() and bound.destination.is_absolute():
                 yield bound
             else:
                 LOGGER.warning(

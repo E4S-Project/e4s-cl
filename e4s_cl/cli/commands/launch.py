@@ -50,6 +50,7 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
+from e4s_cl.cf.wi4mpi import wi4mpi_adapt_arguments
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
 
@@ -96,6 +97,10 @@ def _format_execute(parameters):
         value = parameters.get(attr, None)
         if value:
             execute_command += [f"--{attr}", ",".join(map(str, value))]
+
+    wi4mpi_root = parameters.get('wi4mpi', None)
+    if wi4mpi_root is not None:
+        execute_command += ['--wi4mpi', wi4mpi_root]
 
     return execute_command
 
@@ -183,10 +188,17 @@ class LaunchCommand(AbstractCommand):
         execute_command = _format_execute(parameters)
 
         # Override the launcher in case wi4mpi is used
-        if launcher and parameters.get('wi4mpi'):
-            launcher[0] = Path(parameters['wi4mpi']).joinpath(
-                'bin', 'mpirun').as_posix()
+        bin_path = os.environ.get('PATH', '')
+        wi4mpi_root = parameters.get('wi4mpi')
+
+        if launcher and wi4mpi_root:
+            wi4mpi_bin_path = Path(wi4mpi_root, 'bin').as_posix()
+            os.environ['WI4MPI_ROOT'] = wi4mpi_root
+            os.environ['PATH'] = os.pathsep.join(
+                filter(None, [wi4mpi_bin_path, bin_path]))
             launcher += shlex.split(parameters.get('wi4mpi_options', ""))
+            launcher = wi4mpi_adapt_arguments(launcher)
+            launcher[0] = Path(wi4mpi_root, 'bin', 'mpirun').as_posix()
 
         full_command = [*launcher, *execute_command, *program]
 
@@ -194,7 +206,7 @@ class LaunchCommand(AbstractCommand):
             print(' '.join(full_command))
             return EXIT_SUCCESS
 
-        retval = run_e4scl_subprocess(full_command)
+        retval, output = run_e4scl_subprocess(full_command)
 
         return retval
 

@@ -1,16 +1,25 @@
 """
-Automatic name detector based on mpi vendor 
+Identify a MPI vendor and version from an ELF binary
 """
 
 import re
 import ctypes
-from typing import Optional, Callable, Iterable, Tuple
+from typing import Optional, Callable, Iterable, List, Set
+from dataclasses import dataclass
 from pathlib import Path
 from e4s_cl import logger
-from e4s_cl.error import UniqueAttributeError
 from e4s_cl.model.profile import Profile
 
 LOGGER = logger.get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class MPIIdentifier:
+    vendor: str
+    version: str
+
+    def __str__(self):
+        return f"{self.vendor}@{self.version}".replace(' ', '_')
 
 
 def _suffix_name(name: str, existing_names: set) -> str:
@@ -44,15 +53,23 @@ def _suffix_name(name: str, existing_names: set) -> str:
 
 
 def strip(function):
+    """Strip the output of the given function and catch IndexErrors"""
 
     def wrapper(version_buffer_str):
-        return function(version_buffer_str).strip()
+        version_str = ''
+
+        try:
+            version_str = function(version_buffer_str).strip()
+        except IndexError:
+            pass
+
+        return version_str
 
     return wrapper
 
 
 @strip
-def _extract_intel_mpi_version(version_buffer_str):
+def _extract_intel_mpi_version(version_buffer_str: str) -> str:
     """
     Parses the typical Intel MPI library version message, eg:
     Intel(R) MPI Library 2019 Update 6 for Linux* OS
@@ -61,7 +78,7 @@ def _extract_intel_mpi_version(version_buffer_str):
 
 
 @strip
-def _extract_open_mpi_version(version_buffer_str):
+def _extract_open_mpi_version(version_buffer_str: str) -> str:
     """
     Parses the typical OpenMPI library version message, eg:
     Open MPI v4.0.1, package: Open MPI Distribution, ident: 4.0.1, repo rev: v4.0.1, Mar 26, 2019
@@ -70,7 +87,7 @@ def _extract_open_mpi_version(version_buffer_str):
 
 
 @strip
-def _extract_spectrum_mpi_version(version_buffer_str):
+def _extract_spectrum_mpi_version(version_buffer_str: str) -> str:
     """
     Parses the typical Spectrum MPI library version message, eg:
     Open MPI v4.0.1, package: Spectrum MPI Distribution, ident: 4.0.1, repo rev: v4.0.1, Mar 26, 2019
@@ -79,7 +96,7 @@ def _extract_spectrum_mpi_version(version_buffer_str):
 
 
 @strip
-def _extract_mpich_version(version_buffer_str):
+def _extract_mpich_version(version_buffer_str: str) -> str:
     """
     Parses the typical MPICH library version message, eg:
     MPICH Version:  3.3b2
@@ -90,7 +107,7 @@ def _extract_mpich_version(version_buffer_str):
 
 
 @strip
-def _extract_cray_mpich_version(version_buffer_str):
+def _extract_cray_mpich_version(version_buffer_str: str) -> str:
     """
     Parses the typical MPICH library version message, eg:
     MPICH Version:  3.3b2
@@ -101,7 +118,7 @@ def _extract_cray_mpich_version(version_buffer_str):
 
 
 @strip
-def _extract_mvapich_version(version_buffer_str):
+def _extract_mvapich_version(version_buffer_str: str) -> str:
     """
     Parses the typical MVAPICH library version message, eg:
     MVAPICH Version:  3.3b2
@@ -111,7 +128,7 @@ def _extract_mvapich_version(version_buffer_str):
     return version_buffer_str.split(":", 1)[1].split("M", 1)[0]
 
 
-distro_dict = {
+VENDOR_VERSION_EXTRACTORS = {
     'Intel(R) MPI': _extract_intel_mpi_version,
     'Open MPI': _extract_open_mpi_version,
     'Spectrum MPI': _extract_spectrum_mpi_version,
@@ -122,7 +139,8 @@ distro_dict = {
 
 
 def _get_mpi_handle(path: Path) -> Optional[Callable]:
-    """Get a handle to the MPI_Get_library_version symbol given a path to a shared object"""
+    """Get a handle to the MPI_Get_library_version symbol given a path to a
+    shared object"""
     if not path.exists():
         return None
 
@@ -136,7 +154,8 @@ def _get_mpi_handle(path: Path) -> Optional[Callable]:
 
 
 def _get_mpi_library_version(path: Path) -> str:
-    """Return the output of the MPI_Get_library_version symbol in the MPI binary passed as an argument"""
+    """Return the output of the MPI_Get_library_version symbol in the MPI
+    binary passed as an argument"""
 
     if isinstance(path, str):
         path = Path(path)
@@ -160,13 +179,14 @@ def _get_mpi_library_version(path: Path) -> str:
     return ''
 
 
-def _get_mpi_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
+def _get_mpi_vendor_version(path: Path) -> Optional[MPIIdentifier]:
     """Return a tuple of string according to the vendor and version of the MPI
     binary passed as an argument"""
     raw_str = _get_mpi_library_version(path)
 
     # Check for vendor keywords in the buffer
-    filtered_buffer = list(filter(lambda x: x in raw_str, distro_dict.keys()))
+    filtered_buffer = list(
+        filter(lambda x: x in raw_str, VENDOR_VERSION_EXTRACTORS.keys()))
 
     # Skip this binary if none were found
     if not filtered_buffer:
@@ -179,75 +199,74 @@ def _get_mpi_vendor_version(path: Path) -> Optional[Tuple[str, str]]:
     # Run the corresponding function on the buffer
     # In case of an error, skip this function
     try:
-        version_str = distro_dict.get(vendor_name,
-                                      lambda x: 'UNKNOWN_VERSION')(raw_str)
+        version_str = VENDOR_VERSION_EXTRACTORS.get(
+            vendor_name, lambda x: 'UNKNOWN_VERSION')(raw_str)
     except IndexError:
         return None
 
-    return vendor_name, version_str
+    return MPIIdentifier(vendor_name, version_str)
 
 
-def detect_mpi(path_list: Iterable[Path]) -> str:
+def detect_mpi(path_list: Iterable[Path]) -> Optional[MPIIdentifier]:
     """Parse the binaries from paths passed as arguments to get a `VENDOR@VERSION` string"""
-    profile_name = ''
-
     # Set of all MPI vendors and versions found in the binaries
     version_data = set(filter(None, map(_get_mpi_vendor_version, path_list)))
 
-    # Set of all unique vendors
-    found_vendors = set(map(lambda x: x[0], version_data))
-
     # If one consistent vendor has been found
-    if len(found_vendors) == 1:
-        profile_name = "@".join(version_data.pop()).replace(' ', '_')
+    if len(version_data) == 1:
+        return version_data.pop()
+    return None
 
-    return profile_name
+
+def filter_mpi_libs(libraries: List[Path]) -> Set[Path]:
+    """Return a set of MPI libraries from a list of libraries"""
+
+    def _filter_mpi(path: Path):
+        return re.match(r'libmpi.*so.*', path.name)
+
+    return set(filter(_filter_mpi, libraries))
 
 
-def rename_profile_mpi_version(profile_eid: int) -> bool:
+def install_dir(libraries: Iterable[Path]) -> Optional[Path]:
+    """
+    Return the installation directory of a given list of libraries, defined as
+    the common path stub containing the 'lib' folder
+    """
+
+    def _stub(library: Path) -> Optional[Path]:
+        try:
+            lib_index = library.parts.index('lib')
+        except ValueError:
+            return None
+        return Path(*library.parts[:lib_index])
+
+    # Get a set of all the returns of _stub, filtering out the null values
+    potential_installs = set(filter(None, map(_stub, libraries)))
+
+    if len(potential_installs) == 1:
+        return potential_installs.pop()
+    return None
+
+
+def profile_mpi_name(mpi_libs: Iterable[Path]) -> Optional[str]:
     """
     Analyze the profile with the given eid for MPI libraries and rename it
     according to the vendor/version info in the shared object
     """
     controller = Profile.controller()
-    data = controller.one(profile_eid)
-    if not data:
-        LOGGER.debug("Error renaming profile: profile id '%d' not found",
-                     profile_eid)
-        return False
-
-    def _filter_mpi(path: Path):
-        return re.match(r'libmpi.*so.*', path.name)
-
-    # Extract all libmpi* libraries from the profile
-    detected_libs = set(map(Path, data.get('libraries', [])))
-    mpi_libs = set(filter(_filter_mpi, detected_libs))
 
     # Run the methods in the libraries to get a version
     mpi_id = detect_mpi(mpi_libs)
 
     if not mpi_id:
-        LOGGER.debug("Profile naming failed: no symbol found in %s",
-                     " ".join(map(str, mpi_libs)))
-        return False
+        LOGGER.debug("No symbol found in %s", " ".join(map(str, mpi_libs)))
+        return None
 
     LOGGER.debug("Found identifier %s from profile's MPI libraries", mpi_id)
 
     # Get all profiles matching the new name
-    matches = Profile.controller().match('name',
-                                         regex=f"{re.escape(mpi_id)}.*")
+    matches = controller.match('name', regex=f"{re.escape(str(mpi_id))}.*")
     matching_names = set(filter(None, map(lambda x: x.get('name'), matches)))
 
     # Add a suffix to the name to avoid conflict
-    profile_name = _suffix_name(mpi_id, matching_names)
-
-    # Update the profile name
-    try:
-        controller.update({'name': profile_name}, profile_eid)
-    except UniqueAttributeError:
-        LOGGER.error(
-            "Error updating profile '%s' name to '%s': another profile exists",
-            data['name'], profile_name)
-        return False
-
-    return True
+    return _suffix_name(str(mpi_id), matching_names)

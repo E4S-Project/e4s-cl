@@ -7,16 +7,16 @@ import os
 import re
 import sys
 import subprocess
+from subprocess import DEVNULL, STDOUT
 import pkgutil
 from pathlib import Path
 import hashlib
 import json
 from typing import List, Callable, Iterable, Any
-from functools import lru_cache
+from functools import lru_cache, reduce
 from shutil import which as sh_which
 from collections import deque
-from time import perf_counter
-from contextlib import contextmanager
+from tarfile import TarFile
 from e4s_cl import logger
 from e4s_cl.variables import ParentStatus
 from e4s_cl.error import InternalError
@@ -109,13 +109,17 @@ def path_accessible(path: Path, mode: str = 'r') -> bool:
         path.as_posix(), modebits)
 
 
-def run_subprocess(cmd, cwd=None, env=None) -> int:
+def run_subprocess(cmd, cwd=None, env=None, discard_output=False) -> int:
     """
     cmd: list[str],
     env: Optional[dict]
     Run a subprocess, tailored for end subrocesses
     """
+
     subproc_env = os.environ
+    stdout, stderr = sys.stdout, subprocess.PIPE
+    if discard_output:
+        stdout, stderr = DEVNULL, STDOUT
     if env:
         for key, val in env.items():
             if val is None:
@@ -131,8 +135,8 @@ def run_subprocess(cmd, cwd=None, env=None) -> int:
     with subprocess.Popen(cmd,
                           cwd=cwd,
                           env=subproc_env,
-                          stdout=sys.stdout,
-                          stderr=subprocess.PIPE,
+                          stdout=stdout,
+                          stderr=stderr,
                           close_fds=False,
                           universal_newlines=True,
                           bufsize=1) as proc:
@@ -140,11 +144,12 @@ def run_subprocess(cmd, cwd=None, env=None) -> int:
         pid = proc.pid
         # Setup a logger dedicated to this subprocess
         process_logger = logger.setup_process_logger(f"process.{pid}")
-        with proc.stderr:
-            # Log the errors in a log file
-            for line in proc.stderr.readlines():
-                process_logger.error(line[:-1])
-                buffer.append(line)
+        if not discard_output:
+            with proc.stderr:
+                # Log the errors in a log file
+                for line in proc.stderr.readlines():
+                    process_logger.error(line[:-1])
+                    buffer.append(line)
         returncode = proc.wait()
 
     # In case of error, output information
@@ -194,13 +199,12 @@ def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
                 universal_newlines=True,
                 bufsize=1) as proc:
 
-            returncode = proc.wait()
-            if capture_output:
-                output = proc.stdout.read()
+            output, error = proc.communicate()
+            returncode = proc.returncode
 
     if capture_output:
         return returncode, output
-    return returncode
+    return returncode, ''
 
 
 def get_command_output(cmd):
@@ -445,24 +449,6 @@ def add_dot(string: str) -> str:
     return string + '.'
 
 
-def update_ld_path(path: Path):
-    ld_path = os.environ.get('LD_LIBRARY_PATH')
-
-    if ld_path:
-        ld_path = f"{path.as_posix()}{os.pathsep}{ld_path}"
-    else:
-        ld_path = path.as_posix()
-
-    os.environ['LD_LIBRARY_PATH'] = ld_path
-    return ld_path
-
-
-@contextmanager
-def catchtime() -> float:
-    start = perf_counter()
-    yield lambda: perf_counter() - start
-
-
 def path_contains(lhs: Path, rhs: Path):
     """
     Returns true if rhs is in the tree of which lhs is the root
@@ -480,3 +466,42 @@ def apply_filters(filters: List[Callable[[Any], bool]],
         result = filter(func, result)
 
     return result
+
+
+def safe_tar(archive: TarFile) -> bool:
+    """
+    Assert a tarfile does not possess members whose paths are not contained in
+    the extracted data, e.g. absolute paths or relative paths that escape
+    using '..'
+
+    'archive-v1.2.3/build'  -> safe
+    '/etc/config'           -> unsafe
+    '../../../weird_file'   -> unsafe
+    """
+
+    def child(path: Path) -> bool:
+        """Check a single path's status as a child from where it started"""
+
+        def weigh(token: str) -> int:
+            """Define weights for path tokens"""
+            token_weights = {'.': 0, '..': -1, '/': -4096}
+            return token_weights.get(token, 1)
+
+        def contains(depth: int, weight: int) -> int:
+            """Assert the depth never dips below 0 -> we never escape"""
+            depth += weight
+
+            if depth < 0:
+                return -4096
+            return depth
+
+        ordered_weights = list(map(weigh, path.parts))
+        return reduce(contains, [0, *ordered_weights]) >= 0
+
+    for member in archive.getmembers():
+        if not child(Path(member.name)):
+            LOGGER.error(
+                "Safety concern unpacking %s: file %s attempts to write out of the decompressed directory",
+                archive.name, member.name)
+            return False
+    return True

@@ -6,7 +6,7 @@ argument.
 This command is used internally and thus cloaked from the UI
 """
 
-from typing import Union
+from typing import Union, List
 from pathlib import Path
 from sotools.linker import resolve
 from sotools.libraryset import LibrarySet, Library
@@ -18,8 +18,8 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, FileOptions
 from e4s_cl.cf.libraries import (libc_version, library_links)
-from e4s_cl.cf.wi4mpi import (wi4mpi_enabled, wi4mpi_root, wi4mpi_import,
-                              wi4mpi_libraries, wi4mpi_libpath, wi4mpi_preload)
+from e4s_cl.cf.wi4mpi import (wi4mpi_root, wi4mpi_import, wi4mpi_libraries,
+                              wi4mpi_libpath, wi4mpi_preload)
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -173,15 +173,16 @@ def select_libraries(library_set, container, entrypoint):
     return selected_libraries
 
 
-def generate_rtld_path(container):
+def generate_rtld_path(container: Container,
+                       wi4mpi_install_dir: Path) -> List[Path]:
     """
     Create the final path list to be passed to LD_LIBRARY_PATH in the container
     """
     path_list = []
 
-    if wi4mpi_enabled():
+    if wi4mpi_install_dir is not None:
         wi4mpi_paths = list(
-            map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_root())))
+            map(lambda x: x.as_posix(), wi4mpi_libpath(wi4mpi_install_dir)))
 
         path_list += wi4mpi_paths
 
@@ -240,6 +241,11 @@ class ExecuteCommand(AbstractCommand):
                             help="Script to source",
                             metavar='libraries')
 
+        parser.add_argument('--wi4mpi',
+                            type=arguments.existing_posix_path,
+                            help="Directory of the Wi4MPI installation to use",
+                            metavar='wi4mpi_root')
+
         parser.add_argument('cmd',
                             type=str,
                             help="Executable command, e.g. './a.out'",
@@ -260,11 +266,15 @@ class ExecuteCommand(AbstractCommand):
         # script, that is then bound to the container to be executed
         params = Entrypoint()
 
-        # If WI4MPI is enabled, analyze the libraries it uses
-        required_libraries = args.libraries + wi4mpi_libraries(wi4mpi_root())
+        # Assert the use of Wi4MPI
+        wi4mpi_install_dir = getattr(args, 'wi4mpi', None) or wi4mpi_root()
+        wi4mpi_required = []
+        if wi4mpi_install_dir is not None:
+            wi4mpi_required = wi4mpi_libraries(wi4mpi_install_dir)
 
         # The following is a set of all libraries required. It
         # is used in the container to check version mismatches
+        required_libraries = [*args.libraries, *wi4mpi_required]
         libset = LibrarySet.create_from(required_libraries)
         if libset:
             # Analyze the container to get library information from the environment
@@ -281,7 +291,8 @@ class ExecuteCommand(AbstractCommand):
         # Setup the final command and metadata relating to the execution
         params.command = args.cmd
         params.debug = logger.debug_mode()
-        params.linker_library_path = generate_rtld_path(container)
+        params.linker_library_path = generate_rtld_path(
+            container, wi4mpi_install_dir)
 
         # Create a set of libraries to import using a library_set object,
         # then filtering it according to the contents of the container
@@ -291,7 +302,7 @@ class ExecuteCommand(AbstractCommand):
         for shared_object in final_libset:
             import_library(shared_object, container)
 
-        if not wi4mpi_enabled():
+        if wi4mpi_install_dir is None:
             # Preload the top-level libraries of the imported set to bypass
             # any potential RPATH settings
             def _path(library: Library):
@@ -303,9 +314,8 @@ class ExecuteCommand(AbstractCommand):
         else:
             # If WI4MPI is found in the environment, import its files and
             # preload its required components
-            wi4mpi_import(container, wi4mpi_root())
-
-            params.preload += wi4mpi_preload(wi4mpi_root())
+            wi4mpi_import(container, wi4mpi_install_dir)
+            params.preload += wi4mpi_preload(wi4mpi_install_dir)
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()
