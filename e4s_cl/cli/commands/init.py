@@ -492,7 +492,8 @@ class InitCommand(AbstractCommand):
 
         requested_name = (getattr(args, 'profile_name', None)
                           or profile_mpi_name(profile_mpi_libraries))
-        rename_profile(selected_profile, requested_name)
+        if requested_name != selected_profile.get('name'):
+            rename_profile(selected_profile, requested_name)
 
         return status
 
