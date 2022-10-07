@@ -192,7 +192,6 @@ class MainCommand(AbstractCommand):
                             getattr(args, 'quiet', logger.LOG_LEVEL))
         logger.set_log_level(log_level)
 
-        LOGGER.debug('Arguments: %s', args)
         LOGGER.debug('Verbosity level: %s', logger.LOG_LEVEL)
 
         # Try to execute as a command

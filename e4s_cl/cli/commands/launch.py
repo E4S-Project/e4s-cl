@@ -50,7 +50,10 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
-from e4s_cl.cf.wi4mpi import wi4mpi_adapt_arguments
+from e4s_cl.cf.detect_mpi import (detect_mpi, install_dir, filter_mpi_libs)
+from e4s_cl.cf.wi4mpi import (wi4mpi_adapt_arguments, SUPPORTED_TRANSLATIONS,
+                              _MPI_DISTRIBUTIONS, wi4mpi_qualifier)
+from e4s_cl.cf.wi4mpi.install import (overwrite_config)
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
 
@@ -150,6 +153,13 @@ class LaunchCommand(AbstractCommand):
             metavar='technology',
             dest='backend')
 
+        parser.add_argument('--from',
+                            type=str,
+                            choices=['openmpi', 'mpich', 'intel'],
+                            help="WIP",
+                            default=arguments.SUPPRESS,
+                            metavar='mpi-family')
+
         parser.add_argument('cmd',
                             help="Executable command, e.g. './a.out'",
                             metavar='command',
@@ -189,20 +199,50 @@ class LaunchCommand(AbstractCommand):
 
         # Override the launcher in case wi4mpi is used
         bin_path = os.environ.get('PATH', '')
-        wi4mpi_root = parameters.get('wi4mpi')
 
-        if launcher and wi4mpi_root:
+        binary_mpi_family = getattr(args, 'from', None)
+        profile_mpi_libraries = filter_mpi_libs(
+            map(Path, parameters.get('libraries', [])))
+        profile_mpi_family = detect_mpi(profile_mpi_libraries)
+        profile_mpi_install = install_dir(profile_mpi_libraries)
+
+        if profile_mpi_family:
+            LOGGER.debug(
+                "Parameters contain the MPI library '%(mpi_family)s' installed "
+                "in '%(install_dir)s'",
+                dict(
+                    mpi_family=profile_mpi_family,
+                    install_dir=str(profile_mpi_install),
+                ))
+        else:
+            LOGGER.debug(
+                "No single MPI family could be detected in the parameters")
+
+        translation = None
+        if profile_mpi_family:
+            translation = tuple(
+                (binary_mpi_family, wi4mpi_qualifier(profile_mpi_family)))
+
+        if launcher and translation in SUPPORTED_TRANSLATIONS:
+            wi4mpi_root = Path(parameters.get('wi4mpi'))  #TODO or installation
             wi4mpi_bin_path = Path(wi4mpi_root, 'bin').as_posix()
-            os.environ['WI4MPI_ROOT'] = wi4mpi_root
+
+            os.environ['WI4MPI_ROOT'] = str(wi4mpi_root)
             os.environ['PATH'] = os.pathsep.join(
                 filter(None, [wi4mpi_bin_path, bin_path]))
-            launcher += shlex.split(parameters.get('wi4mpi_options', ""))
+
+            overwrite_config(
+                wi4mpi_root / 'etc' / 'wi4mpi.cfg',
+                _MPI_DISTRIBUTIONS[profile_mpi_family.vendor].path_key,
+                str(profile_mpi_install))
+
+            launcher += shlex.split(f"-F {translation[0]} -T {translation[1]}")
             launcher = wi4mpi_adapt_arguments(launcher)
             launcher[0] = Path(wi4mpi_root, 'bin', 'mpirun').as_posix()
 
         full_command = [*launcher, *execute_command, *program]
 
-        if variables.is_dry_run():
+        if True:
             print(' '.join(full_command))
             return EXIT_SUCCESS
 
@@ -211,5 +251,5 @@ class LaunchCommand(AbstractCommand):
         return retval
 
 
-SUMMARY = "Launch a process with a tailored environment."
+SUMMARY = "Launch a process in a container with a tailored environment."
 COMMAND = LaunchCommand(__name__, summary_fmt=SUMMARY)

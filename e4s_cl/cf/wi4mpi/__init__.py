@@ -30,6 +30,14 @@ _MPI_DISTRIBUTIONS = {
     'MPICH': MPIDistribution('mpich', 'MPICH', 'MPICH_DEFAULT_ROOT'),
 }
 
+SUPPORTED_TRANSLATIONS = {
+    ('openmpi', 'intelpmi'),
+    ('intelmpi', 'openmpi'),
+    ('openmpi', 'openmpi'),
+    ('openmpi', 'mpich'),
+    ('mpich', 'openmpi'),
+}
+
 
 def wi4mpi_qualifier(value: MPIIdentifier) -> Optional[str]:
     match = _MPI_DISTRIBUTIONS.get(value.vendor)

@@ -130,6 +130,14 @@ def _update_config(config_path: Path, key: str, value: str) -> None:
         config_file.writelines(config)
 
 
+def overwrite_config(config_path: Path, key: str, value: str) -> None:
+    """Make sure the only defined key in the configuration is the one passed as
+    an argument"""
+    for vendor in _MPI_DISTRIBUTIONS:
+        _update_config(config_path, _MPI_DISTRIBUTIONS[vendor].path_key, '')
+    _update_config(config_path, key, value)
+
+
 def _double_tap(cmd):
     """
     Run a given command (cmake/make) discarding the output. If the
