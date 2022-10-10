@@ -9,11 +9,11 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 from e4s_cl import USER_PREFIX
-from e4s_cl.util import safe_tar, run_subprocess, hash256
+from e4s_cl.util import safe_tar, run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
 from e4s_cl.cf.version import Version
-from e4s_cl.cf.wi4mpi import (wi4mpi_identify, WI4MPI_METADATA)
+from e4s_cl.cf.wi4mpi import (WI4MPI_METADATA)
 from e4s_cl.cf.detect_mpi import MPIIdentifier
 from e4s_cl.cf.compiler import CompilerVendor, available_compilers
 
@@ -154,18 +154,11 @@ def _double_tap(cmd):
     return not success
 
 
-def install_wi4mpi(mpi_id: MPIIdentifier,
-                   mpi_install_dir: Path) -> Optional[Path]:
+def install_wi4mpi(install_dir: Path) -> Optional[Path]:
     """Clones and installs wi4mpi from git run
     
     Installs in ~/.local/share/wi4mpi using a GNU compiler
     """
-
-    # Needed to update the configuration file
-    mpi_data = wi4mpi_identify(mpi_id.vendor)
-    if mpi_data is None:
-        LOGGER.error('Unrecognized MPI distribution: %s', mpi_id.vendor)
-        return None
 
     # Assert CMake is available
     cmake_executable = which("cmake")
@@ -186,10 +179,6 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
         return None
 
     build_dir = WI4MPI_DIR / 'build'
-
-    # The install directory name contains a reference to the MPI version and
-    # where it is installed. This allows subsequent installations to reuse previous builds
-    install_dir = WI4MPI_DIR / f"{str(mpi_id)}_{hash256(mpi_install_dir.as_posix())}"
 
     configure_cmd = [
         cmake_executable, \
@@ -232,11 +221,6 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
             and _double_tap(install_cmd):
-        _update_config(
-            install_dir / 'etc' / 'wi4mpi.cfg',
-            mpi_data.default_path_key,
-            mpi_install_dir,
-        )
         LOGGER.warning("Wi4MPI has been built and installed")
         return install_dir
 

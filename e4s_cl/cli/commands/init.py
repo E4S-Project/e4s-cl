@@ -93,8 +93,9 @@ from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_mpi import (profile_mpi_name, filter_mpi_libs,
                                   install_dir, MPIIdentifier, detect_mpi)
-from e4s_cl.cf.wi4mpi import wi4mpi_qualifier
-from e4s_cl.cf.wi4mpi.install import requires_wi4mpi, install_wi4mpi
+from e4s_cl.cf.wi4mpi import (wi4mpi_qualifier, wi4mpi_identify)
+from e4s_cl.cf.wi4mpi.install import (requires_wi4mpi, install_wi4mpi,
+                                      WI4MPI_DIR, _update_config)
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -319,10 +320,25 @@ def setup_wi4mpi(profile: Profile, mpi_install_dir: Path,
 
     controller = Profile.controller()
     # Fetch Wi4MPI sources, compile and update configuration
-    wi4mpi_install_dir = install_wi4mpi(mpi_id, mpi_install_dir)
-    if wi4mpi_install_dir is None:
+    mpi_data = wi4mpi_identify(mpi_id.vendor)
+    if mpi_data is None:
+        LOGGER.error('Unrecognized MPI distribution: %s', mpi_id.vendor)
+        return
+
+    # The install directory name contains a reference to the MPI version and
+    # where it is installed. This allows subsequent installations to reuse previous builds
+    wi4mpi_install_dir = WI4MPI_DIR / f"{str(mpi_id)}_{util.hash256(mpi_install_dir.as_posix())}"
+
+    if install_wi4mpi(wi4mpi_install_dir) is None:
         LOGGER.error("Wi4MPI installation resulted in failure")
         return
+
+    # Set the default MPI root in the config
+    _update_config(
+        wi4mpi_install_dir / 'etc' / 'wi4mpi.cfg',
+        mpi_data.default_path_key,
+        mpi_install_dir,
+    )
 
     # Simplify the profile by removing files contained in the MPI
     # installation directory
