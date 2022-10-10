@@ -8,13 +8,12 @@ import tarfile
 import urllib.request
 from pathlib import Path
 from typing import Optional
-from tempfile import NamedTemporaryFile
 from e4s_cl import USER_PREFIX
 from e4s_cl.util import safe_tar, run_subprocess, hash256
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
 from e4s_cl.cf.version import Version
-from e4s_cl.cf.wi4mpi import WI4MPI_METADATA
+from e4s_cl.cf.wi4mpi import (wi4mpi_identify, WI4MPI_METADATA)
 from e4s_cl.cf.detect_mpi import MPIIdentifier
 from e4s_cl.cf.compiler import CompilerVendor, available_compilers
 
@@ -134,8 +133,7 @@ def overwrite_config(config_path: Path, key: str, value: str) -> None:
     """Make sure the only defined key in the configuration is the one passed as
     an argument"""
     for vendor in WI4MPI_METADATA:
-        _update_config(config_path, WI4MPI_METADATA[vendor].default_path_key,
-                       '')
+        _update_config(config_path, vendor.default_path_key, '')
     _update_config(config_path, key, value)
 
 
@@ -164,8 +162,8 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
     """
 
     # Needed to update the configuration file
-    mpi_data = WI4MPI_METADATA.get(mpi_id.vendor)
-    if not mpi_data:
+    mpi_data = wi4mpi_identify(mpi_id.vendor)
+    if mpi_data is None:
         LOGGER.error('Unrecognized MPI distribution: %s', mpi_id.vendor)
         return None
 

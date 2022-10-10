@@ -18,29 +18,33 @@ LOGGER = logger.get_logger(__name__)
 
 @dataclass(frozen=True)
 class _MPI_family:
+    vendor_name: str
     cli_name: str
     env_name: str
     path_key: str
     default_path_key: str
 
+    def __str__(self):
+        return self.cli_name
+
 
 WI4MPI_METADATA = {
-    'Intel(R) MPI':
     _MPI_family(
+        'Intel(R) MPI',
         'intelmpi',
         'INTEL',
         'INTELMPI_ROOT',
         'INTELMPI_DEFAULT_ROOT',
     ),
-    'Open MPI':
     _MPI_family(
+        'Open MPI',
         'openmpi',
         'OMPI',
         'OPENMPI_ROOT',
         'OPENMPI_DEFAULT_ROOT',
     ),
-    'MPICH':
     _MPI_family(
+        'MPICH',
         'mpich',
         'MPICH',
         'MPICH_ROOT',
@@ -57,8 +61,20 @@ SUPPORTED_TRANSLATIONS = {
 }
 
 
+def wi4mpi_identify(value: str) -> Optional[_MPI_family]:
+    for family in WI4MPI_METADATA:
+        if value.lower() in {
+                family.vendor_name.lower(),
+                family.cli_name.lower()
+        }:
+            return family
+    return None
+
+
 def wi4mpi_qualifier(value: MPIIdentifier) -> Optional[str]:
-    match = WI4MPI_METADATA.get(value.vendor)
+    if not isinstance(value, MPIIdentifier):
+        return None
+    match = wi4mpi_identify(value.vendor)
     if match:
         return match.cli_name
     return None
@@ -145,8 +161,8 @@ def wi4mpi_libraries(install_dir: Path) -> List[Path]:
                        f"libwi4mpi_{source}_{target}.so")
 
     def _get_lib(env_name: str) -> Optional[Path]:
-        matches = set(
-            filter(lambda x: x.env_name == env_name, WI4MPI_METADATA.values()))
+        matches = set(filter(lambda x: x.env_name == env_name,
+                             WI4MPI_METADATA))
         if len(matches) == 1:
             distribution_data = matches.pop()
 
