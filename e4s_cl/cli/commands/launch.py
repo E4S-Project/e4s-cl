@@ -52,7 +52,7 @@ from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
 from e4s_cl.cf.detect_mpi import (detect_mpi, install_dir, filter_mpi_libs)
 from e4s_cl.cf.wi4mpi import (wi4mpi_adapt_arguments, SUPPORTED_TRANSLATIONS,
-                              _MPI_DISTRIBUTIONS, wi4mpi_qualifier)
+                              WI4MPI_METADATA, wi4mpi_qualifier)
 from e4s_cl.cf.wi4mpi.install import (overwrite_config)
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
@@ -233,8 +233,9 @@ class LaunchCommand(AbstractCommand):
 
             overwrite_config(
                 wi4mpi_root / 'etc' / 'wi4mpi.cfg',
-                _MPI_DISTRIBUTIONS[profile_mpi_family.vendor].path_key,
-                str(profile_mpi_install))
+                WI4MPI_METADATA[profile_mpi_family.vendor].default_path_key,
+                str(profile_mpi_install),
+            )
 
             launcher += shlex.split(f"-F {translation[0]} -T {translation[1]}")
             launcher = wi4mpi_adapt_arguments(launcher)
