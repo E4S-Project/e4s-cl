@@ -154,7 +154,7 @@ class LaunchCommand(AbstractCommand):
             dest='backend')
 
         parser.add_argument('--from',
-                            type=str,
+                            type=str.lower,
                             choices=['openmpi', 'mpich', 'intel'],
                             help="WIP",
                             default=arguments.SUPPRESS,
