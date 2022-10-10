@@ -599,10 +599,11 @@ def parse_storage_flag(args):
 
 
 def posix_path(string):
-    """
-    Argument type callback.
+    """Argument type callback.
     Returns a posix-compliant path."""
-    return Path(string.strip()).as_posix()
+    if string:
+        return Path(string.strip()).as_posix()
+    return ''
 
 
 def posix_path_list(string):

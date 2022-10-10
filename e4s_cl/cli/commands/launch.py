@@ -53,6 +53,7 @@ from e4s_cl.cf.containers import EXPOSED_BACKENDS
 from e4s_cl.cf.detect_mpi import (detect_mpi, install_dir, filter_mpi_libs)
 from e4s_cl.cf.wi4mpi import (wi4mpi_adapt_arguments, SUPPORTED_TRANSLATIONS,
                               wi4mpi_qualifier, wi4mpi_identify)
+from e4s_cl.cf.wi4mpi.install import (WI4MPI_DIR, install_wi4mpi)
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
 
@@ -101,7 +102,7 @@ def _format_execute(parameters):
             execute_command += [f"--{attr}", ",".join(map(str, value))]
 
     wi4mpi_root = parameters.get('wi4mpi', None)
-    if wi4mpi_root is not None:
+    if wi4mpi_root:
         execute_command += ['--wi4mpi', wi4mpi_root]
 
     return execute_command
@@ -113,7 +114,11 @@ def setup_wi4mpi(launcher, parameters, translation, profile_mpi_install,
     for this configuration"""
     bin_path = os.environ.get('PATH')
 
-    wi4mpi_root = Path(parameters.get('wi4mpi'))  #TODO or installation
+    wi4mpi_root = parameters.get('wi4mpi')
+    if not wi4mpi_root:
+        wi4mpi_root = str(install_wi4mpi(WI4MPI_DIR / 'install'))
+        parameters['wi4mpi'] = wi4mpi_root
+
     wi4mpi_bin_path = Path(wi4mpi_root, 'bin').as_posix()
 
     target_mpi_data = wi4mpi_identify(profile_mpi_family.vendor)
@@ -225,8 +230,6 @@ class LaunchCommand(AbstractCommand):
 
             parameters['files'] = files
 
-        execute_command = _format_execute(parameters)
-
         binary_mpi_family = getattr(args, 'from', None)
         profile_mpi_libraries = filter_mpi_libs(
             map(Path, parameters.get('libraries', [])))
@@ -255,10 +258,11 @@ class LaunchCommand(AbstractCommand):
                 profile_mpi_family,
             )
 
+        execute_command = _format_execute(parameters)
         full_command = [*launcher, *execute_command, *program]
 
         if True:
-            print(' '.join(full_command))
+            print(' '.join(map(str, full_command)))
             return EXIT_SUCCESS
 
         retval, _ = run_e4scl_subprocess(full_command)
