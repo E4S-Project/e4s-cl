@@ -52,6 +52,7 @@ class InitTest(tests.TestCase):
                          TEST_SYSTEM)
         self.assertEqual(Profile.controller().count(), 1)
 
+    @tests.skipUnless(which(MPICC), "No MPI compiler found")
     def test_wi4mpi(self):
         self.assertCommandReturnValue(0, COMMAND,
                                       "--wi4mpi /path/to/installation")
@@ -60,6 +61,7 @@ class InitTest(tests.TestCase):
         self.assertTrue(profile)
         self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
 
+    @tests.skipUnless(which(MPICC), "No MPI compiler found")
     def test_wi4mpi_overwrite(self):
         self.assertCommandReturnValue(0, COMMAND,
                                       "--wi4mpi /path/to/installation")
@@ -74,6 +76,7 @@ class InitTest(tests.TestCase):
         self.assertEqual(Profile.controller().selected().get('name'),
                          'init_test_profile')
 
+    @tests.skipUnless(which(MPICC), "No MPI compiler found")
     def test_rename_wi4mpi(self):
         self.assertCommandReturnValue(
             0, COMMAND,
