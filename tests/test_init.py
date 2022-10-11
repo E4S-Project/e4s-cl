@@ -85,14 +85,14 @@ class InitTest(tests.TestCase):
         self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
 
 
-groups = [[('--system', TEST_SYSTEM)], [
-    ('--wi4mpi', '/path/to/installation'),
-],
-          [
-              ('--mpi', '/path/to/installation'),
-              ('--launcher', '/path/to/binary'),
-              ('--launcher_args', "'-np 8192'"),
-          ]]
+groups = [
+    [('--system', TEST_SYSTEM)],
+    [
+        ('--mpi', '/path/to/installation'),
+        ('--launcher', '/path/to/binary'),
+        ('--launcher_args', "'-np 8192'"),
+    ],
+]
 
 
 def wrapper(option1, value1, option2, value2):

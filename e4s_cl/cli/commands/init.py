@@ -272,9 +272,6 @@ def _skip_analysis(args) -> bool:
     if getattr(args, 'backend', '') == 'shifter':
         return False
 
-    if getattr(args, 'wi4mpi', ''):
-        return False
-
     return True
 
 
@@ -311,31 +308,14 @@ def rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
             controller.delete(profile.eid)
 
 
-def setup_wi4mpi(profile: Profile, mpi_install_dir: Path,
-                 mpi_id: MPIIdentifier) -> None:
+def setup_wi4mpi(profile: Profile, mpi_install_dir: Path) -> None:
     """Install Wi4MPI and update the profile accordingly"""
 
-    controller = Profile.controller()
-    # Fetch Wi4MPI sources, compile and update configuration
-    mpi_data = wi4mpi_identify(mpi_id.vendor)
-    if mpi_data is None:
-        LOGGER.error('Unrecognized MPI distribution: %s', mpi_id.vendor)
-        return
-
-    # The install directory name contains a reference to the MPI version and
-    # where it is installed. This allows subsequent installations to reuse previous builds
-    wi4mpi_install_dir = WI4MPI_DIR / f"{str(mpi_id)}_{util.hash256(mpi_install_dir.as_posix())}"
+    wi4mpi_install_dir = WI4MPI_DIR / "install"
 
     if install_wi4mpi(wi4mpi_install_dir) is None:
         LOGGER.error("Wi4MPI installation resulted in failure")
         return
-
-    # Set the default MPI root in the config
-    _update_config(
-        wi4mpi_install_dir / 'etc' / 'wi4mpi.cfg',
-        mpi_data.default_path_key,
-        mpi_install_dir,
-    )
 
     # Simplify the profile by removing files contained in the MPI
     # installation directory
@@ -345,6 +325,7 @@ def setup_wi4mpi(profile: Profile, mpi_install_dir: Path,
     new_files = list(map(str, filtered_files))
 
     # Update the profile
+    controller = Profile.controller()
     controller.update(
         dict(wi4mpi=str(wi4mpi_install_dir), files=new_files),
         profile.eid,
@@ -433,21 +414,13 @@ class InitCommand(AbstractCommand):
         args = self._parse_args(argv)
 
         system_args = getattr(args, 'system', False)
-        wi4mpi_args = getattr(args, 'wi4mpi', False)
         detect_args = (getattr(args, 'mpi', False)
                        or getattr(args, 'launcher', False)
                        or getattr(args, 'launcher_args', False))
 
-        if system_args and wi4mpi_args:
-            self.parser.error(
-                "--system and --wi4mpi options are mutually exclusive")
         if system_args and detect_args:
             self.parser.error(
                 "--system and --mpi / --launcher / --launcher_args options are mutually exclusive"
-            )
-        if detect_args and wi4mpi_args:
-            self.parser.error(
-                "--wi4mpi and --mpi / --launcher / --launcher_args options are mutually exclusive"
             )
 
         profile_data = _profile_from_args(args)
@@ -455,10 +428,6 @@ class InitCommand(AbstractCommand):
         if system_args:
             # If using the downloaded assets, they would be loaded above
             pass
-        elif wi4mpi_args:
-            # If using wi4mpi, no need to profile a binary, as the installation
-            # will details the required binaries
-            profile_data['name'] = 'wi4mpi'
         else:
             profile_data['name'] = INIT_TEMP_PROFILE_NAME
 
@@ -494,7 +463,7 @@ class InitCommand(AbstractCommand):
 
         # Install Wi4MPI if needed depending on detected MPI version
         if requires_wi4mpi(mpi_vendor):
-            setup_wi4mpi(selected_profile, mpi_install_dir, mpi_vendor)
+            setup_wi4mpi(selected_profile, mpi_install_dir)
 
         requested_name = (getattr(args, 'profile_name', None)
                           or profile_mpi_name(profile_mpi_libraries))
