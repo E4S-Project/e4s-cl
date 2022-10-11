@@ -89,10 +89,8 @@ from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_
 from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_mpi import (profile_mpi_name, filter_mpi_libs,
-                                  install_dir, MPIIdentifier, detect_mpi)
-from e4s_cl.cf.wi4mpi import (wi4mpi_qualifier, wi4mpi_identify)
-from e4s_cl.cf.wi4mpi.install import (requires_wi4mpi, install_wi4mpi,
-                                      WI4MPI_DIR, _update_config)
+                                  install_dir, detect_mpi)
+from e4s_cl.cf.wi4mpi.install import (install_wi4mpi, WI4MPI_DIR)
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli import arguments
 from e4s_cl.cli.command import AbstractCommand
@@ -308,7 +306,7 @@ def rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
             controller.delete(profile.eid)
 
 
-def setup_wi4mpi(profile: Profile, mpi_install_dir: Path) -> None:
+def _setup_wi4mpi() -> None:
     """Install Wi4MPI and update the profile accordingly"""
 
     wi4mpi_install_dir = WI4MPI_DIR / "install"
@@ -316,20 +314,6 @@ def setup_wi4mpi(profile: Profile, mpi_install_dir: Path) -> None:
     if install_wi4mpi(wi4mpi_install_dir) is None:
         LOGGER.error("Wi4MPI installation resulted in failure")
         return
-
-    # Simplify the profile by removing files contained in the MPI
-    # installation directory
-    profile_files = map(Path, profile.get('files', []))
-    filtered_files = filter(
-        lambda x: not util.path_contains(mpi_install_dir, x), profile_files)
-    new_files = list(map(str, filtered_files))
-
-    # Update the profile
-    controller = Profile.controller()
-    controller.update(
-        dict(wi4mpi=str(wi4mpi_install_dir), files=new_files),
-        profile.eid,
-    )
 
 
 class InitCommand(AbstractCommand):
@@ -459,11 +443,24 @@ class InitCommand(AbstractCommand):
         profile_libraries = map(Path, selected_profile.get('libraries', []))
         profile_mpi_libraries = filter_mpi_libs(profile_libraries)
         mpi_install_dir = install_dir(profile_mpi_libraries)
-        mpi_vendor = detect_mpi(profile_mpi_libraries)
 
-        # Install Wi4MPI if needed depending on detected MPI version
-        if requires_wi4mpi(mpi_vendor):
-            setup_wi4mpi(selected_profile, mpi_install_dir)
+        # Simplify the profile by removing files contained in the MPI
+        # installation directory
+        profile_files = map(Path, profile.get('files', []))
+        filtered_files = filter(
+            lambda x: not util.path_contains(mpi_install_dir, x),
+            profile_files)
+        new_files = list(map(str, {*filtered_files, mpi_install_dir}))
+
+        # Update the profile
+        controller = Profile.controller()
+        controller.update(
+            dict(files=new_files),
+            selected_profile.eid,
+        )
+
+        # Install Wi4MPI in the default location if needed
+        _setup_wi4mpi()
 
         requested_name = (getattr(args, 'profile_name', None)
                           or profile_mpi_name(profile_mpi_libraries))

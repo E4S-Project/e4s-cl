@@ -25,12 +25,6 @@ WI4MPI_DIR = Path(USER_PREFIX) / "wi4mpi"
 
 CPU_COUNT = os.cpu_count()
 
-# List of MPI distributions requiring Wi4MPI for proper e4s-cl support
-# The keys correspond to possible values of MPIIdentifier.vendor
-_WI4MPI_DEPENDENT = {
-    'Open MPI': True,
-}
-
 _WI4MPI_COMPILER_STRINGS = {
     CompilerVendor.GNU: 'GNU',
     CompilerVendor.INTEL: 'INTEL',
@@ -49,16 +43,6 @@ def _select_compiler() -> Optional[str]:
         return None
 
     return _WI4MPI_COMPILER_STRINGS.get(min(compilers))
-
-
-def requires_wi4mpi(mpi_id: MPIIdentifier) -> bool:
-    """
-    Checks if the mpi vendor detected needs wi4mpi in order to function
-    correctly with e4s-cl, and if so installs it.
-    """
-    if not isinstance(mpi_id, MPIIdentifier):
-        return False
-    return mpi_id.vendor in _WI4MPI_DEPENDENT
 
 
 def _fetch_release(destination: Path) -> Optional[Path]:
