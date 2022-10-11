@@ -15,10 +15,12 @@ TEST_SYSTEM = '__test_system'
 
 MPICC = os.environ.get('__E4SCL_MPI_COMPILER', 'mpicc')
 
+
 class InitTest(tests.TestCase):
     """
     Partial class definition: more tests are defined below
     """
+
     def setUp(self):
         add_builtin_profile(TEST_SYSTEM, {'name': TEST_SYSTEM})
 
@@ -51,58 +53,56 @@ class InitTest(tests.TestCase):
         self.assertEqual(Profile.controller().count(), 1)
 
     def test_wi4mpi(self):
-        self.assertCommandReturnValue(
-            0, COMMAND,
-            "--wi4mpi /path/to/installation --wi4mpi_options '-T to -F from'")
+        self.assertCommandReturnValue(0, COMMAND,
+                                      "--wi4mpi /path/to/installation")
         profile = Profile.controller().selected()
 
         self.assertTrue(profile)
         self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
-        self.assertEqual(profile.get('wi4mpi_options'), '-T to -F from')
 
     def test_wi4mpi_overwrite(self):
-        self.assertCommandReturnValue(
-            0, COMMAND,
-            "--wi4mpi /path/to/installation --wi4mpi_options '-T to -F from'")
+        self.assertCommandReturnValue(0, COMMAND,
+                                      "--wi4mpi /path/to/installation")
         self.assertEqual(Profile.controller().count(), 1)
-        self.assertCommandReturnValue(
-            0, COMMAND,
-            "--wi4mpi /path/to/installation --wi4mpi_options '-T to -F from'")
+        self.assertCommandReturnValue(0, COMMAND,
+                                      "--wi4mpi /path/to/installation")
         self.assertEqual(Profile.controller().count(), 1)
 
     def test_rename_system(self):
-        self.assertCommandReturnValue(0, COMMAND, f"--profile init_test_profile --system {TEST_SYSTEM}")
+        self.assertCommandReturnValue(
+            0, COMMAND, f"--profile init_test_profile --system {TEST_SYSTEM}")
         self.assertEqual(Profile.controller().selected().get('name'),
                          'init_test_profile')
 
     def test_rename_wi4mpi(self):
         self.assertCommandReturnValue(
             0, COMMAND,
-            "--profile init_test_profile --wi4mpi /path/to/installation --wi4mpi_options '-T to -F from'")
+            "--profile init_test_profile --wi4mpi /path/to/installation")
         profile = Profile.controller().selected()
 
         self.assertTrue(profile)
         self.assertEqual(profile.get('name'), 'init_test_profile')
         self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
-        self.assertEqual(profile.get('wi4mpi_options'), '-T to -F from')
 
-groups = [[('--system', TEST_SYSTEM)],
+
+groups = [[('--system', TEST_SYSTEM)], [
+    ('--wi4mpi', '/path/to/installation'),
+],
           [
-              ('--wi4mpi', '/path/to/installation'),
-              ('--wi4mpi_options', "'-T to -F from'"),
-          ], [
               ('--mpi', '/path/to/installation'),
               ('--launcher', '/path/to/binary'),
               ('--launcher_args', "'-np 8192'"),
           ]]
 
+
 def wrapper(option1, value1, option2, value2):
     """
     Generate tests from a simple pattern to ensure all fields are correctly added
     """
+
     def generated_test(self):
         self.assertNotCommandReturnValue(0, COMMAND,
-                                      [option1, value1, option2, value2])
+                                         [option1, value1, option2, value2])
 
     generated_test.__name__ = f"test_{option1.strip('-')}_{option2.strip('-')}"
 

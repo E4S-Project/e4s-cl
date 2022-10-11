@@ -11,6 +11,7 @@ class ProfileCreateTest(tests.TestCase):
     """
     The actual tests. Profiles are deleted after every test.
     """
+
     def setUp(self):
         self.profile_name = 'test_profile'
 
@@ -92,7 +93,6 @@ fields = {
     ('--backend', 'backend', 'singularity', 'backend'),
     ('--source', 'source', '/path/to/script.sh', 'source'),
     ('--wi4mpi', 'wi4mpi', '/usr/packages/wi4mpi', 'wi4mpi_location'),
-    ('--wi4mpi_options', 'wi4mpi_options', '"-T mpich -F openmpi"', 'wi4mpi_options'),
 }
 
 
@@ -100,6 +100,7 @@ def wrapper(option, field, argument, test_name):
     """
     Generate tests from a simple pattern to ensure all fields are correctly added
     """
+
     def generated_test(self):
         self.assertCommandReturnValue(0, command,
                                       [self.profile_name, option, argument])

@@ -94,11 +94,6 @@ class ProfileEditCommand(EditCommand):
                             metavar='<path>',
                             type=arguments.posix_path,
                             default=arguments.SUPPRESS)
-
-        parser.add_argument('--wi4mpi_options',
-                            help="Options to use with WI4MPI",
-                            metavar='<args>',
-                            default=arguments.SUPPRESS)
         return parser
 
     def _parse_add_args(self, args, prof):
@@ -140,9 +135,7 @@ class ProfileEditCommand(EditCommand):
 
         updates = dict(profile)
 
-        fields = {
-            'name', 'backend', 'image', 'source', 'wi4mpi', 'wi4mpi_options'
-        }
+        fields = {'name', 'backend', 'image', 'source', 'wi4mpi'}
 
         for field in fields:
             updates[field] = getattr(args, field, profile.get(field))

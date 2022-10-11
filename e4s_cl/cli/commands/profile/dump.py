@@ -30,7 +30,6 @@ You can also dump multiple profiles at once by specifying multiple profiles:
             "files": ["/usr/share/hwdata/pci.ids"],
             "source": null,
             "image": null,
-            "wi4mpi_options": null,
             "backend": "None",
             "wi4mpi": null},
         {
@@ -39,7 +38,6 @@ You can also dump multiple profiles at once by specifying multiple profiles:
             "files": ["/usr/share/hwdata/pci.ids"],
             "image": null,
             "source": null,
-            "wi4mpi_options": null,
             "wi4mpi": null,
             "backend": null
         }
@@ -51,6 +49,7 @@ from e4s_cl.model.profile import Profile
 
 
 class ProfileDumpCommand(DumpCommand):
+
     def __init__(self):
         super().__init__(Profile, __name__)
 

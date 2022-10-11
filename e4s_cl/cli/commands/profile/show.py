@@ -18,6 +18,7 @@ class ProfileShowCommand(ShowCommand):
     """
     Output details about a profile
     """
+
     def _construct_parser(self):
         parser = super()._construct_parser()
 
@@ -33,7 +34,6 @@ class ProfileShowCommand(ShowCommand):
 %(field_backend)s: %(backend)s
 %(field_script)s: %(script)s
 %(field_wi4mpi)s: %(wi4mpi)s
-%(field_wi4mpi_options)s: %(wi4mpi_options)s
 
 %(field_libs)s:
 %(libs)s
@@ -48,8 +48,7 @@ class ProfileShowCommand(ShowCommand):
             'field_script': bold("Pre-execution script"),
             'field_libs': bold("Bound libraries"),
             'field_files': bold("Bound files"),
-            'field_wi4mpi': bold("WI4MPI"),
-            'field_wi4mpi_options': bold("WI4MPI options"),
+            'field_wi4mpi': bold("Wi4MPI installation"),
         }
 
         elements = {
@@ -58,7 +57,6 @@ class ProfileShowCommand(ShowCommand):
             'backend': profile_dict.get('backend', 'Not found'),
             'script': profile_dict.get('source', 'None'),
             'wi4mpi': profile_dict.get('wi4mpi', 'None'),
-            'wi4mpi_options': profile_dict.get('wi4mpi_options', 'None'),
         }
 
         if profile_dict.get('libraries'):

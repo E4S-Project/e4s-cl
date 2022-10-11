@@ -21,9 +21,8 @@ Using a WI4MPI installation
 ----------------------------
 
 If an WI4MPI installation is present on the system, one can link a profile \
-to it using the :code:`--wi4mpi` and :code:`--wi4mpi_options` arguments. The \
-profile will contain this information and the installation will be used \
-during launch.
+to it using the :code:`--wi4mpi` argument. The profile will contain this \
+information and the installation will be used during launch.
 
 Using an installed MPI library
 --------------------------------
@@ -74,9 +73,7 @@ Using an installation of WI4MPI:
 
 .. code::
 
-    e4s-cl init --wi4mpi /packages/wi4mpi \\
-            --wi4mpi_options \\
-            "-T openmpi -F mpich"
+    e4s-cl init --wi4mpi /packages/wi4mpi
 """
 
 import os
@@ -166,7 +163,7 @@ def _profile_from_args(args) -> dict:
     """
     data = {}
 
-    for attr in ['image', 'backend', 'source', 'wi4mpi', 'wi4mpi_options']:
+    for attr in ['image', 'backend', 'source', 'wi4mpi']:
         value = getattr(args, attr, None)
         if value:
             data[attr] = value
@@ -349,9 +346,9 @@ def setup_wi4mpi(profile: Profile, mpi_install_dir: Path,
 
     # Update the profile
     controller.update(
-        dict(wi4mpi=str(wi4mpi_install_dir),
-             wi4mpi_options=f'-T {wi4mpi_qualifier(mpi_id)} -F mpich',
-             files=new_files), profile.eid)
+        dict(wi4mpi=str(wi4mpi_install_dir), files=new_files),
+        profile.eid,
+    )
 
 
 class InitCommand(AbstractCommand):
@@ -430,20 +427,13 @@ class InitCommand(AbstractCommand):
                             default=arguments.SUPPRESS,
                             dest='wi4mpi')
 
-        parser.add_argument('--wi4mpi_options',
-                            help="Options to use with WI4MPI",
-                            metavar='opts',
-                            default=arguments.SUPPRESS,
-                            dest='wi4mpi_options')
-
         return parser
 
     def main(self, argv):
         args = self._parse_args(argv)
 
         system_args = getattr(args, 'system', False)
-        wi4mpi_args = (getattr(args, 'wi4mpi', False)
-                       or getattr(args, 'wi4mpi_options', False))
+        wi4mpi_args = getattr(args, 'wi4mpi', False)
         detect_args = (getattr(args, 'mpi', False)
                        or getattr(args, 'launcher', False)
                        or getattr(args, 'launcher_args', False))
