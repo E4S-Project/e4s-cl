@@ -52,7 +52,8 @@ from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
 from e4s_cl.cf.detect_mpi import (detect_mpi, install_dir, filter_mpi_libs)
 from e4s_cl.cf.wi4mpi import (wi4mpi_adapt_arguments, SUPPORTED_TRANSLATIONS,
-                              wi4mpi_qualifier, wi4mpi_identify)
+                              wi4mpi_qualifier, wi4mpi_identify,
+                              WI4MPI_METADATA)
 from e4s_cl.cf.wi4mpi.install import (WI4MPI_DIR, install_wi4mpi)
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
@@ -148,57 +149,75 @@ class LaunchCommand(AbstractCommand):
 
     def _construct_parser(self):
         usage = f"{self.command} [arguments] [launcher] [launcher_arguments] [--] <command> [command_arguments]"
-        parser = arguments.get_parser(prog=self.command,
-                                      usage=usage,
-                                      description=self.summary)
+        parser = arguments.get_parser(
+            prog=self.command,
+            usage=usage,
+            description=self.summary,
+        )
         parser.add_argument(
             '--profile',
             type=arguments.single_defined_object(Profile, 'name'),
             help=
             "Profile to use. Its fields will be used by default, but any other argument will override them",
             default=Profile.selected().get('name', arguments.SUPPRESS),
-            metavar='profile')
+            metavar='profile',
+        )
 
         parser.add_argument(
             '--image',
             type=str,
             help="Path to the container image to run the program in",
-            metavar='image')
+            metavar='image',
+        )
 
         parser.add_argument(
             '--source',
             type=arguments.posix_path,
             help="Path to a bash script to source before execution",
-            metavar='source')
+            metavar='source',
+        )
 
-        parser.add_argument('--files',
-                            type=arguments.posix_path_list,
-                            help="Comma-separated list of files to bind",
-                            metavar='files')
+        parser.add_argument(
+            '--files',
+            type=arguments.posix_path_list,
+            help="Comma-separated list of files to bind",
+            metavar='files',
+        )
 
-        parser.add_argument('--libraries',
-                            type=arguments.posix_path_list,
-                            help="Comma-separated list of libraries to bind",
-                            metavar='libraries')
+        parser.add_argument(
+            '--libraries',
+            type=arguments.posix_path_list,
+            help="Comma-separated list of libraries to bind",
+            metavar='libraries',
+        )
 
         parser.add_argument(
             '--backend',
             help="Container backend to use to launch the image." +
             f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
             metavar='technology',
-            dest='backend')
+            dest='backend',
+        )
 
-        parser.add_argument('--from',
-                            type=str.lower,
-                            choices=['openmpi', 'mpich', 'intel'],
-                            help="WIP",
-                            default=arguments.SUPPRESS,
-                            metavar='mpi-family')
+        mpi_families = list(map(lambda x: x.cli_name, WI4MPI_METADATA))
+        parser.add_argument(
+            '--from',
+            type=str.lower,
+            choices=mpi_families,
+            help=
+            "MPI family the command was intended to be run. Use this argument "
+            "to toggle MPI call translation. Available families: " +
+            ", ".join(mpi_families),
+            default=arguments.SUPPRESS,
+            metavar='mpi-family',
+        )
 
-        parser.add_argument('cmd',
-                            help="Executable command, e.g. './a.out'",
-                            metavar='command',
-                            nargs=arguments.REMAINDER)
+        parser.add_argument(
+            'cmd',
+            help="Executable command, e.g. './a.out'",
+            metavar='command',
+            nargs=arguments.REMAINDER,
+        )
         return parser
 
     def main(self, argv):
