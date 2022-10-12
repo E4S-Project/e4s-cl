@@ -17,7 +17,7 @@ LOGGER = logger.get_logger(__name__)
 
 
 @dataclass(frozen=True)
-class _MPI_family:
+class _MPIFamily:
     vendor_name: str
     cli_name: str
     env_name: str
@@ -29,21 +29,21 @@ class _MPI_family:
 
 
 WI4MPI_METADATA = {
-    _MPI_family(
+    _MPIFamily(
         'Intel(R) MPI',
         'intelmpi',
         'INTEL',
         'INTELMPI_ROOT',
         'INTELMPI_DEFAULT_ROOT',
     ),
-    _MPI_family(
+    _MPIFamily(
         'Open MPI',
         'openmpi',
         'OMPI',
         'OPENMPI_ROOT',
         'OPENMPI_DEFAULT_ROOT',
     ),
-    _MPI_family(
+    _MPIFamily(
         'MPICH',
         'mpich',
         'MPICH',
@@ -61,7 +61,7 @@ SUPPORTED_TRANSLATIONS = {
 }
 
 
-def wi4mpi_identify(value: str) -> Optional[_MPI_family]:
+def wi4mpi_identify(value: str) -> Optional[_MPIFamily]:
     for family in WI4MPI_METADATA:
         if value.lower() in {
                 family.vendor_name.lower(),

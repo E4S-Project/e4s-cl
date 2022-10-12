@@ -14,7 +14,6 @@ from e4s_cl.logger import get_logger
 from e4s_cl.util import which
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.wi4mpi import (WI4MPI_METADATA)
-from e4s_cl.cf.detect_mpi import MPIIdentifier
 from e4s_cl.cf.compiler import CompilerVendor, available_compilers
 
 LOGGER = get_logger(__name__)

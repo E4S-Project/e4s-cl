@@ -101,6 +101,7 @@ def compiler_vendor(elf_file: Path) -> int:
 
 
 def available_compilers() -> Iterable[int]:
+    """Return a list of compiler identifiers for compilers found on the system"""
     binaries = {
         CompilerVendor.GNU: {'gcc', 'g++', 'gfortran'},
         CompilerVendor.INTEL: {'icc', 'icpc', 'ifort'},
@@ -113,7 +114,8 @@ def available_compilers() -> Iterable[int]:
 
     available = set()
     for vendor, requirements in binaries.items():
-        if len(set(filter(None, map(lambda x: which(x),
+        # Check which found every requirement for the compiler
+        if len(set(filter(None, map(which,
                                     requirements)))) == len(requirements):
             available.add(vendor)
 
