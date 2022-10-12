@@ -261,7 +261,7 @@ class LaunchCommand(AbstractCommand):
         execute_command = _format_execute(parameters)
         full_command = [*launcher, *execute_command, *program]
 
-        if True:
+        if variables.is_dry_run():
             print(' '.join(map(str, full_command)))
             return EXIT_SUCCESS
 
