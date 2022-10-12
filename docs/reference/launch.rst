@@ -14,7 +14,7 @@ Usage
 Options
 -------
 
-The `launch` command accepts several options to tune the outcome of its execution:
+The `launch` command accepts several options to tune its execution:
 
 --profile	Profile to use for the execution
 --image		Path for the image to use when launching the container
@@ -22,6 +22,7 @@ The `launch` command accepts several options to tune the outcome of its executio
 --libraries	Comma-separated list of libraries to load at run-time
 --files		Comma-separated list of files to make accessible in the container
 --source	Path of script to source before execution
+--from      If MPI library translation is needed, specify which family the binary comes from. The following are implemented: :code:`intelmpi`, :code:`openmpi`, :code:`mpich`
 
 .. admonition:: MPI launcher detection
 

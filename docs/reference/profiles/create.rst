@@ -18,6 +18,7 @@ Options
 --image		The image to use with the profile
 --backend	The container technology to use for the profile's image
 --source	Path towards a script to source before execution
+--wi4mpi	Path towards a Wi4MPI installation to use
 
 Description
 ------------
