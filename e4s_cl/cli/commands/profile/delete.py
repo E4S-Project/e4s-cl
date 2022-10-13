@@ -12,7 +12,7 @@ match with any single or multiple characters.
 .. code::
 
     $ e4s-cl profile list 
-    ============================= Profile Configurations (/home/fdeny/.local/e4s_cl/user.json) ==
+    ============ Profile Configurations (/home/user/.local/e4s_cl/user.json) ==
     +----------+---------------+---------+-------+-----------+-------+--------+
     | Selected |     Name      | Backend | Image | Libraries | Files | WI4MPI |
     +==========+===============+=========+=======+===========+=======+========+
@@ -30,7 +30,7 @@ match with any single or multiple characters.
     Deleted profile 'MPICH_3.3.2-2'
 
     $ e4s-cl profile list
-    ============================= Profile Configurations (/home/fdeny/.local/e4s_cl/user.json) ==
+    ========== Profile Configurations (/home/user/.local/e4s_cl/user.json) ==
     +----------+-------------+---------+-------+-----------+-------+--------+
     | Selected |    Name     | Backend | Image | Libraries | Files | WI4MPI |
     +==========+=============+=========+=======+===========+=======+========+

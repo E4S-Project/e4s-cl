@@ -20,6 +20,7 @@ from e4s_cl.cf.containers import EXPOSED_BACKENDS
 
 class ProfileCreateCommand(CreateCommand):
     """``profile create`` subcommand."""
+
     def _construct_parser(self):
         usage = f"{self.command} <profile_name>"
         parser = arguments.get_parser_from_model(self.model,
@@ -69,11 +70,6 @@ class ProfileCreateCommand(CreateCommand):
                             help="Root of the WI4MPI installation to use",
                             metavar='<path>',
                             type=arguments.posix_path,
-                            default=arguments.SUPPRESS)
-
-        parser.add_argument('--wi4mpi_options',
-                            help="Options to use with WI4MPI",
-                            metavar='<args>',
                             default=arguments.SUPPRESS)
 
         return parser

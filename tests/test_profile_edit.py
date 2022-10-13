@@ -12,6 +12,7 @@ class ProfileEditTest(tests.TestCase):
     The actual tests. Profiles are deleted after every test. More tests are
     added by the code snippet after the class definition.
     """
+
     def setUp(self):
         self.profile_name = 'test01'
         self.files = ['/tmp/file1']
@@ -23,7 +24,6 @@ class ProfileEditTest(tests.TestCase):
             "backend": 'bash',
             "source": None,
             "wi4mpi": None,
-            "wi4mpi_options": None,
             "files": self.files,
             "libraries": self.libraries,
         })
@@ -107,8 +107,8 @@ fields = {
     ('--image', 'image:id', 'image', 'profile_edit_image'),
     ('--backend', 'singularity', 'backend', 'profile_edit_backend'),
     ('--source', '/tmp/test.sh', 'source', 'profile_edit_source'),
-    ('--wi4mpi', '/usr/packages/installation', 'wi4mpi', 'profile_edit_wi4mpi'),
-    ('--wi4mpi_options', "'-T to -F from'", 'wi4mpi_options', 'profile_edit_wi4mpi_options'),
+    ('--wi4mpi', '/usr/packages/installation', 'wi4mpi',
+     'profile_edit_wi4mpi'),
 }
 
 
@@ -116,6 +116,7 @@ def wrapper(option, value, field, test_name):
     """
     Generate tests from a template and a list of options
     """
+
     def generated_test(self):
         self.assertCommandReturnValue(0, COMMAND,
                                       [self.profile_name, option, value])

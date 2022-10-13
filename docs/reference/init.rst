@@ -16,7 +16,6 @@ Usage
     or
 
     e4s-cl init --wi4mpi <path> \
-        [--wi4mpi_options <string>] \
         [OPTIONS]
 
     or
@@ -30,19 +29,13 @@ Options
 -------
 
 To tailor the initialization process the following values can be specified by \
-the user. The options of the system, WI4MPI and MPI analysis groups are \
+the user. The options of the system and MPI analysis groups are \
 mutually exclusive.
 
 System initialization options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 --system            System name, will use a matching builtin profile if available
-
-WI4MPI initialization options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
---wi4mpi            Path to a WI4MPI installation to use
---wi4mpi_options    String passed to the underlying WI4MPI launcher
 
 MPI analysis initialization options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -58,6 +51,7 @@ Common initialization options
 --backend           Container technology to employ
 --image             Identifier for the image to use when launching the container
 --source            Script to run before execution
+--wi4mpi            Path to a WI4MPI installation to use
 
 Description
 -----------

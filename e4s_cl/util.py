@@ -199,7 +199,7 @@ def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
                 universal_newlines=True,
                 bufsize=1) as proc:
 
-            output, error = proc.communicate()
+            output, _ = proc.communicate()
             returncode = proc.returncode
 
     if capture_output:

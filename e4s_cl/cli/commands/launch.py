@@ -50,7 +50,11 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
-from e4s_cl.cf.wi4mpi import wi4mpi_adapt_arguments
+from e4s_cl.cf.detect_mpi import (detect_mpi, install_dir, filter_mpi_libs)
+from e4s_cl.cf.wi4mpi import (wi4mpi_adapt_arguments, SUPPORTED_TRANSLATIONS,
+                              wi4mpi_qualifier, wi4mpi_identify,
+                              WI4MPI_METADATA)
+from e4s_cl.cf.wi4mpi.install import (WI4MPI_DIR, install_wi4mpi)
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
 
@@ -99,10 +103,45 @@ def _format_execute(parameters):
             execute_command += [f"--{attr}", ",".join(map(str, value))]
 
     wi4mpi_root = parameters.get('wi4mpi', None)
-    if wi4mpi_root is not None:
+    if wi4mpi_root:
         execute_command += ['--wi4mpi', wi4mpi_root]
 
     return execute_command
+
+
+def setup_wi4mpi(launcher, parameters, translation, profile_mpi_install,
+                 profile_mpi_family):
+    """Overwrite the launcher and prepare the environment if Wi4MPI is required
+    for this configuration"""
+    bin_path = os.environ.get('PATH')
+
+    wi4mpi_root = parameters.get('wi4mpi')
+    if not wi4mpi_root:
+        wi4mpi_root = str(install_wi4mpi(WI4MPI_DIR / 'install'))
+        parameters['wi4mpi'] = wi4mpi_root
+
+    wi4mpi_bin_path = Path(wi4mpi_root, 'bin').as_posix()
+
+    target_mpi_data = wi4mpi_identify(profile_mpi_family.vendor)
+
+    os.environ['WI4MPI_ROOT'] = str(wi4mpi_root)
+    os.environ['PATH'] = os.pathsep.join(
+        filter(None, [wi4mpi_bin_path, bin_path]))
+    os.environ[target_mpi_data.path_key] = str(profile_mpi_install)
+
+    # Add the Wi4MPI --from --to options
+    launcher += shlex.split(f"-F {translation[0]} -T {translation[1]}")
+
+    # Pass the necessary environment if OpenMPI is used, other launchers do it as default
+    if profile_mpi_family.vendor == "Open MPI" \
+            and Path(launcher[0]).name == "mpirun":
+        launcher += shlex.split(
+            f"-x WI4MPI_ROOT -x PATH -x {target_mpi_data.path_key}")
+
+    # Validate the command line
+    launcher = wi4mpi_adapt_arguments(launcher)
+    launcher[0] = Path(wi4mpi_root, 'bin', 'mpirun').as_posix()
+    return launcher
 
 
 class LaunchCommand(AbstractCommand):
@@ -110,50 +149,75 @@ class LaunchCommand(AbstractCommand):
 
     def _construct_parser(self):
         usage = f"{self.command} [arguments] [launcher] [launcher_arguments] [--] <command> [command_arguments]"
-        parser = arguments.get_parser(prog=self.command,
-                                      usage=usage,
-                                      description=self.summary)
+        parser = arguments.get_parser(
+            prog=self.command,
+            usage=usage,
+            description=self.summary,
+        )
         parser.add_argument(
             '--profile',
             type=arguments.single_defined_object(Profile, 'name'),
             help=
             "Profile to use. Its fields will be used by default, but any other argument will override them",
             default=Profile.selected().get('name', arguments.SUPPRESS),
-            metavar='profile')
+            metavar='profile',
+        )
 
         parser.add_argument(
             '--image',
             type=str,
             help="Path to the container image to run the program in",
-            metavar='image')
+            metavar='image',
+        )
 
         parser.add_argument(
             '--source',
             type=arguments.posix_path,
             help="Path to a bash script to source before execution",
-            metavar='source')
+            metavar='source',
+        )
 
-        parser.add_argument('--files',
-                            type=arguments.posix_path_list,
-                            help="Comma-separated list of files to bind",
-                            metavar='files')
+        parser.add_argument(
+            '--files',
+            type=arguments.posix_path_list,
+            help="Comma-separated list of files to bind",
+            metavar='files',
+        )
 
-        parser.add_argument('--libraries',
-                            type=arguments.posix_path_list,
-                            help="Comma-separated list of libraries to bind",
-                            metavar='libraries')
+        parser.add_argument(
+            '--libraries',
+            type=arguments.posix_path_list,
+            help="Comma-separated list of libraries to bind",
+            metavar='libraries',
+        )
 
         parser.add_argument(
             '--backend',
             help="Container backend to use to launch the image." +
             f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
             metavar='technology',
-            dest='backend')
+            dest='backend',
+        )
 
-        parser.add_argument('cmd',
-                            help="Executable command, e.g. './a.out'",
-                            metavar='command',
-                            nargs=arguments.REMAINDER)
+        mpi_families = list(map(lambda x: x.cli_name, WI4MPI_METADATA))
+        parser.add_argument(
+            '--from',
+            type=str.lower,
+            choices=mpi_families,
+            help=
+            "MPI family the command was intended to be run. Use this argument "
+            "to toggle MPI call translation. Available families: " +
+            ", ".join(mpi_families),
+            default=arguments.SUPPRESS,
+            metavar='mpi-family',
+        )
+
+        parser.add_argument(
+            'cmd',
+            help="Executable command, e.g. './a.out'",
+            metavar='command',
+            nargs=arguments.REMAINDER,
+        )
         return parser
 
     def main(self, argv):
@@ -185,31 +249,45 @@ class LaunchCommand(AbstractCommand):
 
             parameters['files'] = files
 
+        binary_mpi_family = getattr(args, 'from', None)
+        profile_mpi_libraries = filter_mpi_libs(
+            map(Path, parameters.get('libraries', [])))
+        profile_mpi_family = detect_mpi(profile_mpi_libraries)
+        profile_mpi_install = install_dir(profile_mpi_libraries)
+
+        if profile_mpi_family:
+            LOGGER.debug(
+                "Parameters contain the MPI library '%(mpi_family)s' installed "
+                "in '%(install_dir)s'",
+                dict(
+                    mpi_family=profile_mpi_family,
+                    install_dir=str(profile_mpi_install),
+                ))
+        else:
+            LOGGER.debug(
+                "No single MPI family could be detected in the parameters")
+
+        translation = (binary_mpi_family, wi4mpi_qualifier(profile_mpi_family))
+        if launcher and translation in SUPPORTED_TRANSLATIONS:
+            launcher = setup_wi4mpi(
+                launcher,
+                parameters,
+                translation,
+                profile_mpi_install,
+                profile_mpi_family,
+            )
+
         execute_command = _format_execute(parameters)
-
-        # Override the launcher in case wi4mpi is used
-        bin_path = os.environ.get('PATH', '')
-        wi4mpi_root = parameters.get('wi4mpi')
-
-        if launcher and wi4mpi_root:
-            wi4mpi_bin_path = Path(wi4mpi_root, 'bin').as_posix()
-            os.environ['WI4MPI_ROOT'] = wi4mpi_root
-            os.environ['PATH'] = os.pathsep.join(
-                filter(None, [wi4mpi_bin_path, bin_path]))
-            launcher += shlex.split(parameters.get('wi4mpi_options', ""))
-            launcher = wi4mpi_adapt_arguments(launcher)
-            launcher[0] = Path(wi4mpi_root, 'bin', 'mpirun').as_posix()
-
         full_command = [*launcher, *execute_command, *program]
 
         if variables.is_dry_run():
-            print(' '.join(full_command))
+            print(' '.join(map(str, full_command)))
             return EXIT_SUCCESS
 
-        retval, output = run_e4scl_subprocess(full_command)
+        retval, _ = run_e4scl_subprocess(full_command)
 
         return retval
 
 
-SUMMARY = "Launch a process with a tailored environment."
+SUMMARY = "Launch a process in a container with a tailored environment."
 COMMAND = LaunchCommand(__name__, summary_fmt=SUMMARY)

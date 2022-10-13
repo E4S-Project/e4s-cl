@@ -31,8 +31,6 @@ A profile is a recorded collection of fields relating to a specific MPI library.
 +------------------+--------------------------------------------------------------+
 | `wi4mpi`         | WI4MPI installation to use (Optional)                        |
 +------------------+--------------------------------------------------------------+
-| `wi4mpi_options` | WI4MPI options to pass to the launcher (Optional)            |
-+------------------+--------------------------------------------------------------+
 
 Profile Creation
 ----------------

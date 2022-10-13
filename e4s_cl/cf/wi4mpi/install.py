@@ -8,14 +8,12 @@ import tarfile
 import urllib.request
 from pathlib import Path
 from typing import Optional
-from tempfile import NamedTemporaryFile
 from e4s_cl import USER_PREFIX
-from e4s_cl.util import safe_tar, run_subprocess, hash256
+from e4s_cl.util import safe_tar, run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.util import which
 from e4s_cl.cf.version import Version
-from e4s_cl.cf.wi4mpi import _MPI_DISTRIBUTIONS
-from e4s_cl.cf.detect_mpi import MPIIdentifier
+from e4s_cl.cf.wi4mpi import (WI4MPI_METADATA)
 from e4s_cl.cf.compiler import CompilerVendor, available_compilers
 
 LOGGER = get_logger(__name__)
@@ -25,12 +23,6 @@ WI4MPI_RELEASE_URL = f"https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v{WI4
 WI4MPI_DIR = Path(USER_PREFIX) / "wi4mpi"
 
 CPU_COUNT = os.cpu_count()
-
-# List of MPI distributions requiring Wi4MPI for proper e4s-cl support
-# The keys correspond to possible values of MPIIdentifier.vendor
-_WI4MPI_DEPENDENT = {
-    'Open MPI': True,
-}
 
 _WI4MPI_COMPILER_STRINGS = {
     CompilerVendor.GNU: 'GNU',
@@ -50,16 +42,6 @@ def _select_compiler() -> Optional[str]:
         return None
 
     return _WI4MPI_COMPILER_STRINGS.get(min(compilers))
-
-
-def requires_wi4mpi(mpi_id: MPIIdentifier) -> bool:
-    """
-    Checks if the mpi vendor detected needs wi4mpi in order to function
-    correctly with e4s-cl, and if so installs it.
-    """
-    if not isinstance(mpi_id, MPIIdentifier):
-        return False
-    return mpi_id.vendor in _WI4MPI_DEPENDENT
 
 
 def _fetch_release(destination: Path) -> Optional[Path]:
@@ -130,6 +112,14 @@ def _update_config(config_path: Path, key: str, value: str) -> None:
         config_file.writelines(config)
 
 
+def overwrite_config(config_path: Path, key: str, value: str) -> None:
+    """Make sure the only defined key in the configuration is the one passed as
+    an argument"""
+    for vendor in WI4MPI_METADATA:
+        _update_config(config_path, vendor.default_path_key, '')
+    _update_config(config_path, key, value)
+
+
 def _double_tap(cmd):
     """
     Run a given command (cmake/make) discarding the output. If the
@@ -147,18 +137,11 @@ def _double_tap(cmd):
     return not success
 
 
-def install_wi4mpi(mpi_id: MPIIdentifier,
-                   mpi_install_dir: Path) -> Optional[Path]:
+def install_wi4mpi(install_dir: Path) -> Optional[Path]:
     """Clones and installs wi4mpi from git run
     
     Installs in ~/.local/share/wi4mpi using a GNU compiler
     """
-
-    # Needed to update the configuration file
-    mpi_data = _MPI_DISTRIBUTIONS.get(mpi_id.vendor)
-    if not mpi_data:
-        LOGGER.error('Unrecognized MPI distribution: %s', mpi_id.vendor)
-        return None
 
     # Assert CMake is available
     cmake_executable = which("cmake")
@@ -179,10 +162,6 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
         return None
 
     build_dir = WI4MPI_DIR / 'build'
-
-    # The install directory name contains a reference to the MPI version and
-    # where it is installed. This allows subsequent installations to reuse previous builds
-    install_dir = WI4MPI_DIR / f"{str(mpi_id)}_{hash256(mpi_install_dir.as_posix())}"
 
     configure_cmd = [
         cmake_executable, \
@@ -225,8 +204,6 @@ def install_wi4mpi(mpi_id: MPIIdentifier,
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
             and _double_tap(install_cmd):
-        _update_config(install_dir / 'etc' / 'wi4mpi.cfg', mpi_data.path_key,
-                       mpi_install_dir)
         LOGGER.warning("Wi4MPI has been built and installed")
         return install_dir
 

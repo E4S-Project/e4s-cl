@@ -56,19 +56,6 @@ def _selected(attr: str) -> Callable[[Dict], str]:
     return lambda x: '*' if Profile.selected().get(attr) == x[attr] else ' '
 
 
-def _wi4mpi() -> Callable[[Dict], str]:
-    """
-    Display Yes or No if the given profile data has WI4MPI directives defined
-    """
-
-    def _defined(profile):
-        if profile.get('wi4mpi') and profile.get('wi4mpi_options'):
-            return "Yes"
-        return "No"
-
-    return _defined
-
-
 # All available columns and the actions they require
 DEFINED_DASHBOARD_COLUMNS = [{
     'header': 'Selected',
@@ -91,9 +78,6 @@ DEFINED_DASHBOARD_COLUMNS = [{
 }, {
     'header': 'Files',
     'function': _count('files')
-}, {
-    'header': 'WI4MPI',
-    'function': _wi4mpi()
 }]
 
 # Fallback definition of columns
