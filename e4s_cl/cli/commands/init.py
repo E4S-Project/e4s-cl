@@ -194,6 +194,24 @@ def _analyze_binary(args):
     # we need to analyze a binary to
     # determine the dynamic dependencies of the library
 
+    command = getattr(args, 'cmd', None)
+    if not command:
+        command = _generate_command(args)
+
+    # Run the program using the detect command and get a file list
+    returncode = detect_command.main(command)
+
+    if returncode != EXIT_SUCCESS:
+        LOGGER.error("Tracing of MPI execution failed")
+        return EXIT_FAILURE
+
+    return EXIT_SUCCESS
+
+
+def _generate_command(args):
+    """
+    Generate a command from the given args with a launcher and mpi binary - compiled if necessary
+    """
     # Use the MPI environment scripts by default
     compiler = util.which('mpicc')
     launcher = util.which('mpirun')
@@ -252,13 +270,7 @@ def _analyze_binary(args):
         _check_mpirun(launcher)
 
     # Run the program using the detect command and get a file list
-    returncode = detect_command.main([launcher, *launcher_args, binary])
-
-    if returncode != EXIT_SUCCESS:
-        LOGGER.error("Tracing of MPI execution failed")
-        return EXIT_FAILURE
-
-    return EXIT_SUCCESS
+    return [launcher, *launcher_args, binary]
 
 
 def _skip_analysis(args) -> bool:
@@ -392,6 +404,12 @@ class InitCommand(AbstractCommand):
                             default=arguments.SUPPRESS,
                             dest='wi4mpi')
 
+        parser.add_argument('cmd',
+                            help="Executable command, e.g. './a.out'",
+                            metavar='command',
+                            default=arguments.SUPPRESS,
+                            nargs=arguments.REMAINDER)
+
         return parser
 
     def main(self, argv):
@@ -399,6 +417,7 @@ class InitCommand(AbstractCommand):
 
         system_args = getattr(args, 'system', False)
         detect_args = (getattr(args, 'mpi', False)
+                       or getattr(args, 'cmd', False)
                        or getattr(args, 'launcher', False)
                        or getattr(args, 'launcher_args', False))
 
