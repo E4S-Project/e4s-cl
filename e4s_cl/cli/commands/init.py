@@ -81,21 +81,22 @@ import json
 import tempfile
 import subprocess
 import shlex
-from argparse import ArgumentTypeError
 from pathlib import Path
 from typing import Optional
 from sotools.linker import resolve
-from e4s_cl import EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT, INIT_TEMP_PROFILE_NAME
+from e4s_cl import (EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT,
+                    INIT_TEMP_PROFILE_NAME)
 from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_mpi import (profile_mpi_name, filter_mpi_libs,
                                   install_dir)
 from e4s_cl.cf.wi4mpi.install import (install_wi4mpi, WI4MPI_DIR)
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
-from e4s_cl.cli import arguments
+from e4s_cl.cli.arguments import (binary_in_path, posix_path, get_parser,
+                                  SUPPRESS, REMAINDER)
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
-from e4s_cl.error import UniqueAttributeError
+from e4s_cl.error import (UniqueAttributeError, ModelError)
 from e4s_cl.model.profile import Profile
 from e4s_cl.sample import PROGRAM
 
@@ -210,7 +211,8 @@ def _analyze_binary(args):
 
 def _generate_command(args):
     """
-    Generate a command from the given args with a launcher and mpi binary - compiled if necessary
+    Generate a command from the given args with a launcher and mpi binary
+    - compiling a binary if necessary
     """
     # Use the MPI environment scripts by default
     compiler = util.which('mpicc')
@@ -262,8 +264,8 @@ def _generate_command(args):
             "or `--launcher` options to specify the launcher program to use.")
         return EXIT_FAILURE
 
-    LOGGER.warning("Tracing MPI execution using:\nCompiler: %s\nLauncher %s",
-                   compiler, " ".join([launcher, *launcher_args]))
+    LOGGER.info("Tracing MPI execution using:\nCompiler: %s\nLauncher: %s",
+                compiler, " ".join([launcher, *launcher_args]))
 
     # If no arguments were given, check the default behaviour of the launcher
     if not launcher_args:
@@ -274,48 +276,55 @@ def _generate_command(args):
 
 
 def _skip_analysis(args) -> bool:
-    """
-    Skip analysis step when certain conditions are met
-    """
+    """Skip analysis step when certain conditions are met"""
 
     # If using shifter, do not try to profile a library
+    # TODO Allow user to request full initialization
     if getattr(args, 'backend', '') == 'shifter':
+        LOGGER.info("Skipping analysis to use shifter modules")
         return False
 
     return True
 
 
-def launcher_argument(string):
-    """ Argument type callback. Asserts the given string identifies a launcher binary
-    on the system. """
-
-    path = util.which(string)
-    if not path:
-        raise ArgumentTypeError(
-            f"Launcher argument '{string}' could not be resolved to a binary")
-    return path
-
-
-def rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
+def _rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
     """Rename the given profile with a given name or create a special unique
     hash for it"""
+    current_name = profile.get('name')
+    if current_name == INIT_TEMP_PROFILE_NAME:
+        current_name = None
 
-    controller = Profile.controller()
-    if requested_name:
-        # Rename the profile to the name passed as an argument
+    if ((requested_name == current_name and requested_name is not None)
+            or (current_name and requested_name is None)):
+        """
+        match (requested_name, current_name) with:
+            (None, None) -> rename (create hash)
+            (None, x) -> pass (keep x)
+            (x, None) -> rename (set x)
+            (x, y) -> rename (overwrite y with x)
+            (x, x) -> pass
+
+        ==> Rename if !((r == c && r != None) || (c && !r))
+        """
+        return True
+
+    if requested_name is None or profile.name == INIT_TEMP_PROFILE_NAME:
+        hash_ = util.hash256(json.dumps(profile))
+        requested_name = f"default-{hash_[:16]}"
+
+    try:
+        controller = Profile.controller()
+
         # Erase any potential existing profile
         if controller.one({"name": requested_name}):
             controller.delete({"name": requested_name})
-        # Rename the profile created and selected above
+
         controller.update({'name': requested_name}, profile.eid)
-    elif profile.get('name') == INIT_TEMP_PROFILE_NAME:
-        # Hash the contents of a JSON representation of the profile
-        hash_ = util.hash256(json.dumps(profile))
-        try:
-            controller.update({'name': f"default-{hash_[:16]}"}, profile.eid)
-        except UniqueAttributeError:
-            LOGGER.debug('Profile already exists, deleting temporary profile')
-            controller.delete(profile.eid)
+    except (UniqueAttributeError, ModelError) as err:
+        LOGGER.error('Failed to rename profile: %s', err)
+        return False
+
+    return True
 
 
 def _setup_wi4mpi() -> None:
@@ -332,8 +341,7 @@ class InitCommand(AbstractCommand):
     """`init` macrocommand."""
 
     def _construct_parser(self):
-        parser = arguments.get_parser(prog=self.command,
-                                      description=self.summary)
+        parser = get_parser(prog=self.command, description=self.summary)
 
         parser.add_argument(
             '--system',
@@ -344,71 +352,82 @@ class InitCommand(AbstractCommand):
                     " Use 'make install E4SCL_TARGETSYSTEM=<system>' to make "
                     " the associated profile available.",
             metavar='machine',
-            default=arguments.SUPPRESS,
+            default=SUPPRESS,
             choices=builtin_profiles().keys())
 
         parser.add_argument(
             '--launcher',
             help="MPI launcher required to run a sample program.",
             metavar='launcher',
-            type=launcher_argument,
-            default=arguments.SUPPRESS,
-            dest='launcher')
+            type=binary_in_path,
+            default=SUPPRESS,
+            dest='launcher',
+        )
 
         parser.add_argument(
             '--launcher_args',
             help="MPI launcher arguments required to run a sample program.",
             metavar='launcher_args',
-            default=arguments.SUPPRESS,
-            dest='launcher_args')
+            default=SUPPRESS,
+            dest='launcher_args',
+        )
 
         parser.add_argument(
             '--mpi',
-            type=arguments.posix_path,
+            type=posix_path,
             help="Path of the MPI installation to use with this profile",
-            default=arguments.SUPPRESS,
-            metavar='/path/to/mpi')
+            default=SUPPRESS,
+            metavar='/path/to/mpi',
+        )
 
         parser.add_argument(
             '--source',
             help="Script to source before execution with this profile",
             metavar='script',
-            default=arguments.SUPPRESS,
-            dest='source')
+            default=SUPPRESS,
+            dest='source',
+        )
 
         parser.add_argument(
             '--image',
             help="Container image to use by default with this profile",
             metavar='/path/to/image',
-            default=arguments.SUPPRESS,
-            dest='image')
+            default=SUPPRESS,
+            dest='image',
+        )
 
         parser.add_argument(
             '--backend',
             help="Container backend to use by default with this profile."
             f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
             metavar='technology',
-            default=arguments.SUPPRESS,
-            dest='backend')
+            default=SUPPRESS,
+            dest='backend',
+        )
 
         parser.add_argument(
             '--profile',
             help="Profile to create. This will erase an existing profile !",
             metavar='profile_name',
-            default=arguments.SUPPRESS,
-            dest='profile_name')
+            default=SUPPRESS,
+            dest='profile_name',
+        )
 
-        parser.add_argument('--wi4mpi',
-                            help="Path to the install directory of WI4MPI",
-                            metavar='path',
-                            default=arguments.SUPPRESS,
-                            dest='wi4mpi')
+        parser.add_argument(
+            '--wi4mpi',
+            help="Path to the install directory of WI4MPI",
+            metavar='path',
+            default=SUPPRESS,
+            dest='wi4mpi',
+        )
 
-        parser.add_argument('cmd',
-                            help="Executable command, e.g. './a.out'",
-                            metavar='command',
-                            default=arguments.SUPPRESS,
-                            nargs=arguments.REMAINDER)
+        parser.add_argument(
+            'cmd',
+            help="Path to the install directory of WI4MPI",
+            metavar='command',
+            default=SUPPRESS,
+            nargs=REMAINDER,
+        )
 
         return parser
 
@@ -483,10 +502,19 @@ class InitCommand(AbstractCommand):
 
         requested_name = (getattr(args, 'profile_name', None)
                           or profile_mpi_name(profile_mpi_libraries))
-        if requested_name != selected_profile.get('name'):
-            rename_profile(selected_profile, requested_name)
 
-        return status
+        if requested_name == INIT_TEMP_PROFILE_NAME:
+            LOGGER.error(
+                "This name is reserved. Please use another name for your profile"
+            )
+            return EXIT_FAILURE
+
+        if not _rename_profile(selected_profile, requested_name):
+            return EXIT_FAILURE
+
+        LOGGER.info("Created profile %s", controller.selected().get('name'))
+
+        return EXIT_SUCCESS
 
 
 SUMMARY = "Initialize %(prog)s with the accessible MPI library, and create a profile with the results."

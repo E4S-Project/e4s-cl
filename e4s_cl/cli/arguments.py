@@ -23,6 +23,9 @@ Action = argparse.Action
 ArgumentError = argparse.ArgumentError
 """Argument error exception base class."""
 
+ArgumentTypeError = argparse.ArgumentTypeError
+"""Argument type error exception."""
+
 ArgumentsNamespace = argparse.Namespace
 """Generic container for parsed arguments."""
 
@@ -629,6 +632,17 @@ def existing_posix_path_list(string):
     """Argument type callback.
     Asserts that the string corresponds to a list of existing paths."""
     return list(map(existing_posix_path, string.split(',')))
+
+
+def binary_in_path(string):
+    """ Argument type callback. Asserts the given string identifies a launcher binary
+    on the system. """
+
+    path = util.which(string)
+    if not path:
+        raise ArgumentTypeError(
+            f"Launcher argument '{string}' could not be resolved to a binary")
+    return path
 
 
 def _search_available_databases(model, field, regex):
