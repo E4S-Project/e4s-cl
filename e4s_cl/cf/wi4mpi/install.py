@@ -14,7 +14,8 @@ from e4s_cl.logger import get_logger
 from e4s_cl.util import which
 from e4s_cl.cf.version import Version
 from e4s_cl.cf.wi4mpi import (WI4MPI_METADATA)
-from e4s_cl.cf.compiler import CompilerVendor, available_compilers
+from e4s_cl.cf.compiler import (CompilerVendor, available_compilers,
+                                VENDOR_BINARIES)
 
 LOGGER = get_logger(__name__)
 
@@ -34,14 +35,16 @@ _WI4MPI_COMPILER_STRINGS = {
 }
 
 
-def _select_compiler() -> Optional[str]:
-    """Returns the expected string for the available compiler"""
+def _select_compiler() -> Optional[int]:
+    """Returns the available compiler"""
     compilers = available_compilers()
-
     if not compilers:
         return None
 
-    return _WI4MPI_COMPILER_STRINGS.get(min(compilers))
+    compiler = min(compilers)
+    if compiler in _WI4MPI_COMPILER_STRINGS:
+        return compiler
+    return None
 
 
 def _fetch_release(destination: Path) -> Optional[Path]:
@@ -128,6 +131,7 @@ def _double_tap(cmd):
     make's website.
     """
 
+    LOGGER.debug("Double tapping: %s", " ".join(cmd))
     success = run_subprocess(cmd, discard_output=True)
     if success:
         LOGGER.debug("Command run failed: %s, running with visible output.",
@@ -151,10 +155,14 @@ def install_wi4mpi(install_dir: Path) -> Optional[Path]:
         )
         return None
 
-    compiler = _select_compiler()
+    compiler_id = _select_compiler()
+    compiler = _WI4MPI_COMPILER_STRINGS.get(compiler_id)
     if compiler is None:
         LOGGER.error("No available compiler to build Wi4MPI: aborting.")
         return None
+
+    c_compiler, cxx_compiler, fortran_compiler = VENDOR_BINARIES.get(
+        compiler_id)
 
     source_dir = _download_wi4mpi(WI4MPI_DIR)
     if source_dir is None:
@@ -166,6 +174,9 @@ def install_wi4mpi(install_dir: Path) -> Optional[Path]:
     configure_cmd = [
         cmake_executable, \
         f"-DCMAKE_INSTALL_PREFIX={install_dir}", \
+        f"-DCMAKE_C_COMPILER={c_compiler}", \
+        f"-DCMAKE_CXX_COMPILER={cxx_compiler}", \
+        f"-DCMAKE_FC_COMPILER={fortran_compiler}", \
         f"-DWI4MPI_COMPILER={compiler}", \
         source_dir.as_posix()
     ]
