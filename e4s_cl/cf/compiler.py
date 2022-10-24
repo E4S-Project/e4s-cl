@@ -61,6 +61,16 @@ CHECKS = {
     CompilerVendor.FUJITSU: _fujitsu_check
 }
 
+VENDOR_BINARIES = {
+    CompilerVendor.GNU: ('gcc', 'g++', 'gfortran'),
+    CompilerVendor.INTEL: ('icc', 'icpc', 'ifort'),
+    CompilerVendor.PGI: ('pgcc', 'pgc++', 'pgfortran'),
+    # We need AMD here
+    CompilerVendor.LLVM: ('clang', 'clang++', 'flang'),
+    CompilerVendor.ARMCLANG: ('armclang', 'armclang++', 'armflang'),
+    CompilerVendor.FUJITSU: ('fcc', 'FCC', 'frt'),
+}
+
 # ROCm-compiled binaries contained 'AMD', 'clang' and 'GCC'
 # Establishing an order for the checks is a simple way
 # of ensuring the right value is returned
@@ -102,18 +112,9 @@ def compiler_vendor(elf_file: Path) -> int:
 
 def available_compilers() -> Iterable[int]:
     """Return a list of compiler identifiers for compilers found on the system"""
-    binaries = {
-        CompilerVendor.GNU: {'gcc', 'g++', 'gfortran'},
-        CompilerVendor.INTEL: {'icc', 'icpc', 'ifort'},
-        CompilerVendor.PGI: {'pgcc', 'pgc++', 'pgfortran'},
-        # We need AMD here
-        CompilerVendor.LLVM: {'clang', 'clang++', 'flang'},
-        CompilerVendor.ARMCLANG: {'armclang', 'armclang++', 'armflang'},
-        CompilerVendor.FUJITSU: {'fcc', 'FCC', 'frt'},
-    }
 
     available = set()
-    for vendor, requirements in binaries.items():
+    for vendor, requirements in VENDOR_BINARIES.items():
         # Check which found every requirement for the compiler
         if len(set(filter(None, map(which,
                                     requirements)))) == len(requirements):
