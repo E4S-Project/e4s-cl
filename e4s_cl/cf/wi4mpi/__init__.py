@@ -50,6 +50,13 @@ WI4MPI_METADATA = {
         'MPICH_ROOT',
         'MPICH_DEFAULT_ROOT',
     ),
+    _MPIFamily(
+        'CRAY MPICH',
+        'mpich',
+        'MPICH',
+        'MPICH_ROOT',
+        'MPICH_DEFAULT_ROOT',
+    ),
 }
 
 SUPPORTED_TRANSLATIONS = {
