@@ -234,11 +234,17 @@ def install_dir(libraries: Iterable[Path]) -> Optional[Path]:
     """
 
     def _stub(library: Path) -> Optional[Path]:
+        path_elements = library.parts
         try:
-            lib_index = library.parts.index('lib')
+            lib_index = path_elements.index('lib')
         except ValueError:
-            return None
-        return Path(*library.parts[:lib_index])
+            # If not 'lib' directory can be found in the library path, assume
+            # a '/x/y/z/lib-like-dir/libmpi.so' structure and return '/x/y/z'
+            if len(path_elements) > 2:
+                lib_index = len(path_elements) - 2
+            else:
+                return None
+        return Path(*path_elements[:lib_index])
 
     # Get a set of all the returns of _stub, filtering out the null values
     potential_installs = set(filter(None, map(_stub, libraries)))
