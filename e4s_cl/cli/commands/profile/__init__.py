@@ -29,7 +29,7 @@ A profile is a recorded collection of fields relating to a specific MPI library.
 +------------------+--------------------------------------------------------------+
 | `libraries`      | List of libraries to overload in the running program         |
 +------------------+--------------------------------------------------------------+
-| `wi4mpi`         | WI4MPI installation to use (Optional)                        |
+| `wi4mpi`         | Wi4MPI installation to use for this profile                  |
 +------------------+--------------------------------------------------------------+
 
 Profile Creation

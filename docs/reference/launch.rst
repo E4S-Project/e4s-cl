@@ -3,6 +3,8 @@
 **launch** - Run MPI commands
 =============================
 
+Run a command in a container supplemented with select host libraries.
+
 Usage
 -----
 
@@ -16,13 +18,13 @@ Options
 
 The `launch` command accepts several options to tune its execution:
 
---profile	Profile to use for the execution
---image		Path for the image to use when launching the container
---backend	Container technology to employ
---libraries	Comma-separated list of libraries to load at run-time
---files		Comma-separated list of files to make accessible in the container
---source	Path of script to source before execution
---from      If MPI library translation is needed, specify which family the binary comes from. The following are implemented: :code:`intelmpi`, :code:`openmpi`, :code:`mpich`
+--profile	Profile to use for the execution. If unspecified, the selected profile will be used.
+--image		Image to use when launching the container. Can be a path or identifier. **Required**.
+--backend	Container technology to employ. **Required**.
+--libraries	Comma-separated list of libraries to make available at run-time in the container. Optional.
+--files		Comma-separated list of files to make accessible in the container. They will be bound in-place in the container. Optional.
+--source	Path of a script to source before execution. Optional.
+--from      If MPI library translation is needed, specify which family the binary comes from. The following are implemented: :code:`intelmpi`, :code:`openmpi`, :code:`mpich`. Optional.
 
 .. admonition:: MPI launcher detection
 

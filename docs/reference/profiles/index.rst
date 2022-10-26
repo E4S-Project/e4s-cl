@@ -10,8 +10,8 @@ Usage
 
     e4s-cl [ OPTIONS ] profile SUBCOMMAND { ARGUMENTS }
 
-    SUBCOMMAND := { create | copy | delete | edit | list | show
-                           | select | unselect | detect | dump }
+    SUBCOMMAND := { create | copy | delete | edit | list |
+                    show | select | unselect | detect | dump }
 
 Description
 -----------

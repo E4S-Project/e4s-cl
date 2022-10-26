@@ -4,25 +4,8 @@ This command is intended to be run once, and will create a \
 Initialization can be achieved in one of three ways, depending on the \
 arguments passed to the command.
 
-In case no method is explicitly invoked, the fallback in the MPI library \
+In case no method is explicitly invoked, the command attempts MPI library \
 analysis, by using the MPI compiler and launcher available in the environment.
-
-Using the system name
------------------------
-
-If the current system is supported, use the :code:`--system` argument to \
-flag its use. The available values are listed when using \
-:code:`e4s-cl init -h`. In order to have the system-specific profiles \
-available (and listed as available), the \
-:code:`E4SCL_TARGETSYSTEM=<system>` flag needs to be used when installing \
-the project.
-
-Using a WI4MPI installation
-----------------------------
-
-If an WI4MPI installation is present on the system, one can link a profile \
-to it using the :code:`--wi4mpi` argument. The profile will contain this \
-information and the installation will be used during launch.
 
 Using an installed MPI library
 --------------------------------
@@ -52,6 +35,15 @@ dependencies are valid and loaded as well.
 
 If no :ref:`profile<profile>` name is passed to :code:`--profile`, a profile \
 name will be generated from the version of the found MPI library.
+
+Using a system name
+-----------------------
+
+If the current system is supported, use the :code:`--system` argument to \
+flag its use. The available values are listed when using \
+:code:`e4s-cl init -h`. In order to have the system-specific profiles \
+available (and listed as available), the :code:`E4SCL_TARGETSYSTEM=<system>` \
+flag needs to be used when installing the project.
 
 Examples
 --------
