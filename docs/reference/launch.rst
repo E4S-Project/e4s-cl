@@ -11,20 +11,19 @@ Usage
 .. highlight:: bash
 .. code::
 
-    e4s-cl launch [ OPTIONS ] [ MPI LAUNCHER [ -- ] ] < COMMAND >
+    e4s-cl launch [ OPTIONS ] [ LAUNCHER [ -- ] ] < COMMAND >
 
-Options
--------
+Arguments
+----------
 
-The `launch` command accepts several options to tune its execution:
+Positional arguments
+^^^^^^^^^^^^^^^^^^^^^
 
---profile	Profile to use for the execution. If unspecified, the selected profile will be used.
---image		Image to use when launching the container. Can be a path or identifier. **Required**.
---backend	Container technology to employ. **Required**.
---libraries	Comma-separated list of libraries to make available at run-time in the container. Optional.
---files		Comma-separated list of files to make accessible in the container. They will be bound in-place in the container. Optional.
---source	Path of a script to source before execution. Optional.
---from      If MPI library translation is needed, specify which family the binary comes from. The following are implemented: :code:`intelmpi`, :code:`openmpi`, :code:`mpich`. Optional.
+:kbd:`LAUNCHER`
+    An MPI launcher binary and arguments. **e4s-cl** is compatible with several launchers and will detect their presence. Optional.
+
+:kbd:`COMMAND`
+    The command to run in a container. **Required**.
 
 .. admonition:: MPI launcher detection
 
@@ -35,7 +34,20 @@ The `launch` command accepts several options to tune its execution:
         To ensure the arguments are understood correctly, an additional \
         :kbd:`--` can be added between the launcher options and the command.
 
-        See the examples for an illustration.
+        See the examples below for an illustration.
+
+Optional arguments
+^^^^^^^^^^^^^^^^^^^
+
+The `launch` command accepts several arguments to tune its execution:
+
+--profile	Profile to use for the execution. If unspecified, the selected profile will be used.
+--image		Image to use when launching the container. Can be a path or identifier. **Required**.
+--backend	Container technology to employ. **Required**.
+--libraries	Comma-separated list of libraries to make available at run-time in the container. Optional.
+--files		Comma-separated list of files to make accessible in the container. They will be bound in-place in the container. Optional.
+--source	Path of a script to source before execution. Optional.
+--from		If MPI library translation is needed, specify which family the binary comes from. The following are implemented: :code:`intelmpi`, :code:`openmpi`, :code:`mpich`. Optional.
 
 Description
 -----------
@@ -80,7 +92,7 @@ A launch command using a local :code:`mpich` library without profile:
 
    e4s-cl launch --backend singularity \
         --image /home/user/ecp.simg \
-        --libraries /home/user/spack/opt/spack/linux-arch-skylake_avx512/gcc-10.2.0/mpich-3.4.1-yjx3whq2g2mrzrws4xhoxyjt7hl6wvb5/lib/libmpi.so.12 \
+        --libraries /spack/opt/[...]/mpich-3.4.1-xyz/lib/libmpi.so.12 \
         --files /usr/share/hwdata/pci.ids \
             mpirun -np 2 ./ping-pong
 
