@@ -3,8 +3,7 @@
 **init** - Initialize the tool
 ==============================
 
-This command initializes the E4S Container Launcher by generating a template \
-profile from the available environment.
+This command initializes the E4S Container Launcher by generating a template profile from the environment.
 
 Usage
 -----
@@ -14,7 +13,7 @@ Usage
     e4s-cl init [--mpi <path>] \
         [--launcher <string>] \
         [--launcher_args <string>] \
-        [OPTIONS]
+        [OPTIONS] [ [MPI LAUNCHER] COMMAND ]
 
     or
 
@@ -24,8 +23,8 @@ Options
 -------
 
 To tailor the initialization process the following values can be specified by \
-the user. The options of the system and MPI analysis groups are \
-mutually exclusive.
+the user. The options of the system and MPI analysis groups are mutually \
+exclusive.
 
 Common initialization options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
