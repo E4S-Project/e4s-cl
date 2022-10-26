@@ -13,21 +13,28 @@ Usage
     e4s-cl init [--mpi <path>] \
         [--launcher <string>] \
         [--launcher_args <string>] \
-        [OPTIONS] [ [MPI LAUNCHER] COMMAND ]
+        [ OPTIONS ] [ [ LAUNCHER [ -- ] ] COMMAND ]
 
     or
 
     e4s-cl init --system <string> [OPTIONS]
 
-Options
--------
+Arguments
+----------
 
-To tailor the initialization process the following values can be specified by \
-the user. The options of the system and MPI analysis groups are mutually \
-exclusive.
+Positional arguments
+^^^^^^^^^^^^^^^^^^^^^
 
-Common initialization options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:kbd:`LAUNCHER`
+    An MPI launcher binary and arguments. **e4s-cl** is compatible with several launchers and will detect their presence. Optional.
+
+:kbd:`COMMAND`
+    The command to run in a container. **Required**.
+
+Common options
+^^^^^^^^^^^^^^^
+
+These arguments' values will be directly added to the created profile.
 
 --profile           Name of the profile to create or overwrite
 --backend           Container technology to employ
@@ -35,15 +42,19 @@ Common initialization options
 --source            Script to run before execution
 --wi4mpi            Path to a Wi4MPI installation to use
 
-MPI analysis initialization options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MPI analysis options
+^^^^^^^^^^^^^^^^^^^^
+
+These arguments influence the analysis. They cannot be used with :code:`--system`
 
 --mpi               Path to a MPI installation to use instead of the system default
---launcher          Process launcher executable to use
---launcher_args     Arguments to use with the process launcher
+--launcher          Process launcher executable to use. Default is :code:`mpirun`.
+--launcher_args     Arguments to use with the process launcher.
 
-System initialization options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+System option
+^^^^^^^^^^^^^^
+
+This argument allows to select a pre-made profile.
 
 --system            System name, will use a matching builtin profile if available
 
