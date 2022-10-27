@@ -147,6 +147,12 @@ def install_wi4mpi(install_dir: Path) -> Optional[Path]:
     Installs in ~/.local/share/wi4mpi using a GNU compiler
     """
 
+    if os.uname().machine not in {'x86_64', 'amd64'}:
+        LOGGER.warning(
+            "Wi4MPI not available for the following architecture: %s",
+            os.uname().machine)
+        return None
+
     # Assert CMake is available
     cmake_executable = which("cmake")
     if not cmake_executable:
