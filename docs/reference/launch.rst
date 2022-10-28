@@ -71,7 +71,7 @@ A launch command using an explicit profile and an MPI launcher, but a different 
         --image /home/user/ecp.simg \
             mpirun -np 2 ./ping-pong
 
-A launch command with implicit profile making explicit the launcher and launchee:
+A launch command with implicit profile making explicit the launcher and command:
 
 .. code::
 
