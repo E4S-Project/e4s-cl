@@ -51,3 +51,16 @@ This preparation consists of multiple steps:
 
 - A script is prepared to run the given command after the potential source
   script, then bound to the container in the :code:`/.e4s-cl` directory.
+
+Library profiling
+``````````````````
+
+When tasked to create a profile from a library, **e4s-cl** will use :code:`ptrace` to intercept the system calls used by a binary using that library. Intercepting the :code:`open` and :code:`openat` calls allows **e4s-cl** to inspect their parameters and determine the filenames of all the files the program opens.
+
+This file list is then sorted in two categories: files and libraries.
+
+- Files are files that the program will expect to find at a specific location. This includes configuration files, metadata files, or shared objects that are loaded from a hardcoded path.
+
+- Libraries are files that are loaded from the standard dynamic linker. Their actual location does not matter as long as they are available in the linker search path.
+
+The command to run this analysis is :ref:`e4s-cl profile detect<profile_detect>`, that will run the given command. :ref:`e4s-cl init<init>` will also do so and compile a sample MPI binary if not given any.
