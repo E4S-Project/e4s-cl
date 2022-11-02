@@ -205,7 +205,7 @@ class LaunchCommand(AbstractCommand):
             dest='backend',
         )
 
-        mpi_families = list(map(lambda x: x.cli_name, WI4MPI_METADATA))
+        mpi_families = set(map(lambda x: x.cli_name, WI4MPI_METADATA))
         parser.add_argument(
             '--from',
             type=str.lower,
