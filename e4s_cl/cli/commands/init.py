@@ -188,6 +188,9 @@ def _analyze_binary(args):
     if not command:
         command = _generate_command(args)
 
+    if isinstance(command, int):
+        return EXIT_FAILURE
+
     # Run the program using the detect command and get a file list
     returncode = detect_command.main(command)
 
