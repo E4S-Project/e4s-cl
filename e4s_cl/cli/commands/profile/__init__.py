@@ -19,7 +19,7 @@ A profile is a recorded collection of fields relating to a specific MPI library.
 +==================+==============================================================+
 | `name`           | A name by which the profile is accessed and invoked          |
 +------------------+--------------------------------------------------------------+
-| `image`          | The path of a container image                                |
+| `image`          | Path or identifier of a container image                      |
 +------------------+--------------------------------------------------------------+
 | `backend`        | Identifier for a technology to launch the container with     |
 +------------------+--------------------------------------------------------------+
@@ -27,9 +27,9 @@ A profile is a recorded collection of fields relating to a specific MPI library.
 +------------------+--------------------------------------------------------------+
 | `files`          | List of files to make accessible to the running program      |
 +------------------+--------------------------------------------------------------+
-| `libraries`      | List of libraries to overload in the running program         |
+| `libraries`      | List of libraries to load in the running program             |
 +------------------+--------------------------------------------------------------+
-| `wi4mpi`         | WI4MPI installation to use (Optional)                        |
+| `wi4mpi`         | Wi4MPI installation to use for this profile                  |
 +------------------+--------------------------------------------------------------+
 
 Profile Creation

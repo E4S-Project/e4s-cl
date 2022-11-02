@@ -12,35 +12,16 @@ Contrary to other container solutions, Shifter only binds directories to the gue
 
 Fortunately, the program allows for modules that bind and loads libraries installed by the system administrators. There is one such module for MPICH on the system, and we will use it inside the container.
 
-Setting up with a profile
--------------------------
-
-:ref:`Initialize<init>` **e4s-cl** using the :code:`--system` flag:
-
-.. code-block:: bash
-
-   $ e4s-cl init --system perlmutter \
-        --backend shifter            \
-        --image $YOURIMAGE
-
-Setting up manually
--------------------
+Setting up **e4s-cl**
+----------------------
 
 :ref:`Create a profile<profile_create>` for the execution.
 
 .. code-block:: bash
 
-   $ e4s-cl profile create shifter-mpich \
+   $ e4s-cl init --profile shifter-mpich \
         --backend shifter                \
         --image $YOURIMAGE
-
-No need to specify files or libraries, as the shifter module will take over from there.
-
-Finally, select the profile for convenience:
-
-.. code-block:: bash
-
-   $ e4s-cl profile select shifter-mpich
 
 Creating an initialization script
 ---------------------------------

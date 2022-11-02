@@ -1,43 +1,26 @@
 """
 This command is intended to be run once, and will create a \
 :ref:`profile<profile>` from the resources made available to it. \
-Initialization can be achieved in one of three ways, depending on the \
+Initialization can be achieved in multiple ways, depending on the \
 arguments passed to the command.
 
-In case no method is explicitly invoked, the fallback in the MPI library \
+In case no method is explicitly invoked, the command attempts MPI library \
 analysis, by using the MPI compiler and launcher available in the environment.
-
-Using the system name
------------------------
-
-If the current system is supported, use the :code:`--system` argument to \
-flag its use. The available values are listed when using \
-:code:`e4s-cl init -h`. In order to have the system-specific profiles \
-available (and listed as available), the \
-:code:`E4SCL_TARGETSYSTEM=<system>` flag needs to be used when installing \
-the project.
-
-Using a WI4MPI installation
-----------------------------
-
-If an WI4MPI installation is present on the system, one can link a profile \
-to it using the :code:`--wi4mpi` argument. The profile will contain this \
-information and the installation will be used during launch.
 
 Using an installed MPI library
 --------------------------------
 
 This initialization method will create a profile from the execution analysis \
 of a sample MPI program. A program compiled with the MPI library's compiler \
-will run using a provided launcher. The opened files and libraries will be \
+will run in a debug environment. The opened files and libraries will be \
 detected using the :code:`ptrace` system call, and added to the resulting \
 profile.
 
-The :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options can \
-be used to influence the initialization process. It is highly encouraged to \
-load the MPI library beforehand using the module system available \
-(:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the paths and \
-dependencies are valid and loaded as well.
+The sample command used depends on the arguments given to **e4s-cl**. An entire command can be passed on the command line, or it will be constructed from the :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options.
+
+It is highly encouraged to load the MPI library beforehand using the module \
+system available (:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the \
+paths and dependencies are valid and loaded.
 
 .. admonition:: The importance of inter-process communication
 
@@ -46,34 +29,40 @@ dependencies are valid and loaded as well.
     libraries, preventing them from being detected. A message will appear in \
     case some limitations were detected.
 
-    In case of error, it is good practice to perform this process \
-    :ref:`manually<init_override>` to ensure the network stack is used and \
-    exposed to **e4s-cl**.
-
-If no :ref:`profile<profile>` name is passed to :code:`--profile`, a profile \
+If no name is passed to :code:`--profile`, a :ref:`profile<profile>` \
 name will be generated from the version of the found MPI library.
+
+Using a system name
+-----------------------
+
+If the current system is supported, use the :code:`--system` argument to \
+flag its use. The available values are listed when using \
+:code:`e4s-cl init -h`. In order to have the system-specific profiles \
+available (and listed as available), the :code:`E4SCL_TARGETSYSTEM=<system>` \
+flag needs to be used when installing the project.
 
 Examples
 --------
 
-Initializing using the available MPI resources:
+Initializing using MPI resources from the environment:
 
 .. code::
 
     module load mpich
-    e4s-cl init --profile mpich
+    e4s-cl init
+
+Initializing by passing a MPI command:
+
+.. code::
+
+    module load mpich
+    e4s-cl init mpirun -np 2 ./sample-program
 
 Using a library installed on the system in :code:`/packages`:
 
 .. code::
 
     e4s-cl init --mpi /packages/mpich --profile mpich
-
-Using an installation of WI4MPI:
-
-.. code::
-
-    e4s-cl init --wi4mpi /packages/wi4mpi
 """
 
 import os

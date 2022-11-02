@@ -1,6 +1,6 @@
 """
 The **profile detect** command will create a profile from the analysis of \
-the inputted MPI binary's execution. This process uses system call \
+the given MPI command's execution. This process uses system call \
 monitoring to produce an exhaustive list of files and libraries required \
 by the MPI installation.
 
@@ -215,8 +215,7 @@ def detect_subprocesses(launcher, program):
     os.environ[LAUNCHER_VAR] = launcher[0]
     # If a launcher is present, act as a launcher
     return_code, json_data = run_e4scl_subprocess([
-        *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect",
-        *program
+        *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect", *program
     ],
                                                   capture_output=True)
 

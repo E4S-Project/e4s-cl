@@ -5,7 +5,7 @@ System Compatibility
 
 Some machines were specifically taken into account for **e4s-cl** to work on \
 and have profiles tailored for them. They can be downloaded at install time \
-to ease the initialisation step.
+to ease the initialization step.
 
 Installation for known systems
 ------------------------------------
@@ -31,7 +31,7 @@ A list of available builtin profiles can be found in the help page of the \
 Successfully tested systems
 ----------------------------
 
-The following higlights systems on which **e4s-cl** has been tested and has run.
+The following highlights systems on which **e4s-cl** has been tested and has run.
 
 .. csv-table::
    :file: system.csv

@@ -22,6 +22,10 @@ Description
 
 This top level command is the entry-point to the application. Options given here will influence all modes of operation, but the command by itself does not amount to any operation.
 
+.. admonition:: Implicit sub-command
+
+    When **e4s-cl** is called without a proper sub-command (:code:`init`, :code:`launch` or :code:`profile`), the program will implicitly use the :code:`launch` sub-command. This requires a complete profile to be selected as no launch arguments can be passed.
+
 Sub-Commands Description
 ---------------------------
 

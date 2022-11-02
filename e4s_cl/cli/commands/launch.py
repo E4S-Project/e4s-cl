@@ -1,41 +1,26 @@
 """
-E4S Container Launcher is a accessory launcher to ensure host MPI libraries \
-are used in containers. It wraps around a valid MPI launch command \
-to work.
+The :code:`launch` command is responsible for executing commands in containers with the requested MPI environment.
 
-The preferred way of launching a command is by using a selected or specified profile. \
-That way, the fields of the target profile are implicitly used, bypassing the \
-need to specify any of the options manually.
+Running a command is done by prefixing a regular MPI launcher command with :code:`e4s-cl launch`.
 
-If the user intends to use a modified version of an existing profile, specifying \
-the difference as a command line option can be efficient as command line options \
-have precedence over profiles' fields.
+Using profiles
+^^^^^^^^^^^^^^
 
-.. admonition:: Using a :ref:`selected profile<profile_select>`
+The preferred way of passing options is by using a \
+:ref:`selected profile<profile_select>` or profile specified with the \
+:code:`--profile` option. This way, the contents of the given profile are \
+implicitly used, bypassing the need to specify any of the options manually. \
+However, options given on the command line options have precedence over \
+profiles' fields.
 
-    When a :ref:`profile<profile>` is selected, it will be used if no \
-:code:`--profile` option is passed.
+MPI translation
+^^^^^^^^^^^^^^^
 
-The minimal options that must be given in order to run without a selected \
-or specified profile are:
-
-* A container image;
-* A container technology to run the image with.
-
-Other options then influence the execution:
-
-* Arguments passed to :code:`--files` will be made available in the container;
-* Libraries passed to :code:`--libraries` will be loaded;
-* A script passed to :code:`--source` will be run in the container before any \
-other command.
-
-
-.. admonition:: Implicit sub-command
-
-    When **e4s-cl** is called without a proper sub-command (:code:`launch` or \
-:code:`profile`), the program will implicitly use the :code:`launch` \
-sub-command. This requires a complete profile to be selected as no launch \
-arguments can be passed.
+In case the MPI library used on the host and container do not belong to the \
+same family, the :code:`--from` option can be used to specify which MPI family \
+the binary was compiled with. **e4s-cl** will then take measures to translate \
+MPI calls from the binary's MPI to the one passed as an argument. This is done \
+using `Wi4MPI <https://github.com/cea-hpc/wi4mpi>`_.
 """
 
 import os
