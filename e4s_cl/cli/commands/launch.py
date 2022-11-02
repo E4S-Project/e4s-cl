@@ -142,26 +142,38 @@ def _setup_wi4mpi(
 
     # Find the entry C and Fortran MPI libraries
     run_c_lib_matches = set(
-        filter(lambda x: Path(x).name == family_metadata.mpi_c_soname,
+        filter(lambda x: Path(x).name.startswith(family_metadata.mpi_c_soname),
                mpi_libraries))
     if run_c_lib_matches:
         run_c_lib = run_c_lib_matches.pop()
-        run_f_lib = run_c_lib.replace(family_metadata.mpi_c_soname,
-                                      family_metadata.mpi_f_soname)
+        run_f_lib = run_c_lib.parent / family_metadata.mpi_f_soname
     else:
         LOGGER.error(
-            "Could not determine MPI libraries to use; Wi4MPI use aborted")
+            "Could not determine MPI libraries to use; Wi4MPI use aborted "
+            "(no %(soname)s in %(list)s)",
+            dict(
+                soname=family_metadata.mpi_c_soname,
+                list=list(mpi_libraries),
+            ),
+        )
         return []
 
     # Deduce the MPI installation directory
     mpi_install = install_dir([run_c_lib, run_f_lib])
 
-    os.environ['WI4MPI_ROOT'] = str(wi4mpi_root)
-    os.environ[family_metadata.path_key] = str(mpi_install)
-    os.environ['WI4MPI_RUN_MPI_C_LIB'] = str(run_c_lib)
-    os.environ['WI4MPI_RUN_MPI_F_LIB'] = str(run_f_lib)
-    os.environ['WI4MPI_RUN_MPIIO_C_LIB'] = str(run_c_lib)
-    os.environ['WI4MPI_RUN_MPIIO_F_LIB'] = str(run_f_lib)
+    env = {
+        'WI4MPI_ROOT': str(wi4mpi_root),
+        family_metadata.path_key: str(mpi_install),
+        'WI4MPI_RUN_MPI_C_LIB': str(run_c_lib),
+        'WI4MPI_RUN_MPI_F_LIB': str(run_f_lib),
+        'WI4MPI_RUN_MPIIO_C_LIB': str(run_c_lib),
+        'WI4MPI_RUN_MPIIO_F_LIB': str(run_f_lib),
+    }
+
+    LOGGER.debug("Wi4MPI environment: %s", env)
+
+    for key, value in env.items():
+        os.environ[key] = value
 
     # Add the Wi4MPI --from --to options
     wi4mpi_bin_path = Path(wi4mpi_root) / 'bin'
