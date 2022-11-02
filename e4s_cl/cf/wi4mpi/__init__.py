@@ -23,40 +23,50 @@ class _MPIFamily:
     env_name: str
     path_key: str
     default_path_key: str
+    mpi_c_soname: str
+    mpi_f_soname: str
 
     def __str__(self):
         return self.cli_name
 
 
 WI4MPI_METADATA = {
-    _MPIFamily(
-        'Intel(R) MPI',
-        'intelmpi',
-        'INTEL',
-        'INTELMPI_ROOT',
-        'INTELMPI_DEFAULT_ROOT',
-    ),
-    _MPIFamily(
-        'Open MPI',
-        'openmpi',
-        'OMPI',
-        'OPENMPI_ROOT',
-        'OPENMPI_DEFAULT_ROOT',
-    ),
-    _MPIFamily(
-        'MPICH',
-        'mpich',
-        'MPICH',
-        'MPICH_ROOT',
-        'MPICH_DEFAULT_ROOT',
-    ),
-    _MPIFamily(
-        'CRAY MPICH',
-        'mpich',
-        'MPICH',
-        'MPICH_ROOT',
-        'MPICH_DEFAULT_ROOT',
-    ),
+    _MPIFamily(**dict(
+        vendor_name='Intel(R) MPI',
+        cli_name='intelmpi',
+        env_name='INTEL',
+        path_key='INTELMPI_ROOT',
+        default_path_key='INTELMPI_DEFAULT_ROOT',
+        mpi_c_soname='libmpi.so',
+        mpi_f_soname='libmpifort.so',
+    )),
+    _MPIFamily(**dict(
+        vendor_name='Open MPI',
+        cli_name='openmpi',
+        env_name='OMPI',
+        path_key='OPENMPI_ROOT',
+        default_path_key='OPENMPI_DEFAULT_ROOT',
+        mpi_c_soname='libmpi.so',
+        mpi_f_soname='libmpi_mpifh.so',
+    )),
+    _MPIFamily(**dict(
+        vendor_name='MPICH',
+        cli_name='mpich',
+        env_name='MPICH',
+        path_key='MPICH_ROOT',
+        default_path_key='MPICH_DEFAULT_ROOT',
+        mpi_c_soname='libmpi.so',
+        mpi_f_soname='libmpifort.so',
+    )),
+    _MPIFamily(**dict(
+        vendor_name='CRAY MPICH',
+        cli_name='mpich',
+        env_name='MPICH',
+        path_key='MPICH_ROOT',
+        default_path_key='MPICH_DEFAULT_ROOT',
+        mpi_c_soname='libmpi.so',
+        mpi_f_soname='libmpifort.so',
+    )),
 }
 
 SUPPORTED_TRANSLATIONS = {
