@@ -220,7 +220,7 @@ class LogFormatter(logging.Formatter):
 
     @on_stdout
     def INFO(self, record):
-        return self._format_message(record)
+        return self._format_message(record, header='[+] ')
 
     @on_stderr
     def DEBUG(self, record):
