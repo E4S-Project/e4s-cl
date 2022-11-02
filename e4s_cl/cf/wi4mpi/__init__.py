@@ -65,7 +65,7 @@ WI4MPI_METADATA = {
         path_key='MPICH_ROOT',
         default_path_key='MPICH_DEFAULT_ROOT',
         mpi_c_soname='libmpi_cray.so',
-        mpi_f_soname='libmpifort.so',
+        mpi_f_soname='libmpifort_cray.so',
     )),
 }
 
