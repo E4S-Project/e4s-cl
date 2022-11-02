@@ -128,7 +128,7 @@ def _setup_wi4mpi(launcher, parameters, translation, profile_mpi_install,
             )
             return launcher, []
 
-    wi4mpi_bin_path = wi4mpi_root / 'bin'
+    wi4mpi_bin_path = Path(wi4mpi_root) / 'bin'
 
     target_mpi_data = wi4mpi_identify(profile_mpi_family.vendor)
 

@@ -183,7 +183,7 @@ def wi4mpi_libraries(install_dir: Path) -> List[Path]:
 
     return list(
         filter(lambda x: x.resolve().exists(),
-               [wrapper_lib, source_lib, target_lib]))
+               filter(None, [wrapper_lib, source_lib, target_lib])))
 
 
 def wi4mpi_libpath(install_dir: Path):
