@@ -42,7 +42,7 @@ import os
 import shlex
 from pathlib import Path
 from argparse import Namespace
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, variables
 from e4s_cl.cli import arguments
@@ -140,19 +140,40 @@ def _setup_wi4mpi(
             )
             return []
 
+    def locate(soname: str, available: List[Path]) -> Optional[Path]:
+        matches = set(filter(lambda x: x.name.startswith(soname), available))
+        search_directories = set(map(lambda x: x.parent), available)
+
+        # If a match exists in the given libraries
+        if matches:
+            return matches.pop()
+
+        # Search the libraries' directories for the soname
+        for directory in search_directories:
+            matches = set(directory.glob(f"{soname}*"))
+            if matches:
+                return matches.pop()
+
+        LOGGER.debug(
+            "Failed to locate %(soname)s in %(directories)s",
+            **dict(
+                soname=soname,
+                directories=search_directories,
+            ),
+        )
+
+        return None
+
     # Find the entry C and Fortran MPI libraries
-    run_c_lib_matches = set(
-        filter(lambda x: Path(x).name.startswith(family_metadata.mpi_c_soname),
-               mpi_libraries))
-    if run_c_lib_matches:
-        run_c_lib = run_c_lib_matches.pop()
-        run_f_lib = run_c_lib.parent / family_metadata.mpi_f_soname
-    else:
+    run_c_lib = locate(family_metadata.mpi_c_soname, mpi_libraries)
+    run_f_lib = locate(family_metadata.mpi_f_soname, mpi_libraries)
+    if not run_c_lib and run_f_lib:
         LOGGER.error(
             "Could not determine MPI libraries to use; Wi4MPI use aborted "
-            "(no %(soname)s in %(list)s)",
+            "(no %(c_soname)s or %(f_soname)s in %(list)s)",
             dict(
-                soname=family_metadata.mpi_c_soname,
+                c_soname=family_metadata.mpi_c_soname,
+                f_soname=family_metadata.mpi_f_soname,
                 list=list(mpi_libraries),
             ),
         )
