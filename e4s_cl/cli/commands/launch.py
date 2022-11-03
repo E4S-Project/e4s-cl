@@ -142,7 +142,7 @@ def _setup_wi4mpi(
 
     def locate(soname: str, available: List[Path]) -> Optional[Path]:
         matches = set(filter(lambda x: x.name.startswith(soname), available))
-        search_directories = set(map(lambda x: x.parent), available)
+        search_directories = set(map(lambda x: x.resolve().parent, available))
 
         # If a match exists in the given libraries
         if matches:
@@ -156,7 +156,7 @@ def _setup_wi4mpi(
 
         LOGGER.debug(
             "Failed to locate %(soname)s in %(directories)s",
-            **dict(
+            dict(
                 soname=soname,
                 directories=search_directories,
             ),
@@ -167,7 +167,7 @@ def _setup_wi4mpi(
     # Find the entry C and Fortran MPI libraries
     run_c_lib = locate(family_metadata.mpi_c_soname, mpi_libraries)
     run_f_lib = locate(family_metadata.mpi_f_soname, mpi_libraries)
-    if not run_c_lib and run_f_lib:
+    if not (run_c_lib and run_f_lib):
         LOGGER.error(
             "Could not determine MPI libraries to use; Wi4MPI use aborted "
             "(no %(c_soname)s or %(f_soname)s in %(list)s)",
