@@ -188,7 +188,7 @@ def _analyze_binary(args):
     if not command:
         command = _generate_command(args)
 
-    if isinstance(command, int):
+    if not command:
         return EXIT_FAILURE
 
     # Run the program using the detect command and get a file list
@@ -242,19 +242,19 @@ def _generate_command(args):
                 "No MPI compiler detected. Please load a module or "
                 "use the `--mpi` option to specify the MPI installation to use."
             )
-            return EXIT_FAILURE
+            return []
         binary = _compile_sample(compiler)
 
         # Exit now if we failed producing a compatible binary
         if not binary:
-            return EXIT_FAILURE
+            return []
 
     # Check for launcher and then launch the detect command
     if not launcher:
         LOGGER.error(
             "No launcher detected. Please load a module, use the `--mpi` "
             "or `--launcher` options to specify the launcher program to use.")
-        return EXIT_FAILURE
+        return []
 
     LOGGER.info("Tracing MPI execution using:\nCompiler: %s\nLauncher: %s",
                 compiler, " ".join([launcher, *launcher_args]))
