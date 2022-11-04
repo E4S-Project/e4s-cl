@@ -22,7 +22,7 @@ def attributes():
         },
         "wi4mpi": {
             'type': 'string',
-            'description': 'root of the wi4mpi to use, if any',
+            'description': 'root of the wi4mpi installation to use (optional)',
         },
         'backend': {
             'type': 'string',
@@ -42,7 +42,7 @@ def attributes():
         },
         'source': {
             'type': 'string',
-            'description': 'script to source before execution',
+            'description': 'script to source before execution (optional)',
         },
     }
 

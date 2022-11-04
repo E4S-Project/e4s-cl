@@ -43,6 +43,7 @@ import shlex
 from pathlib import Path
 from argparse import Namespace
 from typing import Tuple, List, Optional
+from dataclasses import (dataclass, field)
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, variables
 from e4s_cl.cli import arguments
@@ -54,7 +55,7 @@ from e4s_cl.cf.containers import EXPOSED_BACKENDS
 from e4s_cl.cf.detect_mpi import (detect_mpi, install_dir, filter_mpi_libs)
 from e4s_cl.cf.wi4mpi import (wi4mpi_adapt_arguments, SUPPORTED_TRANSLATIONS,
                               wi4mpi_qualifier, wi4mpi_identify,
-                              WI4MPI_METADATA)
+                              WI4MPI_METADATA, _MPIFamily)
 from e4s_cl.cf.wi4mpi.install import (WI4MPI_DIR, install_wi4mpi)
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
@@ -63,58 +64,67 @@ LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
-def _parameters(args):
+@dataclass
+class Parameters:
+    image: str = None
+    backend: str = None
+    source: Path = None
+    libraries: set = field(default_factory=set)
+    files: set = field(default_factory=set)
+    wi4mpi: Path = None
+
+
+def _parameters(args: dict) -> Parameters:
     """Generate compound parameters by merging profile and cli arguments
     The profile's parameters have less priority than the ones specified on
     the command line."""
     if isinstance(args, Namespace):
         args = vars(args)
 
-    default_profile = dict(image='',
-                           backend='',
-                           libraries=[],
-                           files=[],
-                           source='')
+    profile_data = dict(args.get('profile', {}))
 
-    parameters = dict(args.get('profile', default_profile))
+    params = Parameters()
 
-    for attr in ['image', 'backend', 'libraries', 'files', 'source']:
-        if args.get(attr, None):
-            parameters.update({attr: args[attr]})
+    for attribute, factory in [
+        ('image', str),
+        ('backend', str),
+        ('libraries', lambda x: set(map(Path, x))),
+        ('files', lambda x: set(map(Path, x))),
+        ('source', Path),
+        ('wi4mpi', Path),
+    ]:
+        value = args.get(attribute) or profile_data.get(attribute)
+        if value is not None:
+            setattr(params, attribute, factory(value))
 
-    return parameters
+    return params
 
 
-def _format_execute(parameters):
+def _format_execute(parameters: Parameters) -> List[str]:
     execute_command = shlex.split(str(EXECUTE_COMMAND))
-
     execute_command = [E4S_CL_SCRIPT] + execute_command[1:]
 
     if logger.debug_mode():
         execute_command = [execute_command[0], '-v'] + execute_command[1:]
 
-    for attr in ['image', 'backend', 'source']:
-        value = parameters.get(attr, None)
+    for attr in ['image', 'backend', 'source', 'wi4mpi']:
+        value = getattr(parameters, attr, None)
         if value:
             execute_command += [f"--{attr}", str(value)]
 
     for attr in ['libraries', 'files']:
-        value = parameters.get(attr, None)
+        value = getattr(parameters, attr, None)
         if value:
             execute_command += [f"--{attr}", ",".join(map(str, value))]
-
-    wi4mpi_root = parameters.get('wi4mpi', None)
-    if wi4mpi_root:
-        execute_command += ['--wi4mpi', wi4mpi_root]
 
     return execute_command
 
 
 def _setup_wi4mpi(
-    parameters,
-    translation,
-    family_metadata,
-    mpi_libraries,
+    parameters: Parameters,
+    translation: Tuple,
+    family_metadata: _MPIFamily,
+    mpi_libraries: List[Path],
 ) -> Tuple[List[str], List[str]]:
     """Prepare the environment for the use of Wi4MPI
     - Set or update 'wi4mpi' in the parameters
@@ -129,11 +139,10 @@ def _setup_wi4mpi(
     """
 
     # Locate the Wi4MPI installation - either provided on the cli or default
-    wi4mpi_root = parameters.get('wi4mpi')
-    if not wi4mpi_root:
-        wi4mpi_root = install_wi4mpi(WI4MPI_DIR / 'install')
-        if wi4mpi_root:
-            parameters['wi4mpi'] = str(wi4mpi_root)
+    if parameters.wi4mpi is None:
+        wi4mpi_install = install_wi4mpi(WI4MPI_DIR / 'install')
+        if wi4mpi_install:
+            parameters.wi4mpi = wi4mpi_install
         else:
             LOGGER.error(
                 "Wi4MPI is required for this configuration, but installation failed"
@@ -182,8 +191,10 @@ def _setup_wi4mpi(
     # Deduce the MPI installation directory
     mpi_install = install_dir([run_c_lib, run_f_lib])
 
+    parameters.files.add(mpi_install)
+
     env = {
-        'WI4MPI_ROOT': str(wi4mpi_root),
+        'WI4MPI_ROOT': str(parameters.wi4mpi),
         family_metadata.path_key: str(mpi_install),
         'WI4MPI_RUN_MPI_C_LIB': str(run_c_lib),
         'WI4MPI_RUN_MPI_F_LIB': str(run_f_lib),
@@ -192,12 +203,11 @@ def _setup_wi4mpi(
     }
 
     LOGGER.debug("Wi4MPI environment: %s", env)
-
     for key, value in env.items():
         os.environ[key] = value
 
     # Add the Wi4MPI --from --to options
-    wi4mpi_bin_path = Path(wi4mpi_root) / 'bin'
+    wi4mpi_bin_path = parameters.wi4mpi / 'bin'
     wi4mpi_call = shlex.split(
         f"{wi4mpi_bin_path / 'wi4mpi'} -f {translation[0]} -t {translation[1]}"
     )
@@ -295,7 +305,7 @@ class LaunchCommand(AbstractCommand):
 
         # Ensure the minimum fields required for launch are present
         for field in ['backend', 'image']:
-            if not parameters.get(field, None):
+            if not getattr(parameters, field, None):
                 self.parser.error(
                     f"Missing field: '{field}'. Specify it using the "
                     "appropriate option or by selecting a profile.")
@@ -303,16 +313,11 @@ class LaunchCommand(AbstractCommand):
         launcher, program = interpret(args.cmd)
 
         for path in get_reserved_directories(launcher):
-            files = parameters.get('files', [])
-
-            if path.as_posix() not in files:
-                files.append(path.as_posix())
-
-            parameters['files'] = files
+            if path not in parameters.files:
+                parameters.files.add(path)
 
         binary_mpi_family = getattr(args, 'from', None)
-        profile_mpi_libraries = filter_mpi_libs(
-            map(Path, parameters.get('libraries', [])))
+        profile_mpi_libraries = filter_mpi_libs(parameters.libraries)
         profile_mpi_family = detect_mpi(profile_mpi_libraries)
 
         if profile_mpi_family:
