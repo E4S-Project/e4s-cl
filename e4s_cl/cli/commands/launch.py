@@ -27,7 +27,8 @@ import os
 import shlex
 from pathlib import Path
 from argparse import Namespace
-from typing import Tuple, List
+from typing import Tuple, List, Optional
+from dataclasses import (dataclass, field)
 from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
 from e4s_cl import logger, variables
 from e4s_cl.cli import arguments
@@ -39,7 +40,7 @@ from e4s_cl.cf.containers import EXPOSED_BACKENDS
 from e4s_cl.cf.detect_mpi import (detect_mpi, install_dir, filter_mpi_libs)
 from e4s_cl.cf.wi4mpi import (wi4mpi_adapt_arguments, SUPPORTED_TRANSLATIONS,
                               wi4mpi_qualifier, wi4mpi_identify,
-                              WI4MPI_METADATA)
+                              WI4MPI_METADATA, _MPIFamily)
 from e4s_cl.cf.wi4mpi.install import (WI4MPI_DIR, install_wi4mpi)
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
@@ -48,91 +49,155 @@ LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
-def _parameters(args):
+@dataclass
+class Parameters:
+    image: str = None
+    backend: str = None
+    source: Path = None
+    libraries: set = field(default_factory=set)
+    files: set = field(default_factory=set)
+    wi4mpi: Path = None
+
+
+def _parameters(args: dict) -> Parameters:
     """Generate compound parameters by merging profile and cli arguments
     The profile's parameters have less priority than the ones specified on
     the command line."""
     if isinstance(args, Namespace):
         args = vars(args)
 
-    default_profile = dict(image='',
-                           backend='',
-                           libraries=[],
-                           files=[],
-                           source='')
+    profile_data = dict(args.get('profile', {}))
 
-    parameters = dict(args.get('profile', default_profile))
+    params = Parameters()
 
-    for attr in ['image', 'backend', 'libraries', 'files', 'source']:
-        if args.get(attr, None):
-            parameters.update({attr: args[attr]})
+    for attribute, factory in [
+        ('image', str),
+        ('backend', str),
+        ('libraries', lambda x: set(map(Path, x))),
+        ('files', lambda x: set(map(Path, x))),
+        ('source', Path),
+        ('wi4mpi', Path),
+    ]:
+        value = args.get(attribute) or profile_data.get(attribute)
+        if value is not None:
+            setattr(params, attribute, factory(value))
 
-    return parameters
+    return params
 
 
-def _format_execute(parameters):
+def _format_execute(parameters: Parameters) -> List[str]:
     execute_command = shlex.split(str(EXECUTE_COMMAND))
-
     execute_command = [E4S_CL_SCRIPT] + execute_command[1:]
 
     if logger.debug_mode():
         execute_command = [execute_command[0], '-v'] + execute_command[1:]
 
-    for attr in ['image', 'backend', 'source']:
-        value = parameters.get(attr, None)
+    for attr in ['image', 'backend', 'source', 'wi4mpi']:
+        value = getattr(parameters, attr, None)
         if value:
             execute_command += [f"--{attr}", str(value)]
 
     for attr in ['libraries', 'files']:
-        value = parameters.get(attr, None)
+        value = getattr(parameters, attr, None)
         if value:
             execute_command += [f"--{attr}", ",".join(map(str, value))]
-
-    wi4mpi_root = parameters.get('wi4mpi', None)
-    if wi4mpi_root:
-        execute_command += ['--wi4mpi', wi4mpi_root]
 
     return execute_command
 
 
-def _setup_wi4mpi(launcher, parameters, translation, profile_mpi_install,
-                  profile_mpi_family) -> Tuple[List[str], List[str]]:
-    """Overwrite the launcher and prepare the environment if Wi4MPI is required
-    for this configuration"""
-    bin_path = os.environ.get('PATH')
+def _setup_wi4mpi(
+    parameters: Parameters,
+    translation: Tuple,
+    family_metadata: _MPIFamily,
+    mpi_libraries: List[Path],
+) -> Tuple[List[str], List[str]]:
+    """Prepare the environment for the use of Wi4MPI
+    - Set or update 'wi4mpi' in the parameters
+    - Update the environment variables:
+      + WI4MPI_ROOT
+      + <LIBRARY>_ROOT
+      + WI4MPI_RUN_MPI_C_LIB
+      + WI4MPI_RUN_MPI_F_LIB
+      + WI4MPI_RUN_MPIIO_C_LIB
+      + WI4MPI_RUN_MPIIO_F_LIB
+    - Prepare the wi4mpi launcher for the final command
+    """
 
     # Locate the Wi4MPI installation - either provided on the cli or default
-    wi4mpi_root = parameters.get('wi4mpi')
-    if not wi4mpi_root:
-        wi4mpi_root = install_wi4mpi(WI4MPI_DIR / 'install')
-        if wi4mpi_root:
-            parameters['wi4mpi'] = str(wi4mpi_root)
+    if parameters.wi4mpi is None:
+        wi4mpi_install = install_wi4mpi(WI4MPI_DIR / 'install')
+        if wi4mpi_install:
+            parameters.wi4mpi = wi4mpi_install
         else:
             LOGGER.error(
                 "Wi4MPI is required for this configuration, but installation failed"
             )
-            return launcher, []
+            return []
 
-    wi4mpi_bin_path = wi4mpi_root / 'bin'
+    def locate(soname: str, available: List[Path]) -> Optional[Path]:
+        matches = set(filter(lambda x: x.name.startswith(soname), available))
+        search_directories = set(map(lambda x: x.resolve().parent, available))
 
-    target_mpi_data = wi4mpi_identify(profile_mpi_family.vendor)
+        # If a match exists in the given libraries
+        if matches:
+            return matches.pop()
 
-    os.environ['WI4MPI_ROOT'] = str(wi4mpi_root)
-    os.environ[target_mpi_data.path_key] = str(profile_mpi_install)
+        # Search the libraries' directories for the soname
+        for directory in search_directories:
+            matches = set(directory.glob(f"{soname}*"))
+            if matches:
+                return matches.pop()
+
+        LOGGER.debug(
+            "Failed to locate %(soname)s in %(directories)s",
+            dict(
+                soname=soname,
+                directories=search_directories,
+            ),
+        )
+
+        return None
+
+    # Find the entry C and Fortran MPI libraries
+    run_c_lib = locate(family_metadata.mpi_c_soname, mpi_libraries)
+    run_f_lib = locate(family_metadata.mpi_f_soname, mpi_libraries)
+    if not (run_c_lib and run_f_lib):
+        LOGGER.error(
+            "Could not determine MPI libraries to use; Wi4MPI use aborted "
+            "(no %(c_soname)s or %(f_soname)s in %(list)s)",
+            dict(
+                c_soname=family_metadata.mpi_c_soname,
+                f_soname=family_metadata.mpi_f_soname,
+                list=list(mpi_libraries),
+            ),
+        )
+        return []
+
+    # Deduce the MPI installation directory
+    mpi_install = install_dir([run_c_lib, run_f_lib])
+
+    parameters.files.add(mpi_install)
+
+    env = {
+        'WI4MPI_ROOT': str(parameters.wi4mpi),
+        family_metadata.path_key: str(mpi_install),
+        'WI4MPI_RUN_MPI_C_LIB': str(run_c_lib),
+        'WI4MPI_RUN_MPI_F_LIB': str(run_f_lib),
+        'WI4MPI_RUN_MPIIO_C_LIB': str(run_c_lib),
+        'WI4MPI_RUN_MPIIO_F_LIB': str(run_f_lib),
+    }
+
+    LOGGER.debug("Wi4MPI environment: %s", env)
+    for key, value in env.items():
+        os.environ[key] = value
 
     # Add the Wi4MPI --from --to options
+    wi4mpi_bin_path = parameters.wi4mpi / 'bin'
     wi4mpi_call = shlex.split(
         f"{wi4mpi_bin_path / 'wi4mpi'} -f {translation[0]} -t {translation[1]}"
     )
 
-    # Pass the necessary environment if OpenMPI is used, other launchers do it as default
-    if profile_mpi_family.vendor == "Open MPI" \
-            and Path(launcher[0]).name == "mpirun":
-        launcher += shlex.split(
-            f"-x WI4MPI_ROOT -x {target_mpi_data.path_key}")
-
-    # Validate the command line
-    return launcher, wi4mpi_call
+    return wi4mpi_call
 
 
 class LaunchCommand(AbstractCommand):
@@ -162,6 +227,14 @@ class LaunchCommand(AbstractCommand):
         )
 
         parser.add_argument(
+            '--backend',
+            help="Container backend to use to launch the image." +
+            f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
+            metavar='technology',
+            dest='backend',
+        )
+
+        parser.add_argument(
             '--source',
             type=arguments.posix_path,
             help="Path to a bash script to source before execution",
@@ -183,14 +256,13 @@ class LaunchCommand(AbstractCommand):
         )
 
         parser.add_argument(
-            '--backend',
-            help="Container backend to use to launch the image." +
-            f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
-            metavar='technology',
-            dest='backend',
+            '--wi4mpi',
+            type=arguments.posix_path,
+            help="Path towards a Wi4MPI installation to use",
+            metavar='installation',
         )
 
-        mpi_families = list(map(lambda x: x.cli_name, WI4MPI_METADATA))
+        mpi_families = set(map(lambda x: x.cli_name, WI4MPI_METADATA))
         parser.add_argument(
             '--from',
             type=str.lower,
@@ -225,7 +297,7 @@ class LaunchCommand(AbstractCommand):
 
         # Ensure the minimum fields required for launch are present
         for field in ['backend', 'image']:
-            if not parameters.get(field, None):
+            if not getattr(parameters, field, None):
                 self.parser.error(
                     f"Missing field: '{field}'. Specify it using the "
                     "appropriate option or by selecting a profile.")
@@ -233,41 +305,42 @@ class LaunchCommand(AbstractCommand):
         launcher, program = interpret(args.cmd)
 
         for path in get_reserved_directories(launcher):
-            files = parameters.get('files', [])
-
-            if path.as_posix() not in files:
-                files.append(path.as_posix())
-
-            parameters['files'] = files
+            if path not in parameters.files:
+                parameters.files.add(path)
 
         binary_mpi_family = getattr(args, 'from', None)
-        profile_mpi_libraries = filter_mpi_libs(
-            map(Path, parameters.get('libraries', [])))
+        profile_mpi_libraries = filter_mpi_libs(parameters.libraries)
         profile_mpi_family = detect_mpi(profile_mpi_libraries)
-        profile_mpi_install = install_dir(profile_mpi_libraries)
 
         if profile_mpi_family:
             LOGGER.debug(
-                "Parameters contain the MPI library '%(mpi_family)s' installed "
-                "in '%(install_dir)s'",
-                dict(
-                    mpi_family=profile_mpi_family,
-                    install_dir=str(profile_mpi_install),
-                ))
+                "Parameters contain the MPI library '%s'",
+                profile_mpi_family,
+            )
         else:
             LOGGER.debug(
                 "No single MPI family could be detected in the parameters")
 
         translation = (binary_mpi_family, wi4mpi_qualifier(profile_mpi_family))
         wi4mpi_call = []
-        if launcher and translation in SUPPORTED_TRANSLATIONS:
-            launcher, wi4mpi_call = _setup_wi4mpi(
-                launcher,
+        if translation in SUPPORTED_TRANSLATIONS:
+            target_mpi_data = wi4mpi_identify(profile_mpi_family.vendor)
+            wi4mpi_call = _setup_wi4mpi(
                 parameters,
                 translation,
-                profile_mpi_install,
-                profile_mpi_family,
+                target_mpi_data,
+                profile_mpi_libraries,
             )
+
+            # Relay the environment if OpenMPI is used
+            if (profile_mpi_family.vendor == "Open MPI"
+                    and Path(launcher[0]).name == "mpirun"):
+                launcher += shlex.split("-x WI4MPI_ROOT "
+                                        f"-x {target_mpi_data.path_key} "
+                                        "-x WI4MPI_RUN_MPI_C_LIB "
+                                        "-x WI4MPI_RUN_MPI_F_LIB "
+                                        "-x WI4MPI_RUN_MPIIO_C_LIB "
+                                        "-x WI4MPI_RUN_MPIIO_F_LIB")
 
         execute_command = _format_execute(parameters)
         full_command = [*launcher, *wi4mpi_call, *execute_command, *program]
