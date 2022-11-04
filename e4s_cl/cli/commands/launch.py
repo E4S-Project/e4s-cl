@@ -242,6 +242,14 @@ class LaunchCommand(AbstractCommand):
         )
 
         parser.add_argument(
+            '--backend',
+            help="Container backend to use to launch the image." +
+            f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
+            metavar='technology',
+            dest='backend',
+        )
+
+        parser.add_argument(
             '--source',
             type=arguments.posix_path,
             help="Path to a bash script to source before execution",
@@ -263,11 +271,10 @@ class LaunchCommand(AbstractCommand):
         )
 
         parser.add_argument(
-            '--backend',
-            help="Container backend to use to launch the image." +
-            f" Available backends are: {', '.join(EXPOSED_BACKENDS)}",
-            metavar='technology',
-            dest='backend',
+            '--wi4mpi',
+            type=arguments.posix_path,
+            help="Path towards a Wi4MPI installation to use",
+            metavar='installation',
         )
 
         mpi_families = set(map(lambda x: x.cli_name, WI4MPI_METADATA))
