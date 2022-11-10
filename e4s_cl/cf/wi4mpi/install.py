@@ -160,12 +160,17 @@ def install_wi4mpi(install_dir: Path = DEFAULT_INSTALL_DIR) -> Optional[Path]:
             "Skipping installation for already installed Wi4MPI in %s",
             install_dir)
         return install_dir
-    rmtree(install_dir, ignore_errors=True)
+
+    if install_dir.exists() and list(install_dir.glob('*')):
+        LOGGER.error(
+            "Attempting Wi4MPI installation in a non-empty directory: %s",
+            str(install_dir))
+        return None
 
     # Assert CMake is available
     cmake_executable = which("cmake")
     if not cmake_executable:
-        LOGGER.warning("Wi4MPI installation failed: cmake is missing.")
+        LOGGER.error("Wi4MPI installation failed: cmake is missing.")
         return None
 
     compiler_id = _select_compiler()
@@ -174,15 +179,13 @@ def install_wi4mpi(install_dir: Path = DEFAULT_INSTALL_DIR) -> Optional[Path]:
         LOGGER.error("No available compiler to build Wi4MPI: aborting.")
         return None
 
-    c_compiler, cxx_compiler, fortran_compiler = VENDOR_BINARIES.get(
-        compiler_id)
-
     source_dir = _download_wi4mpi(WI4MPI_DIR)
     if source_dir is None:
         LOGGER.error("Failed to download Wi4MPI release; aborting")
         return None
 
-    build_dir = WI4MPI_DIR / 'build'
+    c_compiler, cxx_compiler, fortran_compiler = VENDOR_BINARIES.get(
+        compiler_id)
 
     configure_cmd = [
         cmake_executable, \
@@ -206,6 +209,8 @@ def install_wi4mpi(install_dir: Path = DEFAULT_INSTALL_DIR) -> Optional[Path]:
         '--target', 'install'
     ]
 
+    build_dir = WI4MPI_DIR / 'build'
+
     try:
         if build_dir.exists():
             rmtree(build_dir)
@@ -226,4 +231,5 @@ def install_wi4mpi(install_dir: Path = DEFAULT_INSTALL_DIR) -> Optional[Path]:
         return install_dir
 
     LOGGER.error("Wi4MPI installation failed: MPI translation may fail.")
+    rmtree(install_dir, ignore_errors=True)
     return None

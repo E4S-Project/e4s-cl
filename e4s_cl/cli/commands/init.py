@@ -79,7 +79,6 @@ from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_mpi import (profile_mpi_name, filter_mpi_libs,
                                   install_dir)
-from e4s_cl.cf.wi4mpi.install import (install_wi4mpi, WI4MPI_DIR)
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli.arguments import (binary_in_path, posix_path, get_parser,
                                   SUPPRESS, REMAINDER)
