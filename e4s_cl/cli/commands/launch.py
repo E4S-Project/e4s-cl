@@ -115,6 +115,8 @@ def _setup_wi4mpi(
     - Set or update 'wi4mpi' in the parameters
     - Update the environment variables:
       + WI4MPI_ROOT
+      + WI4MPI_FROM
+      + WI4MPI_TO
       + <LIBRARY>_ROOT
       + WI4MPI_RUN_MPI_C_LIB
       + WI4MPI_RUN_MPI_F_LIB
@@ -180,6 +182,8 @@ def _setup_wi4mpi(
 
     env = {
         'WI4MPI_ROOT': str(parameters.wi4mpi),
+        'WI4MPI_FROM': str(translation[0]),
+        'WI4MPI_TO': str(translation[1]),
         family_metadata.path_key: str(mpi_install),
         'WI4MPI_RUN_MPI_C_LIB': str(run_c_lib),
         'WI4MPI_RUN_MPI_F_LIB': str(run_f_lib),
