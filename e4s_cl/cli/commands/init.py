@@ -319,16 +319,6 @@ def _rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
     return True
 
 
-def _setup_wi4mpi() -> None:
-    """Install Wi4MPI and update the profile accordingly"""
-
-    wi4mpi_install_dir = WI4MPI_DIR / "install"
-
-    if install_wi4mpi(wi4mpi_install_dir) is None:
-        LOGGER.error("Wi4MPI installation resulted in failure")
-        return
-
-
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
 
@@ -488,9 +478,6 @@ class InitCommand(AbstractCommand):
             dict(files=new_files),
             selected_profile.eid,
         )
-
-        # Install Wi4MPI in the default location if needed
-        _setup_wi4mpi()
 
         requested_name = (getattr(args, 'profile_name', None)
                           or profile_mpi_name(profile_mpi_libraries))
