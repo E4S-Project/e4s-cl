@@ -22,6 +22,7 @@ LOGGER = get_logger(__name__)
 WI4MPI_VERSION = Version('3.6.2')
 WI4MPI_RELEASE_URL = f"https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v{WI4MPI_VERSION}.tar.gz"
 WI4MPI_DIR = Path(USER_PREFIX) / "wi4mpi"
+DEFAULT_INSTALL_DIR = WI4MPI_DIR / 'install'
 
 CPU_COUNT = os.cpu_count()
 
@@ -141,8 +142,8 @@ def _double_tap(cmd):
     return not success
 
 
-def install_wi4mpi(install_dir: Path) -> Optional[Path]:
-    """Clones and installs wi4mpi from git run
+def install_wi4mpi(install_dir: Path = DEFAULT_INSTALL_DIR) -> Optional[Path]:
+    """Clones and installs wi4mpi from github releases
     
     Installs in ~/.local/share/wi4mpi using a GNU compiler
     """
@@ -153,12 +154,23 @@ def install_wi4mpi(install_dir: Path) -> Optional[Path]:
             os.uname().machine)
         return None
 
+    binary = install_dir / 'bin' / 'wi4mpi'
+    if install_dir.exists() and binary.exists():
+        LOGGER.debug(
+            "Skipping installation for already installed Wi4MPI in %s",
+            install_dir)
+        return install_dir
+
+    if install_dir.exists() and list(install_dir.glob('*')):
+        LOGGER.error(
+            "Attempting Wi4MPI installation in a non-empty directory: %s",
+            str(install_dir))
+        return None
+
     # Assert CMake is available
     cmake_executable = which("cmake")
     if not cmake_executable:
-        LOGGER.warning(
-            "Wi4MPI installation failed: cmake is missing. Proceeding with profile initialisation"
-        )
+        LOGGER.error("Wi4MPI installation failed: cmake is missing.")
         return None
 
     compiler_id = _select_compiler()
@@ -167,64 +179,63 @@ def install_wi4mpi(install_dir: Path) -> Optional[Path]:
         LOGGER.error("No available compiler to build Wi4MPI: aborting.")
         return None
 
-    c_compiler, cxx_compiler, fortran_compiler = VENDOR_BINARIES.get(
-        compiler_id)
-
     source_dir = _download_wi4mpi(WI4MPI_DIR)
     if source_dir is None:
         LOGGER.error("Failed to download Wi4MPI release; aborting")
         return None
 
     build_dir = WI4MPI_DIR / 'build'
+    c_compiler, cxx_compiler, fortran_compiler = VENDOR_BINARIES.get(
+        compiler_id)
 
     configure_cmd = [
-        cmake_executable, \
-        f"-DCMAKE_INSTALL_PREFIX={install_dir}", \
-        f"-DCMAKE_C_COMPILER={c_compiler}", \
-        f"-DCMAKE_CXX_COMPILER={cxx_compiler}", \
-        f"-DCMAKE_FC_COMPILER={fortran_compiler}", \
-        f"-DWI4MPI_COMPILER={compiler}", \
-        source_dir.as_posix()
+        cmake_executable,
+        "-B",
+        str(build_dir),
+        "-S",
+        str(source_dir),
+        f"-DCMAKE_INSTALL_PREFIX={install_dir}",
+        f"-DCMAKE_C_COMPILER={c_compiler}",
+        f"-DCMAKE_CXX_COMPILER={cxx_compiler}",
+        f"-DCMAKE_FC_COMPILER={fortran_compiler}",
+        f"-DWI4MPI_COMPILER={compiler}",
+        source_dir.as_posix(),
     ]
 
     build_cmd = [
-        cmake_executable, \
-        '--build', '.', \
-        '--parallel', str(CPU_COUNT) \
+        cmake_executable,
+        "--build",
+        str(build_dir),
+        '--parallel',
+        str(CPU_COUNT),
     ]
 
     install_cmd = [
-        cmake_executable, \
-        '--build', '.', \
-        '--target', 'install'
+        cmake_executable,
+        '--build',
+        str(build_dir),
+        '--target',
+        'install',
     ]
-
-    if install_dir.exists():
-        LOGGER.debug(
-            "Skipping installation for already installed Wi4MPI in %s",
-            install_dir)
-        return install_dir
 
     try:
         if build_dir.exists():
             rmtree(build_dir)
 
         build_dir.mkdir(exist_ok=True)
-        os.chdir(build_dir)
     except PermissionError as err:
         LOGGER.debug("Failed to create build directory %s: %s",
                      build_dir.as_posix(), str(err))
         return None
 
-    LOGGER.warning("Installing Wi4MPI in %s", install_dir)
+    LOGGER.info("Installing Wi4MPI in %s", install_dir)
 
     if _double_tap(configure_cmd) \
             and _double_tap(build_cmd) \
             and _double_tap(install_cmd):
-        LOGGER.warning("Wi4MPI has been built and installed")
+        LOGGER.info("Wi4MPI has been built and installed")
         return install_dir
 
-    LOGGER.warning(
-        "Wi4MPI installation failed. Proceeding with profile initialisation")
+    LOGGER.error("Wi4MPI installation failed: MPI translation may fail.")
     rmtree(install_dir, ignore_errors=True)
     return None
