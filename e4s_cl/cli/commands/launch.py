@@ -75,8 +75,8 @@ def _parameters(args: dict) -> Parameters:
         ('backend', str),
         ('libraries', lambda x: set(map(Path, x))),
         ('files', lambda x: set(map(Path, x))),
-        ('source', Path),
-        ('wi4mpi', Path),
+        ('source', lambda x: Path(x) if x else None),
+        ('wi4mpi', lambda x: Path(x) if x else None),
     ]:
         value = args.get(attribute) or profile_data.get(attribute)
         if value is not None:
