@@ -125,7 +125,7 @@ def _setup_wi4mpi(
 
     # Locate the Wi4MPI installation - either provided on the cli or default
     if parameters.wi4mpi is None:
-        wi4mpi_install = install_wi4mpi(WI4MPI_DIR / 'install')
+        wi4mpi_install = install_wi4mpi()
         if wi4mpi_install:
             parameters.wi4mpi = wi4mpi_install
         else:
