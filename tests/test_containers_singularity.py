@@ -1,4 +1,4 @@
-from os import getenv, getcwd
+from os import getcwd, environ
 from unittest import skipIf
 from pathlib import Path
 import tests
@@ -8,10 +8,11 @@ from e4s_cl.cf.containers import (Container, BackendUnsupported, FileOptions,
 
 import e4s_cl.config as config
 
-configuration_file = Path(Path(__file__).parent, "assets",
-                          "e4s-cl.yaml").as_posix()
 DEFAULT_CONFIGURATION = config.CONFIGURATION
-TEST_CONFIGURATION = config.Configuration.create_from_file(configuration_file)
+TEST_CONFIGURATION = config.Configuration.create_from_string("""
+singularity:
+  options: ['--hostname', 'diffname']
+""")
 
 
 class ContainerTestSingularity(tests.TestCase):
@@ -103,9 +104,22 @@ class ContainerTestSingularity(tests.TestCase):
 
         self.assertSetEqual({ref, file, home}, files)
 
-    def test_configured_container(self):
+    def test_additional_options_config(self):
         container = Container(name='singularity')
         command = ['']
+        self.assertNotIn('--hostname', container._prepare(command))
         config.update_configuration(TEST_CONFIGURATION)
+        self.assertIn('--hostname', container._prepare(command))
         self.assertIn('diffname', container._prepare(command))
         config.update_configuration(DEFAULT_CONFIGURATION)
+        self.assertNotIn('--hostname', container._prepare(command))
+
+    def test_additional_options_environment(self):
+        container = Container(name='singularity')
+        command = ['']
+        self.assertNotIn('--hostname', container._prepare(command))
+        environ['SINGULARITY_OPTIONS'] = "--hostname diffname"
+        self.assertIn('--hostname', container._prepare(command))
+        self.assertIn('diffname', container._prepare(command))
+        del environ['SINGULARITY_OPTIONS']
+        self.assertNotIn('--hostname', container._prepare(command))

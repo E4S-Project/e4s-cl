@@ -37,7 +37,7 @@ from typing import List, Dict, Callable
 from e4s_cl.logger import get_logger
 from e4s_cl.cli.cli_view import ListCommand
 from e4s_cl.model.profile import Profile
-from e4s_cl.config import CONFIGURATION
+from e4s_cl import config
 
 LOGGER = get_logger(__name__)
 
@@ -84,7 +84,7 @@ DEFINED_DASHBOARD_COLUMNS = [{
 DEFAULT_COLUMNS = ["selected", "name", "backend", "image"]
 
 
-def _valid_columns(l: List[str]) -> List[Dict]:
+def _valid_columns(names: List[str]) -> List[Dict]:
     """
     Return a list of column definitions as requested by the entry list of column names
     """
@@ -104,7 +104,7 @@ def _valid_columns(l: List[str]) -> List[Dict]:
         return None
 
     # Return a list of all the columns, filtering out Nones
-    return list(filter(None, map(column, l)))
+    return list(filter(None, map(column, names)))
 
 
 class ProfileListCommand(ListCommand):
@@ -116,7 +116,8 @@ class ProfileListCommand(ListCommand):
     def __init__(self):
         selected_columns = _valid_columns(DEFAULT_COLUMNS)
 
-        config_columns = _valid_columns(CONFIGURATION.profile_list_columns)
+        config_columns = _valid_columns(
+            config.CONFIGURATION.profile_list_columns)
         if config_columns:
             selected_columns = config_columns
 

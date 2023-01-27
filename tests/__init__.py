@@ -13,14 +13,20 @@ from pathlib import Path
 from e4s_cl.util import get_command_output
 import warnings
 from io import StringIO
-from e4s_cl import logger, E4S_CL_HOME, EXIT_SUCCESS, EXIT_FAILURE
+from e4s_cl import logger, E4S_CL_HOME, EXIT_SUCCESS, EXIT_FAILURE, config
+
+ASSETS = Path(__file__).parent / "assets"
+CONFIGURATION_FILE = ASSETS / "e4s-cl.yaml"
+
+# Set the configuration to a specific testing version
+config.update_configuration(
+    config.Configuration.create_from_file(CONFIGURATION_FILE))
+
 from e4s_cl.error import ConfigurationError
 from e4s_cl.cf.storage.levels import USER_STORAGE, SYSTEM_STORAGE
 from e4s_cl.cf.assets import SAMPLE_BINARY_TABLE, BUILTIN_PROFILE_TABLE
 
 _NOT_IMPLEMENTED = []
-
-ASSETS = Path(__file__).parent / "assets"
 
 
 def not_implemented(cls):

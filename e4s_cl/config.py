@@ -139,6 +139,9 @@ class Configuration:
         # Merge the two dictionaries (Use | on py39)
         return Configuration({**self._fields, **rhs._fields})
 
+    def __str__(self):
+        return str(self._fields)
+
 
 USER_CONFIG_PATH = Path.home() / ".config/e4s-cl.yaml"
 INSTALL_CONFIG_PATH = Path(E4S_CL_HOME) / "e4s-cl.yaml"
