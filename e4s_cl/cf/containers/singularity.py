@@ -68,8 +68,7 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable, 'exec',
-            *config.CONFIGURATION.singularity_cli_options,
+            self.executable, 'exec', *self._additional_options(),
             *self._working_dir(), *nvidia_flag, self.image, *command
         ]
 

@@ -5,5 +5,5 @@ profile_list_columns: ["Selected", "Name", "Backend", "Image", "Libraries", "Fil
 preload_root_libraries: False
 disable_ranked_log: False
 singularity:
-  cli_options: ['--hostname', 'diffname']
+  options: ['--hostname', 'diffname']
   build_options: ['-s']

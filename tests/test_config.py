@@ -22,7 +22,7 @@ class ConfigTest(tests.TestCase):
             'container_directory': '/diffdirectory',
             'launcher_options': '-n 8',
             'singularity': {
-                'cli_options': '--hostname diffname',
+                'options': '--hostname diffname',
                 'build_options': {
                     'location': '-s'
                 }
@@ -31,7 +31,7 @@ class ConfigTest(tests.TestCase):
         flat_data = {
             'container_directory': '/diffdirectory',
             'launcher_options': '-n 8',
-            'singularity_cli_options': '--hostname diffname',
+            'singularity_options': '--hostname diffname',
             'singularity_build_options_location': '-s'
         }
         self.assertEqual(flatten(data), flat_data)

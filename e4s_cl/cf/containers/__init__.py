@@ -25,11 +25,22 @@ from pathlib import Path
 from typing import Union, List, Tuple, Iterable, Optional
 from sotools.dl_cache import cache_libraries, get_generator
 from e4s_cl.logger import get_logger, debug_mode
-from e4s_cl import (EXIT_FAILURE, CONTAINER_DIR, CONTAINER_LIBRARY_DIR,
-                    CONTAINER_BINARY_DIR, CONTAINER_SCRIPT)
+from e4s_cl import (
+    CONTAINER_BINARY_DIR,
+    CONTAINER_DIR,
+    CONTAINER_LIBRARY_DIR,
+    CONTAINER_SCRIPT,
+    EXIT_FAILURE,
+    config,
+)
 from e4s_cl.variables import ParentStatus
-from e4s_cl.util import (walk_packages, which, json_loads,
-                         run_e4scl_subprocess, path_contains)
+from e4s_cl.util import (
+    json_loads,
+    path_contains,
+    run_e4scl_subprocess,
+    walk_packages,
+    which,
+)
 from e4s_cl.cf.version import Version
 from e4s_cl.error import ConfigurationError
 
@@ -249,6 +260,9 @@ class Container:
         # Container image identifier
         self.image = image
 
+        # Container type identifier
+        self.name = name
+
         # User-set parameters
         # Files to bind: set(BoundFile)
         self._bound_files = set()
@@ -277,6 +291,50 @@ class Container:
     @property
     def import_binary_dir(self):
         return Path(CONTAINER_BINARY_DIR)
+
+    def _additional_options(self) -> List[str]:
+        """
+        Inspect the configuration and environment to get a list of additional
+        options for the given container.
+
+        Options set in the environment have higher priority over options set in
+        configuration files.
+        """
+
+        container_type_id = self.name
+        marker = f"{container_type_id}_options"
+
+        if container_type_id is None or not isinstance(container_type_id, str):
+            return []
+
+        env_options = os.environ.get(
+            marker.upper(),
+            None,
+        )
+
+        if env_options:
+            LOGGER.debug(
+                "Container additional options (from env %s): %s",
+                marker.upper(),
+                env_options.split(),
+            )
+            return env_options.split()
+
+        config_options = getattr(
+            config.CONFIGURATION,
+            marker,
+            None,
+        )
+
+        if config_options:
+            LOGGER.debug(
+                "Container additional options (from config %s): %s",
+                marker,
+                config_options,
+            )
+            return config_options
+
+        return []
 
     def get_data(self):
         """

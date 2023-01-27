@@ -20,6 +20,8 @@ def flatten(data):
     Transform nested dictionaries into key value pairs by prefixing the
     parent's key, under the assumption that all keys are str.
     >>> flatten({'root': {'key1': 0, 'key2': 'test'} })
+
+    => dict(root_key1=0, root_key2='test')
     """
     separator = '_'
 
@@ -146,7 +148,10 @@ ALLOWED_CONFIG = list(
     map(lambda x: ConfigurationField(*x),
         [('container_directory', str, lambda: CONTAINER_DIR),
          ('launcher_options', list, lambda: []),
-         ('singularity_cli_options', list, lambda: []),
+         ('singularity_options', list, lambda: []),
+         ('apptainer_options', list, lambda: []),
+         ('podman_options', list, lambda: []),
+         ('shifter_options', list, lambda: []),
          ('profile_list_columns', list, lambda: []),
          ('preload_root_libraries', bool, lambda: False),
          ('disable_ranked_log', bool, lambda: False)]))
