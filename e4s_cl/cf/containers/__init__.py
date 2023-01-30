@@ -292,21 +292,28 @@ class Container:
     def import_binary_dir(self):
         return Path(CONTAINER_BINARY_DIR)
 
-    def _additional_options(self) -> List[str]:
+    def _additional_options(self, kind: Optional[str] = None) -> List[str]:
         """
         Inspect the configuration and environment to get a list of additional
         options for the given container.
+
+        The `kind` argument allows to maintain multiple sets of arguments, to
+        be used differently, for each container module.
 
         Options set in the environment have higher priority over options set in
         configuration files.
         """
 
-        container_type_id = self.name
-        marker = f"{container_type_id}_options"
-
+        container_type_id = getattr(self, 'name', None)
         if container_type_id is None or not isinstance(container_type_id, str):
             return []
 
+        # Generate the marker from the parameters.
+        # If kind is present -> {container_id}_{kind}_options
+        # If not             -> {container_id}_options
+        marker = "_".join(filter(None, [container_type_id, kind, "options"]))
+
+        # Fetch the options from the environment first
         env_options = os.environ.get(
             marker.upper(),
             None,
@@ -320,6 +327,7 @@ class Container:
             )
             return env_options.split()
 
+        # If the environment is empty, try the configuration
         config_options = getattr(
             config.CONFIGURATION,
             marker,

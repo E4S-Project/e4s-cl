@@ -154,6 +154,7 @@ ALLOWED_CONFIG = list(
          ('singularity_options', list, lambda: []),
          ('apptainer_options', list, lambda: []),
          ('podman_options', list, lambda: []),
+         ('podman_run_options', list, lambda: []),
          ('shifter_options', list, lambda: []),
          ('profile_list_columns', list, lambda: []),
          ('preload_root_libraries', bool, lambda: False),

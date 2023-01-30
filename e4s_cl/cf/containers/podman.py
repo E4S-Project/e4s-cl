@@ -147,6 +147,7 @@ class PodmanContainer(Container):
 
         return [
             self.executable,  # absolute path to podman
+            *self._additional_options(),  # Additional options
             'run',  # Run a container
             '--rm',  # Remove when done
             '--ipc=host',  # Use host IPC /!\
@@ -154,7 +155,7 @@ class PodmanContainer(Container):
             f"--preserve-fds={self._fd_number()}",  # Inherit file descriptors /!\
             *self._working_dir(),  # Work in the same CWD
             *self._format_bound(),  # Bound files options
-            *self._additional_options(),  # Bound files options
+            *self._additional_options('run'),  # Additional run options
             self.image,
             *command
         ]
