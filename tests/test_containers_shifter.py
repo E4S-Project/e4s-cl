@@ -1,11 +1,16 @@
-from os import getenv, getcwd
+from os import getenv, getcwd, environ
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from unittest import skipIf
 from pathlib import Path
 import tests
+from e4s_cl import config
 from e4s_cl.util import which
-from e4s_cl.cf.containers import (Container, BackendUnsupported, FileOptions,
-                                  BoundFile)
+from e4s_cl.cf.containers import (
+    BackendUnsupported,
+    BoundFile,
+    Container,
+    FileOptions,
+)
 from e4s_cl.cf.containers.shifter import _parse_config
 
 SAMPLE_CONFIG = """#system (required)
@@ -26,6 +31,12 @@ EXPECTED_CONFIG = dict(system='perlmutter',
                        siteFs='/path1:/path1;/path2:/path2;',
                        siteEnv='SHIFTER_RUNTIME=1',
                        module_test_siteFs='test')
+
+DEFAULT_CONFIGURATION = config.CONFIGURATION
+TEST_CONFIGURATION = config.Configuration.create_from_string("""
+shifter:
+  options: ['--workdir=/opt', '-V', '/opt:/opt:ro']
+""")
 
 
 class ContainerTestShifter(tests.TestCase):
@@ -170,3 +181,45 @@ class ContainerTestShifter(tests.TestCase):
                 self.assertNotIn(file, volumes)
 
         temp.cleanup()
+
+    def test_additional_options_config(self):
+        container = Container(name='shifter')
+        command = ['']
+
+        shifter_command = container._prepare(command)
+        for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
+            self.assertNotIn(option, shifter_command)
+
+        config.update_configuration(TEST_CONFIGURATION)
+        shifter_command = container._prepare(command)
+        self.assertContainsInOrder([
+            '--workdir=/opt',
+            '-V',
+            '/opt:/opt:ro',
+        ], shifter_command)
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+        shifter_command = container._prepare(command)
+        for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
+            self.assertNotIn(option, shifter_command)
+
+    def test_additional_options_environment(self):
+        container = Container(name='shifter')
+        command = ['']
+
+        shifter_command = container._prepare(command)
+        for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
+            self.assertNotIn(option, shifter_command)
+
+        environ['SHIFTER_OPTIONS'] = "--workdir=/opt -V /opt:/opt:ro"
+        shifter_command = container._prepare(command)
+        self.assertContainsInOrder([
+            '--workdir=/opt',
+            '-V',
+            '/opt:/opt:ro',
+        ], shifter_command)
+
+        del environ['SHIFTER_OPTIONS']
+        shifter_command = container._prepare(command)
+        for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
+            self.assertNotIn(option, shifter_command)

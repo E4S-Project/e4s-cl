@@ -2,16 +2,20 @@ from os import getcwd, environ
 from unittest import skipIf
 from pathlib import Path
 import tests
+from e4s_cl import config
 from e4s_cl.util import which
-from e4s_cl.cf.containers import (Container, BackendUnsupported, FileOptions,
-                                  BoundFile)
-
-import e4s_cl.config as config
+from e4s_cl.cf.containers import (
+    BackendUnsupported,
+    BoundFile,
+    Container,
+    FileOptions,
+)
 
 DEFAULT_CONFIGURATION = config.CONFIGURATION
 TEST_CONFIGURATION = config.Configuration.create_from_string("""
 singularity:
-  options: ['--hostname', 'diffname']
+  options: ['--nocolor', '-s']
+  exec_options: ['--hostname', 'XxmycoolcontainerxX']
 """)
 
 
@@ -107,19 +111,47 @@ class ContainerTestSingularity(tests.TestCase):
     def test_additional_options_config(self):
         container = Container(name='singularity')
         command = ['']
-        self.assertNotIn('--hostname', container._prepare(command))
+
+        singularity_command = container._prepare(command)
+        for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
+            self.assertNotIn(option, singularity_command)
+
         config.update_configuration(TEST_CONFIGURATION)
-        self.assertIn('--hostname', container._prepare(command))
-        self.assertIn('diffname', container._prepare(command))
+        singularity_command = container._prepare(command)
+        self.assertContainsInOrder([
+            '--nocolor',
+            '-s',
+            'exec',
+            '--hostname',
+            'XxmycoolcontainerxX',
+        ], singularity_command)
+
         config.update_configuration(DEFAULT_CONFIGURATION)
-        self.assertNotIn('--hostname', container._prepare(command))
+        singularity_command = container._prepare(command)
+        for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
+            self.assertNotIn(option, singularity_command)
 
     def test_additional_options_environment(self):
         container = Container(name='singularity')
         command = ['']
-        self.assertNotIn('--hostname', container._prepare(command))
-        environ['SINGULARITY_OPTIONS'] = "--hostname diffname"
-        self.assertIn('--hostname', container._prepare(command))
-        self.assertIn('diffname', container._prepare(command))
+
+        singularity_command = container._prepare(command)
+        for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
+            self.assertNotIn(option, singularity_command)
+
+        environ['SINGULARITY_OPTIONS'] = "--nocolor -s"
+        environ['SINGULARITY_EXEC_OPTIONS'] = "--hostname XxmycoolcontainerxX"
+        singularity_command = container._prepare(command)
+        self.assertContainsInOrder([
+            '--nocolor',
+            '-s',
+            'exec',
+            '--hostname',
+            'XxmycoolcontainerxX',
+        ], singularity_command)
+
         del environ['SINGULARITY_OPTIONS']
-        self.assertNotIn('--hostname', container._prepare(command))
+        del environ['SINGULARITY_EXEC_OPTIONS']
+        singularity_command = container._prepare(command)
+        for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
+            self.assertNotIn(option, singularity_command)

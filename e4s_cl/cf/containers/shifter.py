@@ -171,8 +171,12 @@ class ShifterContainer(Container):
         self.temp_dir = tempfile.TemporaryDirectory()
         volumes = self._setup_import(Path(self.temp_dir.name))
         return [
-            self.executable, f"--image={self.image}", *env_list, *volumes,
-            *command
+            self.executable,
+            f"--image={self.image}",
+            *env_list,
+            *volumes,
+            *self._additional_options(),
+            *command,
         ]
 
     def run(self, command):

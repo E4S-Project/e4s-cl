@@ -68,8 +68,14 @@ class ApptainerContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable, 'exec', *self._working_dir(), *nvidia_flag,
-            self.image, *command
+            self.executable,
+            *self._additional_options(),
+            'exec',
+            *self._working_dir(),
+            *nvidia_flag,
+            *self._additional_options('exec'),
+            self.image,
+            *command,
         ]
 
     def bind_env_var(self, key, value):
