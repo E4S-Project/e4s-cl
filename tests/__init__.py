@@ -124,6 +124,13 @@ class TestCase(unittest.TestCase):
         self.assertNotEqual(retval, return_value)
         return stdout, stderr
 
+    def assertContainsInOrder(self, subset, ordered_iterable):
+        """Asserts the ordered_iterable contains the elements of the subset,
+        in order, with possibly elements in between"""
+        matches = list(filter(lambda x: x in subset, ordered_iterable))
+
+        self.assertListEqual(subset, matches)
+
     @classmethod
     def resetStorage(cls):
         tables = ["Profile", SAMPLE_BINARY_TABLE, BUILTIN_PROFILE_TABLE]
