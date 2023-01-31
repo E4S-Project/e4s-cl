@@ -11,7 +11,7 @@ Introduction
 
 During a :code:`launch` command, a list of required files will be computed on each target node, and bound to a container spawned on those nodes. Container backends are the container technologies **e4s-cl** is able to use.
 
-:code:`apptainer`, :code:`docker`, :code:`podman`, :code:`shifter` and :code:`singularity` are supported.
+:code:`apptainer`, :code:`podman`, :code:`shifter` and :code:`singularity` are supported. The :code:`docker` backend can be enabled by installing **e4s-cl** with the :code:`docker` extra feature.
 
 Most of the container backends have some degree of configuration available to them.
 Configuration is done by setting the values in the corresponding section of the configuration file, or by passing a given environment variable.
@@ -56,6 +56,10 @@ The available options are:
 
 :code:`docker`
 ++++++++++++++
+
+.. admonition:: :code:`docker` support
+
+   :code:`docker` support in HPC is limited at best. Due to its architecture, it will most likely not work with your MPI implementation. To enable :code:`docker` support from **e4s-cl**, install with the :code:`docker` extra enabled. 
 
 :code:`docker` support is achieved using the :code:`docker-py` `module <https://github.com/docker/docker-py>`_. The :code:`docker` daemon has to be installed and running on the system to be accessed.
 

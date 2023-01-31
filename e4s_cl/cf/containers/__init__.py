@@ -590,7 +590,11 @@ def assert_module(_module) -> bool:
 
 
 for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
-    import_module(_module_name)
+    try:
+        import_module(_module_name)
+    except ModuleNotFoundError:
+        continue
+
     _module = sys.modules[_module_name]
 
     if not assert_module(_module):

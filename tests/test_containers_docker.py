@@ -1,26 +1,30 @@
 from pathlib import Path
 import sys
 import shlex
-import docker
 import tests
-from e4s_cl.cf.containers import Container, BackendError
-from e4s_cl.cf.containers.docker import DockerContainer
 from tempfile import TemporaryFile
+from e4s_cl.cf.containers import Container, BackendError
 
 __IMAGE__ = "centos:7"
 
 try:
-    client = docker.from_env()
+    import docker
+    from e4s_cl.cf.containers.docker import DockerContainer
     try:
-        client.images.get(__IMAGE__)
-    except BackendError as err:
-        IMAGE_AVAIL = False
-    else:
-        IMAGE_AVAIL = True
-    DOCKER_AVAIL = True
-except docker.errors.DockerException:
+        client = docker.from_env()
+        try:
+            client.images.get(__IMAGE__)
+        except BackendError as err:
+            IMAGE_AVAIL = False
+        else:
+            IMAGE_AVAIL = True
+        DOCKER_AVAIL = True
+    except docker.errors.DockerException:
+        raise ModuleNotFoundError
+except ModuleNotFoundError:
     DOCKER_AVAIL = False
     IMAGE_AVAIL = False
+
 
 @tests.skipUnless(DOCKER_AVAIL, "Failed to connect to the docker daemon")
 class DockerContainerTest(tests.TestCase):
