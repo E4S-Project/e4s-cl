@@ -26,7 +26,6 @@ class SingularityContainer(Container):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.executable = which(self.__class__.executable_name)
 
     def _working_dir(self):
         return ['--pwd', os.getcwd()]
@@ -68,7 +67,6 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable,
             *self._additional_options(),
             'exec',
             *self._working_dir(),
@@ -90,10 +88,11 @@ class SingularityContainer(Container):
         return True
 
     def run(self, command):
+        self.executable = self._executable()
         if not self.executable:
             raise BackendNotAvailableError(self.executable)
 
-        container_cmd = self._prepare(command)
+        container_cmd = [self.executable, *self._prepare(command)]
 
         return run_subprocess(container_cmd, env=self.env)
 

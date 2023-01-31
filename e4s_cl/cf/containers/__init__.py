@@ -292,6 +292,77 @@ class Container:
     def import_binary_dir(self):
         return Path(CONTAINER_BINARY_DIR)
 
+    def _executable(self) -> Optional[Path]:
+        """
+        Inspect the configuration and environment for a path towards the
+        container binary to execute.
+
+        If nothing is found, the default executable name is looked up on $PATH.
+        """
+
+        def _valid_executable(path: Path) -> bool:
+            # Check for executable status ?
+            return path.exists()
+
+        container_type_id = getattr(self, 'name', None)
+        if container_type_id is None or not isinstance(container_type_id, str):
+            return None
+
+        # Generate the marker from the parameters.
+        # If kind is present -> {container_id}_{kind}_options
+        # If not             -> {container_id}_options
+        marker = f"{container_type_id}_executable"
+
+        def _check(path: str, origin: str, marker: str) -> bool:
+            if path is None:
+                return False
+
+            path = Path(path)
+            if _valid_executable(path):
+                LOGGER.debug(
+                    "%s container executable (from {} %s): %s",
+                    container_type_id,
+                    marker,
+                    env_option,
+                )
+                return True
+            else:
+                LOGGER.error(
+                    "Invalid executable path for {}: {}",
+                    container_type_id,
+                    path,
+                )
+
+            return False
+
+        # Fetch the options from the environment first
+        env_option = os.environ.get(
+            marker.upper(),
+            None,
+        )
+
+        if _check(env_option, 'env', marker.upper()):
+            return Path(env_option)
+
+        # If the environment is empty, try the configuration
+        config_option = getattr(
+            config.CONFIGURATION,
+            marker,
+            None,
+        )
+
+        if _check(config_option, 'config', marker):
+            return Path(config_option)
+
+        default_executable = getattr(self.__class__, 'executable_name', None)
+        if default_executable is not None:
+            path = which(default_executable)
+
+            if path is not None and _valid_executable(Path(path)):
+                return Path(path)
+
+        return None
+
     def _additional_options(self, kind: Optional[str] = None) -> List[str]:
         """
         Inspect the configuration and environment to get a list of additional
@@ -321,7 +392,8 @@ class Container:
 
         if env_options:
             LOGGER.debug(
-                "Container additional options (from env %s): %s",
+                "%s container additional options (from env %s): %s",
+                container_type_id,
                 marker.upper(),
                 env_options.split(),
             )
@@ -336,7 +408,8 @@ class Container:
 
         if config_options:
             LOGGER.debug(
-                "Container additional options (from config %s): %s",
+                "%s container additional options (from config %s): %s",
+                container_type_id,
                 marker,
                 config_options,
             )

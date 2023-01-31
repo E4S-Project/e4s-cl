@@ -1,4 +1,4 @@
-from os import getcwd, environ
+from os import getcwd, environ, pathsep
 from unittest import skipIf
 from pathlib import Path
 import tests
@@ -11,9 +11,11 @@ from e4s_cl.cf.containers import (
     FileOptions,
 )
 
+CONFIG_EXECUTABLE = tests.ASSETS / 'bin' / 'singularity-conf'
 DEFAULT_CONFIGURATION = config.CONFIGURATION
-TEST_CONFIGURATION = config.Configuration.create_from_string("""
+TEST_CONFIGURATION = config.Configuration.create_from_string(f"""
 singularity:
+  executable: '{CONFIG_EXECUTABLE}'
   options: ['--nocolor', '-s']
   exec_options: ['--hostname', 'XxmycoolcontainerxX']
 """)
@@ -21,21 +23,10 @@ singularity:
 
 class ContainerTestSingularity(tests.TestCase):
 
-    def singularity_check():
-        return (not which('singularity')
-                and (not Path('singularity').exists()))
-
     def test_create(self):
         container = Container(name='singularity', image='test')
         self.assertFalse(type(container) == Container)
         self.assertTrue(isinstance(container, Container))
-
-    @skipIf(singularity_check(), "Singularity absent from system")
-    def test_run_backend(self):
-        container = Container(name='singularity')
-        command = ['']
-        container_cmd = container._prepare(command)
-        self.assertIn('singularity', ' '.join(map(str, container_cmd)))
 
     def test_run_image(self):
         container = Container(name='singularity', image='imagenametest')
@@ -155,3 +146,64 @@ class ContainerTestSingularity(tests.TestCase):
         singularity_command = container._prepare(command)
         for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
             self.assertNotIn(option, singularity_command)
+
+    def test_executable(self):
+        """Assert the default singularity executable comes from $PATH"""
+        container = Container(name='singularity')
+
+        default_path = environ.get('PATH', '')
+        environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity',
+                         container._executable())
+
+        environ['PATH'] = default_path
+
+    def test_executable_config(self):
+        """Assert the singularity executable is read from the configuration"""
+        container = Container(name='singularity')
+
+        config.update_configuration(TEST_CONFIGURATION)
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity-conf',
+                         container._executable())
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+
+    def test_executable_env(self):
+        """Assert the singularity executable is read from the environment"""
+        container = Container(name='singularity')
+
+        environ['SINGULARITY_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                'singularity-env')
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity-env',
+                         container._executable())
+
+        del environ['SINGULARITY_EXECUTABLE']
+
+    def test_executable_priority(self):
+        """Assert the environment has precedence over config and config over default"""
+        container = Container(name='singularity')
+
+        default_path = environ.get('PATH', '')
+        environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
+        config.update_configuration(TEST_CONFIGURATION)
+        environ['SINGULARITY_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                'singularity-env')
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity-env',
+                         container._executable())
+
+        del environ['SINGULARITY_EXECUTABLE']
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity-conf',
+                         container._executable())
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity',
+                         container._executable())
+
+        environ['PATH'] = default_path
+
+        # This fails as the which wrapper holds a cache
+        #self.assertNotEqual(tests.ASSETS / 'bin' / 'singularity', container._executable())

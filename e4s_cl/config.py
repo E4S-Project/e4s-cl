@@ -148,19 +148,21 @@ INSTALL_CONFIG_PATH = Path(E4S_CL_HOME) / "e4s-cl.yaml"
 SYSTEM_CONFIG_PATH = "/etc/e4s-cl/e4s-cl.yaml"
 
 ALLOWED_CONFIG = list(
-    map(lambda x: ConfigurationField(*x),
-        [('container_directory', str, lambda: CONTAINER_DIR),
-         ('launcher_options', list, lambda: []),
-         ('singularity_options', list, lambda: []),
-         ('singularity_exec_options', list, lambda: []),
-         ('apptainer_options', list, lambda: []),
-         ('apptainer_exec_options', list, lambda: []),
-         ('podman_options', list, lambda: []),
-         ('podman_run_options', list, lambda: []),
-         ('shifter_options', list, lambda: []),
-         ('profile_list_columns', list, lambda: []),
-         ('preload_root_libraries', bool, lambda: False),
-         ('disable_ranked_log', bool, lambda: False)]))
+    map(lambda x: ConfigurationField(*x), [
+        ('container_directory', str, lambda: CONTAINER_DIR),
+        ('launcher_options', list, lambda: []),
+        ('profile_list_columns', list, lambda: []),
+        ('preload_root_libraries', bool, lambda: False),
+        ('disable_ranked_log', bool, lambda: False),
+        ('singularity_executable', str, lambda: ""),
+        ('singularity_options', list, lambda: []),
+        ('singularity_exec_options', list, lambda: []),
+        ('apptainer_options', list, lambda: []),
+        ('apptainer_exec_options', list, lambda: []),
+        ('podman_options', list, lambda: []),
+        ('podman_run_options', list, lambda: []),
+        ('shifter_options', list, lambda: []),
+    ]))
 
 CONFIGURATION = Configuration.default()
 if not E4S_CL_TEST:

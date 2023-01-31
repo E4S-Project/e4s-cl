@@ -142,6 +142,12 @@ The available options are:
      - Default
      - Description
 
+   * - :code:`executable`
+     - :code:`SINGULARITY_EXECUTABLE`
+     - String
+     - :code:`""`
+     - Path to the :code:`singularity` executable to use.
+
    * - :code:`options`
      - :code:`SINGULARITY_OPTIONS`
      - List
