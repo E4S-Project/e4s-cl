@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 # -- Project information -----------------------------------------------------
 
 project = 'E4S Container Launcher'
-copyright = '2022, Jean-Baptiste Skutnik'
+copyright = '2023, Jean-Baptiste Skutnik'
 author = 'Jean-Baptiste Skutnik'
 
 # The full version, including alpha/beta/rc tags
@@ -29,7 +29,10 @@ version = release = '1.0.1'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx_toolbox.collapse']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx_toolbox.collapse',
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = []

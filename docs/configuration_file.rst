@@ -63,3 +63,5 @@ Here is an example YAML configuration file:
    ---
    container_directory: '/newdirectory'
    launcher_options: ['-n', '4']
+   singularity:
+     options: ['--hostname ', 'new_name']
