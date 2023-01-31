@@ -36,6 +36,12 @@ The available options are:
      - Default
      - Description
 
+   * - :code:`executable`
+     - :code:`APPTAINER_EXECUTABLE`
+     - String
+     - :code:`""`
+     - Path to the :code:`apptainer` executable to use.
+
    * - :code:`options`
      - :code:`APPTAINER_OPTIONS`
      - List
@@ -79,6 +85,12 @@ The available options are:
      - Default
      - Description
 
+   * - :code:`executable`
+     - :code:`PODMAN_EXECUTABLE`
+     - String
+     - :code:`""`
+     - Path to the :code:`podman` executable to use.
+
    * - :code:`options`
      - :code:`PODMAN_OPTIONS`
      - List
@@ -117,6 +129,12 @@ The configuration file section for :code:`shifter` is :code:`shifter`.
      - Type
      - Default
      - Description
+
+   * - :code:`executable`
+     - :code:`SHIFTER_EXECUTABLE`
+     - String
+     - :code:`""`
+     - Path to the :code:`shifter` executable to use.
 
    * - :code:`options`
      - :code:`SHIFTER_OPTIONS`

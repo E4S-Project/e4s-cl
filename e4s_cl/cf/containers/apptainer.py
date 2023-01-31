@@ -5,7 +5,7 @@ Module introducing singularity support
 import os
 from pathlib import Path
 from e4s_cl import logger
-from e4s_cl.util import which, run_subprocess
+from e4s_cl.util import run_subprocess
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
@@ -26,7 +26,6 @@ class ApptainerContainer(Container):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.executable = which(self.__class__.executable_name)
 
     def _working_dir(self):
         return ['--pwd', os.getcwd()]
@@ -68,7 +67,6 @@ class ApptainerContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable,
             *self._additional_options(),
             'exec',
             *self._working_dir(),
@@ -90,10 +88,11 @@ class ApptainerContainer(Container):
         return True
 
     def run(self, command):
-        if not self.executable:
-            raise BackendNotAvailableError(self.executable)
+        executable = self._executable()
+        if executable is None:
+            raise BackendNotAvailableError(self.__class__.__name__)
 
-        container_cmd = self._prepare(command)
+        container_cmd = [executable, *self._prepare(command)]
 
         return run_subprocess(container_cmd, env=self.env)
 

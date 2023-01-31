@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 from e4s_cl import logger, CONTAINER_DIR
-from e4s_cl.util import which, run_subprocess, path_contains
+from e4s_cl.util import run_subprocess, path_contains
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
 LOGGER = logger.get_logger(__name__)
@@ -110,7 +110,6 @@ class ShifterContainer(Container):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.temp_dir = None
-        self.executable = which(self.__class__.executable_name)
 
     def _setup_import(self, where: Path) -> str:
         """
@@ -171,7 +170,6 @@ class ShifterContainer(Container):
         self.temp_dir = tempfile.TemporaryDirectory()
         volumes = self._setup_import(Path(self.temp_dir.name))
         return [
-            self.executable,
             f"--image={self.image}",
             *env_list,
             *volumes,
@@ -180,11 +178,11 @@ class ShifterContainer(Container):
         ]
 
     def run(self, command):
+        executable = self._executable()
+        if executable is None:
+            raise BackendNotAvailableError(self.__class__.__name__)
 
-        if not which(self.executable):
-            raise BackendNotAvailableError(self.executable)
-
-        container_cmd = self._prepare(command)
+        container_cmd = [executable, *self._prepare(command)]
         LOGGER.debug(container_cmd)
         return run_subprocess(container_cmd, env=self.env)
 

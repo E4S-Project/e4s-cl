@@ -320,18 +320,18 @@ class Container:
             path = Path(path)
             if _valid_executable(path):
                 LOGGER.debug(
-                    "%s container executable (from {} %s): %s",
+                    "%s container executable (from %s): %s",
                     container_type_id,
                     marker,
                     env_option,
                 )
                 return True
-            else:
-                LOGGER.error(
-                    "Invalid executable path for {}: {}",
-                    container_type_id,
-                    path,
-                )
+
+            LOGGER.error(
+                "Invalid executable path for %s: %s",
+                container_type_id,
+                path,
+            )
 
             return False
 

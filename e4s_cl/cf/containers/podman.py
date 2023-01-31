@@ -5,7 +5,7 @@ Podman container manager support
 import os
 from pathlib import Path
 from e4s_cl.error import InternalError
-from e4s_cl.util import which, run_subprocess
+from e4s_cl.util import run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
@@ -103,7 +103,6 @@ class PodmanContainer(Container):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.executable = which(self.__class__.executable_name)
 
     def _fd_number(self):
         """
@@ -146,7 +145,6 @@ class PodmanContainer(Container):
     def _prepare(self, command):
 
         return [
-            self.executable,  # absolute path to podman
             *self._additional_options(),  # Additional options
             'run',  # Run a container
             '--rm',  # Remove when done
@@ -165,10 +163,11 @@ class PodmanContainer(Container):
         def run(self, command: list[str]):
         """
 
-        if not which(self.executable):
-            raise BackendNotAvailableError(self.executable)
+        executable = self._executable()
+        if executable is None:
+            raise BackendNotAvailableError(self.__class__.__name__)
 
-        container_cmd = self._prepare(command)
+        container_cmd = [executable, *self._prepare(command)]
 
         with FDFiller():
             return run_subprocess(container_cmd, env=self.env)

@@ -1,4 +1,4 @@
-from os import getcwd, environ
+from os import getcwd, environ, pathsep
 import tests
 from e4s_cl import config
 from e4s_cl.cf.containers import (
@@ -8,12 +8,13 @@ from e4s_cl.cf.containers import (
     FileOptions,
 )
 
+CONFIG_EXECUTABLE = tests.ASSETS / 'bin' / 'apptainer-conf'
 DEFAULT_CONFIGURATION = config.CONFIGURATION
-TEST_CONFIGURATION = config.Configuration.create_from_string("""
+TEST_CONFIGURATION = config.Configuration.create_from_string(f"""
 apptainer:
+  executable: '{CONFIG_EXECUTABLE}'
   options: ['--nocolor', '-s']
   exec_options: ['--hostname', 'XxmycoolcontainerxX']
-
 """)
 
 
@@ -66,3 +67,61 @@ class ContainerTestApptainer(tests.TestCase):
         apptainer_command = container._prepare(command)
         for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
             self.assertNotIn(option, apptainer_command)
+
+    def test_executable(self):
+        """Assert the default apptainer executable comes from $PATH"""
+        container = Container(name='apptainer')
+
+        default_path = environ.get('PATH', '')
+        environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'apptainer',
+                         container._executable())
+
+        environ['PATH'] = default_path
+
+    def test_executable_config(self):
+        """Assert the apptainer executable is read from the configuration"""
+        container = Container(name='apptainer')
+
+        config.update_configuration(TEST_CONFIGURATION)
+        self.assertEqual(tests.ASSETS / 'bin' / 'apptainer-conf',
+                         container._executable())
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+
+    def test_executable_env(self):
+        """Assert the apptainer executable is read from the environment"""
+        container = Container(name='apptainer')
+
+        environ['APPTAINER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                              'apptainer-env')
+        self.assertEqual(tests.ASSETS / 'bin' / 'apptainer-env',
+                         container._executable())
+
+        del environ['APPTAINER_EXECUTABLE']
+
+    def test_executable_priority(self):
+        """Assert the environment has precedence over config and config over default"""
+        container = Container(name='apptainer')
+
+        default_path = environ.get('PATH', '')
+        environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
+        config.update_configuration(TEST_CONFIGURATION)
+        environ['APPTAINER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                              'apptainer-env')
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'apptainer-env',
+                         container._executable())
+
+        del environ['APPTAINER_EXECUTABLE']
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'apptainer-conf',
+                         container._executable())
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'apptainer',
+                         container._executable())
+
+        environ['PATH'] = default_path

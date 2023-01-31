@@ -157,10 +157,13 @@ ALLOWED_CONFIG = list(
         ('singularity_executable', str, lambda: ""),
         ('singularity_options', list, lambda: []),
         ('singularity_exec_options', list, lambda: []),
+        ('apptainer_executable', str, lambda: ""),
         ('apptainer_options', list, lambda: []),
         ('apptainer_exec_options', list, lambda: []),
+        ('podman_executable', str, lambda: ""),
         ('podman_options', list, lambda: []),
         ('podman_run_options', list, lambda: []),
+        ('shifter_executable', str, lambda: ""),
         ('shifter_options', list, lambda: []),
     ]))
 

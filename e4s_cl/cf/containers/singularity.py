@@ -4,8 +4,8 @@ Module introducing singularity support
 
 import os
 from pathlib import Path
-from e4s_cl import logger, config
-from e4s_cl.util import which, run_subprocess
+from e4s_cl import logger
+from e4s_cl.util import run_subprocess
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
@@ -88,11 +88,11 @@ class SingularityContainer(Container):
         return True
 
     def run(self, command):
-        self.executable = self._executable()
-        if not self.executable:
-            raise BackendNotAvailableError(self.executable)
+        executable = self._executable()
+        if executable is None:
+            raise BackendNotAvailableError(self.__class__.__name__)
 
-        container_cmd = [self.executable, *self._prepare(command)]
+        container_cmd = [executable, *self._prepare(command)]
 
         return run_subprocess(container_cmd, env=self.env)
 
