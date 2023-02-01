@@ -200,4 +200,20 @@ The following process managers were successfully tested with **e4s-cl**:
 Support implies the automatic detection of parameters. If a launcher is not
 supported, use the ':code:`--`' syntax to separate launcher and process arguments.
 
-See the launcher support definition in :code:`e4s_cl/cf/launchers` for details.
+Additional options can be configured through the configuration file or the environment:
+
+.. list-table::
+   :widths: 10 10 5 5 20
+   :header-rows: 1
+
+   * - Configuration variable
+     - Environment variable
+     - Type
+     - Default
+     - Description
+
+   * - :code:`launcher_options`
+     - :code:`LAUNCHER_OPTIONS`
+     - List
+     - :code:`[]`
+     - List of options to pass to the launcher

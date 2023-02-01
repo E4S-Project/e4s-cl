@@ -478,7 +478,7 @@ class Container:
         For instance on summit, some files are required as
         /jsm_pmix/container/../lib/../bin/file
         Although only /jsm_pmix/bin/file is required, not
-        having jsm_pmix/container && lib makes it error out
+        having jsm_pmix/container && lib makes it error out.
         unrelative returns a list of all the paths required for such a file
         """
         if not path:

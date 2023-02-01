@@ -120,15 +120,28 @@ def parse_cli(cmd):
     raise NotImplementedError(f"Launcher {Path(cmd[0]).name} is not supported")
 
 
-def interpret(cmd):
+def _additional_options() -> list[str]:
+    marker = "launcher_options"
+
+    env_options = environ.get(marker.upper(), None)
+    if env_options:
+        return split(env_options)
+
+    config_options = getattr(
+        config.CONFIGURATION,
+        marker,
+        None,
+    )
+
+    if config_options:
+        return config_options
+
+    return []
+
+
+def interpret(cmd: List[str]) -> Tuple[List[str], List[str]]:
     """
-    Parses a command line to split the launcher command and application commands.
-
-    Args:
-       cmd (list[str]): Command line.
-
-    Returns:
-       tuple: (Launcher command, possibly empty list of application commands).
+    Parses a command line to split the launcher command and application command.
     """
     launcher_cmd = []
 
@@ -140,10 +153,7 @@ def interpret(cmd):
     elif Path(cmd[0]).name in LAUNCHERS:
         launcher_cmd, cmd = parse_cli(cmd)
 
-    env_options = split(environ.get('E4SCL_LAUNCHER_ARGS', ''))
-    config_options = config.CONFIGURATION.launcher_options
-
-    return [*launcher_cmd, *env_options, *config_options], cmd
+    return [*launcher_cmd, *_additional_options()], cmd
 
 
 def filter_arguments(parser: Parser,
