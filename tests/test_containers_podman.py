@@ -54,8 +54,8 @@ class ContainerTestPodman(tests.TestCase):
         for option in {'--root', '/opt/podman', '--tz', 'UTC+8'}:
             self.assertNotIn(option, podman_command)
 
-        environ['PODMAN_OPTIONS'] = '--root /opt/podman'
-        environ['PODMAN_RUN_OPTIONS'] = '--tz UTC+8'
+        environ['E4S_CL_PODMAN_OPTIONS'] = '--root /opt/podman'
+        environ['E4S_CL_PODMAN_RUN_OPTIONS'] = '--tz UTC+8'
         podman_command = container._prepare(command)
         self.assertContainsInOrder([
             '--root',
@@ -65,8 +65,8 @@ class ContainerTestPodman(tests.TestCase):
             'UTC+8',
         ], podman_command)
 
-        del environ['PODMAN_OPTIONS']
-        del environ['PODMAN_RUN_OPTIONS']
+        del environ['E4S_CL_PODMAN_OPTIONS']
+        del environ['E4S_CL_PODMAN_RUN_OPTIONS']
         podman_command = container._prepare(command)
         for option in {'--root', '/opt/podman', '--tz', 'UTC+8'}:
             self.assertNotIn(option, podman_command)
@@ -97,11 +97,12 @@ class ContainerTestPodman(tests.TestCase):
         """Assert the podman executable is read from the environment"""
         container = Container(name='podman')
 
-        environ['PODMAN_EXECUTABLE'] = str(tests.ASSETS / 'bin' / 'podman-env')
+        environ['E4S_CL_PODMAN_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                  'podman-env')
         self.assertEqual(tests.ASSETS / 'bin' / 'podman-env',
                          container._executable())
 
-        del environ['PODMAN_EXECUTABLE']
+        del environ['E4S_CL_PODMAN_EXECUTABLE']
 
     def test_executable_priority(self):
         """Assert the environment has precedence over config and config over default"""
@@ -110,12 +111,13 @@ class ContainerTestPodman(tests.TestCase):
         default_path = environ.get('PATH', '')
         environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
         config.update_configuration(TEST_CONFIGURATION)
-        environ['PODMAN_EXECUTABLE'] = str(tests.ASSETS / 'bin' / 'podman-env')
+        environ['E4S_CL_PODMAN_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                  'podman-env')
 
         self.assertEqual(tests.ASSETS / 'bin' / 'podman-env',
                          container._executable())
 
-        del environ['PODMAN_EXECUTABLE']
+        del environ['E4S_CL_PODMAN_EXECUTABLE']
 
         self.assertEqual(tests.ASSETS / 'bin' / 'podman-conf',
                          container._executable())

@@ -130,8 +130,9 @@ class ContainerTestSingularity(tests.TestCase):
         for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
             self.assertNotIn(option, singularity_command)
 
-        environ['SINGULARITY_OPTIONS'] = "--nocolor -s"
-        environ['SINGULARITY_EXEC_OPTIONS'] = "--hostname XxmycoolcontainerxX"
+        environ['E4S_CL_SINGULARITY_OPTIONS'] = "--nocolor -s"
+        environ[
+            'E4S_CL_SINGULARITY_EXEC_OPTIONS'] = "--hostname XxmycoolcontainerxX"
         singularity_command = container._prepare(command)
         self.assertContainsInOrder([
             '--nocolor',
@@ -141,8 +142,8 @@ class ContainerTestSingularity(tests.TestCase):
             'XxmycoolcontainerxX',
         ], singularity_command)
 
-        del environ['SINGULARITY_OPTIONS']
-        del environ['SINGULARITY_EXEC_OPTIONS']
+        del environ['E4S_CL_SINGULARITY_OPTIONS']
+        del environ['E4S_CL_SINGULARITY_EXEC_OPTIONS']
         singularity_command = container._prepare(command)
         for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
             self.assertNotIn(option, singularity_command)
@@ -173,12 +174,12 @@ class ContainerTestSingularity(tests.TestCase):
         """Assert the singularity executable is read from the environment"""
         container = Container(name='singularity')
 
-        environ['SINGULARITY_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
-                                                'singularity-env')
+        environ['E4S_CL_SINGULARITY_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                       'singularity-env')
         self.assertEqual(tests.ASSETS / 'bin' / 'singularity-env',
                          container._executable())
 
-        del environ['SINGULARITY_EXECUTABLE']
+        del environ['E4S_CL_SINGULARITY_EXECUTABLE']
 
     def test_executable_priority(self):
         """Assert the environment has precedence over config and config over default"""
@@ -187,13 +188,13 @@ class ContainerTestSingularity(tests.TestCase):
         default_path = environ.get('PATH', '')
         environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
         config.update_configuration(TEST_CONFIGURATION)
-        environ['SINGULARITY_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
-                                                'singularity-env')
+        environ['E4S_CL_SINGULARITY_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                       'singularity-env')
 
         self.assertEqual(tests.ASSETS / 'bin' / 'singularity-env',
                          container._executable())
 
-        del environ['SINGULARITY_EXECUTABLE']
+        del environ['E4S_CL_SINGULARITY_EXECUTABLE']
 
         self.assertEqual(tests.ASSETS / 'bin' / 'singularity-conf',
                          container._executable())

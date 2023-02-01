@@ -14,7 +14,6 @@ that posesses the following attributes:
         the container: refer to its docstring for details
 """
 
-import os
 import re
 import sys
 import json
@@ -35,6 +34,7 @@ from e4s_cl import (
 )
 from e4s_cl.variables import ParentStatus
 from e4s_cl.util import (
+    get_env,
     json_loads,
     path_contains,
     run_e4scl_subprocess,
@@ -336,11 +336,7 @@ class Container:
             return False
 
         # Fetch the options from the environment first
-        env_option = os.environ.get(
-            marker.upper(),
-            None,
-        )
-
+        env_option = get_env(marker)
         if _check(env_option, 'env', marker.upper()):
             return Path(env_option)
 
@@ -385,12 +381,7 @@ class Container:
         marker = "_".join(filter(None, [container_type_id, kind, "options"]))
 
         # Fetch the options from the environment first
-        env_options = os.environ.get(
-            marker.upper(),
-            None,
-        )
-
-        if env_options:
+        if env_options := get_env(marker):
             LOGGER.debug(
                 "%s container additional options (from env %s): %s",
                 container_type_id,

@@ -51,8 +51,9 @@ class ContainerTestApptainer(tests.TestCase):
         for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
             self.assertNotIn(option, apptainer_command)
 
-        environ['APPTAINER_OPTIONS'] = "--nocolor -s"
-        environ['APPTAINER_EXEC_OPTIONS'] = "--hostname XxmycoolcontainerxX"
+        environ['E4S_CL_APPTAINER_OPTIONS'] = "--nocolor -s"
+        environ[
+            'E4S_CL_APPTAINER_EXEC_OPTIONS'] = "--hostname XxmycoolcontainerxX"
         apptainer_command = container._prepare(command)
         self.assertContainsInOrder([
             '--nocolor',
@@ -62,8 +63,8 @@ class ContainerTestApptainer(tests.TestCase):
             'XxmycoolcontainerxX',
         ], apptainer_command)
 
-        del environ['APPTAINER_OPTIONS']
-        del environ['APPTAINER_EXEC_OPTIONS']
+        del environ['E4S_CL_APPTAINER_OPTIONS']
+        del environ['E4S_CL_APPTAINER_EXEC_OPTIONS']
         apptainer_command = container._prepare(command)
         for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
             self.assertNotIn(option, apptainer_command)
@@ -94,12 +95,12 @@ class ContainerTestApptainer(tests.TestCase):
         """Assert the apptainer executable is read from the environment"""
         container = Container(name='apptainer')
 
-        environ['APPTAINER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
-                                              'apptainer-env')
+        environ['E4S_CL_APPTAINER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                     'apptainer-env')
         self.assertEqual(tests.ASSETS / 'bin' / 'apptainer-env',
                          container._executable())
 
-        del environ['APPTAINER_EXECUTABLE']
+        del environ['E4S_CL_APPTAINER_EXECUTABLE']
 
     def test_executable_priority(self):
         """Assert the environment has precedence over config and config over default"""
@@ -108,13 +109,13 @@ class ContainerTestApptainer(tests.TestCase):
         default_path = environ.get('PATH', '')
         environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
         config.update_configuration(TEST_CONFIGURATION)
-        environ['APPTAINER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
-                                              'apptainer-env')
+        environ['E4S_CL_APPTAINER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                     'apptainer-env')
 
         self.assertEqual(tests.ASSETS / 'bin' / 'apptainer-env',
                          container._executable())
 
-        del environ['APPTAINER_EXECUTABLE']
+        del environ['E4S_CL_APPTAINER_EXECUTABLE']
 
         self.assertEqual(tests.ASSETS / 'bin' / 'apptainer-conf',
                          container._executable())

@@ -152,12 +152,12 @@ class LauncherTest(tests.TestCase):
         self.assertEqual(launcher, ['mpirun', '-np', '4'])
         self.assertEqual(application, ['./foo', '--bar'])
 
-        environ['LAUNCHER_OPTIONS'] = " ".join(TEST_OPTIONS)
+        environ['E4S_CL_LAUNCHER_OPTIONS'] = " ".join(TEST_OPTIONS)
         launcher, application = interpret(command)
         self.assertEqual(launcher, ['mpirun', '-np', '4', *TEST_OPTIONS])
         self.assertEqual(application, ['./foo', '--bar'])
 
-        del environ['LAUNCHER_OPTIONS']
+        del environ['E4S_CL_LAUNCHER_OPTIONS']
         launcher, application = interpret(command)
         self.assertEqual(launcher, ['mpirun', '-np', '4'])
         self.assertEqual(application, ['./foo', '--bar'])
@@ -170,14 +170,14 @@ class LauncherTest(tests.TestCase):
         self.assertEqual(launcher, ['mpirun', '-np', '4'])
         self.assertEqual(application, ['./foo', '--bar'])
 
-        environ['LAUNCHER_OPTIONS'] = " ".join([*TEST_OPTIONS, '--env'])
+        environ['E4S_CL_LAUNCHER_OPTIONS'] = " ".join([*TEST_OPTIONS, '--env'])
         config.update_configuration(TEST_CONFIGURATION)
         launcher, application = interpret(command)
         self.assertEqual(launcher,
                          ['mpirun', '-np', '4', *TEST_OPTIONS, '--env'])
         self.assertEqual(application, ['./foo', '--bar'])
 
-        del environ['LAUNCHER_OPTIONS']
+        del environ['E4S_CL_LAUNCHER_OPTIONS']
         launcher, application = interpret(command)
         self.assertEqual(launcher, ['mpirun', '-np', '4', *TEST_OPTIONS])
         self.assertEqual(application, ['./foo', '--bar'])

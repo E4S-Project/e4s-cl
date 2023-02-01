@@ -202,7 +202,7 @@ class ContainerTestShifter(tests.TestCase):
         for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
             self.assertNotIn(option, shifter_command)
 
-        environ['SHIFTER_OPTIONS'] = "--workdir=/opt -V /opt:/opt:ro"
+        environ['E4S_CL_SHIFTER_OPTIONS'] = "--workdir=/opt -V /opt:/opt:ro"
         shifter_command = container._prepare(command)
         self.assertContainsInOrder([
             '--workdir=/opt',
@@ -210,7 +210,7 @@ class ContainerTestShifter(tests.TestCase):
             '/opt:/opt:ro',
         ], shifter_command)
 
-        del environ['SHIFTER_OPTIONS']
+        del environ['E4S_CL_SHIFTER_OPTIONS']
         shifter_command = container._prepare(command)
         for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
             self.assertNotIn(option, shifter_command)
@@ -241,12 +241,12 @@ class ContainerTestShifter(tests.TestCase):
         """Assert the shifter executable is read from the environment"""
         container = Container(name='shifter')
 
-        environ['SHIFTER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
-                                            'shifter-env')
+        environ['E4S_CL_SHIFTER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                   'shifter-env')
         self.assertEqual(tests.ASSETS / 'bin' / 'shifter-env',
                          container._executable())
 
-        del environ['SHIFTER_EXECUTABLE']
+        del environ['E4S_CL_SHIFTER_EXECUTABLE']
 
     def test_executable_priority(self):
         """Assert the environment has precedence over config and config over default"""
@@ -255,13 +255,13 @@ class ContainerTestShifter(tests.TestCase):
         default_path = environ.get('PATH', '')
         environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
         config.update_configuration(TEST_CONFIGURATION)
-        environ['SHIFTER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
-                                            'shifter-env')
+        environ['E4S_CL_SHIFTER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                   'shifter-env')
 
         self.assertEqual(tests.ASSETS / 'bin' / 'shifter-env',
                          container._executable())
 
-        del environ['SHIFTER_EXECUTABLE']
+        del environ['E4S_CL_SHIFTER_EXECUTABLE']
 
         self.assertEqual(tests.ASSETS / 'bin' / 'shifter-conf',
                          container._executable())

@@ -37,19 +37,19 @@ The available options are:
      - Description
 
    * - :code:`executable`
-     - :code:`APPTAINER_EXECUTABLE`
+     - :code:`E4S_CL_APPTAINER_EXECUTABLE`
      - String
      - :code:`""`
      - Path to the :code:`apptainer` executable to use.
 
    * - :code:`options`
-     - :code:`APPTAINER_OPTIONS`
+     - :code:`E4S_CL_APPTAINER_OPTIONS`
      - List
      - :code:`[]`
      - Options to pass to the spawned :code:`apptainer` process.
 
    * - :code:`run_options`
-     - :code:`APPTAINER_EXEC_OPTIONS`
+     - :code:`E4S_CL_APPTAINER_EXEC_OPTIONS`
      - List
      - :code:`[]`
      - Options to pass to the :code:`exec` command of the spawned :code:`apptainer` process.
@@ -90,19 +90,19 @@ The available options are:
      - Description
 
    * - :code:`executable`
-     - :code:`PODMAN_EXECUTABLE`
+     - :code:`E4S_CL_PODMAN_EXECUTABLE`
      - String
      - :code:`""`
      - Path to the :code:`podman` executable to use.
 
    * - :code:`options`
-     - :code:`PODMAN_OPTIONS`
+     - :code:`E4S_CL_PODMAN_OPTIONS`
      - List
      - :code:`[]`
      - Options to pass to the spawned :code:`podman` process.
 
    * - :code:`run_options`
-     - :code:`PODMAN_RUN_OPTIONS`
+     - :code:`E4S_CL_PODMAN_RUN_OPTIONS`
      - List
      - :code:`[]`
      - Options to pass to the :code:`run` command of the spawned :code:`podman` process.
@@ -135,13 +135,13 @@ The configuration file section for :code:`shifter` is :code:`shifter`.
      - Description
 
    * - :code:`executable`
-     - :code:`SHIFTER_EXECUTABLE`
+     - :code:`E4S_CL_SHIFTER_EXECUTABLE`
      - String
      - :code:`""`
      - Path to the :code:`shifter` executable to use.
 
    * - :code:`options`
-     - :code:`SHIFTER_OPTIONS`
+     - :code:`E4S_CL_SHIFTER_OPTIONS`
      - List
      - :code:`[]`
      - Options to pass to the spawned :code:`shifter` process.
@@ -165,19 +165,19 @@ The available options are:
      - Description
 
    * - :code:`executable`
-     - :code:`SINGULARITY_EXECUTABLE`
+     - :code:`E4S_CL_SINGULARITY_EXECUTABLE`
      - String
      - :code:`""`
      - Path to the :code:`singularity` executable to use.
 
    * - :code:`options`
-     - :code:`SINGULARITY_OPTIONS`
+     - :code:`E4S_CL_SINGULARITY_OPTIONS`
      - List
      - :code:`[]`
      - Options to pass to the spawned :code:`singularity` process.
 
    * - :code:`run_options`
-     - :code:`SINGULARITY_EXEC_OPTIONS`
+     - :code:`E4S_CL_SINGULARITY_EXEC_OPTIONS`
      - List
      - :code:`[]`
      - Options to pass to the :code:`exec` command of the spawned :code:`singularity` process.
@@ -213,7 +213,7 @@ Additional options can be configured through the configuration file or the envir
      - Description
 
    * - :code:`launcher_options`
-     - :code:`LAUNCHER_OPTIONS`
+     - :code:`E4S_CL_LAUNCHER_OPTIONS`
      - List
      - :code:`[]`
      - List of options to pass to the launcher

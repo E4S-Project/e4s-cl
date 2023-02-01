@@ -15,7 +15,10 @@ from pathlib import Path
 from importlib import import_module
 from shlex import split
 from e4s_cl import logger, config
-from e4s_cl.util import walk_packages
+from e4s_cl.util import (
+    get_env,
+    walk_packages,
+)
 from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
@@ -113,8 +116,7 @@ def get_reserved_directories(cmd: List[str]) -> List[Path]:
 def _additional_options() -> List[str]:
     marker = "launcher_options"
 
-    env_options = environ.get(marker.upper(), None)
-    if env_options:
+    if env_options := get_env(marker):
         return split(env_options)
 
     config_options = getattr(
