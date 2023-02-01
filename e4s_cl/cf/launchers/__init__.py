@@ -116,7 +116,8 @@ def get_reserved_directories(cmd: List[str]) -> List[Path]:
 def _additional_options() -> List[str]:
     marker = "launcher_options"
 
-    if env_options := get_env(marker):
+    env_options = get_env(marker)
+    if env_options:
         return split(env_options)
 
     config_options = getattr(

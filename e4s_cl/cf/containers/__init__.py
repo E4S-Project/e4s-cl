@@ -381,7 +381,8 @@ class Container:
         marker = "_".join(filter(None, [container_type_id, kind, "options"]))
 
         # Fetch the options from the environment first
-        if env_options := get_env(marker):
+        env_options = get_env(marker)
+        if env_options:
             LOGGER.debug(
                 "%s container additional options (from env %s): %s",
                 container_type_id,
