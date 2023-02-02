@@ -46,7 +46,7 @@ class DockerContainer(Container):
                     file.destination.as_posix(),
                     file.origin.as_posix(),
                     type='bind',
-                    read_only=(file.option == FileOptions.READ_ONLY)))
+                    read_only=file.option == FileOptions.READ_ONLY))
 
         container_env = dict(os.environ)
         for key, val in self.env.items():

@@ -60,9 +60,12 @@ class ApptainerContainer(Container):
         """
         # as of the 12th of July 2022, apptainer v1.0.1 still uses the `.singularity.d` folder
         self.add_ld_library_path("/.singularity.d/libs")
-        self.env.update(
-            dict(APPTAINERENV_LD_PRELOAD=":".join(self.ld_preload),
-                 APPTAINERENV_LD_LIBRARY_PATH=":".join(self.ld_lib_path)))
+        self.env.update({
+            "APPTAINERENV_LD_PRELOAD":
+            ":".join(self.ld_preload),
+            "APPTAINERENV_LD_LIBRARY_PATH":
+            ":".join(self.ld_lib_path),
+        })
         self._format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
