@@ -8,7 +8,12 @@ import yaml
 from dataclasses import dataclass
 from typing import List, Dict
 from pathlib import Path
-from e4s_cl import E4S_CL_HOME, E4S_CL_TEST, CONTAINER_DIR, EXIT_FAILURE
+from e4s_cl import (
+    CONTAINER_DIR,
+    E4S_CL_HOME,
+    E4S_CL_TEST,
+    EXIT_FAILURE,
+)
 
 
 def update_configuration(configuration):
@@ -223,88 +228,91 @@ ALLOWED_CONFIG = ConfigurationGroup(
             "Disable logging on the work nodes",
         ),
         ConfigurationGroup(
-            "singularity",
-            {
-                ConfigurationField(
-                    "executable",
-                    str,
-                    lambda: "",
-                    "Location of the singularity executable to use",
+            "backends", {
+                ConfigurationGroup(
+                    "singularity",
+                    {
+                        ConfigurationField(
+                            "executable",
+                            str,
+                            lambda: "",
+                            "Location of the singularity executable to use",
+                        ),
+                        ConfigurationField(
+                            "options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the singularity executable",
+                        ),
+                        ConfigurationField(
+                            "exec_options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the singularity exec command",
+                        ),
+                    },
+                    "Singularity container backend configuration",
                 ),
-                ConfigurationField(
-                    "options",
-                    list,
-                    lambda: [],
-                    "Options to pass to the singularity executable",
+                ConfigurationGroup(
+                    "apptainer",
+                    {
+                        ConfigurationField(
+                            "executable",
+                            str,
+                            lambda: "",
+                            "Location of the apptainer executable to use",
+                        ),
+                        ConfigurationField(
+                            "options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the apptainer executable",
+                        ),
+                        ConfigurationField(
+                            "exec_options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the apptainer exec command",
+                        ),
+                    },
+                    "Apptainer container backend configuration",
                 ),
-                ConfigurationField(
-                    "exec_options",
-                    list,
-                    lambda: [],
-                    "Options to pass to the singularity exec command",
-                ),
-            },
-            "Singularity container backend configuration",
-        ),
-        ConfigurationGroup(
-            "apptainer",
-            {
-                ConfigurationField(
-                    "executable",
-                    str,
-                    lambda: "",
-                    "Location of the apptainer executable to use",
-                ),
-                ConfigurationField(
-                    "options",
-                    list,
-                    lambda: [],
-                    "Options to pass to the apptainer executable",
-                ),
-                ConfigurationField(
-                    "exec_options",
-                    list,
-                    lambda: [],
-                    "Options to pass to the apptainer exec command",
-                ),
-            },
-            "Apptainer container backend configuration",
-        ),
-        ConfigurationGroup(
-            "podman", {
-                ConfigurationField(
-                    "executable",
-                    str,
-                    lambda: "",
-                    "Location of the podman executable to use",
-                ),
-                ConfigurationField(
-                    "options",
-                    list,
-                    lambda: [],
-                    "Options to pass to the podman executable",
-                ),
-                ConfigurationField(
-                    "run_options",
-                    list,
-                    lambda: [],
-                    "Options to pass to the podman run command",
-                ),
-            }),
-        ConfigurationGroup(
-            "shifter", {
-                ConfigurationField(
-                    "executable",
-                    str,
-                    lambda: "",
-                    "Location of the shifter executable to use",
-                ),
-                ConfigurationField(
-                    "options",
-                    list,
-                    lambda: [],
-                    "Options to pass to the shifter executable",
-                ),
+                ConfigurationGroup(
+                    "podman", {
+                        ConfigurationField(
+                            "executable",
+                            str,
+                            lambda: "",
+                            "Location of the podman executable to use",
+                        ),
+                        ConfigurationField(
+                            "options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the podman executable",
+                        ),
+                        ConfigurationField(
+                            "run_options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the podman run command",
+                        ),
+                    }),
+                ConfigurationGroup(
+                    "shifter", {
+                        ConfigurationField(
+                            "executable",
+                            str,
+                            lambda: "",
+                            "Location of the shifter executable to use",
+                        ),
+                        ConfigurationField(
+                            "options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the shifter executable",
+                        ),
+                    }),
             }),
     })
 

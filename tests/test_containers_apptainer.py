@@ -11,10 +11,11 @@ from e4s_cl.cf.containers import (
 CONFIG_EXECUTABLE = tests.ASSETS / 'bin' / 'apptainer-conf'
 DEFAULT_CONFIGURATION = config.CONFIGURATION
 TEST_CONFIGURATION = config.Configuration.create_from_string(f"""
-apptainer:
-  executable: '{CONFIG_EXECUTABLE}'
-  options: ['--nocolor', '-s']
-  exec_options: ['--hostname', 'XxmycoolcontainerxX']
+backends:
+  apptainer:
+    executable: '{CONFIG_EXECUTABLE}'
+    options: ['--nocolor', '-s']
+    exec_options: ['--hostname', 'XxmycoolcontainerxX']
 """)
 
 

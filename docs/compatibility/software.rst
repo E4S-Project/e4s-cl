@@ -14,7 +14,7 @@ During a :code:`launch` command, a list of required files will be computed on ea
 :code:`apptainer`, :code:`podman`, :code:`shifter` and :code:`singularity` are supported. The :code:`docker` backend can be enabled by installing **e4s-cl** with the :code:`docker` extra feature.
 
 Most of the container backends have some degree of configuration available to them.
-Configuration is done by setting the values in the corresponding section of the configuration file, or by passing a given environment variable.
+Configuration is done by setting the corresponding values in the :code:`backends` section of the configuration file, or by passing a given environment variable.
 
 An option passed in the environment will override the same option set in the configuration file.
 
@@ -23,7 +23,7 @@ An option passed in the environment will override the same option set in the con
 
 :code:`apptainer` support is achieved using its command line interface. :code:`apptainer` has to be installed on the system and available for it to be used by **e4s-cl**.
 
-The configuration file section for :code:`apptainer` is :code:`apptainer`.
+The configuration file section for :code:`apptainer` is :code:`backends/apptainer`.
 The available options are:
 
 .. list-table::
@@ -76,7 +76,7 @@ There are no configuration options for the :code:`docker` backend.
 
 :code:`podman` support is achieved using its command line interface. :code:`podman` has to be installed on the system and available for it to be used by **e4s-cl**.
 
-The configuration file section for :code:`podman` is :code:`podman`.
+The configuration file section for :code:`podman` is :code:`backends/podman`.
 The available options are:
 
 .. list-table::
@@ -122,7 +122,7 @@ The :code:`shifter` container technology is an interesting case, as it offers mu
     :code:`shifter` also forbids binding directories to certain locations, like :code:`/etc`.
     This is circumvented by **e4s-cl** by copying all required libraries in a temporary directory, then binding it to the container. Files are ignored.
 
-The configuration file section for :code:`shifter` is :code:`shifter`.
+The configuration file section for :code:`shifter` is :code:`backends/shifter`.
 
 .. list-table::
    :widths: 10 10 5 5 20
@@ -151,7 +151,7 @@ The configuration file section for :code:`shifter` is :code:`shifter`.
 
 :code:`singularity` support is achieved using its command line interface. :code:`singularity` has to be installed on the system and available for it to be used by **e4s-cl**.
 
-The configuration file section for :code:`singularity` is :code:`singularity`.
+The configuration file section for :code:`singularity` is :code:`backends/singularity`.
 The available options are:
 
 .. list-table::
