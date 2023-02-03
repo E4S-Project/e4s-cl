@@ -53,6 +53,30 @@ class ConfigurationField:
     default: callable
 
 
+@dataclass(frozen=True)
+class ConfigurationGroup:
+    key: str
+    fields: frozenset  # [ConfigurationField|ConfigurationGroup]
+
+    def __init__(self, key, fields):
+        object.__setattr__(self, "key", key)
+        object.__setattr__(self, "fields", frozenset(fields))
+
+    def flatten(self):
+        _fields = []
+
+        for field in self.fields:
+            if isinstance(field, ConfigurationGroup):
+                _fields.extend(field.flatten())
+            elif isinstance(field, ConfigurationField):
+                _fields.append(field)
+
+        for field in _fields:
+            namespaced = "_".join(filter(None, [self.key, field.key]))
+            yield ConfigurationField(namespaced, field.expected_type,
+                                     field.default)
+
+
 class ConfigurationError(Exception):
     """
     Do not pass through logger nor error as those depend on configuration
@@ -81,7 +105,7 @@ class Configuration:
         config = cls()
         data = flatten(yaml.safe_load(string)) or {}
 
-        for parameter in ALLOWED_CONFIG:
+        for parameter in ALLOWED_CONFIG.flatten():
             field = {}
             if parameter.key in data:
                 value = data[parameter.key]
@@ -147,25 +171,37 @@ USER_CONFIG_PATH = Path.home() / ".config/e4s-cl.yaml"
 INSTALL_CONFIG_PATH = Path(E4S_CL_HOME) / "e4s-cl.yaml"
 SYSTEM_CONFIG_PATH = "/etc/e4s-cl/e4s-cl.yaml"
 
-ALLOWED_CONFIG = list(
-    map(lambda x: ConfigurationField(*x), [
-        ('container_directory', str, lambda: CONTAINER_DIR),
-        ('launcher_options', list, lambda: []),
-        ('profile_list_columns', list, lambda: []),
-        ('preload_root_libraries', bool, lambda: False),
-        ('disable_ranked_log', bool, lambda: False),
-        ('singularity_executable', str, lambda: ""),
-        ('singularity_options', list, lambda: []),
-        ('singularity_exec_options', list, lambda: []),
-        ('apptainer_executable', str, lambda: ""),
-        ('apptainer_options', list, lambda: []),
-        ('apptainer_exec_options', list, lambda: []),
-        ('podman_executable', str, lambda: ""),
-        ('podman_options', list, lambda: []),
-        ('podman_run_options', list, lambda: []),
-        ('shifter_executable', str, lambda: ""),
-        ('shifter_options', list, lambda: []),
-    ]))
+ALLOWED_CONFIG = ConfigurationGroup(
+    "", {
+        ConfigurationField("container_directory", str, lambda: CONTAINER_DIR),
+        ConfigurationField("launcher_options", list, lambda: []),
+        ConfigurationField("profile_list_columns", list, lambda: []),
+        ConfigurationField("preload_root_libraries", bool, lambda: False),
+        ConfigurationField("disable_ranked_log", bool, lambda: False),
+        ConfigurationGroup(
+            "singularity", {
+                ConfigurationField("executable", str, lambda: ""),
+                ConfigurationField("options", list, lambda: []),
+                ConfigurationField("exec_options", list, lambda: []),
+            }),
+        ConfigurationGroup(
+            "apptainer", {
+                ConfigurationField("executable", str, lambda: ""),
+                ConfigurationField("options", list, lambda: []),
+                ConfigurationField("exec_options", list, lambda: []),
+            }),
+        ConfigurationGroup(
+            "podman", {
+                ConfigurationField("executable", str, lambda: ""),
+                ConfigurationField("options", list, lambda: []),
+                ConfigurationField("run_options", list, lambda: []),
+            }),
+        ConfigurationGroup(
+            "shifter", {
+                ConfigurationField("executable", str, lambda: ""),
+                ConfigurationField("options", list, lambda: []),
+            }),
+    })
 
 CONFIGURATION = Configuration.default()
 if not E4S_CL_TEST:

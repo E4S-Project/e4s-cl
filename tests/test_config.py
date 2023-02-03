@@ -8,7 +8,12 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 import e4s_cl.config
-from e4s_cl.config import flatten, Configuration, ALLOWED_CONFIG, ConfigurationError
+from e4s_cl.config import (
+    ALLOWED_CONFIG,
+    Configuration,
+    ConfigurationError,
+    flatten,
+)
 from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.containers import Container
 from e4s_cl.cli.commands.launch import COMMAND as launch_command
@@ -58,7 +63,7 @@ launcher_options: 8"""
     def test_completion(self):
         c = Configuration.default()
 
-        for field in ALLOWED_CONFIG:
+        for field in ALLOWED_CONFIG.flatten():
             self.assertEqual(getattr(c, field.key, None), field.default())
 
     def test_access(self):
