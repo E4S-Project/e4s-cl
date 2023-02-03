@@ -80,6 +80,21 @@ class ConfigurationGroup:
             yield ConfigurationField(namespaced, field.expected_type,
                                      field.default)
 
+    def as_dict(self) -> Dict:
+        out = {}
+
+        for field in self.fields:
+            if isinstance(field, ConfigurationGroup):
+                out[field.key] = field.as_dict()
+
+            elif isinstance(field, ConfigurationField):
+                out[field.key] = field.default()
+
+        return out
+
+    def template(self):
+        return yaml.safe_dump(self.as_dict())
+
 
 class ConfigurationError(Exception):
     """
