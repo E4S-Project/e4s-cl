@@ -4,9 +4,10 @@ Load and propagate the contents of configuration files in YAML format
 """
 
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 import yaml
+from dataclasses import dataclass
+from typing import List, Dict
+from pathlib import Path
 from e4s_cl import E4S_CL_HOME, E4S_CL_TEST, CONTAINER_DIR, EXIT_FAILURE
 
 
@@ -51,16 +52,19 @@ class ConfigurationField:
     key: str
     expected_type: type
     default: callable
+    description: str = ""
 
 
 @dataclass(frozen=True)
 class ConfigurationGroup:
     key: str
     fields: frozenset  # [ConfigurationField|ConfigurationGroup]
+    description: str = ""
 
-    def __init__(self, key, fields):
+    def __init__(self, key, fields, description=""):
         object.__setattr__(self, "key", key)
         object.__setattr__(self, "fields", frozenset(fields))
+        object.__setattr__(self, "description", description)
 
     def flatten(self):
         _fields = []
@@ -173,33 +177,119 @@ SYSTEM_CONFIG_PATH = "/etc/e4s-cl/e4s-cl.yaml"
 
 ALLOWED_CONFIG = ConfigurationGroup(
     "", {
-        ConfigurationField("container_directory", str, lambda: CONTAINER_DIR),
-        ConfigurationField("launcher_options", list, lambda: []),
-        ConfigurationField("profile_list_columns", list, lambda: []),
-        ConfigurationField("preload_root_libraries", bool, lambda: False),
-        ConfigurationField("disable_ranked_log", bool, lambda: False),
+        ConfigurationField(
+            "container_directory",
+            str,
+            lambda: CONTAINER_DIR,
+            "e4s-cl data directory location inside the container",
+        ),
+        ConfigurationField(
+            "launcher_options",
+            list,
+            lambda: [],
+            "Additional options to pass to the process launcher",
+        ),
+        ConfigurationField(
+            "profile_list_columns",
+            list,
+            lambda: [],
+            "Columns to display with the profile list command",
+        ),
+        ConfigurationField(
+            "preload_root_libraries",
+            bool,
+            lambda: False,
+            "Insert LD_PRELOAD calls to ensure bound libraries are preloaded. Required when using RPATH'ed libraries",
+        ),
+        ConfigurationField(
+            "disable_ranked_log",
+            bool,
+            lambda: False,
+            "Disable logging on the work nodes",
+        ),
         ConfigurationGroup(
-            "singularity", {
-                ConfigurationField("executable", str, lambda: ""),
-                ConfigurationField("options", list, lambda: []),
-                ConfigurationField("exec_options", list, lambda: []),
-            }),
+            "singularity",
+            {
+                ConfigurationField(
+                    "executable",
+                    str,
+                    lambda: "",
+                    "Location of the singularity executable to use",
+                ),
+                ConfigurationField(
+                    "options",
+                    list,
+                    lambda: [],
+                    "Options to pass to the singularity executable",
+                ),
+                ConfigurationField(
+                    "exec_options",
+                    list,
+                    lambda: [],
+                    "Options to pass to the singularity exec command",
+                ),
+            },
+            "Singularity container backend configuration",
+        ),
         ConfigurationGroup(
-            "apptainer", {
-                ConfigurationField("executable", str, lambda: ""),
-                ConfigurationField("options", list, lambda: []),
-                ConfigurationField("exec_options", list, lambda: []),
-            }),
+            "apptainer",
+            {
+                ConfigurationField(
+                    "executable",
+                    str,
+                    lambda: "",
+                    "Location of the apptainer executable to use",
+                ),
+                ConfigurationField(
+                    "options",
+                    list,
+                    lambda: [],
+                    "Options to pass to the apptainer executable",
+                ),
+                ConfigurationField(
+                    "exec_options",
+                    list,
+                    lambda: [],
+                    "Options to pass to the apptainer exec command",
+                ),
+            },
+            "Apptainer container backend configuration",
+        ),
         ConfigurationGroup(
             "podman", {
-                ConfigurationField("executable", str, lambda: ""),
-                ConfigurationField("options", list, lambda: []),
-                ConfigurationField("run_options", list, lambda: []),
+                ConfigurationField(
+                    "executable",
+                    str,
+                    lambda: "",
+                    "Location of the podman executable to use",
+                ),
+                ConfigurationField(
+                    "options",
+                    list,
+                    lambda: [],
+                    "Options to pass to the podman executable",
+                ),
+                ConfigurationField(
+                    "run_options",
+                    list,
+                    lambda: [],
+                    "Options to pass to the podman run command",
+                ),
             }),
         ConfigurationGroup(
             "shifter", {
-                ConfigurationField("executable", str, lambda: ""),
-                ConfigurationField("options", list, lambda: []),
+                ConfigurationField(
+                    "executable",
+                    str,
+                    lambda: "",
+                    "Location of the shifter executable to use",
+                ),
+                ConfigurationField(
+                    "options",
+                    list,
+                    lambda: [],
+                    "Options to pass to the shifter executable",
+                ),
             }),
     })
 
