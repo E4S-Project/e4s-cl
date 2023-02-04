@@ -13,6 +13,7 @@ from e4s_cl import (
     E4S_CL_HOME,
     E4S_CL_TEST,
     EXIT_FAILURE,
+    PROFILE_LIST_DEFAULT_COLUMNS,
 )
 
 
@@ -212,7 +213,7 @@ ALLOWED_CONFIG = ConfigurationGroup(
         ConfigurationField(
             "profile_list_columns",
             list,
-            lambda: [],
+            lambda: PROFILE_LIST_DEFAULT_COLUMNS,
             "Columns to display with the profile list command",
         ),
         ConfigurationField(
