@@ -294,7 +294,8 @@ class LogFormatter(logging.Formatter):
         
         .. _termcolor: http://pypi.python.org/pypi/termcolor
         """
-        if COLOR_OUTPUT and self.allow_colors and color_args:
+        if (COLOR_OUTPUT and self.allow_colors and color_args
+                and not sys.stdout.closed):
             return termcolor.colored(text, *color_args)
         return text
 
