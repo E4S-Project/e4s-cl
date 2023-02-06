@@ -166,9 +166,9 @@ def excepthook(etype, value, tb):
     else:
         backtrace = ''.join(traceback.format_exception(etype, value, tb))
         LOGGER.debug(backtrace)
-        try:
+        if hasattr(value, 'handle'):
             sys.exit(value.handle(etype, value, tb))
-        except AttributeError:
+        else:
             message = Error.message_fmt % {
                 'value': value,
                 'typename': etype.__name__,
