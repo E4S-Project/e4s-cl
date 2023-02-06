@@ -5,6 +5,7 @@ Needs the docker module from extras
 
 import os
 import sys
+from typing import List
 import docker
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.containers import Container, FileOptions, BackendError, BackendNotAvailableError
@@ -21,11 +22,7 @@ class DockerContainer(Container):
     Class used to abstract docker containers
     """
 
-    def run(self, command):
-        """
-        def run(self, command: list[str]):
-        """
-
+    def run(self, command: List[str], overload: bool = True) -> int:
         # Create the client from the environment
         client = docker.from_env()
 

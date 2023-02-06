@@ -5,6 +5,7 @@ Containerless support
 import os
 import tempfile
 from pathlib import Path
+from typing import List
 from e4s_cl import CONTAINER_SCRIPT
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.logger import get_logger
@@ -81,11 +82,7 @@ class Containerless(Container):
 
         self.env["LD_LIBRARY_PATH"] = ld_path
 
-    def run(self, command):
-        """
-        def run(self, command: list[str]):
-        """
-
+    def run(self, command: List[str], overload: bool = True) -> int:
         if not which(self.executable):
             raise BackendNotAvailableError(self.executable)
 

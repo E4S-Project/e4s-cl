@@ -4,6 +4,7 @@ Module introducing singularity support
 
 import os
 from pathlib import Path
+from typing import List
 from e4s_cl import logger
 from e4s_cl.util import run_subprocess
 from e4s_cl.cf.libraries import cache_libraries
@@ -52,10 +53,8 @@ class ApptainerContainer(Container):
 
         self.env.update({"APPTAINER_BIND": ','.join(_format())})
 
-    def _prepare(self, command):
+    def _prepare(self, command: List[str], overload: bool = True) -> List[str]:
         """
-        -> list[str]
-
         Return the command to run in a list of string
         """
         # as of the 12th of July 2022, apptainer v1.0.1 still uses the `.singularity.d` folder
@@ -90,12 +89,12 @@ class ApptainerContainer(Container):
             return False
         return True
 
-    def run(self, command):
+    def run(self, command: List[str], overload: bool = True) -> int:
         executable = self._executable()
         if executable is None:
             raise BackendNotAvailableError(self.__class__.__name__)
 
-        container_cmd = [executable, *self._prepare(command)]
+        container_cmd = [executable, *self._prepare(command, overload)]
 
         return run_subprocess(container_cmd, env=self.env)
 

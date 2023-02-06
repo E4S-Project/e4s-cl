@@ -423,11 +423,15 @@ class Container:
         """
         outstream = sys.stdout
 
+        if self.cache:
+            return set()
+
         # Obfuscate stdout to access the output of the below commands
         with TemporaryFile() as buffer:
+            # Most likely is the source of the errors observed in https://github.com/E4S-Project/e4s-cl/issues/100
             sys.stdout = buffer
 
-            code = self.run(['cat', '/etc/ld.so.cache'])
+            code = self.run(['cat', '/etc/ld.so.cache'], overload=False)
 
             if code:
                 raise AnalysisError(code)
@@ -443,7 +447,7 @@ class Container:
                 # for older caches, grab the version from the ldconfig binary
                 sys.stdout.seek(0, 0)
                 sys.stdout.truncate(0)
-                code = self.run(['ldconfig', '--version'])
+                code = self.run(['ldconfig', '--version'], overload=False)
                 sys.stdout.seek(0, 0)
                 glib_version = sys.stdout.read().decode()
                 self.libc_v = Version(glib_version)
@@ -510,11 +514,9 @@ class Container:
         if path not in self.ld_lib_path:
             self.ld_lib_path.append(path)
 
-    def run(self, command):
+    def run(self, command: List[str], overload: bool = True) -> int:
         """
         run a command in a container.
-
-        command         list[str]   the command line to execute
 
         This method must be implemented in the container module.
         It should take into account the parameters set in the object:
@@ -523,6 +525,10 @@ class Container:
         - The LD_PRELOAD self.ld_preload;
         - The LD_LIBRARY_PATH self.ld_lib_path
         and set them to be available in the created container.
+
+        If the `overload` flag is set to false, the container is started
+        without any of the configuration from the Container object. This
+        is used to perform analysis commands in a clean environment.
         """
         raise NotImplementedError(
             f"`run` method not implemented for container module {self.__class__.__name__}"
