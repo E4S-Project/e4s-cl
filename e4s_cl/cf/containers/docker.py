@@ -4,6 +4,7 @@ Module introducing docker backend support
 
 import os
 import sys
+from typing import List
 
 try:
     import docker
@@ -26,11 +27,7 @@ class DockerContainer(Container):
     Class used to abstract docker containers
     """
 
-    def run(self, command):
-        """
-        def run(self, command: list[str]):
-        """
-
+    def run(self, command: List[str], overload: bool = True) -> int:
         if not DOCKER_MODULE:
             raise BackendNotAvailableError(
                 'Docker module required but not found !')

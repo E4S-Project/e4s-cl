@@ -4,6 +4,7 @@ Module introducing singularity support
 
 import os
 from pathlib import Path
+from typing import List
 from e4s_cl import logger, config
 from e4s_cl.util import which, run_subprocess
 from e4s_cl.cf.libraries import cache_libraries
@@ -53,10 +54,8 @@ class SingularityContainer(Container):
 
         self.env.update({"SINGULARITY_BIND": ','.join(_format())})
 
-    def _prepare(self, command):
+    def _prepare(self, command: List[str], overload: bool = True) -> List[str]:
         """
-        -> list[str]
-
         Return the command to run in a list of string
         """
         self.add_ld_library_path("/.singularity.d/libs")
@@ -68,9 +67,13 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable, 'exec',
+            self.executable,
+            'exec',
             *config.CONFIGURATION.singularity_cli_options,
-            *self._working_dir(), *nvidia_flag, self.image, *command
+            *self._working_dir(),
+            *nvidia_flag,
+            self.image,
+            *command,
         ]
 
     def bind_env_var(self, key, value):
@@ -84,11 +87,11 @@ class SingularityContainer(Container):
             return False
         return True
 
-    def run(self, command):
+    def run(self, command: List[str], overload: bool = True) -> int:
         if not self.executable:
             raise BackendNotAvailableError(self.executable)
 
-        container_cmd = self._prepare(command)
+        container_cmd = self._prepare(command, overload)
 
         return run_subprocess(container_cmd, env=self.env)
 
