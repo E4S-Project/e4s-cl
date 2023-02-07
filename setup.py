@@ -26,6 +26,8 @@ except Exception as err:
         f"Failed to lookup dependencies from {DEPENDENCY_FILE_PATH}: {str(err)}",
         file=sys.stderr)
 
+EXTRAS = {'docker': ['docker>=5.0.3']}
+
 # Package author information
 AUTHOR = "Jean-Baptiste Skutnik"
 AUTHOR_EMAIL = "jskutnik@uoregon.edu"
@@ -55,20 +57,21 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3',
 ]
 
-install_options = {
-    "name": NAME,
-    "version": VERSION,
-    "url": metadata.WEBSITE,
-    "author": AUTHOR,
-    "author_email": AUTHOR_EMAIL,
-    "description": DESCRIPTION,
-    "long_description": LONG_DESCRIPTION,
-    "license": metadata.LICENSE,
-    "keywords": KEYWORDS,
-    "classifiers": CLASSIFIERS,
-    "install_requires": DEPENDENCIES,
-    "scripts": ['scripts/e4s-cl', 'scripts/mpi_id.py'],
-    "packages": find_packages(exclude=['tests']),
-}
+install_options = dict(
+    name=NAME,
+    version=VERSION,
+    url=metadata.WEBSITE,
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    license=metadata.LICENSE,
+    keywords=KEYWORDS,
+    classifiers=CLASSIFIERS,
+    install_requires=DEPENDENCIES,
+    extras_require=EXTRAS,
+    scripts=['scripts/e4s-cl'],
+    packages=find_packages(exclude=['tests']),
+)
 
 setup(**install_options)

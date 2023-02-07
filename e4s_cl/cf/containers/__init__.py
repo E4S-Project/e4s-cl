@@ -14,7 +14,6 @@ that posesses the following attributes:
         the container: refer to its docstring for details
 """
 
-import os
 import re
 import sys
 import json
@@ -25,11 +24,23 @@ from pathlib import Path
 from typing import Union, List, Tuple, Iterable, Optional
 from sotools.dl_cache import cache_libraries, get_generator
 from e4s_cl.logger import get_logger, debug_mode
-from e4s_cl import (EXIT_FAILURE, CONTAINER_DIR, CONTAINER_LIBRARY_DIR,
-                    CONTAINER_BINARY_DIR, CONTAINER_SCRIPT)
+from e4s_cl import (
+    CONTAINER_BINARY_DIR,
+    CONTAINER_DIR,
+    CONTAINER_LIBRARY_DIR,
+    CONTAINER_SCRIPT,
+    EXIT_FAILURE,
+    config,
+)
 from e4s_cl.variables import ParentStatus
-from e4s_cl.util import (walk_packages, which, json_loads,
-                         run_e4scl_subprocess, path_contains)
+from e4s_cl.util import (
+    get_env,
+    json_loads,
+    path_contains,
+    run_e4scl_subprocess,
+    walk_packages,
+    which,
+)
 from e4s_cl.cf.version import Version
 from e4s_cl.error import ConfigurationError
 
@@ -249,6 +260,9 @@ class Container:
         # Container image identifier
         self.image = image
 
+        # Container type identifier
+        self.name = name
+
         # User-set parameters
         # Files to bind: set(BoundFile)
         self._bound_files = set()
@@ -278,6 +292,123 @@ class Container:
     def import_binary_dir(self):
         return Path(CONTAINER_BINARY_DIR)
 
+    def _executable(self) -> Optional[Path]:
+        """
+        Inspect the configuration and environment for a path towards the
+        container binary to execute.
+
+        If nothing is found, the default executable name is looked up on $PATH.
+        """
+
+        def _valid_executable(path: Path) -> bool:
+            # Check for executable status ?
+            return path.exists()
+
+        container_type_id = getattr(self, 'name', None)
+        if container_type_id is None or not isinstance(container_type_id, str):
+            return None
+
+        # Generate the marker from the parameters.
+        # If kind is present -> {container_id}_{kind}_options
+        # If not             -> {container_id}_options
+        marker = f"{container_type_id}_executable"
+
+        def _check(path: str, origin: str, marker: str) -> bool:
+            if path is None:
+                return False
+
+            path = Path(path)
+            if _valid_executable(path):
+                LOGGER.debug(
+                    "%s container executable (from %s): %s",
+                    container_type_id,
+                    marker,
+                    env_option,
+                )
+                return True
+
+            LOGGER.error(
+                "Invalid executable path for %s: %s",
+                container_type_id,
+                path,
+            )
+
+            return False
+
+        # Fetch the options from the environment first
+        env_option = get_env(marker)
+        if _check(env_option, 'env', marker.upper()):
+            return Path(env_option)
+
+        # If the environment is empty, try the configuration
+        config_option = getattr(
+            config.CONFIGURATION,
+            f"backends_{marker}",
+            None,
+        )
+
+        if _check(config_option, 'config', marker):
+            return Path(config_option)
+
+        default_executable = getattr(self.__class__, 'executable_name', None)
+        if default_executable is not None:
+            path = which(default_executable)
+
+            if path is not None and _valid_executable(Path(path)):
+                return Path(path)
+
+        return None
+
+    def _additional_options(self, kind: Optional[str] = None) -> List[str]:
+        """
+        Inspect the configuration and environment to get a list of additional
+        options for the given container.
+
+        The `kind` argument allows to maintain multiple sets of arguments, to
+        be used differently, for each container module.
+
+        Options set in the environment have higher priority over options set in
+        configuration files.
+        """
+
+        container_type_id = getattr(self, 'name', None)
+        if container_type_id is None or not isinstance(container_type_id, str):
+            return []
+
+        # Generate the marker from the parameters.
+        # If kind is present -> {container_id}_{kind}_options
+        # If not             -> {container_id}_options
+        marker = "_".join(filter(None, [container_type_id, kind, "options"]))
+
+        # Fetch the options from the environment first
+        env_options = get_env(marker)
+        if env_options:
+            LOGGER.debug(
+                "%s container additional options (from env %s): %s",
+                container_type_id,
+                marker.upper(),
+                env_options.split(),
+            )
+            return env_options.split()
+
+        # If the environment is empty, try the configuration
+        config_options = getattr(
+            config.CONFIGURATION,
+            f"backends_{marker}",
+            None,
+        )
+
+        if config_options:
+            LOGGER.debug(
+                "%s container additional options (from config %s): %s",
+                container_type_id,
+                marker,
+                config_options,
+            )
+            return config_options
+
+        return []
+
     def get_data(self):
         """
         Run analysis commands in the container to get informations about the
@@ -292,11 +423,15 @@ class Container:
         """
         outstream = sys.stdout
 
+        if self.cache:
+            return set()
+
         # Obfuscate stdout to access the output of the below commands
         with TemporaryFile() as buffer:
+            # Most likely is the source of the errors observed in https://github.com/E4S-Project/e4s-cl/issues/100
             sys.stdout = buffer
 
-            code = self.run(['cat', '/etc/ld.so.cache'])
+            code = self.run(['cat', '/etc/ld.so.cache'], overload=False)
 
             if code:
                 raise AnalysisError(code)
@@ -312,7 +447,7 @@ class Container:
                 # for older caches, grab the version from the ldconfig binary
                 sys.stdout.seek(0, 0)
                 sys.stdout.truncate(0)
-                code = self.run(['ldconfig', '--version'])
+                code = self.run(['ldconfig', '--version'], overload=False)
                 sys.stdout.seek(0, 0)
                 glib_version = sys.stdout.read().decode()
                 self.libc_v = Version(glib_version)
@@ -339,7 +474,7 @@ class Container:
         For instance on summit, some files are required as
         /jsm_pmix/container/../lib/../bin/file
         Although only /jsm_pmix/bin/file is required, not
-        having jsm_pmix/container && lib makes it error out
+        having jsm_pmix/container && lib makes it error out.
         unrelative returns a list of all the paths required for such a file
         """
         if not path:
@@ -379,11 +514,9 @@ class Container:
         if path not in self.ld_lib_path:
             self.ld_lib_path.append(path)
 
-    def run(self, command):
+    def run(self, command: List[str], overload: bool = True) -> int:
         """
         run a command in a container.
-
-        command         list[str]   the command line to execute
 
         This method must be implemented in the container module.
         It should take into account the parameters set in the object:
@@ -392,6 +525,10 @@ class Container:
         - The LD_PRELOAD self.ld_preload;
         - The LD_LIBRARY_PATH self.ld_lib_path
         and set them to be available in the created container.
+
+        If the `overload` flag is set to false, the container is started
+        without any of the configuration from the Container object. This
+        is used to perform analysis commands in a clean environment.
         """
         raise NotImplementedError(
             f"`run` method not implemented for container module {self.__class__.__name__}"
@@ -451,7 +588,11 @@ def assert_module(_module) -> bool:
 
 
 for _, _module_name, _ in walk_packages(__path__, prefix=__name__ + "."):
-    import_module(_module_name)
+    try:
+        import_module(_module_name)
+    except ModuleNotFoundError:
+        continue
+
     _module = sys.modules[_module_name]
 
     if not assert_module(_module):

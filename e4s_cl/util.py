@@ -12,12 +12,21 @@ import pkgutil
 from pathlib import Path
 import hashlib
 import json
-from typing import List, Callable, Iterable, Any
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Optional,
+)
 from functools import lru_cache, reduce
 from shutil import which as sh_which
 from collections import deque
 from tarfile import TarFile
-from e4s_cl import logger
+from e4s_cl import (
+    E4S_CL_ENV_PREFIX,
+    logger,
+)
 from e4s_cl.variables import ParentStatus
 from e4s_cl.error import InternalError
 
@@ -74,6 +83,16 @@ def mkdirp(path: Path) -> bool:
 @lru_cache()
 def which(*args, **kwargs):
     return sh_which(*args, **kwargs)
+
+
+def get_env(var: str) -> Optional[str]:
+    """Check the environment for a variable. Automatically adds a prefix"""
+    marker = f"{E4S_CL_ENV_PREFIX}_{var.upper()}"
+
+    return os.environ.get(
+        marker,
+        None,
+    )
 
 
 def path_accessible(path: Path, mode: str = 'r') -> bool:

@@ -53,13 +53,32 @@ The following options can be set in a configuration file:
 
 Some configuration values can also be enabled on a per-module basis. They will be detailed on those modules' documentation.
 
-Configuration file example
+Configuration file template
 ---------------------------
 
-Here is an example YAML configuration file:
+Running **e4s-cl** with the :code:`--print-config` option makes the program output a YAML document with all supported configuration fields and default values.
 
 .. code ::
 
-   ---
-   container_directory: '/newdirectory'
-   launcher_options: ['-n', '4']
+    $ e4s-cl --print-config | tee ~/.config/e4s-cl.yaml
+    backends:
+      apptainer:
+        exec_options: []
+        executable: ''
+        options: []
+      podman:
+        executable: ''
+        options: []
+        run_options: []
+      shifter:
+        executable: ''
+        options: []
+      singularity:
+        exec_options: []
+        executable: ''
+        options: []
+    container_directory: /.e4s-cl
+    disable_ranked_log: false
+    launcher_options: []
+    preload_root_libraries: false
+    profile_list_columns: []

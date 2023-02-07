@@ -1,29 +1,29 @@
 """
 Print a list of all the recorded profiles matching a given pattern, along with a brief description.
 
-Pass option **-s** to print only the names and disable formatting.
+Pass option :code:`-s` to print only the names and disable formatting.
 
 .. code::
 
     $ e4s-cl profile list 
-    == Profile Configurations (/home/fdeny/.local/e4s_cl/user.json) ===========
+    == Profile Configurations (/home/user/.local/e4s_cl/user.json) ===========
 
-    +----------+---------------+---------+-------+-----------+-------+--------+
-    | Selected |     Name      | Backend | Image | Libraries | Files | WI4MPI |
-    +==========+===============+=========+=======+===========+=======+========+
-    |          |   MPICH_3.4.2 |     N/A |   N/A |    16     |   1   |   No   |
-    +----------+---------------+---------+-------+-----------+-------+--------+
-    |    *     | OpenMPI_4.1.1 |     N/A |   N/A |    21     |  73   |   No   |
-    +----------+---------------+---------+-------+-----------+-------+--------+
+    +----------+---------------+---------+-------+-----------+-------+
+    | Selected |     Name      | Backend | Image | Libraries | Files |
+    +==========+===============+=========+=======+===========+=======+
+    |          |   MPICH@3.4.2 |     N/A |   N/A |    16     |   1   |
+    +----------+---------------+---------+-------+-----------+-------+
+    |    *     | OpenMPI@4.1.1 |     N/A |   N/A |    21     |  73   |
+    +----------+---------------+---------+-------+-----------+-------+
 
-    $ e4s-cl profile list MPI
-    == Profile Configurations (/home/fdeny/.local/e4s_cl/user.json) =========
+    $ e4s-cl profile list MPIC
+    == Profile Configurations (/home/user/.local/e4s_cl/user.json) =========
 
-    +----------+-------------+---------+-------+-----------+-------+--------+
-    | Selected |    Name     | Backend | Image | Libraries | Files | WI4MPI |
-    +==========+=============+=========+=======+===========+=======+========+
-    |          | MPICH_3.4.2 |     N/A |   N/A |    16     |   1   |   No   |
-    +----------+-------------+---------+-------+-----------+-------+--------+
+    +----------+-------------+---------+-------+-----------+-------+
+    | Selected |    Name     | Backend | Image | Libraries | Files |
+    +==========+=============+=========+=======+===========+=======+
+    |          | MPICH@3.4.2 |     N/A |   N/A |    16     |   1   |
+    +----------+-------------+---------+-------+-----------+-------+
     
 
     $ e4s-cl profile list -s
@@ -31,13 +31,32 @@ Pass option **-s** to print only the names and disable formatting.
     OpenMPI_4.1.1
 
 
+Configuration
+++++++++++++++
+
+The following configuration option is available:
+
+.. list-table::
+   :widths: 10 5 5 20
+   :header-rows: 1
+
+   * - Configuration variable
+     - Type
+     - Default
+     - Description
+
+   * - :code:`profile_list_columns`
+     - list
+     - :code:`["selected", "name", "backend", "image"]`
+     - Columns to display when running the `profile list` command. Available columns are: :code:`selected`, :code:`name`, :code:`libraries`, :code:`files`, :code:`backend` and :code:`image`.
 """
 
 from typing import List, Dict, Callable
+from e4s_cl import PROFILE_LIST_DEFAULT_COLUMNS
 from e4s_cl.logger import get_logger
 from e4s_cl.cli.cli_view import ListCommand
 from e4s_cl.model.profile import Profile
-from e4s_cl.config import CONFIGURATION
+from e4s_cl import config
 
 LOGGER = get_logger(__name__)
 
@@ -80,11 +99,8 @@ DEFINED_DASHBOARD_COLUMNS = [{
     'function': _count('files')
 }]
 
-# Fallback definition of columns
-DEFAULT_COLUMNS = ["selected", "name", "backend", "image"]
 
-
-def _valid_columns(l: List[str]) -> List[Dict]:
+def _valid_columns(names: List[str]) -> List[Dict]:
     """
     Return a list of column definitions as requested by the entry list of column names
     """
@@ -104,7 +120,7 @@ def _valid_columns(l: List[str]) -> List[Dict]:
         return None
 
     # Return a list of all the columns, filtering out Nones
-    return list(filter(None, map(column, l)))
+    return list(filter(None, map(column, names)))
 
 
 class ProfileListCommand(ListCommand):
@@ -114,11 +130,10 @@ class ProfileListCommand(ListCommand):
     """
 
     def __init__(self):
-        selected_columns = _valid_columns(DEFAULT_COLUMNS)
-
-        config_columns = _valid_columns(CONFIGURATION.profile_list_columns)
-        if config_columns:
-            selected_columns = config_columns
+        selected_columns = _valid_columns(
+            config.CONFIGURATION.profile_list_columns)
+        if not selected_columns:
+            selected_columns = _valid_columns(PROFILE_LIST_DEFAULT_COLUMNS)
 
         super().__init__(Profile, __name__, dashboard_columns=selected_columns)
 

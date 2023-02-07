@@ -1,3 +1,12 @@
+v1.0.2
+---------------------
+
+- Added configuration options for container backends
+- Added environment variable options for container backends
+- Added default configuration output from command line
+- Improved podman support for container version detection
+- Fixed termcolor error on container failure
+
 v1.0.1 (Nov 10 2022)
 ---------------------
 

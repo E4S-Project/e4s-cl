@@ -1,36 +1,33 @@
-from os import getenv, getcwd
+from os import getcwd, environ, pathsep
 from unittest import skipIf
 from pathlib import Path
 import tests
+from e4s_cl import config
 from e4s_cl.util import which
-from e4s_cl.cf.containers import (Container, BackendUnsupported, FileOptions,
-                                  BoundFile)
+from e4s_cl.cf.containers import (
+    BackendUnsupported,
+    BoundFile,
+    Container,
+    FileOptions,
+)
 
-import e4s_cl.config as config
-
-configuration_file = Path(Path(__file__).parent, "assets",
-                          "e4s-cl.yaml").as_posix()
+CONFIG_EXECUTABLE = tests.ASSETS / 'bin' / 'singularity-conf'
 DEFAULT_CONFIGURATION = config.CONFIGURATION
-TEST_CONFIGURATION = config.Configuration.create_from_file(configuration_file)
+TEST_CONFIGURATION = config.Configuration.create_from_string(f"""
+backends:
+  singularity:
+    executable: '{CONFIG_EXECUTABLE}'
+    options: ['--nocolor', '-s']
+    exec_options: ['--hostname', 'XxmycoolcontainerxX']
+""")
 
 
 class ContainerTestSingularity(tests.TestCase):
-
-    def singularity_check():
-        return (not which('singularity')
-                and (not Path('singularity').exists()))
 
     def test_create(self):
         container = Container(name='singularity', image='test')
         self.assertFalse(type(container) == Container)
         self.assertTrue(isinstance(container, Container))
-
-    @skipIf(singularity_check(), "Singularity absent from system")
-    def test_run_backend(self):
-        container = Container(name='singularity')
-        command = ['']
-        container_cmd = container._prepare(command)
-        self.assertIn('singularity', ' '.join(map(str, container_cmd)))
 
     def test_run_image(self):
         container = Container(name='singularity', image='imagenametest')
@@ -103,9 +100,112 @@ class ContainerTestSingularity(tests.TestCase):
 
         self.assertSetEqual({ref, file, home}, files)
 
-    def test_configured_container(self):
+    def test_additional_options_config(self):
         container = Container(name='singularity')
         command = ['']
+
+        singularity_command = container._prepare(command)
+        for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
+            self.assertNotIn(option, singularity_command)
+
         config.update_configuration(TEST_CONFIGURATION)
-        self.assertIn('diffname', container._prepare(command))
+        singularity_command = container._prepare(command)
+        self.assertContainsInOrder([
+            '--nocolor',
+            '-s',
+            'exec',
+            '--hostname',
+            'XxmycoolcontainerxX',
+        ], singularity_command)
+
         config.update_configuration(DEFAULT_CONFIGURATION)
+        singularity_command = container._prepare(command)
+        for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
+            self.assertNotIn(option, singularity_command)
+
+    def test_additional_options_environment(self):
+        container = Container(name='singularity')
+        command = ['']
+
+        singularity_command = container._prepare(command)
+        for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
+            self.assertNotIn(option, singularity_command)
+
+        environ['E4S_CL_SINGULARITY_OPTIONS'] = "--nocolor -s"
+        environ[
+            'E4S_CL_SINGULARITY_EXEC_OPTIONS'] = "--hostname XxmycoolcontainerxX"
+        singularity_command = container._prepare(command)
+        self.assertContainsInOrder([
+            '--nocolor',
+            '-s',
+            'exec',
+            '--hostname',
+            'XxmycoolcontainerxX',
+        ], singularity_command)
+
+        del environ['E4S_CL_SINGULARITY_OPTIONS']
+        del environ['E4S_CL_SINGULARITY_EXEC_OPTIONS']
+        singularity_command = container._prepare(command)
+        for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
+            self.assertNotIn(option, singularity_command)
+
+    def test_executable(self):
+        """Assert the default singularity executable comes from $PATH"""
+        container = Container(name='singularity')
+
+        default_path = environ.get('PATH', '')
+        environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity',
+                         container._executable())
+
+        environ['PATH'] = default_path
+
+    def test_executable_config(self):
+        """Assert the singularity executable is read from the configuration"""
+        container = Container(name='singularity')
+
+        config.update_configuration(TEST_CONFIGURATION)
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity-conf',
+                         container._executable())
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+
+    def test_executable_env(self):
+        """Assert the singularity executable is read from the environment"""
+        container = Container(name='singularity')
+
+        environ['E4S_CL_SINGULARITY_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                       'singularity-env')
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity-env',
+                         container._executable())
+
+        del environ['E4S_CL_SINGULARITY_EXECUTABLE']
+
+    def test_executable_priority(self):
+        """Assert the environment has precedence over config and config over default"""
+        container = Container(name='singularity')
+
+        default_path = environ.get('PATH', '')
+        environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
+        config.update_configuration(TEST_CONFIGURATION)
+        environ['E4S_CL_SINGULARITY_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                       'singularity-env')
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity-env',
+                         container._executable())
+
+        del environ['E4S_CL_SINGULARITY_EXECUTABLE']
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity-conf',
+                         container._executable())
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'singularity',
+                         container._executable())
+
+        environ['PATH'] = default_path
+
+        # This fails as the which wrapper holds a cache
+        #self.assertNotEqual(tests.ASSETS / 'bin' / 'singularity', container._executable())

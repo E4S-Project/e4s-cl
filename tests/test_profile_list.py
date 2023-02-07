@@ -5,11 +5,6 @@ Ensure the profile list command functions as intended
 import tests
 from e4s_cl import config
 from e4s_cl.model.profile import Profile
-
-tests.TestCase.setUpClass()
-CONFIGURATION_FILE = tests.ASSETS / "e4s-cl.yaml"
-TEST_CONFIGURATION = config.Configuration.create_from_file(CONFIGURATION_FILE)
-config.update_configuration(TEST_CONFIGURATION)
 from e4s_cl.cli.commands.profile.list import COMMAND
 
 
@@ -17,10 +12,6 @@ class ProfileListTest(tests.TestCase):
     """
     Partial class, as methods are added manually below
     """
-
-    @classmethod
-    def tearDownClass(cls):
-        config.update_configuration(config.Configuration.default())
 
     def tearDown(self):
         self.resetStorage()

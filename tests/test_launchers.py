@@ -1,11 +1,23 @@
+from os import environ
 import sys
 from pathlib import Path
 from importlib import import_module
 from shlex import split
 import tests
+from e4s_cl import config
 from e4s_cl.cf import launchers
-from e4s_cl.cf.launchers import (Parser, filter_arguments, interpret,
-                                 get_reserved_directories)
+from e4s_cl.cf.launchers import (
+    Parser,
+    filter_arguments,
+    get_reserved_directories,
+    interpret,
+)
+
+TEST_OPTIONS = ['--mca', 'btl_tcp_if_include', 'ib0']
+DEFAULT_CONFIGURATION = config.CONFIGURATION
+TEST_CONFIGURATION = config.Configuration.create_from_string(f"""
+launcher_options: {TEST_OPTIONS}
+""")
 
 
 class LauncherTest(tests.TestCase):
@@ -113,3 +125,64 @@ class LauncherTest(tests.TestCase):
 
         self.assertEqual(valid, "-a test -c ofi btl".split())
         self.assertEqual(foreign, "-b 1 2 3 -d host1:2,host2:2".split())
+
+    def test_additional_options_config(self):
+        """Check configuration options get added to the launcher command"""
+        command = ['mpirun', '-np', '4', './foo', '--bar']
+
+        launcher, application = interpret(command)
+        self.assertEqual(launcher, ['mpirun', '-np', '4'])
+        self.assertEqual(application, ['./foo', '--bar'])
+
+        config.update_configuration(TEST_CONFIGURATION)
+        launcher, application = interpret(command)
+        self.assertEqual(launcher, ['mpirun', '-np', '4', *TEST_OPTIONS])
+        self.assertEqual(application, ['./foo', '--bar'])
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+        launcher, application = interpret(command)
+        self.assertEqual(launcher, ['mpirun', '-np', '4'])
+        self.assertEqual(application, ['./foo', '--bar'])
+
+    def test_additional_options_environment(self):
+        """Check environment options get added to the launcher command"""
+        command = ['mpirun', '-np', '4', './foo', '--bar']
+
+        launcher, application = interpret(command)
+        self.assertEqual(launcher, ['mpirun', '-np', '4'])
+        self.assertEqual(application, ['./foo', '--bar'])
+
+        environ['E4S_CL_LAUNCHER_OPTIONS'] = " ".join(TEST_OPTIONS)
+        launcher, application = interpret(command)
+        self.assertEqual(launcher, ['mpirun', '-np', '4', *TEST_OPTIONS])
+        self.assertEqual(application, ['./foo', '--bar'])
+
+        del environ['E4S_CL_LAUNCHER_OPTIONS']
+        launcher, application = interpret(command)
+        self.assertEqual(launcher, ['mpirun', '-np', '4'])
+        self.assertEqual(application, ['./foo', '--bar'])
+
+    def test_additional_options_priority(self):
+        """Check environment options get precedence over configuration"""
+        command = ['mpirun', '-np', '4', './foo', '--bar']
+
+        launcher, application = interpret(command)
+        self.assertEqual(launcher, ['mpirun', '-np', '4'])
+        self.assertEqual(application, ['./foo', '--bar'])
+
+        environ['E4S_CL_LAUNCHER_OPTIONS'] = " ".join([*TEST_OPTIONS, '--env'])
+        config.update_configuration(TEST_CONFIGURATION)
+        launcher, application = interpret(command)
+        self.assertEqual(launcher,
+                         ['mpirun', '-np', '4', *TEST_OPTIONS, '--env'])
+        self.assertEqual(application, ['./foo', '--bar'])
+
+        del environ['E4S_CL_LAUNCHER_OPTIONS']
+        launcher, application = interpret(command)
+        self.assertEqual(launcher, ['mpirun', '-np', '4', *TEST_OPTIONS])
+        self.assertEqual(application, ['./foo', '--bar'])
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+        launcher, application = interpret(command)
+        self.assertEqual(launcher, ['mpirun', '-np', '4'])
+        self.assertEqual(application, ['./foo', '--bar'])

@@ -4,10 +4,17 @@ Load and propagate the contents of configuration files in YAML format
 """
 
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 import yaml
-from e4s_cl import E4S_CL_HOME, E4S_CL_TEST, CONTAINER_DIR, EXIT_FAILURE
+from dataclasses import dataclass
+from typing import List, Dict
+from pathlib import Path
+from e4s_cl import (
+    CONTAINER_DIR,
+    E4S_CL_HOME,
+    E4S_CL_TEST,
+    EXIT_FAILURE,
+    PROFILE_LIST_DEFAULT_COLUMNS,
+)
 
 
 def update_configuration(configuration):
@@ -20,6 +27,8 @@ def flatten(data):
     Transform nested dictionaries into key value pairs by prefixing the
     parent's key, under the assumption that all keys are str.
     >>> flatten({'root': {'key1': 0, 'key2': 'test'} })
+
+    => dict(root_key1=0, root_key2='test')
     """
     separator = '_'
 
@@ -49,6 +58,48 @@ class ConfigurationField:
     key: str
     expected_type: type
     default: callable
+    description: str = ""
+
+
+@dataclass(frozen=True)
+class ConfigurationGroup:
+    key: str
+    fields: frozenset  # [ConfigurationField|ConfigurationGroup]
+    description: str = ""
+
+    def __init__(self, key, fields, description=""):
+        object.__setattr__(self, "key", key)
+        object.__setattr__(self, "fields", frozenset(fields))
+        object.__setattr__(self, "description", description)
+
+    def flatten(self):
+        _fields = []
+
+        for field in self.fields:
+            if isinstance(field, ConfigurationGroup):
+                _fields.extend(field.flatten())
+            elif isinstance(field, ConfigurationField):
+                _fields.append(field)
+
+        for field in _fields:
+            namespaced = "_".join(filter(None, [self.key, field.key]))
+            yield ConfigurationField(namespaced, field.expected_type,
+                                     field.default)
+
+    def as_dict(self) -> Dict:
+        out = {}
+
+        for field in self.fields:
+            if isinstance(field, ConfigurationGroup):
+                out[field.key] = field.as_dict()
+
+            elif isinstance(field, ConfigurationField):
+                out[field.key] = field.default()
+
+        return out
+
+    def template(self):
+        return yaml.safe_dump(self.as_dict())
 
 
 class ConfigurationError(Exception):
@@ -79,7 +130,7 @@ class Configuration:
         config = cls()
         data = flatten(yaml.safe_load(string)) or {}
 
-        for parameter in ALLOWED_CONFIG:
+        for parameter in ALLOWED_CONFIG.flatten():
             field = {}
             if parameter.key in data:
                 value = data[parameter.key]
@@ -137,19 +188,134 @@ class Configuration:
         # Merge the two dictionaries (Use | on py39)
         return Configuration({**self._fields, **rhs._fields})
 
+    def __str__(self):
+        return str(self._fields)
+
 
 USER_CONFIG_PATH = Path.home() / ".config/e4s-cl.yaml"
 INSTALL_CONFIG_PATH = Path(E4S_CL_HOME) / "e4s-cl.yaml"
 SYSTEM_CONFIG_PATH = "/etc/e4s-cl/e4s-cl.yaml"
 
-ALLOWED_CONFIG = list(
-    map(lambda x: ConfigurationField(*x),
-        [('container_directory', str, lambda: CONTAINER_DIR),
-         ('launcher_options', list, lambda: []),
-         ('singularity_cli_options', list, lambda: []),
-         ('profile_list_columns', list, lambda: []),
-         ('preload_root_libraries', bool, lambda: False),
-         ('disable_ranked_log', bool, lambda: False)]))
+ALLOWED_CONFIG = ConfigurationGroup(
+    "", {
+        ConfigurationField(
+            "container_directory",
+            str,
+            lambda: CONTAINER_DIR,
+            "e4s-cl data directory location inside the container",
+        ),
+        ConfigurationField(
+            "launcher_options",
+            list,
+            lambda: [],
+            "Additional options to pass to the process launcher",
+        ),
+        ConfigurationField(
+            "profile_list_columns",
+            list,
+            lambda: PROFILE_LIST_DEFAULT_COLUMNS,
+            "Columns to display with the profile list command",
+        ),
+        ConfigurationField(
+            "preload_root_libraries",
+            bool,
+            lambda: False,
+            "Insert LD_PRELOAD calls to ensure bound libraries are preloaded. Required when using RPATH'ed libraries",
+        ),
+        ConfigurationField(
+            "disable_ranked_log",
+            bool,
+            lambda: False,
+            "Disable logging on the work nodes",
+        ),
+        ConfigurationGroup(
+            "backends", {
+                ConfigurationGroup(
+                    "singularity",
+                    {
+                        ConfigurationField(
+                            "executable",
+                            str,
+                            lambda: "",
+                            "Location of the singularity executable to use",
+                        ),
+                        ConfigurationField(
+                            "options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the singularity executable",
+                        ),
+                        ConfigurationField(
+                            "exec_options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the singularity exec command",
+                        ),
+                    },
+                    "Singularity container backend configuration",
+                ),
+                ConfigurationGroup(
+                    "apptainer",
+                    {
+                        ConfigurationField(
+                            "executable",
+                            str,
+                            lambda: "",
+                            "Location of the apptainer executable to use",
+                        ),
+                        ConfigurationField(
+                            "options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the apptainer executable",
+                        ),
+                        ConfigurationField(
+                            "exec_options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the apptainer exec command",
+                        ),
+                    },
+                    "Apptainer container backend configuration",
+                ),
+                ConfigurationGroup(
+                    "podman", {
+                        ConfigurationField(
+                            "executable",
+                            str,
+                            lambda: "",
+                            "Location of the podman executable to use",
+                        ),
+                        ConfigurationField(
+                            "options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the podman executable",
+                        ),
+                        ConfigurationField(
+                            "run_options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the podman run command",
+                        ),
+                    }),
+                ConfigurationGroup(
+                    "shifter", {
+                        ConfigurationField(
+                            "executable",
+                            str,
+                            lambda: "",
+                            "Location of the shifter executable to use",
+                        ),
+                        ConfigurationField(
+                            "options",
+                            list,
+                            lambda: [],
+                            "Options to pass to the shifter executable",
+                        ),
+                    }),
+            }),
+    })
 
 CONFIGURATION = Configuration.default()
 if not E4S_CL_TEST:

@@ -1,15 +1,24 @@
 """launchers module
 Entry point for supported program launchers"""
 
-import sys
 import re
+import sys
 from os import environ
-from typing import List, Tuple
+from types import ModuleType
+from typing import (
+    Dict,
+    List,
+    Tuple,
+    Optional,
+)
 from pathlib import Path
 from importlib import import_module
 from shlex import split
 from e4s_cl import logger, config
-from e4s_cl.util import walk_packages
+from e4s_cl.util import (
+    get_env,
+    walk_packages,
+)
 from e4s_cl.error import InternalError
 
 LOGGER = logger.get_logger(__name__)
@@ -35,13 +44,11 @@ class Parser:
     ```
     """
 
-    def __init__(self, arguments):
+    def __init__(self, arguments: Dict[str, int]):
         self.arguments = arguments
 
-    def parse(self, command):
+    def parse(self, command: List[str]) -> Tuple[List[str], List[str]]:
         """
-        parse_cli: list[str] -> list[str], list[str]
-
         Separate a command line into launcher and program.
         """
         position = 0
@@ -81,7 +88,7 @@ for _, _module_name, _ in walk_packages(path=__path__, prefix=__name__ + '.'):
         LAUNCHERS.update({script_name: _module_name})
 
 
-def get_launcher(cmd: List[str]):
+def get_launcher(cmd: List[str]) -> Optional[ModuleType]:
     """
     Return a launcher module for the given command
     """
@@ -96,7 +103,7 @@ def get_launcher(cmd: List[str]):
     return sys.modules[module_name]
 
 
-def get_reserved_directories(cmd: List[str]):
+def get_reserved_directories(cmd: List[str]) -> List[Path]:
     launcher_module = get_launcher(cmd)
     if launcher_module is not None and getattr(launcher_module, 'META', False):
         if 'reserved_directories' in launcher_module.META:
@@ -106,44 +113,54 @@ def get_reserved_directories(cmd: List[str]):
     return []
 
 
-def parse_cli(cmd):
+def _additional_options() -> List[str]:
+    marker = "launcher_options"
+
+    env_options = get_env(marker)
+    if env_options:
+        return split(env_options)
+
+    config_options = getattr(
+        config.CONFIGURATION,
+        marker,
+        None,
+    )
+
+    if config_options:
+        return config_options
+
+    return []
+
+
+def interpret(cmd: List[str]) -> Tuple[List[str], List[str]]:
     """
-    Parse a command line to split it into launcher and command
+    Tries its best to understand what part of a command line is the launcher
+    and what part is the application
     """
+    # Assert cmd[0] is valid by terminating for empty lists
     if not cmd:
         return [], []
 
-    module = get_launcher(cmd)
+    def _parse_from_mod(cmd):
+        module = get_launcher(cmd)
 
-    if module:
+        if module is None:
+            raise NotImplementedError(
+                f"Launcher {Path(cmd[0]).name} is not supported")
+
         return module.PARSER.parse(cmd)
-    raise NotImplementedError(f"Launcher {Path(cmd[0]).name} is not supported")
-
-
-def interpret(cmd):
-    """
-    Parses a command line to split the launcher command and application commands.
-
-    Args:
-       cmd (list[str]): Command line.
-
-    Returns:
-       tuple: (Launcher command, possibly empty list of application commands).
-    """
-    launcher_cmd = []
 
     # If '--' appears in the command then everything before it is a launcher + args
     # and everything after is the application + args
     if '--' in cmd:
         idx = cmd.index('--')
-        launcher_cmd, cmd = cmd[:idx], cmd[idx + 1:]
+        launcher, application = cmd[:idx], cmd[idx + 1:]
     elif Path(cmd[0]).name in LAUNCHERS:
-        launcher_cmd, cmd = parse_cli(cmd)
+        launcher, application = _parse_from_mod(cmd)
+    else:
+        return [], cmd
 
-    env_options = split(environ.get('E4SCL_LAUNCHER_ARGS', ''))
-    config_options = config.CONFIGURATION.launcher_options
-
-    return [*launcher_cmd, *env_options, *config_options], cmd
+    return [*launcher, *_additional_options()], application
 
 
 def filter_arguments(parser: Parser,

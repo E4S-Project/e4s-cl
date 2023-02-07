@@ -2,6 +2,7 @@
 Dummy container used during tests
 """
 
+from typing import List
 from e4s_cl.cf.containers import Container
 
 DEBUG_BACKEND = True
@@ -11,7 +12,8 @@ MIMES = []
 
 
 class DummyContainer(Container):
-    def run(self, command):
+
+    def run(self, command: List[str], overload: bool = True) -> int:
         pass
 
 

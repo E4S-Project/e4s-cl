@@ -59,6 +59,8 @@ This directory contains at least `bin` and `conda` directories and is the root
 for system-level package installation paths. **Do not** change it once it is set.
 """
 
+E4S_CL_ENV_PREFIX = 'E4S_CL'
+
 E4S_CL_SCRIPT = os.environ.get('__E4S_CL_SCRIPT__', sys.argv[0] or 'e4s-cl')
 """str: Script that launched E4S Container Launcher.
 
@@ -89,6 +91,9 @@ CONTAINER_LIBRARY_DIR = Path(CONTAINER_DIR, "hostlibs").as_posix()
 
 CONTAINER_BINARY_DIR = Path(CONTAINER_DIR, "executables").as_posix()
 """str: Path of the libraries bound in the container"""
+
+PROFILE_LIST_DEFAULT_COLUMNS = ["selected", "name", "backend", "image"]
+"""list[str] columns to display in profile list by default"""
 
 
 def version_banner():

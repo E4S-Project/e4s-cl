@@ -8,7 +8,12 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 import e4s_cl.config
-from e4s_cl.config import flatten, Configuration, ALLOWED_CONFIG, ConfigurationError
+from e4s_cl.config import (
+    ALLOWED_CONFIG,
+    Configuration,
+    ConfigurationError,
+    flatten,
+)
 from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.containers import Container
 from e4s_cl.cli.commands.launch import COMMAND as launch_command
@@ -22,7 +27,7 @@ class ConfigTest(tests.TestCase):
             'container_directory': '/diffdirectory',
             'launcher_options': '-n 8',
             'singularity': {
-                'cli_options': '--hostname diffname',
+                'options': '--hostname diffname',
                 'build_options': {
                     'location': '-s'
                 }
@@ -31,7 +36,7 @@ class ConfigTest(tests.TestCase):
         flat_data = {
             'container_directory': '/diffdirectory',
             'launcher_options': '-n 8',
-            'singularity_cli_options': '--hostname diffname',
+            'singularity_options': '--hostname diffname',
             'singularity_build_options_location': '-s'
         }
         self.assertEqual(flatten(data), flat_data)
@@ -58,7 +63,7 @@ launcher_options: 8"""
     def test_completion(self):
         c = Configuration.default()
 
-        for field in ALLOWED_CONFIG:
+        for field in ALLOWED_CONFIG.flatten():
             self.assertEqual(getattr(c, field.key, None), field.default())
 
     def test_access(self):

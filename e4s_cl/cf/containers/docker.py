@@ -1,16 +1,12 @@
 """
 Module introducing docker backend support
+Needs the docker module from extras
 """
 
 import os
 import sys
-
-try:
-    import docker
-    DOCKER_MODULE = True
-except ModuleNotFoundError:
-    DOCKER_MODULE = False
-
+from typing import List
+import docker
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.containers import Container, FileOptions, BackendError, BackendNotAvailableError
 
@@ -26,15 +22,7 @@ class DockerContainer(Container):
     Class used to abstract docker containers
     """
 
-    def run(self, command):
-        """
-        def run(self, command: list[str]):
-        """
-
-        if not DOCKER_MODULE:
-            raise BackendNotAvailableError(
-                'Docker module required but not found !')
-
+    def run(self, command: List[str], overload: bool = True) -> int:
         # Create the client from the environment
         client = docker.from_env()
 
@@ -55,7 +43,7 @@ class DockerContainer(Container):
                     file.destination.as_posix(),
                     file.origin.as_posix(),
                     type='bind',
-                    read_only=(file.option == FileOptions.READ_ONLY)))
+                    read_only=file.option == FileOptions.READ_ONLY))
 
         container_env = dict(os.environ)
         for key, val in self.env.items():

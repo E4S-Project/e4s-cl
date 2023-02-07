@@ -41,14 +41,6 @@ class LaunchTest(tests.TestCase):
     def tearDown(self):
         self.resetStorage()
 
-    @patch('sys.stdout', new_callable=StringIO)
-    def test_configured_launch(self, stdout):
-        set_dry_run(True)
-        COMMAND.main(
-            shlex.split(
-                f"--backend containerless --image None mpirun hostname"))
-        self.assertIn('-n 8', stdout.getvalue())
-
 
 def wrapper(launcher):
 

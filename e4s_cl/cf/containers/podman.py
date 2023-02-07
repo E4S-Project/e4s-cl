@@ -4,8 +4,9 @@ Podman container manager support
 
 import os
 from pathlib import Path
+from typing import List
 from e4s_cl.error import InternalError
-from e4s_cl.util import which, run_subprocess
+from e4s_cl.util import run_subprocess
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
@@ -103,7 +104,6 @@ class PodmanContainer(Container):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.executable = which(self.__class__.executable_name)
 
     def _fd_number(self):
         """
@@ -118,12 +118,6 @@ class PodmanContainer(Container):
 
         LOGGER.debug("Passing %d file descriptors: (%s)", len(fds), fds)
         return len(fds)
-
-    def _working_dir(self):
-        cwd = os.getcwd()
-        if cwd in map(lambda x: x.origin, self.bound):
-            return ['--workdir', cwd]
-        return []
 
     def _format_bound(self):
 
@@ -143,30 +137,48 @@ class PodmanContainer(Container):
 
         return list(_format())
 
-    def _prepare(self, command):
-
-        return [
-            self.executable,  # absolute path to podman
-            'run',  # Run a container
-            '--rm',  # Remove when done
-            '--ipc=host',  # Use host IPC /!\
-            '--env-host',  # Pass host environment /!\
-            f"--preserve-fds={self._fd_number()}",  # Inherit file descriptors /!\
-            *self._working_dir(),  # Work in the same CWD
-            *self._format_bound(),  # Bound files options
-            self.image,
-            *command
-        ]
-
-    def run(self, command):
+    def _prepare(self, command: List[str], overload: bool = True) -> List[str]:
         """
-        def run(self, command: list[str]):
+        Prepare a command line to run the given command in a podman container
         """
 
-        if not which(self.executable):
-            raise BackendNotAvailableError(self.executable)
+        def _working_dir() -> List[str]:
+            cwd = os.getcwd()
+            if cwd in map(lambda x: x.origin, self.bound):
+                return ['--workdir', cwd]
+            return []
 
-        container_cmd = self._prepare(command)
+        if overload:
+            podman_command = [
+                *self._additional_options(),  # Additional options
+                'run',  # Run a container
+                '--rm',  # Remove when done
+                '--ipc=host',  # Use host IPC /!\
+                '--env-host',  # Pass host environment /!\
+                f"--preserve-fds={self._fd_number()}",  # Inherit file descriptors /!\
+                *_working_dir(),  # Work in the same CWD
+                *self._format_bound(),  # Bound files options
+                *self._additional_options('run'),  # Additional run options
+                self.image,
+                *command,
+            ]
+        else:
+            podman_command = [
+                'run',  # Run a container
+                '--rm',  # Remove when done
+                f"--preserve-fds={self._fd_number()}",  # Inherit file descriptors /!\
+                self.image,
+                *command,
+            ]
+
+        return podman_command
+
+    def run(self, command: List[str], overload: bool = True) -> int:
+        executable = self._executable()
+        if executable is None:
+            raise BackendNotAvailableError(self.__class__.__name__)
+
+        container_cmd = [executable, *self._prepare(command, overload)]
 
         with FDFiller():
             return run_subprocess(container_cmd, env=self.env)

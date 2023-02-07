@@ -4,8 +4,9 @@ Module introducing singularity support
 
 import os
 from pathlib import Path
-from e4s_cl import logger, config
-from e4s_cl.util import which, run_subprocess
+from typing import List
+from e4s_cl import logger
+from e4s_cl.util import run_subprocess
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
@@ -26,7 +27,6 @@ class SingularityContainer(Container):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.executable = which(self.__class__.executable_name)
 
     def _working_dir(self):
         return ['--pwd', os.getcwd()]
@@ -53,10 +53,8 @@ class SingularityContainer(Container):
 
         self.env.update({"SINGULARITY_BIND": ','.join(_format())})
 
-    def _prepare(self, command):
+    def _prepare(self, command: List[str], overload: bool = True) -> List[str]:
         """
-        -> list[str]
-
         Return the command to run in a list of string
         """
         self.add_ld_library_path("/.singularity.d/libs")
@@ -68,9 +66,13 @@ class SingularityContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            self.executable, 'exec',
-            *config.CONFIGURATION.singularity_cli_options,
-            *self._working_dir(), *nvidia_flag, self.image, *command
+            *self._additional_options(),
+            'exec',
+            *self._working_dir(),
+            *nvidia_flag,
+            *self._additional_options('exec'),
+            self.image,
+            *command,
         ]
 
     def bind_env_var(self, key, value):
@@ -84,11 +86,12 @@ class SingularityContainer(Container):
             return False
         return True
 
-    def run(self, command):
-        if not self.executable:
-            raise BackendNotAvailableError(self.executable)
+    def run(self, command: List[str], overload: bool = True) -> int:
+        executable = self._executable()
+        if executable is None:
+            raise BackendNotAvailableError(self.__class__.__name__)
 
-        container_cmd = self._prepare(command)
+        container_cmd = [executable, *self._prepare(command, overload)]
 
         return run_subprocess(container_cmd, env=self.env)
 

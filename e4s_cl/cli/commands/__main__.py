@@ -5,7 +5,15 @@ Entry point to the CLI
 import os
 import sys
 import e4s_cl
-from e4s_cl import cli, logger, util, E4S_CL_VERSION, E4S_CL_SCRIPT, PYTHON_VERSION
+from e4s_cl import (
+    E4S_CL_SCRIPT,
+    E4S_CL_VERSION,
+    PYTHON_VERSION,
+    cli,
+    config,
+    logger,
+    util,
+)
 from e4s_cl.variables import DryRunAction
 from e4s_cl.cf.version import Version
 from e4s_cl.cli import UnknownCommandError, arguments
@@ -44,48 +52,68 @@ class MainCommand(AbstractCommand):
             'color_command': util.color_text(self.command, 'cyan'),
             'command': self.command
         }
-        parser = arguments.get_parser(prog=self.command,
-                                      usage=usage,
-                                      description=self.summary,
-                                      epilog=epilog)
+        parser = arguments.get_parser(
+            prog=self.command,
+            usage=usage,
+            description=self.summary,
+            epilog=epilog,
+        )
 
-        parser.add_argument('command',
-                            help="See subcommand descriptions below",
-                            choices=cli.commands_next(),
-                            metavar='<subcommand>')
+        parser.add_argument(
+            'command',
+            help="See subcommand descriptions below",
+            choices=cli.commands_next(),
+            metavar='<subcommand>',
+        )
 
-        parser.add_argument('options',
-                            help="Options to be passed to <subcommand>",
-                            metavar='[options]',
-                            nargs=arguments.REMAINDER)
-
-        parser.add_argument('-V',
-                            '--version',
-                            action='version',
-                            version=e4s_cl.version_banner())
-
-        group = parser.add_mutually_exclusive_group()
-
-        group.add_argument('-v',
-                           '--verbose',
-                           help="show debugging messages",
-                           const='DEBUG',
-                           default=arguments.SUPPRESS,
-                           action='store_const')
-
-        group.add_argument('-q',
-                           '--quiet',
-                           help="suppress all output except error messages",
-                           const='ERROR',
-                           default=arguments.SUPPRESS,
-                           action='store_const')
+        parser.add_argument(
+            'options',
+            help="Options to be passed to <subcommand>",
+            metavar='[options]',
+            nargs=arguments.REMAINDER,
+        )
 
         parser.add_argument(
             '-d',
             '--dry-run',
             nargs=0,
             help="Do nothing, print out what would be done instead",
-            action=DryRunAction)
+            action=DryRunAction,
+        )
+
+        verbosity_group = parser.add_mutually_exclusive_group()
+
+        verbosity_group.add_argument(
+            '-v',
+            '--verbose',
+            help="show debugging messages",
+            const='DEBUG',
+            default=arguments.SUPPRESS,
+            action='store_const',
+        )
+
+        verbosity_group.add_argument(
+            '-q',
+            '--quiet',
+            help="suppress all output except error messages",
+            const='ERROR',
+            default=arguments.SUPPRESS,
+            action='store_const',
+        )
+
+        parser.add_argument(
+            '-V',
+            '--version',
+            action='version',
+            version=e4s_cl.version_banner(),
+        )
+
+        parser.add_argument(
+            '--print-config',
+            help="Print a template of configuration file",
+            action='version',
+            version=config.ALLOWED_CONFIG.template(),
+        )
 
         return parser
 
@@ -185,17 +213,15 @@ class MainCommand(AbstractCommand):
 
         args = parse_method(argv)
 
-        cmd = args.command
-        cmd_args = args.options
-
-        log_level = getattr(args, 'verbose',
-                            getattr(args, 'quiet', logger.LOG_LEVEL))
-        logger.set_log_level(log_level)
-
-        LOGGER.debug('Verbosity level: %s', logger.LOG_LEVEL)
+        quiet = getattr(args, 'quiet', logger.LOG_LEVEL)
+        verbose = getattr(args, 'verbose', quiet)
+        logger.set_log_level(verbose)
 
         # Try to execute as a command
         try:
+            cmd = args.command
+            cmd_args = args.options
+
             return cli.execute_command([cmd], cmd_args)
         except UnknownCommandError:
             pass

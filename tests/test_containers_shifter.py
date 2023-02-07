@@ -1,11 +1,15 @@
-from os import getenv, getcwd
+from os import getenv, getcwd, environ, pathsep
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from unittest import skipIf
 from pathlib import Path
 import tests
-from e4s_cl.util import which
-from e4s_cl.cf.containers import (Container, BackendUnsupported, FileOptions,
-                                  BoundFile)
+from e4s_cl import config
+from e4s_cl.cf.containers import (
+    BackendUnsupported,
+    BoundFile,
+    Container,
+    FileOptions,
+)
 from e4s_cl.cf.containers.shifter import _parse_config
 
 SAMPLE_CONFIG = """#system (required)
@@ -27,11 +31,17 @@ EXPECTED_CONFIG = dict(system='perlmutter',
                        siteEnv='SHIFTER_RUNTIME=1',
                        module_test_siteFs='test')
 
+CONFIG_EXECUTABLE = tests.ASSETS / 'bin' / 'shifter-conf'
+DEFAULT_CONFIGURATION = config.CONFIGURATION
+TEST_CONFIGURATION = config.Configuration.create_from_string(f"""
+backends:
+  shifter:
+    executable: '{CONFIG_EXECUTABLE}'
+    options: ['--workdir=/opt', '-V', '/opt:/opt:ro']
+""")
+
 
 class ContainerTestShifter(tests.TestCase):
-
-    def shifter_check():
-        return (not which('shifter') and (not Path('shifter').exists()))
 
     def test_parse_config(self):
         with NamedTemporaryFile('w', delete=False) as config:
@@ -49,13 +59,6 @@ class ContainerTestShifter(tests.TestCase):
         container = Container(name='shifter', image='test')
         self.assertFalse(type(container) == Container)
         self.assertTrue(isinstance(container, Container))
-
-    @skipIf(shifter_check(), "Shifter absent from system")
-    def test_run_backend(self):
-        container = Container(name='shifter')
-        command = ['']
-        container_cmd = container._prepare(command)
-        self.assertIn('shifter', ' '.join(map(str, container_cmd)))
 
     def test_run_image(self):
         container = Container(name='shifter', image='imagenametest')
@@ -170,3 +173,103 @@ class ContainerTestShifter(tests.TestCase):
                 self.assertNotIn(file, volumes)
 
         temp.cleanup()
+
+    def test_additional_options_config(self):
+        container = Container(name='shifter')
+        command = ['']
+
+        shifter_command = container._prepare(command)
+        for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
+            self.assertNotIn(option, shifter_command)
+
+        config.update_configuration(TEST_CONFIGURATION)
+        shifter_command = container._prepare(command)
+        self.assertContainsInOrder([
+            '--workdir=/opt',
+            '-V',
+            '/opt:/opt:ro',
+        ], shifter_command)
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+        shifter_command = container._prepare(command)
+        for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
+            self.assertNotIn(option, shifter_command)
+
+    def test_additional_options_environment(self):
+        container = Container(name='shifter')
+        command = ['']
+
+        shifter_command = container._prepare(command)
+        for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
+            self.assertNotIn(option, shifter_command)
+
+        environ['E4S_CL_SHIFTER_OPTIONS'] = "--workdir=/opt -V /opt:/opt:ro"
+        shifter_command = container._prepare(command)
+        self.assertContainsInOrder([
+            '--workdir=/opt',
+            '-V',
+            '/opt:/opt:ro',
+        ], shifter_command)
+
+        del environ['E4S_CL_SHIFTER_OPTIONS']
+        shifter_command = container._prepare(command)
+        for option in {'--workdir=/opt', '-V', '/opt:/opt:ro'}:
+            self.assertNotIn(option, shifter_command)
+
+    def test_executable(self):
+        """Assert the default shifter executable comes from $PATH"""
+        container = Container(name='shifter')
+
+        default_path = environ.get('PATH', '')
+        environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'shifter',
+                         container._executable())
+
+        environ['PATH'] = default_path
+
+    def test_executable_config(self):
+        """Assert the shifter executable is read from the configuration"""
+        container = Container(name='shifter')
+
+        config.update_configuration(TEST_CONFIGURATION)
+        self.assertEqual(tests.ASSETS / 'bin' / 'shifter-conf',
+                         container._executable())
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+
+    def test_executable_env(self):
+        """Assert the shifter executable is read from the environment"""
+        container = Container(name='shifter')
+
+        environ['E4S_CL_SHIFTER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                   'shifter-env')
+        self.assertEqual(tests.ASSETS / 'bin' / 'shifter-env',
+                         container._executable())
+
+        del environ['E4S_CL_SHIFTER_EXECUTABLE']
+
+    def test_executable_priority(self):
+        """Assert the environment has precedence over config and config over default"""
+        container = Container(name='shifter')
+
+        default_path = environ.get('PATH', '')
+        environ['PATH'] = f"{tests.ASSETS / 'bin'}{pathsep}{default_path}"
+        config.update_configuration(TEST_CONFIGURATION)
+        environ['E4S_CL_SHIFTER_EXECUTABLE'] = str(tests.ASSETS / 'bin' /
+                                                   'shifter-env')
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'shifter-env',
+                         container._executable())
+
+        del environ['E4S_CL_SHIFTER_EXECUTABLE']
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'shifter-conf',
+                         container._executable())
+
+        config.update_configuration(DEFAULT_CONFIGURATION)
+
+        self.assertEqual(tests.ASSETS / 'bin' / 'shifter',
+                         container._executable())
+
+        environ['PATH'] = default_path
