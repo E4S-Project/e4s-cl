@@ -1,6 +1,6 @@
 ---
 container_directory: /diffdirectory
 launcher_options: []
-profile_list_columns: ["Selected", "Name", "Backend", "Image", "Libraries", "Files", "WI4MPI"]
+profile_list_columns: ["Selected", "Name", "Backend", "Image", "Libraries", "Files"]
 preload_root_libraries: False
 disable_ranked_log: False

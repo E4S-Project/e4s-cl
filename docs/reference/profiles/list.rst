@@ -11,7 +11,7 @@ Usage
 Options
 ----------
 
--s,--short      Print the list with no formatting
+:code:`-s, --short`      Print the list with no formatting
 
 Description
 ------------

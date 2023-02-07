@@ -343,7 +343,7 @@ class Container:
         # If the environment is empty, try the configuration
         config_option = getattr(
             config.CONFIGURATION,
-            marker,
+            f"backends_{marker}",
             None,
         )
 
@@ -394,7 +394,7 @@ class Container:
         # If the environment is empty, try the configuration
         config_options = getattr(
             config.CONFIGURATION,
-            marker,
+            f"backends_{marker}",
             None,
         )
 

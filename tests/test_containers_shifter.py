@@ -34,9 +34,10 @@ EXPECTED_CONFIG = dict(system='perlmutter',
 CONFIG_EXECUTABLE = tests.ASSETS / 'bin' / 'shifter-conf'
 DEFAULT_CONFIGURATION = config.CONFIGURATION
 TEST_CONFIGURATION = config.Configuration.create_from_string(f"""
-shifter:
-  executable: '{CONFIG_EXECUTABLE}'
-  options: ['--workdir=/opt', '-V', '/opt:/opt:ro']
+backends:
+  shifter:
+    executable: '{CONFIG_EXECUTABLE}'
+    options: ['--workdir=/opt', '-V', '/opt:/opt:ro']
 """)
 
 

@@ -14,10 +14,11 @@ from e4s_cl.cf.containers import (
 CONFIG_EXECUTABLE = tests.ASSETS / 'bin' / 'podman-conf'
 DEFAULT_CONFIGURATION = config.CONFIGURATION
 TEST_CONFIGURATION = config.Configuration.create_from_string(f"""
-podman:
-  executable: '{CONFIG_EXECUTABLE}'
-  options: ['--root', '/opt/podman']
-  run_options: ['--tz', 'UTC+8']
+backends:
+  podman:
+    executable: '{CONFIG_EXECUTABLE}'
+    options: ['--root', '/opt/podman']
+    run_options: ['--tz', 'UTC+8']
 """)
 
 
