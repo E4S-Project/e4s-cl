@@ -302,7 +302,7 @@ class Container:
 
         def _valid_executable(path: Path) -> bool:
             # Check for executable status ?
-            return path.exists()
+            return path.exists() and path.is_file()
 
         container_type_id = getattr(self, 'name', None)
         if container_type_id is None or not isinstance(container_type_id, str):
@@ -314,7 +314,7 @@ class Container:
         marker = f"{container_type_id}_executable"
 
         def _check(path: str, origin: str, marker: str) -> bool:
-            if path is None:
+            if not path:
                 return False
 
             path = Path(path)
