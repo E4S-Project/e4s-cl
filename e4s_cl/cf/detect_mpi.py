@@ -227,13 +227,16 @@ def filter_mpi_libs(libraries: List[Path]) -> Set[Path]:
     return set(filter(_filter_mpi, libraries))
 
 
-def install_dir(libraries: Iterable[Path]) -> Optional[Path]:
+def library_install_dir(libraries: Iterable[Path]) -> Optional[Path]:
     """
     Return the installation directory of a given list of libraries, defined as
     the common path stub containing the 'lib' folder
     """
 
     def _stub(library: Path) -> Optional[Path]:
+        """
+        Split a path at the 'lib' directory and return the part before
+        """
         path_elements = library.parts
         try:
             lib_index = path_elements.index('lib')

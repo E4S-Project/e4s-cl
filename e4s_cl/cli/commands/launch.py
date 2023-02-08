@@ -37,11 +37,23 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.containers import EXPOSED_BACKENDS
-from e4s_cl.cf.detect_mpi import (detect_mpi, install_dir, filter_mpi_libs)
-from e4s_cl.cf.wi4mpi import (wi4mpi_adapt_arguments, SUPPORTED_TRANSLATIONS,
-                              wi4mpi_qualifier, wi4mpi_identify,
-                              WI4MPI_METADATA, _MPIFamily)
-from e4s_cl.cf.wi4mpi.install import (WI4MPI_DIR, install_wi4mpi)
+from e4s_cl.cf.detect_mpi import (
+    detect_mpi,
+    filter_mpi_libs,
+    library_install_dir,
+)
+from e4s_cl.cf.wi4mpi import (
+    MPIFamily,
+    SUPPORTED_TRANSLATIONS,
+    WI4MPI_METADATA,
+    WI4MPI_SOURCES,
+    wi4mpi_find_libraries,
+    wi4mpi_get_metadata,
+    wi4mpi_identify,
+    wi4mpi_prepare_environment_preload,
+    wi4mpi_qualifier,
+)
+from e4s_cl.cf.wi4mpi.install import install_wi4mpi
 
 from e4s_cl.cli.commands.__execute import COMMAND as EXECUTE_COMMAND
 
@@ -108,9 +120,9 @@ def _format_execute(parameters: Parameters) -> List[str]:
 def _setup_wi4mpi(
     parameters: Parameters,
     translation: Tuple,
-    family_metadata: _MPIFamily,
+    family_metadata: MPIFamily,
     mpi_libraries: List[Path],
-) -> Tuple[List[str], List[str]]:
+) -> List[str]:
     """Prepare the environment for the use of Wi4MPI
     - Set or update 'wi4mpi' in the parameters
     - Update the environment variables:
@@ -125,7 +137,7 @@ def _setup_wi4mpi(
     - Prepare the wi4mpi launcher for the final command
     """
 
-    # Locate the Wi4MPI installation - either provided on the cli or default
+    # Locate the Wi4MPI installation and store it in parameters
     if parameters.wi4mpi is None:
         wi4mpi_install = install_wi4mpi()
         if wi4mpi_install:
@@ -136,64 +148,34 @@ def _setup_wi4mpi(
             )
             return []
 
-    def locate(soname: str, available: List[Path]) -> Optional[Path]:
-        matches = set(filter(lambda x: x.name.startswith(soname), available))
-        search_directories = set(map(lambda x: x.resolve().parent, available))
+    run_c_lib, run_f_lib = wi4mpi_find_libraries(family_metadata,
+                                                 mpi_libraries)
 
-        # If a match exists in the given libraries
-        if matches:
-            return matches.pop()
-
-        # Search the libraries' directories for the soname
-        for directory in search_directories:
-            matches = set(directory.glob(f"{soname}*"))
-            if matches:
-                return matches.pop()
-
-        LOGGER.debug(
-            "Failed to locate %(soname)s in %(directories)s",
-            dict(
-                soname=soname,
-                directories=search_directories,
-            ),
-        )
-
-        return None
-
-    # Find the entry C and Fortran MPI libraries
-    run_c_lib = locate(family_metadata.mpi_c_soname, mpi_libraries)
-    run_f_lib = locate(family_metadata.mpi_f_soname, mpi_libraries)
     if not (run_c_lib and run_f_lib):
         LOGGER.error(
             "Could not determine MPI libraries to use; Wi4MPI use aborted "
             "(no %(c_soname)s or %(f_soname)s in %(list)s)",
-            dict(
-                c_soname=family_metadata.mpi_c_soname,
-                f_soname=family_metadata.mpi_f_soname,
-                list=list(mpi_libraries),
-            ),
+            {
+                "c_soname": family_metadata.mpi_c_soname,
+                "f_soname": family_metadata.mpi_f_soname,
+                "list": list(mpi_libraries),
+            },
         )
         return []
 
-    # Deduce the MPI installation directory
-    mpi_install = install_dir([run_c_lib, run_f_lib])
+    # Deduce the MPI installation directory, add it to the imported files
+    mpi_install_dir = library_install_dir([run_c_lib, run_f_lib])
+    if mpi_install_dir:
+        parameters.files.add(mpi_install_dir)
 
-    parameters.files.add(mpi_install)
-
-    env = {
-        'WI4MPI_ROOT': str(parameters.wi4mpi),
-        'WI4MPI_FROM': str(translation[0]),
-        'WI4MPI_TO': str(translation[1]),
-        family_metadata.path_key: str(mpi_install),
-        'WI4MPI_RUN_MPI_C_LIB': str(run_c_lib),
-        'WI4MPI_RUN_MPI_F_LIB': str(run_f_lib),
-        'WI4MPI_RUN_MPIIO_C_LIB': str(run_c_lib),
-        'WI4MPI_RUN_MPIIO_F_LIB': str(run_f_lib),
-    }
-
-    LOGGER.debug("Wi4MPI environment: %s", env)
-    for key, value in env.items():
-        os.environ[key] = value
+    wi4mpi_prepare_environment_preload(
+        parameters.wi4mpi,
+        translation[0],
+        family_metadata,
+        mpi_install_dir,
+        run_c_lib,
+        run_f_lib,
+    )
 
     # Add the Wi4MPI --from --to options
     wi4mpi_bin_path = parameters.wi4mpi / 'bin'
@@ -214,6 +196,7 @@ class LaunchCommand(AbstractCommand):
             usage=usage,
             description=self.summary,
         )
+
         parser.add_argument(
             '--profile',
             type=arguments.single_defined_object(Profile, 'name'),
@@ -266,15 +249,14 @@ class LaunchCommand(AbstractCommand):
             metavar='installation',
         )
 
-        mpi_families = set(map(lambda x: x.cli_name, WI4MPI_METADATA))
         parser.add_argument(
             '--from',
             type=str.lower,
-            choices=mpi_families,
+            choices=WI4MPI_SOURCES,
             help=
             "MPI family the command was intended to be run. Use this argument "
             "to toggle MPI call translation. Available families: " +
-            ", ".join(mpi_families),
+            ", ".join(WI4MPI_SOURCES),
             default=arguments.SUPPRESS,
             metavar='mpi-family',
         )
@@ -285,6 +267,7 @@ class LaunchCommand(AbstractCommand):
             metavar='command',
             nargs=arguments.REMAINDER,
         )
+
         return parser
 
     def main(self, argv):
@@ -294,16 +277,16 @@ class LaunchCommand(AbstractCommand):
             LOGGER.info("Using selected profile %s", args.profile.get('name'))
 
         if not args.cmd:
-            self.parser.error("No command given")
+            self.parser.error("No executable was specified.")
 
         # Merge profile and cli arguments to get a definitive list of arguments
         parameters = _parameters(args)
 
         # Ensure the minimum fields required for launch are present
-        for field in ['backend', 'image']:
-            if not getattr(parameters, field, None):
+        for _field in ['backend', 'image']:
+            if not getattr(parameters, _field, None):
                 self.parser.error(
-                    f"Missing field: '{field}'. Specify it using the "
+                    f"Missing field: '{_field}'. Specify it using the "
                     "appropriate option or by selecting a profile.")
 
         launcher, program = interpret(args.cmd)
@@ -312,9 +295,12 @@ class LaunchCommand(AbstractCommand):
             if path not in parameters.files:
                 parameters.files.add(path)
 
+        wi4mpi_call = []
+
         binary_mpi_family = getattr(args, 'from', None)
         profile_mpi_libraries = filter_mpi_libs(parameters.libraries)
         profile_mpi_family = detect_mpi(profile_mpi_libraries)
+        profile_mpi_family_data = wi4mpi_get_metadata(profile_mpi_family)
 
         if profile_mpi_family:
             LOGGER.debug(
@@ -323,28 +309,28 @@ class LaunchCommand(AbstractCommand):
             )
         else:
             LOGGER.debug(
-                "No single MPI family could be detected in the parameters")
+                "No MPI family could be identified from the parameters")
 
-        translation = (binary_mpi_family, wi4mpi_qualifier(profile_mpi_family))
-        wi4mpi_call = []
-        if translation in SUPPORTED_TRANSLATIONS:
-            target_mpi_data = wi4mpi_identify(profile_mpi_family.vendor)
-            wi4mpi_call = _setup_wi4mpi(
-                parameters,
-                translation,
-                target_mpi_data,
-                profile_mpi_libraries,
-            )
+        if profile_mpi_family_data:
+            translation = (binary_mpi_family, profile_mpi_family_data.cli_name)
+            if translation in SUPPORTED_TRANSLATIONS:
+                wi4mpi_call = _setup_wi4mpi(
+                    parameters,
+                    translation,
+                    profile_mpi_family_data,
+                    profile_mpi_libraries,
+                )
 
-            # Relay the environment if OpenMPI is used
-            if (profile_mpi_family.vendor == "Open MPI"
-                    and Path(launcher[0]).name == "mpirun"):
-                launcher += shlex.split("-x WI4MPI_ROOT "
-                                        f"-x {target_mpi_data.path_key} "
-                                        "-x WI4MPI_RUN_MPI_C_LIB "
-                                        "-x WI4MPI_RUN_MPI_F_LIB "
-                                        "-x WI4MPI_RUN_MPIIO_C_LIB "
-                                        "-x WI4MPI_RUN_MPIIO_F_LIB")
+                # Explicitly pass the environment if OpenMPI is used
+                if (profile_mpi_family.vendor == "Open MPI"
+                        and Path(launcher[0]).name == "mpirun"):
+                    launcher += shlex.split(
+                        "-x WI4MPI_ROOT "
+                        f"-x {profile_mpi_family_data.path_key} "
+                        "-x WI4MPI_RUN_MPI_C_LIB "
+                        "-x WI4MPI_RUN_MPI_F_LIB "
+                        "-x WI4MPI_RUN_MPIIO_C_LIB "
+                        "-x WI4MPI_RUN_MPIIO_F_LIB")
 
         execute_command = _format_execute(parameters)
         full_command = [*launcher, *wi4mpi_call, *execute_command, *program]

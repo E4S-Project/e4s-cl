@@ -77,8 +77,11 @@ from e4s_cl import (EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT,
                     INIT_TEMP_PROFILE_NAME)
 from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
-from e4s_cl.cf.detect_mpi import (profile_mpi_name, filter_mpi_libs,
-                                  install_dir)
+from e4s_cl.cf.detect_mpi import (
+    filter_mpi_libs,
+    library_install_dir,
+    profile_mpi_name,
+)
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli.arguments import (binary_in_path, posix_path, get_parser,
                                   SUPPRESS, REMAINDER)
@@ -461,7 +464,7 @@ class InitCommand(AbstractCommand):
         # Check for MPI in the analysis' results
         profile_libraries = map(Path, selected_profile.get('libraries', []))
         profile_mpi_libraries = filter_mpi_libs(profile_libraries)
-        mpi_install_dir = install_dir(profile_mpi_libraries)
+        mpi_install_dir = library_install_dir(profile_mpi_libraries)
 
         # Simplify the profile by removing files contained in the MPI
         # installation directory
