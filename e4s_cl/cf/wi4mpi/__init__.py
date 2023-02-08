@@ -324,6 +324,18 @@ def wi4mpi_prepare_environment_preload(
     run_c_lib: Path,
     run_f_lib: Path,
 ):
+    """
+    Prepare the environment for a Wi4MPI execution in preload mode
+    Updates the environment variables:
+      + WI4MPI_ROOT
+      + WI4MPI_FROM
+      + WI4MPI_TO
+      + <LIBRARY>_ROOT
+      + WI4MPI_RUN_MPI_C_LIB
+      + WI4MPI_RUN_MPI_F_LIB
+      + WI4MPI_RUN_MPIIO_C_LIB
+      + WI4MPI_RUN_MPIIO_F_LIB
+    """
 
     env = {
         'WI4MPI_ROOT': str(wi4mpi_install_dir),
@@ -336,6 +348,40 @@ def wi4mpi_prepare_environment_preload(
         'WI4MPI_RUN_MPIIO_F_LIB': str(run_f_lib),
     }
 
-    LOGGER.debug("Wi4MPI environment: %s", env)
     for key, value in env.items():
+        LOGGER.debug("Wi4MPI preload: %s=%s", key, value)
+        os.environ[key] = value
+
+
+def wi4mpi_prepare_environment_interface(
+    wi4mpi_install_dir: Path,
+    target: MPIFamily,
+    target_install_dir: Path,
+    run_c_lib: Path,
+    run_f_lib: Path,
+):
+    """
+    Prepare the environment for a Wi4MPI execution in interface mode
+    Updates the environment variables:
+      + WI4MPI_ROOT
+      + WI4MPI_TO
+      + <LIBRARY>_ROOT
+      + WI4MPI_RUN_MPI_C_LIB
+      + WI4MPI_RUN_MPI_F_LIB
+      + WI4MPI_RUN_MPIIO_C_LIB
+      + WI4MPI_RUN_MPIIO_F_LIB
+    """
+
+    env = {
+        'WI4MPI_ROOT': str(wi4mpi_install_dir),
+        target.path_key: str(target_install_dir),
+        'WI4MPI_TO': str(target.cli_name),
+        'WI4MPI_RUN_MPI_C_LIB': str(run_c_lib),
+        'WI4MPI_RUN_MPI_F_LIB': str(run_f_lib),
+        'WI4MPI_RUN_MPIIO_C_LIB': str(run_c_lib),
+        'WI4MPI_RUN_MPIIO_F_LIB': str(run_f_lib),
+    }
+
+    for key, value in env.items():
+        LOGGER.debug("Wi4MPI interface: %s=%s", key, value)
         os.environ[key] = value

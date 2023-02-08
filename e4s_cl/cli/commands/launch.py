@@ -50,6 +50,7 @@ from e4s_cl.cf.wi4mpi import (
     wi4mpi_find_libraries,
     wi4mpi_get_metadata,
     wi4mpi_identify,
+    wi4mpi_prepare_environment_interface,
     wi4mpi_prepare_environment_preload,
     wi4mpi_qualifier,
 )
@@ -125,17 +126,11 @@ def _setup_wi4mpi(
 ) -> List[str]:
     """Prepare the environment for the use of Wi4MPI
     - Set or update 'wi4mpi' in the parameters
-    - Update the environment variables:
-      + WI4MPI_ROOT
-      + WI4MPI_FROM
-      + WI4MPI_TO
-      + <LIBRARY>_ROOT
-      + WI4MPI_RUN_MPI_C_LIB
-      + WI4MPI_RUN_MPI_F_LIB
-      + WI4MPI_RUN_MPIIO_C_LIB
-      + WI4MPI_RUN_MPIIO_F_LIB
     - Prepare the wi4mpi launcher for the final command
     """
+
+    LOGGER.debug("Setting up Wi4MPI to translate '%s' to '%s' (%s)",
+                 *translation, family_metadata.vendor_name)
 
     # Locate the Wi4MPI installation and store it in parameters
     if parameters.wi4mpi is None:
@@ -168,20 +163,29 @@ def _setup_wi4mpi(
     if mpi_install_dir:
         parameters.files.add(mpi_install_dir)
 
-    wi4mpi_prepare_environment_preload(
-        parameters.wi4mpi,
-        translation[0],
-        family_metadata,
-        mpi_install_dir,
-        run_c_lib,
-        run_f_lib,
-    )
+    wi4mpi_wrapper = parameters.wi4mpi / 'bin' / 'wi4mpi'
 
-    # Add the Wi4MPI --from --to options
-    wi4mpi_bin_path = parameters.wi4mpi / 'bin'
-    wi4mpi_call = shlex.split(
-        f"{wi4mpi_bin_path / 'wi4mpi'} -f {translation[0]} -t {translation[1]}"
-    )
+    # Prepare the environment; add the Wi4MPI --from --to options
+    if translation[0] == 'interface':
+        wi4mpi_prepare_environment_interface(
+            parameters.wi4mpi,
+            family_metadata,
+            mpi_install_dir,
+            run_c_lib,
+            run_f_lib,
+        )
+        wi4mpi_call = shlex.split(f"{wi4mpi_wrapper} -t {translation[1]}")
+    else:
+        wi4mpi_prepare_environment_preload(
+            parameters.wi4mpi,
+            translation[0],
+            family_metadata,
+            mpi_install_dir,
+            run_c_lib,
+            run_f_lib,
+        )
+        wi4mpi_call = shlex.split(
+            f"{wi4mpi_wrapper} -f {translation[0]} -t {translation[1]}")
 
     return wi4mpi_call
 
@@ -297,9 +301,13 @@ class LaunchCommand(AbstractCommand):
 
         wi4mpi_call = []
 
+        # Source MPI family from the command line
         binary_mpi_family = getattr(args, 'from', None)
+        # MPI shared objects from the parameters
         profile_mpi_libraries = filter_mpi_libs(parameters.libraries)
+        # MPI family from the parameters (MPIIdentifier)
         profile_mpi_family = detect_mpi(profile_mpi_libraries)
+        # MPI family Wi4MPI data from the parameters (MPIFamily)
         profile_mpi_family_data = wi4mpi_get_metadata(profile_mpi_family)
 
         if profile_mpi_family:
@@ -311,9 +319,12 @@ class LaunchCommand(AbstractCommand):
             LOGGER.debug(
                 "No MPI family could be identified from the parameters")
 
+        # If the parameters' MPI family is understood by Wi4MPI
         if profile_mpi_family_data:
+            # Check the translation is supported
             translation = (binary_mpi_family, profile_mpi_family_data.cli_name)
             if translation in SUPPORTED_TRANSLATIONS:
+                # Setup the environment and return the command line wrapper
                 wi4mpi_call = _setup_wi4mpi(
                     parameters,
                     translation,
@@ -321,7 +332,7 @@ class LaunchCommand(AbstractCommand):
                     profile_mpi_libraries,
                 )
 
-                # Explicitly pass the environment if OpenMPI is used
+                # Explicitly pass the environment if OpenMPI's launcher is used
                 if (profile_mpi_family.vendor == "Open MPI"
                         and Path(launcher[0]).name == "mpirun"):
                     launcher += shlex.split(
@@ -340,7 +351,6 @@ class LaunchCommand(AbstractCommand):
             return EXIT_SUCCESS
 
         retval, _ = run_e4scl_subprocess(full_command)
-
         return retval
 
 
