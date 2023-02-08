@@ -43,7 +43,7 @@ class MPIFamily:
 # MPI vendor libraries metadata. On top of the different MPI families, some
 # vendors adopt standard paths different from the norm. This collection keeps
 # track of all metadata for each of those vendors.
-WI4MPI_METADATA = {
+WI4MPI_METADATA = [
     MPIFamily(
         vendor_name='Intel(R) MPI',
         cli_name='intelmpi',
@@ -80,7 +80,7 @@ WI4MPI_METADATA = {
         mpi_c_soname='libmpi_cray.so',
         mpi_f_soname='libmpifort_cray.so',
     ),
-}
+]
 
 # Keys used to describe MPI families. Wi4MPI is needed if a pair of those keys
 # is present in the SUPPORTED_TRANSLATIONS collection
