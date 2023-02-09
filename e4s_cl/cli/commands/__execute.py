@@ -10,7 +10,12 @@ from typing import Union, List
 from pathlib import Path
 from sotools.linker import resolve
 from sotools.libraryset import LibrarySet, Library
-from e4s_cl import (EXIT_SUCCESS, E4S_CL_SCRIPT, logger, variables)
+from e4s_cl import (
+    E4S_CL_SCRIPT,
+    EXIT_SUCCESS,
+    logger,
+    variables,
+)
 from e4s_cl.util import which
 from e4s_cl.error import InternalError
 from e4s_cl.cli import arguments
@@ -18,8 +23,13 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, FileOptions
 from e4s_cl.cf.libraries import (libc_version, library_links)
-from e4s_cl.cf.wi4mpi import (wi4mpi_root, wi4mpi_import, wi4mpi_libraries,
-                              wi4mpi_libpath, wi4mpi_preload)
+from e4s_cl.cf.wi4mpi import (
+    wi4mpi_import,
+    wi4mpi_libpath,
+    wi4mpi_libraries,
+    wi4mpi_preload,
+    wi4mpi_root,
+)
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
@@ -83,10 +93,19 @@ def overlay_libraries(library_set, container, entrypoint):
 
     # Hardcoded glib libraries sonames
     glib_sonames = [
-        'libcrypt.so.1', 'libc.so.6', 'libm.so.6', 'libmvec.so.1',
-        'libnsl.so.1', 'libnss_compat.so.2', 'libnss_db.so.2',
-        'libnss_dns.so.2', 'libnss_files.so.2', 'libnss_hesiod.so.2',
-        'libpthread.so.0', 'libresolv.so.2', 'librt.so.1'
+        'libc.so.6',
+        'libcrypt.so.1',
+        'libm.so.6',
+        'libmvec.so.1',
+        'libnsl.so.1',
+        'libnss_compat.so.2',
+        'libnss_db.so.2',
+        'libnss_dns.so.2',
+        'libnss_files.so.2',
+        'libnss_hesiod.so.2',
+        'libpthread.so.0',
+        'libresolv.so.2',
+        'librt.so.1',
     ]
     # Find the available libraries on the host, and bundle them in a set
     paths = filter(None, map(resolve, glib_sonames))
@@ -241,11 +260,6 @@ class ExecuteCommand(AbstractCommand):
                             help="Script to source",
                             metavar='libraries')
 
-        parser.add_argument('--wi4mpi',
-                            type=arguments.existing_posix_path,
-                            help="Directory of the Wi4MPI installation to use",
-                            metavar='wi4mpi_root')
-
         parser.add_argument('cmd',
                             type=str,
                             help="Executable command, e.g. './a.out'",
@@ -266,8 +280,10 @@ class ExecuteCommand(AbstractCommand):
         # script, that is then bound to the container to be executed
         params = Entrypoint()
 
-        # Assert the use of Wi4MPI
-        wi4mpi_install_dir = getattr(args, 'wi4mpi', None) or wi4mpi_root()
+        # Check the environment for the use of Wi4MPI
+        wi4mpi_install_dir = wi4mpi_root()
+
+        # List the required libraries for proper Wi4MPI execution
         wi4mpi_required = []
         if wi4mpi_install_dir is not None:
             wi4mpi_required = wi4mpi_libraries(wi4mpi_install_dir)

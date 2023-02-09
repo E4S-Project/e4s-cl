@@ -105,7 +105,7 @@ def _format_execute(parameters: Parameters) -> List[str]:
     if logger.debug_mode():
         execute_command = [execute_command[0], '-v'] + execute_command[1:]
 
-    for attr in ['image', 'backend', 'source', 'wi4mpi']:
+    for attr in ['image', 'backend', 'source']:
         value = getattr(parameters, attr, None)
         if value:
             execute_command += [f"--{attr}", str(value)]
