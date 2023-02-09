@@ -45,6 +45,7 @@ from e4s_cl.cf.detect_mpi import (
 from e4s_cl.cf.wi4mpi import (
     MPIFamily,
     SUPPORTED_TRANSLATIONS,
+    WI4MPI_ENVIRONMENT_VARIABLES,
     WI4MPI_METADATA,
     WI4MPI_SOURCES,
     wi4mpi_find_libraries,
@@ -335,13 +336,9 @@ class LaunchCommand(AbstractCommand):
                 # Explicitly pass the environment if OpenMPI's launcher is used
                 if (profile_mpi_family.vendor == "Open MPI"
                         and Path(launcher[0]).name == "mpirun"):
-                    launcher += shlex.split(
-                        "-x WI4MPI_ROOT "
-                        f"-x {profile_mpi_family_data.path_key} "
-                        "-x WI4MPI_RUN_MPI_C_LIB "
-                        "-x WI4MPI_RUN_MPI_F_LIB "
-                        "-x WI4MPI_RUN_MPIIO_C_LIB "
-                        "-x WI4MPI_RUN_MPIIO_F_LIB")
+                    for varname in WI4MPI_ENVIRONMENT_VARIABLES:
+                        if varname in os.environ.keys():
+                            launcher.extend(shlex.split(f"-x {varname}"))
 
         execute_command = _format_execute(parameters)
         full_command = [*launcher, *wi4mpi_call, *execute_command, *program]

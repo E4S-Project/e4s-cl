@@ -98,6 +98,19 @@ SUPPORTED_TRANSLATIONS = {
     ('openmpi', 'openmpi'),
 }
 
+_FAMILY_ENV_VARS = set(map(lambda x: x.path_key, WI4MPI_METADATA))
+
+# Set of all environment variables used by Wi4MPI, to pass to the underlying code
+WI4MPI_ENVIRONMENT_VARIABLES = {
+    'WI4MPI_ROOT',
+    'WI4MPI_FROM',
+    'WI4MPI_TO',
+    'WI4MPI_RUN_MPI_C_LIB',
+    'WI4MPI_RUN_MPI_F_LIB',
+    'WI4MPI_RUN_MPIIO_C_LIB',
+    'WI4MPI_RUN_MPIIO_F_LIB',
+} | _FAMILY_ENV_VARS
+
 
 def wi4mpi_identify(value: str) -> Optional[MPIFamily]:
     for family in WI4MPI_METADATA:
