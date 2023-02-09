@@ -10,7 +10,7 @@ import subprocess
 from subprocess import DEVNULL, STDOUT
 import pkgutil
 from pathlib import Path
-import hashlib
+from hashlib import sha256
 import json
 from typing import (
     Any,
@@ -18,6 +18,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Union,
 )
 from functools import lru_cache, reduce
 from shutil import which as sh_which
@@ -392,17 +393,19 @@ def _iter_modules(paths, prefix):
             yield importer, name, ispkg
 
 
-def flatten(nested_list):
+def flatten(nested_list: List[List[Any]]) -> List[Any]:
     """Flatten a nested list."""
     return [item for sublist in nested_list for item in sublist]
 
 
-def hash256(string):
+def hash256(data: Union[bytes, str]) -> str:
     """
     Create a hash from a string
     """
-    grinder = hashlib.sha256()
-    grinder.update(string.encode())
+    grinder = sha256()
+    if isinstance(data, str):
+        data = data.encode()
+    grinder.update(data)
     return grinder.hexdigest()
 
 
