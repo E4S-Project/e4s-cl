@@ -29,8 +29,13 @@ from pathlib import Path
 from argparse import Namespace
 from typing import Tuple, List, Optional
 from dataclasses import (dataclass, field)
-from e4s_cl import EXIT_SUCCESS, E4S_CL_SCRIPT
-from e4s_cl import logger, variables
+from e4s_cl import (
+    E4S_CL_SCRIPT,
+    EXIT_SUCCESS,
+    config,
+    logger,
+    variables,
+)
 from e4s_cl.cli import arguments
 from e4s_cl.util import run_e4scl_subprocess
 from e4s_cl.cli.command import AbstractCommand
@@ -135,7 +140,9 @@ def _setup_wi4mpi(
 
     # Locate the Wi4MPI installation and store it in parameters
     if parameters.wi4mpi is None:
-        wi4mpi_install = install_wi4mpi()
+        target_dir = Path(config.CONFIGURATION.wi4mpi_install_directory)
+        LOGGER.debug("Target: %s", target_dir)
+        wi4mpi_install = install_wi4mpi(target_dir)
         if wi4mpi_install:
             parameters.wi4mpi = wi4mpi_install
         else:

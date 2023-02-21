@@ -8,7 +8,10 @@ import tarfile
 import urllib.request
 from pathlib import Path
 from typing import Optional
-from e4s_cl import USER_PREFIX
+from e4s_cl import (
+    USER_PREFIX,
+    WI4MPI_DIR,
+)
 from e4s_cl.util import (
     hash256,
     run_subprocess,
@@ -29,9 +32,6 @@ LOGGER = get_logger(__name__)
 WI4MPI_VERSION = Version('3.6.4')
 WI4MPI_RELEASE_URL = f"https://github.com/cea-hpc/wi4mpi/archive/refs/tags/v{WI4MPI_VERSION}.tar.gz"
 WI4MPI_RELEASE_SHA256 = "be1732a1aed1e2946873951a344b572f11f2a55cd06c634580a9398b5877e22a"
-WI4MPI_DIR = Path(USER_PREFIX) / "wi4mpi"
-DEFAULT_INSTALL_DIR = WI4MPI_DIR / 'install'
-
 CPU_COUNT = os.cpu_count()
 
 _WI4MPI_COMPILER_STRINGS = {
@@ -157,11 +157,8 @@ def _double_tap(cmd):
     return not success
 
 
-def install_wi4mpi(install_dir: Path = DEFAULT_INSTALL_DIR) -> Optional[Path]:
-    """Clones and installs wi4mpi from github releases
-    
-    Installs in ~/.local/share/wi4mpi using a GNU compiler
-    """
+def install_wi4mpi(install_dir: Path) -> Optional[Path]:
+    """Clones and installs wi4mpi from github releases"""
 
     if os.uname().machine not in {'x86_64', 'amd64'}:
         LOGGER.warning(
