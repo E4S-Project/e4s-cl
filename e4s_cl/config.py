@@ -14,6 +14,7 @@ from e4s_cl import (
     E4S_CL_TEST,
     EXIT_FAILURE,
     PROFILE_LIST_DEFAULT_COLUMNS,
+    WI4MPI_DEFAULT_INSTALL_DIR,
 )
 
 
@@ -227,6 +228,18 @@ ALLOWED_CONFIG = ConfigurationGroup(
             bool,
             lambda: False,
             "Disable logging on the work nodes",
+        ),
+        ConfigurationGroup(
+            "wi4mpi",
+            {
+                ConfigurationField(
+                    "install_directory",
+                    str,
+                    lambda: str(WI4MPI_DEFAULT_INSTALL_DIR),
+                    "Location of the Wi4MPI installation to use. If the directory does not exist, e4s-cl will attempt to install Wi4MPI in that directory.",
+                )
+            },
+            "Wi4MPI-related configuration options",
         ),
         ConfigurationGroup(
             "backends", {

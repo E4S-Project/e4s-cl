@@ -95,6 +95,12 @@ CONTAINER_BINARY_DIR = Path(CONTAINER_DIR, "executables").as_posix()
 PROFILE_LIST_DEFAULT_COLUMNS = ["selected", "name", "backend", "image"]
 """list[str] columns to display in profile list by default"""
 
+WI4MPI_DIR = Path(USER_PREFIX) / "wi4mpi"
+"""Directory in which Wi4MPI releases and build will be put if needed"""
+
+WI4MPI_DEFAULT_INSTALL_DIR = WI4MPI_DIR / 'install'
+"""Default installation directory for Wi4MPI"""
+
 
 def version_banner():
     """Return a human readable text banner describing the E4S Container Launcher installation."""
