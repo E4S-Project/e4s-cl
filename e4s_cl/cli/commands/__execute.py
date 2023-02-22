@@ -13,6 +13,7 @@ from sotools.libraryset import LibrarySet, Library
 from e4s_cl import (
     E4S_CL_SCRIPT,
     EXIT_SUCCESS,
+    config,
     logger,
     variables,
 )
@@ -325,8 +326,10 @@ class ExecuteCommand(AbstractCommand):
                 return Path(container.import_library_dir,
                             Path(library.binary_path).name).as_posix()
 
-            for imported_library_path in map(_path, final_libset.top_level):
-                params.preload.append(imported_library_path)
+            if config.CONFIGURATION.preload_root_libraries:
+                for imported_library_path in map(_path,
+                                                 final_libset.top_level):
+                    params.preload.append(imported_library_path)
         else:
             # If WI4MPI is found in the environment, import its files and
             # preload its required components
