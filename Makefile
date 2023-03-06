@@ -109,7 +109,7 @@ $(CONDA_SRC):
 # Main installation target
 
 install: $(PYTHON_EXE)
-	$(PYTHON) -m pip install --use-feature=in-tree-build -q -rrequirements/core.txt --compile .
+	$(PYTHON) -m pip install -q -rrequirements/core.txt --compile .
 	$(MKDIR) $(INSTALL_BIN_DIR)
 	ln -fs $(CONDA_BIN)/e4s-cl $(INSTALL_BIN_DIR)/e4s-cl
 	touch $(INSTALLDIR)/$(shell $(PYTHON) -c "import e4s_cl; print(e4s_cl._HOME_MARKER)")
