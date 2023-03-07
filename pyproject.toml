@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "e4s-cl"
+authors = [
+    {name = "Jean-Baptiste Skutnik", email = "jskutnik@uoregon.edu"},
+    {name = "Frederick Deny", email = "fdeny@uoregon.edu"},
+]
+description = "A command-line utility to run MPI projects in E4S containers"
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["containers", "MPI", "hpc", "libraries", "linux"]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Operating System :: POSIX :: Linux",
+    "Intended Audience :: Science/Research",
+    "License :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "termcolor>=1.1.0",
+    "PyYAML>=6.0",
+    "texttable>=1.6.2",
+    "python-ptrace>=0.9.7",
+    "pyelftools==0.27",
+    "requests>=2.26.0",
+    "tinydb==4.5.2",
+    "python-sotools==0.1.0",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+docker = ['docker>=5.0.3']
+
+[project.urls]
+documentation = "https://e4s-cl.readthedocs.io"
+repository = "https://github.com/E4S-Project/e4s-cl.git"
+changelog = "https://github.com/E4S-Project/e4s-cl/blob/master/CHANGELOG"
+
+[tool.setuptools]
+packages = ["e4s_cl"]
+
+[project.scripts]
+e4s-cl = "e4s_cl.__main__:main"
+
+[tool.setuptools_scm]
+write_to = "e4s_cl/version.py"
