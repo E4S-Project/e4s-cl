@@ -1,8 +1,0 @@
-termcolor>=1.1.0
-PyYAML>=6.0
-texttable>=1.6.2
-python-ptrace>=0.9.7
-pyelftools==0.27
-requests>=2.26.0
-tinydb==4.5.2
-python-sotools==0.1.0
