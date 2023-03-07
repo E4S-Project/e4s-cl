@@ -6,6 +6,7 @@ Needs the docker module from extras
 import os
 import sys
 from typing import List
+# pylint: disable=import-error
 import docker
 from e4s_cl.logger import get_logger
 from e4s_cl.cf.containers import Container, FileOptions, BackendError, BackendNotAvailableError
