@@ -1,0 +1,3 @@
+sphinx~=4.0
+sphinx-toolbox>=2.18.2
+furo==2021.6.24b37
