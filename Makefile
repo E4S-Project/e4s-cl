@@ -109,7 +109,7 @@ $(CONDA_SRC):
 # Main installation target
 
 install: $(PYTHON_EXE)
-	$(PYTHON) -m pip install -q -rrequirements/core.txt --compile .
+	$(PYTHON) -m pip install -q --compile .
 	$(MKDIR) $(INSTALL_BIN_DIR)
 	ln -fs $(CONDA_BIN)/e4s-cl $(INSTALL_BIN_DIR)/e4s-cl
 	touch $(INSTALLDIR)/$(shell $(PYTHON) -c "import e4s_cl; print(e4s_cl._HOME_MARKER)")
@@ -147,7 +147,7 @@ MANBUILDDIR=$(PROJECT)/docs/build/man
 USER_MAN=$(HOME)/.local/share/man
 
 man: $(PYTHON_EXE)
-	$(PYTHON) -m pip install -q -U -r ./requirements/docs.txt
+	$(PYTHON) -m pip install -q -U -r ./docs/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	@$(MKDIR) $(USER_MAN)/man1
 	@$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1
@@ -156,7 +156,7 @@ man: $(PYTHON_EXE)
 
 html: $(PYTHON_EXE)
 	find $(DOCS) -exec touch {} \;
-	$(PYTHON) -m pip install -q -U -r requirements/docs.txt
+	$(PYTHON) -m pip install -q -U -r ./docs/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) html
 
 clean:
