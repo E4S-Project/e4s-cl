@@ -89,6 +89,8 @@ else
 	COMPLETION_DIR = $(BASH_COMPLETION_USER_DIR)/completions
 endif
 
+HOME_MARKER = .e4s-cl-home
+
 all: install download_assets completion man
 
 #>============================================================================<
@@ -100,7 +102,7 @@ $(CONDA): $(CONDA_SRC)
 
 $(CONDA_SRC):
 	$(MKDIR) `dirname "$(CONDA_SRC)"`
-	@$(call download,$(CONDA_URL),$(CONDA_SRC)) || \
+	$(call download,$(CONDA_URL),$(CONDA_SRC)) || \
 		(rm -f "$(CONDA_SRC)" ; \
 		echo "* ERROR: Unable to download $(CONDA_URL)." ; \
 		false)
@@ -112,7 +114,7 @@ install: $(PYTHON_EXE)
 	$(PYTHON) -m pip install -q --compile .
 	$(MKDIR) $(INSTALL_BIN_DIR)
 	ln -fs $(CONDA_BIN)/e4s-cl $(INSTALL_BIN_DIR)/e4s-cl
-	touch $(INSTALLDIR)/$(shell $(PYTHON) -c "import e4s_cl; print(e4s_cl._HOME_MARKER)")
+	touch $(INSTALLDIR)/$(HOME_MARKER)
 
 #>============================================================================<
 # Data fetching targets
@@ -120,23 +122,23 @@ install: $(PYTHON_EXE)
 ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
 
 download_assets: $(PYTHON_EXE)
-	cd scripts; $(PYTHON) download_assets.py $(ASSET_URL) $(HOST_ARCH) $(E4SCL_TARGETSYSTEM)
+	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(E4SCL_TARGETSYSTEM)
 
 COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
 COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)
 COMPLETION_DEST=$(INSTALLDIR)/bin/__e4s_cl_completion.$(HOST_ARCH)
 
 completion:
-	@$(MKDIR) $(INSTALL_BIN_DIR)
-	@$(call download,$(COMPLETION_BIN_URL),$(COMPLETION_DEST)) || \
+	$(MKDIR) $(INSTALL_BIN_DIR)
+	$(call download,$(COMPLETION_BIN_URL),$(COMPLETION_DEST)) || \
 		(rm -f "$(COMPLETION_DEST)" ; \
 		echo "* ERROR: Unable to download $(COMPLETION_BIN_URL)." ; \
 		false)
-	@chmod +x $(COMPLETION_DEST)
-	@$(MKDIR) $(COMPLETION_DIR)
-	@$(COMPLETION_DEST) > $(COMPLETION_DIR)/e4s-cl
-	@$(PYTHON) scripts/success.py "Please source '$(COMPLETION_DIR)/e4s-cl' to enable completion to the current shell."
-	@$(PYTHON) scripts/success.py "If the bash-completion package is installed, completion will be enabled on new sessions."
+	chmod +x $(COMPLETION_DEST)
+	$(MKDIR) $(COMPLETION_DIR)
+	$(COMPLETION_DEST) > $(COMPLETION_DIR)/e4s-cl
+	echo "Please source '$(COMPLETION_DIR)/e4s-cl' to enable completion to the current shell."
+	echo "If the bash-completion package is installed, completion will be enabled on new sessions."
 
 #>============================================================================<
 # Documentation targets and variables
@@ -149,10 +151,10 @@ USER_MAN=$(HOME)/.local/share/man
 man: $(PYTHON_EXE)
 	$(PYTHON) -m pip install -q -U -r ./docs/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
-	@$(MKDIR) $(USER_MAN)/man1
-	@$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1
-	@MANPATH=$(MANPATH):$(USER_MAN) mandb || true
-	@$(PYTHON) scripts/success.py "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
+	$(MKDIR) $(USER_MAN)/man1
+	$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1
+	MANPATH=$(MANPATH):$(USER_MAN) mandb || true
+	echo "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
 html: $(PYTHON_EXE)
 	find $(DOCS) -exec touch {} \;
