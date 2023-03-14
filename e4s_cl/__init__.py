@@ -1,7 +1,10 @@
 import os
 import sys
 from pathlib import Path
-from e4s_cl.version import __version__
+try:
+    from e4s_cl.version import __version__
+except ModuleNotFoundError:
+    __version__ = "0.0.0"
 
 E4S_CL_VERSION = __version__
 """str: E4S Container Launcher Version"""
