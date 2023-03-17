@@ -13,6 +13,7 @@ from e4s_cl.cf.libraries import resolve
 from e4s_cl.cf.assets import add_builtin_profile, remove_builtin_profile
 from e4s_cl.cli.commands.init import COMMAND, _compile_sample
 from e4s_cl import logger
+import unittest
 
 TEST_SYSTEM = '__test_system'
 
@@ -35,9 +36,9 @@ class InitTestWI4MPI(tests.TestCase):
         cls.resetStorage()
         try:
             if (_compile_sample(which(MPICC)) == None):
-                raise ValueError('MPI compiler failed to compile sample: related tests will not be run')
-        except FileNotFoundError as err:
-            raise FileNotFoundError('No compiler found: related tests will not be run')
+                raise unittest.SkipTest('MPI compiler failed to compile sample: related tests will be skipped')
+        except FileNotFoundError:
+            raise unittest.SkipTest('No MPI compiler found: related tests will be skipped')
         
     def setUp(self):
         add_builtin_profile(TEST_SYSTEM, {'name': TEST_SYSTEM})
