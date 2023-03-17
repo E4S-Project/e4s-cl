@@ -5,16 +5,12 @@ Tests ensuring the init command behaves as intented
 import os
 from itertools import combinations
 import tests
+from tests import TEST_SYSTEM
 from e4s_cl.util import which
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.libraries import resolve
 from e4s_cl.cf.assets import add_builtin_profile, remove_builtin_profile
 from e4s_cl.cli.commands.init import COMMAND, _compile_sample
-
-TEST_SYSTEM = '__test_system'
-
-MPICC = os.environ.get('__E4SCL_MPI_COMPILER', 'mpicc')
-
 
 class InitTest(tests.TestCase):
     """
@@ -28,10 +24,6 @@ class InitTest(tests.TestCase):
         remove_builtin_profile(TEST_SYSTEM)
         Profile.controller().unselect()
         self.resetStorage()
-
-    @tests.skipUnless(which(MPICC), "No MPI compiler found")
-    def test_compile_mpicc(self):
-        self.assertIsNotNone(_compile_sample(which(MPICC)))
 
     @tests.skipUnless(which('gcc'), "No GNU compiler found")
     def test_compile_bad_compiler(self):
@@ -52,41 +44,11 @@ class InitTest(tests.TestCase):
                          TEST_SYSTEM)
         self.assertEqual(Profile.controller().count(), 1)
 
-    @tests.skipUnless(which(MPICC), "No MPI compiler found")
-    def test_wi4mpi(self):
-        self.assertCommandReturnValue(0, COMMAND,
-                                      "--wi4mpi /path/to/installation")
-        profile = Profile.controller().selected()
-
-        self.assertTrue(profile)
-        self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
-
-    @tests.skipUnless(which(MPICC), "No MPI compiler found")
-    def test_wi4mpi_overwrite(self):
-        self.assertCommandReturnValue(0, COMMAND,
-                                      "--wi4mpi /path/to/installation")
-        self.assertEqual(Profile.controller().count(), 1)
-        self.assertCommandReturnValue(0, COMMAND,
-                                      "--wi4mpi /path/to/installation")
-        self.assertEqual(Profile.controller().count(), 1)
-
     def test_rename_system(self):
         self.assertCommandReturnValue(
             0, COMMAND, f"--profile init_test_profile --system {TEST_SYSTEM}")
         self.assertEqual(Profile.controller().selected().get('name'),
                          'init_test_profile')
-
-    @tests.skipUnless(which(MPICC), "No MPI compiler found")
-    def test_rename_wi4mpi(self):
-        self.assertCommandReturnValue(
-            0, COMMAND,
-            "--profile init_test_profile --wi4mpi /path/to/installation")
-        profile = Profile.controller().selected()
-
-        self.assertTrue(profile)
-        self.assertEqual(profile.get('name'), 'init_test_profile')
-        self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
-
 
 groups = [
     [('--system', TEST_SYSTEM)],

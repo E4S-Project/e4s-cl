@@ -18,6 +18,8 @@ from e4s_cl import logger, E4S_CL_HOME, EXIT_SUCCESS, EXIT_FAILURE, config
 ASSETS = Path(__file__).parent / "assets"
 CONFIGURATION_FILE = ASSETS / "e4s-cl.yaml"
 
+TEST_SYSTEM = '__test_system'
+
 # Set the configuration to a specific testing version
 config.update_configuration(
     config.Configuration.create_from_file(CONFIGURATION_FILE))
