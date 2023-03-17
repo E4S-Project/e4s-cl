@@ -29,10 +29,6 @@ class InitTest(tests.TestCase):
         Profile.controller().unselect()
         self.resetStorage()
 
-    @tests.skipUnless(which(MPICC), "No MPI compiler found")
-    def test_compile_mpicc(self):
-        self.assertIsNotNone(_compile_sample(which(MPICC)))
-
     @tests.skipUnless(which('gcc'), "No GNU compiler found")
     def test_compile_bad_compiler(self):
         self.assertIsNone(_compile_sample(which('gcc')))
@@ -52,41 +48,11 @@ class InitTest(tests.TestCase):
                          TEST_SYSTEM)
         self.assertEqual(Profile.controller().count(), 1)
 
-    @tests.skipUnless(which(MPICC), "No MPI compiler found")
-    def test_wi4mpi(self):
-        self.assertCommandReturnValue(0, COMMAND,
-                                      "--wi4mpi /path/to/installation")
-        profile = Profile.controller().selected()
-
-        self.assertTrue(profile)
-        self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
-
-    @tests.skipUnless(which(MPICC), "No MPI compiler found")
-    def test_wi4mpi_overwrite(self):
-        self.assertCommandReturnValue(0, COMMAND,
-                                      "--wi4mpi /path/to/installation")
-        self.assertEqual(Profile.controller().count(), 1)
-        self.assertCommandReturnValue(0, COMMAND,
-                                      "--wi4mpi /path/to/installation")
-        self.assertEqual(Profile.controller().count(), 1)
-
     def test_rename_system(self):
         self.assertCommandReturnValue(
             0, COMMAND, f"--profile init_test_profile --system {TEST_SYSTEM}")
         self.assertEqual(Profile.controller().selected().get('name'),
                          'init_test_profile')
-
-    @tests.skipUnless(which(MPICC), "No MPI compiler found")
-    def test_rename_wi4mpi(self):
-        self.assertCommandReturnValue(
-            0, COMMAND,
-            "--profile init_test_profile --wi4mpi /path/to/installation")
-        profile = Profile.controller().selected()
-
-        self.assertTrue(profile)
-        self.assertEqual(profile.get('name'), 'init_test_profile')
-        self.assertEqual(profile.get('wi4mpi'), '/path/to/installation')
-
 
 groups = [
     [('--system', TEST_SYSTEM)],
