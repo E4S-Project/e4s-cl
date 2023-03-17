@@ -5,16 +5,12 @@ Tests ensuring the init command behaves as intented
 import os
 from itertools import combinations
 import tests
+from tests import TEST_SYSTEM
 from e4s_cl.util import which
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.libraries import resolve
 from e4s_cl.cf.assets import add_builtin_profile, remove_builtin_profile
 from e4s_cl.cli.commands.init import COMMAND, _compile_sample
-
-TEST_SYSTEM = '__test_system'
-
-MPICC = os.environ.get('__E4SCL_MPI_COMPILER', 'mpicc')
-
 
 class InitTest(tests.TestCase):
     """

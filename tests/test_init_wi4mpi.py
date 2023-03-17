@@ -1,4 +1,3 @@
-
 """
 Tests ensuring the init command behaves as intented relating to wi4mpi
 """
@@ -15,10 +14,7 @@ from e4s_cl.cli.commands.init import COMMAND, _compile_sample
 from e4s_cl import logger
 import unittest
 
-TEST_SYSTEM = '__test_system'
-
 MPICC = os.environ.get('__E4SCL_MPI_COMPILER', 'mpicc')
-
 
 class InitTestWI4MPI(tests.TestCase):
     """
