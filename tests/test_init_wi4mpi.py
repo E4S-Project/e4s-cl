@@ -6,6 +6,7 @@ import os
 import sys
 from itertools import combinations
 import tests
+from tests import TEST_SYSTEM
 from e4s_cl.util import which
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.libraries import resolve
