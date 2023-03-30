@@ -66,12 +66,12 @@ class FileOptions:
     READ_WRITE = 1
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True)  # Frozen to take advantage of the hashing capacities
 class BoundFile:
     """Element of the bound file dictionnary"""
     origin: Path
     destination: Path
-    option: int
+    option: int = FileOptions.READ_ONLY
 
 
 class BackendError(ConfigurationError):
