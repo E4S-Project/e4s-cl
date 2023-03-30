@@ -60,8 +60,11 @@ class SingularityContainer(Container):
         self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
             {'SINGULARITYENV_LD_PRELOAD': ":".join(self.ld_preload)})
-        self.env.update(
-            {'SINGULARITYENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
+
+        # LD_LIBRARY_PATH override does not respect container's values.
+        # Enabling this may prevent crashes with nvidia library import
+        # from singularity (--nv flag) but causes MORE crashes with client containers
+        # self.env.update({'SINGULARITYENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
         self._format_bound()
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
