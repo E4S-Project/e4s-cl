@@ -6,6 +6,7 @@ v1.0.2
 - Added default configuration output from command line
 - Improved podman support for container version detection
 - Fixed termcolor error on container failure
+- Add check to ensure symlinks are not bound twice
 
 v1.0.1 (Nov 10 2022)
 ---------------------
