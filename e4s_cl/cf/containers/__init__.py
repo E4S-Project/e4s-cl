@@ -138,6 +138,40 @@ def dump(func):
     return wrapper
 
 
+def _contains(container: BoundFile, containee: BoundFile) -> bool:
+    """
+        Assert the containee bind is 'contained' by container bind. This can happen in multiple ways:
+        - The origin containee file is inside the origin container file/directory tree and both are bound in-place
+          ORIGIN -> DESTINATION
+          container: /usr -> /usr
+          containee: /usr/lib/openmpi -> /usr/lib/openmpi
+        - The origin containee is a symlink to the origin container and both are bound to the same location
+
+        The following is not covered by contains:
+        - A directory is bound and one of its files is bound somewhere else:
+          ORIGIN -> DESTINATION
+          container: /usr -> /usr
+          containee: /usr/lib/libtest.so -> /otherpath/libtest.so
+        - Two different files are bound to a single destination
+        """
+
+    # Check for an exact match between the container and containee
+    exact_match = False
+    if containee.destination == container.destination:
+        exact_match = (
+            container.origin.resolve() == containee.origin.resolve())
+
+    # Check for arborescence delta matches
+    try:
+        arborescence = containee.origin.relative_to(
+            container.origin) == containee.destination.relative_to(
+                container.destination)
+    except ValueError:
+        arborescence = False
+
+    return exact_match or arborescence
+
+
 def optimize_bind_addition(
         new: BoundFile,
         bound_files: Iterable[BoundFile]) -> Iterable[BoundFile]:
@@ -148,18 +182,11 @@ def optimize_bind_addition(
 
     new_binds = set(bound_files)
 
-    def contains(bound_lhs, bound_rhs):
-        try:
-            return bound_rhs.origin.relative_to(
-                bound_lhs.origin) == bound_rhs.destination.relative_to(
-                    bound_lhs.destination)
-        except ValueError:
-            return False
-
     # Check if the file to be bound is contained in already bound files/folders
     # If it is, check that the containing files/folders' permissions align with
     # the new file and update them if need be
-    target_contained = set(filter(lambda b: contains(b, new), bound_files))
+    target_contained = set(
+        filter(lambda bind: _contains(bind, new), bound_files))
 
     if target_contained:
         # Compute the max permission required by the files containing new. If
@@ -185,7 +212,7 @@ def optimize_bind_addition(
     # Check if the file to be bound is containing already bound files/folders
     # If it is, check that the new file's permissions align with the contained files/folders
     # and then unbind them with a new permission level if need be
-    target_containing = set(filter(lambda b: contains(new, b), bound_files))
+    target_containing = set(filter(lambda b: _contains(new, b), bound_files))
 
     if target_containing:
         # Check the permissions requires by the files contained by new, and
