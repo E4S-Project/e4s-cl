@@ -1,8 +1,12 @@
-from unittest import skipIf
 from pathlib import Path
 import tests
-from e4s_cl.cf.containers import (Container, BackendUnsupported, FileOptions,
-                                  BoundFile, optimize_bind_addition)
+from e4s_cl.cf.containers import (
+    BackendUnsupported,
+    BoundFile,
+    Container,
+    FileOptions,
+    optimize_bind_addition,
+)
 
 
 class ContainerTest(tests.TestCase):
@@ -93,3 +97,16 @@ class ContainerTest(tests.TestCase):
         files = set(map(lambda x: x.origin, container.bound))
 
         self.assertSetEqual({ref, file}, files)
+
+    def test_double_bind(self):
+        container = Container(name='dummy')
+
+        library = Path(tests.ASSETS, 'libgver.so.0')
+        library_symlink = Path(tests.ASSETS, 'libgver.so.0.0.0')
+        target = Path('/', 'hostlibs', 'libgver.so.0')
+
+        bind1 = BoundFile(library, target)
+        bind2 = BoundFile(library_symlink, target)
+
+        self.assertSetEqual({bind1}, optimize_bind_addition(bind2, {bind1}))
+        self.assertSetEqual({bind2}, optimize_bind_addition(bind1, {bind2}))
