@@ -1,4 +1,4 @@
-v1.0.2
+v1.0.2 (Mar 31 2023)
 ---------------------
 
 - Added configuration options for container backends
@@ -7,6 +7,8 @@ v1.0.2
 - Improved podman support for container version detection
 - Fixed termcolor error on container failure
 - Add check to ensure symlinks are not bound twice
+- Added configuration options for wi4mpi
+- Added support for wi4mpi interface mode
 
 v1.0.1 (Nov 10 2022)
 ---------------------
