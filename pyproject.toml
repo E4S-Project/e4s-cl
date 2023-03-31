@@ -47,6 +47,7 @@ packages = ["e4s_cl"]
 
 [project.scripts]
 e4s-cl = "e4s_cl.__main__:main"
+e4s-cl-mpi-tester = "e4s_cl.scripts.e4s_cl_mpi_tester:main"
 
 [tool.setuptools_scm]
 write_to = "e4s_cl/version.py"
