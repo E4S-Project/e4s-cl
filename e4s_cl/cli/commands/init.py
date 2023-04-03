@@ -71,10 +71,15 @@ import tempfile
 import subprocess
 import shlex
 from pathlib import Path
-from typing import Optional
+from typing import (List, Optional)
 from sotools.linker import resolve
-from e4s_cl import (EXIT_FAILURE, EXIT_SUCCESS, E4S_CL_SCRIPT,
-                    INIT_TEMP_PROFILE_NAME)
+from e4s_cl import (
+    E4S_CL_MPI_TESTER_SCRIPT_NAME,
+    E4S_CL_SCRIPT,
+    EXIT_FAILURE,
+    EXIT_SUCCESS,
+    INIT_TEMP_PROFILE_NAME,
+)
 from e4s_cl import logger, util
 from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_mpi import (
@@ -83,8 +88,13 @@ from e4s_cl.cf.detect_mpi import (
     profile_mpi_name,
 )
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
-from e4s_cl.cli.arguments import (binary_in_path, posix_path, get_parser,
-                                  SUPPRESS, REMAINDER)
+from e4s_cl.cli.arguments import (
+    REMAINDER,
+    SUPPRESS,
+    binary_in_path,
+    get_parser,
+    posix_path,
+)
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
 from e4s_cl.error import (UniqueAttributeError, ModelError)
@@ -93,36 +103,6 @@ from e4s_cl.sample import PROGRAM
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
-
-
-def _compile_sample(compiler) -> Path:
-    """
-    Compile a sample MPI program that can be used with the profile detect command
-    """
-    # Create a file to compile a sample program in
-    with tempfile.NamedTemporaryFile('w+', delete=False) as binary:
-        with tempfile.NamedTemporaryFile('w+', suffix='.c') as program:
-            program.write(PROGRAM)
-            program.seek(0)
-
-            command = "%(compiler)s -o %(output)s -lm %(code)s" % {
-                'compiler': compiler,
-                'output': binary.name,
-                'code': program.name,
-            }
-
-            LOGGER.debug("Compiling with: '%s'", command)
-            with subprocess.Popen(command.split()) as compilation:
-                compilation_status = compilation.wait()
-
-    # Check for a non-zero return code
-    if compilation_status:
-        LOGGER.error(
-            "Failed to compile sample MPI program with the following compiler: %s",
-            compiler)
-        return None
-
-    return binary.name
 
 
 def _check_mpirun(executable):
@@ -170,17 +150,6 @@ def _profile_from_args(args) -> dict:
     return data
 
 
-def _select_binary(binary_dict):
-    # Selects an available mpi vendor
-    for libso in binary_dict.keys():
-        if resolve(libso) is not None:
-            return str(binary_dict[libso])
-    LOGGER.debug(
-        "MPI vendor not supported by precompiled binary initialisation\n"
-        "Proceeding with legacy initialisation")
-    return None
-
-
 def _analyze_binary(args):
     # If no profile has been loaded or wi4mpi is not used, then
     # we need to analyze a binary to
@@ -203,21 +172,38 @@ def _analyze_binary(args):
     return EXIT_SUCCESS
 
 
-def _generate_command(args):
+def _find_tester() -> Optional[Path]:
+    """
+    Locate the MPI tester script. It is installed alongside e4s-cl and is used
+    to load and run an MPI library for analysis
+    """
+
+    # First look in PATH for the script
+    script = util.which(E4S_CL_MPI_TESTER_SCRIPT_NAME)
+
+    if script is None:
+        # If installed via pip, the script should be located in the same
+        # directory as e4s-cl. Resolve argv[0] to bypass symlinks and look for
+        # the file in the parent directory
+        install_dir = Path(E4S_CL_SCRIPT).resolve().parent
+        installed = Path(install_dir, E4S_CL_MPI_TESTER_SCRIPT_NAME)
+        if installed.exists():
+            script = installed
+
+    if script is None:
+        return None
+    return Path(script)
+
+
+def _generate_command(args) -> List[str]:
     """
     Generate a command from the given args with a launcher and mpi binary
-    - compiling a binary if necessary
     """
     # Use the MPI environment scripts by default
-    compiler = util.which('mpicc')
     launcher = util.which('mpirun')
 
     # If a library is specified, get the executables
     if getattr(args, 'mpi', None):
-        mpicc = Path(args.mpi) / "bin" / "mpicc"
-        if mpicc.exists():
-            compiler = mpicc.as_posix()
-
         mpirun = Path(args.mpi) / "bin" / "mpirun"
         if mpirun.exists():
             launcher = mpirun.as_posix()
@@ -227,9 +213,6 @@ def _generate_command(args):
         if mpi_lib.exists():
             os.environ["LD_LIBRARY_PATH"] = mpi_lib.as_posix()
 
-    # Select binary depending on available library
-    binary = _select_binary(precompiled_binaries())
-
     # Use the launcher passed as an argument in priority
     arg_launcher = getattr(args, 'launcher', None)
     if arg_launcher:
@@ -237,36 +220,31 @@ def _generate_command(args):
 
     launcher_args = shlex.split(getattr(args, 'launcher_args', ''))
 
-    # If no binary, check for compiler and compile a binary
-    if not binary:
-        if not compiler:
-            LOGGER.error(
-                "No MPI compiler detected. Please load a module or "
-                "use the `--mpi` option to specify the MPI installation to use."
-            )
-            return []
-        binary = _compile_sample(compiler)
-
-        # Exit now if we failed producing a compatible binary
-        if not binary:
-            return []
-
     # Check for launcher and then launch the detect command
     if not launcher:
         LOGGER.error(
-            "No launcher detected. Please load a module, use the `--mpi` "
-            "or `--launcher` options to specify the launcher program to use.")
+            "No MPI launcher detected. Please load an MPI module, use the "
+            "`--mpi` or `--launcher` options to specify the launcher program "
+            "to use.")
         return []
-
-    LOGGER.info("Tracing MPI execution using:\nCompiler: %s\nLauncher: %s",
-                compiler, " ".join([launcher, *launcher_args]))
 
     # If no arguments were given, check the default behaviour of the launcher
     if not launcher_args:
         _check_mpirun(launcher)
 
+    tester = _find_tester()
+    if tester is None:
+        raise ValueError("Cannot find tester script !")
+
+    command = [
+        launcher,
+        *launcher_args,
+        tester.as_posix(),
+    ]
+    LOGGER.info("Tracing MPI execution using:\n%s", command)
+
     # Run the program using the detect command and get a file list
-    return [launcher, *launcher_args, binary]
+    return command
 
 
 def _skip_analysis(args) -> bool:
