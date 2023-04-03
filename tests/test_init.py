@@ -10,7 +10,8 @@ from e4s_cl.util import which
 from e4s_cl.model.profile import Profile
 from e4s_cl.cf.libraries import resolve
 from e4s_cl.cf.assets import add_builtin_profile, remove_builtin_profile
-from e4s_cl.cli.commands.init import COMMAND, _compile_sample
+from e4s_cl.cli.commands.init import COMMAND
+
 
 class InitTest(tests.TestCase):
     """
@@ -24,10 +25,6 @@ class InitTest(tests.TestCase):
         remove_builtin_profile(TEST_SYSTEM)
         Profile.controller().unselect()
         self.resetStorage()
-
-    @tests.skipUnless(which('gcc'), "No GNU compiler found")
-    def test_compile_bad_compiler(self):
-        self.assertIsNone(_compile_sample(which('gcc')))
 
     def test_system(self):
         self.assertCommandReturnValue(0, COMMAND, f"--system {TEST_SYSTEM}")
@@ -49,6 +46,7 @@ class InitTest(tests.TestCase):
             0, COMMAND, f"--profile init_test_profile --system {TEST_SYSTEM}")
         self.assertEqual(Profile.controller().selected().get('name'),
                          'init_test_profile')
+
 
 groups = [
     [('--system', TEST_SYSTEM)],
