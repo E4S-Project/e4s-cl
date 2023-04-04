@@ -16,7 +16,9 @@ will run in a debug environment. The opened files and libraries will be \
 detected using the :code:`ptrace` system call, and added to the resulting \
 profile.
 
-The sample command used depends on the arguments given to **e4s-cl**. An entire command can be passed on the command line, or it will be constructed from the :code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options.
+The sample command used depends on the arguments given to **e4s-cl**. An entire \
+command can be passed on the command line, or it will be constructed from the \
+:code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options.
 
 It is highly encouraged to load the MPI library beforehand using the module \
 system available (:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the \
@@ -67,12 +69,10 @@ Using a library installed on the system in :code:`/packages`:
 
 import os
 import json
-import tempfile
 import subprocess
 import shlex
 from pathlib import Path
 from typing import (List, Optional)
-from sotools.linker import resolve
 from e4s_cl import (
     E4S_CL_MPI_TESTER_SCRIPT_NAME,
     E4S_CL_SCRIPT,
@@ -81,7 +81,6 @@ from e4s_cl import (
     INIT_TEMP_PROFILE_NAME,
 )
 from e4s_cl import logger, util
-from e4s_cl.cf.assets import precompiled_binaries, builtin_profiles
 from e4s_cl.cf.detect_mpi import (
     filter_mpi_libs,
     library_install_dir,
@@ -99,7 +98,6 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.profile.detect import COMMAND as detect_command
 from e4s_cl.error import (UniqueAttributeError, ModelError)
 from e4s_cl.model.profile import Profile
-from e4s_cl.sample import PROGRAM
 
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
@@ -141,11 +139,6 @@ def _profile_from_args(args) -> dict:
     # Determine the backend if possible
     if data.get('image') and not data.get('backend'):
         data['backend'] = guess_backend(args.image)
-
-    # Load data from assets if required
-    system = getattr(args, 'system', None)
-    if system:
-        data = {**data, **builtin_profiles().get(system, {})}
 
     return data
 
@@ -268,16 +261,14 @@ def _rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
 
     if ((requested_name == current_name and requested_name is not None)
             or (current_name and requested_name is None)):
-        """
-        match (requested_name, current_name) with:
-            (None, None) -> rename (create hash)
-            (None, x) -> pass (keep x)
-            (x, None) -> rename (set x)
-            (x, y) -> rename (overwrite y with x)
-            (x, x) -> pass
+        # match (requested_name, current_name) with:
+        #     (None, None) -> rename (create hash)
+        #     (None, x) -> pass (keep x)
+        #     (x, None) -> rename (set x)
+        #     (x, y) -> rename (overwrite y with x)
+        #     (x, x) -> pass
 
-        ==> Rename if !((r == c && r != None) || (c && !r))
-        """
+        # ==> Rename if !((r == c && r != None) || (c && !r))
         return True
 
     if requested_name is None or profile.name == INIT_TEMP_PROFILE_NAME:
@@ -304,18 +295,6 @@ class InitCommand(AbstractCommand):
 
     def _construct_parser(self):
         parser = get_parser(prog=self.command, description=self.summary)
-
-        parser.add_argument(
-            '--system',
-            help="Initialize e4s-cl for use on a specific system."
-            f" Available systems: {', '.join(builtin_profiles().keys())}" \
-                    if builtin_profiles().keys() else \
-                    "Initialize e4s-cl for use on a specific system."
-                    " Use 'make install E4SCL_TARGETSYSTEM=<system>' to make "
-                    " the associated profile available.",
-            metavar='machine',
-            default=SUPPRESS,
-            choices=builtin_profiles().keys())
 
         parser.add_argument(
             '--launcher',
@@ -396,24 +375,7 @@ class InitCommand(AbstractCommand):
     def main(self, argv):
         args = self._parse_args(argv)
 
-        system_args = getattr(args, 'system', False)
-        detect_args = (getattr(args, 'mpi', False)
-                       or getattr(args, 'cmd', False)
-                       or getattr(args, 'launcher', False)
-                       or getattr(args, 'launcher_args', False))
-
-        if system_args and detect_args:
-            self.parser.error(
-                "--system and --mpi / --launcher / --launcher_args options are mutually exclusive"
-            )
-
-        profile_data = _profile_from_args(args)
-
-        if system_args:
-            # If using the downloaded assets, they would be loaded above
-            pass
-        else:
-            profile_data['name'] = INIT_TEMP_PROFILE_NAME
+        profile_data = {'name': INIT_TEMP_PROFILE_NAME}
 
         controller = Profile.controller()
 
@@ -426,7 +388,7 @@ class InitCommand(AbstractCommand):
 
         status = EXIT_SUCCESS
 
-        if not system_args and _skip_analysis(args):
+        if _skip_analysis(args):
             try:
                 status = _analyze_binary(args)
             except KeyboardInterrupt:
@@ -455,7 +417,7 @@ class InitCommand(AbstractCommand):
         # Update the profile
         controller = Profile.controller()
         controller.update(
-            dict(files=new_files),
+            {'files': new_files},
             selected_profile.eid,
         )
 

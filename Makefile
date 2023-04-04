@@ -91,7 +91,7 @@ endif
 
 HOME_MARKER = .e4s-cl-home
 
-all: install download_assets completion man
+all: install completion man
 
 #>============================================================================<
 # Conda setup and fetch target
@@ -118,11 +118,6 @@ install: $(PYTHON_EXE)
 
 #>============================================================================<
 # Data fetching targets
-
-ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
-
-download_assets: $(PYTHON_EXE)
-	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(E4SCL_TARGETSYSTEM)
 
 COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
 COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)
