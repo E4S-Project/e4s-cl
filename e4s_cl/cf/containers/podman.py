@@ -86,6 +86,8 @@ class FDFiller:
             missing.discard(null.fileno())
             self.__opened_files.append(null)
 
+        passed_fds = fds - {0, 1, 2}
+        LOGGER.debug("Passing %d file descriptors: (%s)", len(passed_fds), passed_fds)
         LOGGER.debug("Created %d file descriptors: %s",
                      len(self.__opened_files),
                      [f.fileno() for f in self.__opened_files])
@@ -116,7 +118,6 @@ class PodmanContainer(Container):
 
         fds = opened_fds() - {0, 1, 2}
 
-        LOGGER.debug("Passing %d file descriptors: (%s)", len(fds), fds)
         return len(fds)
 
     def _format_bound(self):
@@ -178,9 +179,8 @@ class PodmanContainer(Container):
         if executable is None:
             raise BackendNotAvailableError(self.__class__.__name__)
 
-        container_cmd = [executable, *self._prepare(command, overload)]
-
         with FDFiller():
+            container_cmd = [executable, *self._prepare(command, overload)]
             return run_subprocess(container_cmd, env=self.env)
 
 
