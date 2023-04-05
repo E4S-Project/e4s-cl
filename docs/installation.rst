@@ -1,6 +1,30 @@
 Installation
 ================
 
+From the Python Package Index
+------------------------------
+
+Install **e4s-cl** using the python package system:
+
+.. code-block:: bash
+
+   $ pip install e4s-cl
+
+You can enable optional behaviours using the extra syntax. Currently only :code:`docker` support can be enabled this way:
+
+.. code-block:: bash
+
+   $ pip install e4s-cl[docker]
+
+From spack
+-----------
+
+You can install **e4s-cl** using the `spack package manager <https://github.com/spack/spack>`_:
+
+.. code-block:: bash
+
+   $ spack install e4s-cl
+
 From source
 -------------
 
@@ -10,28 +34,18 @@ To install a version from the sources, first clone the repository or download a 
 
     $ git clone https://github.com/E4S-Project/e4s-cl
 
-Default installation
-********************
+Installation
+**************
 
 Install **e4s-cl** using :code:`make install`. The installation directory can be modified using the :code:`INSTALLDIR` variable:
 
 .. code-block:: bash
 
-    $ make INSTALLDIR=<prefix> install
-
-Or:
-
-.. code-block:: bash
-
-    $ make INSTALLDIR=<prefix> all [E4SCL_TARGETSYSTEM=<machine_name>]
+    $ INSTALLDIR=<prefix> make install
 
 The **e4s-cl** program will be copied over to :code:`<prefix>/bin`. On success, a message will be printed with the full path to add to your :code:`PATH`.
 
 A python interpreter will be downloaded to ensure a compatible Python 3 version is available.
-
-.. admonition:: :code:`E4SCL_TARGETSYSTEM` parameter
-
-    Some machines have specific e4s-cl profiles tailored for them that can be downloaded and later accessed as builtin profiles. Those need to be enabled at installation using the :code:`E4SCL_TARGETSYSTEM` environment variable. This parameter requires e4s-cl to already be installed or to use the "all" target. Refer to the :ref:`system compatibility<system_compat>` page for details.
 
 Completion
 ************
@@ -42,7 +56,7 @@ The :code:`INSTALLDIR` used for the :code:`make install` must be specified to ti
 
 .. code-block:: bash
 
-    $ make INSTALLDIR=<prefix> completion
+    $ INSTALLDIR=<prefix> make completion
     $ source $HOME/.local/share/bash-completion/completions/e4s-cl
 
 Manual page
@@ -54,15 +68,6 @@ The :code:`INSTALLDIR` used for the :code:`make install` must be specified to ti
 
 .. code-block:: bash
 
-    $ make INSTALLDIR=<prefix> man
+    $ INSTALLDIR=<prefix> make man
     $ export MANPATH=$HOME/.local/share/man:$MANPATH
     $ man e4s-cl
-
-Full installation
-******************
-
-All of the above steps can be done at once by using :code:`make all`.
-
-.. code-block:: bash
-
-    $ make INSTALLDIR=<prefix>
