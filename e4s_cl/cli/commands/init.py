@@ -1,16 +1,8 @@
 """
 This command is intended to be run once, and will create a \
 :ref:`profile<profile>` from the resources made available to it. \
-Initialization can be achieved in multiple ways, depending on the \
-arguments passed to the command.
 
-In case no method is explicitly invoked, the command attempts MPI library \
-analysis, by using the MPI compiler and launcher available in the environment.
-
-Using an installed MPI library
---------------------------------
-
-This initialization method will create a profile from the execution analysis \
+The initialization method will create a profile from the execution analysis \
 of a sample MPI program. A program compiled with the MPI library's compiler \
 will run in a debug environment. The opened files and libraries will be \
 detected using the :code:`ptrace` system call, and added to the resulting \
@@ -33,15 +25,6 @@ paths and dependencies are valid and loaded.
 
 If no name is passed to :code:`--profile`, a :ref:`profile<profile>` \
 name will be generated from the version of the found MPI library.
-
-Using a system name
------------------------
-
-If the current system is supported, use the :code:`--system` argument to \
-flag its use. The available values are listed when using \
-:code:`e4s-cl init -h`. In order to have the system-specific profiles \
-available (and listed as available), the :code:`E4SCL_TARGETSYSTEM=<system>` \
-flag needs to be used when installing the project.
 
 Examples
 --------
@@ -71,8 +54,13 @@ import os
 import json
 import subprocess
 import shlex
+import argparse
 from pathlib import Path
-from typing import (List, Optional)
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 from e4s_cl import (
     E4S_CL_MPI_TESTER_SCRIPT_NAME,
     E4S_CL_SCRIPT,
@@ -103,7 +91,7 @@ LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = os.path.basename(E4S_CL_SCRIPT)
 
 
-def _check_mpirun(executable):
+def _check_mpirun(executable: Union[str, Path]):
     """
     Run hostname with the launcher and list the affected nodes
     """
@@ -125,7 +113,7 @@ def _check_mpirun(executable):
             str(detect_command))
 
 
-def _profile_from_args(args) -> dict:
+def _profile_from_args(args: argparse.Namespace) -> dict:
     """
     Create a dictionnary with all the profile related information passed as arguments
     """
@@ -143,10 +131,10 @@ def _profile_from_args(args) -> dict:
     return data
 
 
-def _analyze_binary(args):
-    # If no profile has been loaded or wi4mpi is not used, then
-    # we need to analyze a binary to
-    # determine the dynamic dependencies of the library
+def _analyze_binary(args: argparse.Namespace) -> int:
+    """
+    Trace a command to determine the dynamic dependencies of the MPI library
+    """
 
     command = getattr(args, 'cmd', None)
     if not command:
@@ -188,32 +176,28 @@ def _find_tester() -> Optional[Path]:
     return Path(script)
 
 
-def _generate_command(args) -> List[str]:
+def _generate_command(args: argparse.Namespace) -> List[str]:
     """
     Generate a command from the given args with a launcher and mpi binary
     """
-    # Use the MPI environment scripts by default
+    # Use the environment's MPI scripts by default
     launcher = util.which('mpirun')
 
-    # If a library is specified, get the executables
+    # If an installation dir is specified, use its contents
     if getattr(args, 'mpi', None):
         mpirun = Path(args.mpi) / "bin" / "mpirun"
         if mpirun.exists():
             launcher = mpirun.as_posix()
 
         # Update LD_LIBRARY_PATH if provided path exist
-        mpi_lib = Path(args.mpi) / "lib"
-        if mpi_lib.exists():
-            os.environ["LD_LIBRARY_PATH"] = mpi_lib.as_posix()
+        mpi_lib_dir = Path(args.mpi) / "lib"
+        if mpi_lib_dir.exists():
+            util.prepend_library_path(mpi_lib_dir)
 
-    # Use the launcher passed as an argument in priority
-    arg_launcher = getattr(args, 'launcher', None)
-    if arg_launcher:
-        launcher = arg_launcher
-
+    # Use the launcher and passed as an argument in priority
+    launcher = getattr(args, 'launcher', launcher)
     launcher_args = shlex.split(getattr(args, 'launcher_args', ''))
 
-    # Check for launcher and then launch the detect command
     if not launcher:
         LOGGER.error(
             "No MPI launcher detected. Please load an MPI module, use the "
@@ -234,7 +218,7 @@ def _generate_command(args) -> List[str]:
         *launcher_args,
         tester.as_posix(),
     ]
-    LOGGER.info("Tracing MPI execution using:\n%s", command)
+    LOGGER.info("Tracing MPI execution using:\n'%s'", " ".join(command))
 
     # Run the program using the detect command and get a file list
     return command
@@ -293,7 +277,7 @@ def _rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
 
-    def _construct_parser(self):
+    def _construct_parser(self) -> argparse.ArgumentParser:
         parser = get_parser(prog=self.command, description=self.summary)
 
         parser.add_argument(
@@ -348,7 +332,8 @@ class InitCommand(AbstractCommand):
 
         parser.add_argument(
             '--profile',
-            help="Profile to create. This will erase an existing profile !",
+            help="Name of the profile to create. This will erase an existing"
+            " profile with the same name !",
             metavar='profile_name',
             default=SUPPRESS,
             dest='profile_name',
@@ -356,7 +341,8 @@ class InitCommand(AbstractCommand):
 
         parser.add_argument(
             '--wi4mpi',
-            help="Path to the install directory of WI4MPI",
+            help=
+            "Path to the Wi4MPI install directory to use with this profile",
             metavar='path',
             default=SUPPRESS,
             dest='wi4mpi',
@@ -364,7 +350,8 @@ class InitCommand(AbstractCommand):
 
         parser.add_argument(
             'cmd',
-            help="Path to the install directory of WI4MPI",
+            help="Custom command to analyze, instead of the default. Use this"
+            " if your MPI implementation has specificities set at compile time",
             metavar='command',
             default=SUPPRESS,
             nargs=REMAINDER,
@@ -372,7 +359,7 @@ class InitCommand(AbstractCommand):
 
         return parser
 
-    def main(self, argv):
+    def main(self, argv: List[str]) -> int:
         args = self._parse_args(argv)
 
         profile_data = {'name': INIT_TEMP_PROFILE_NAME}
