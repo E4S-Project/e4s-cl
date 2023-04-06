@@ -42,12 +42,15 @@ Optional arguments
 The `launch` command accepts several arguments to tune its execution:
 
 --profile	Profile to use for the execution. If unspecified, the selected profile will be used.
---image		Image to use when launching the container. Can be a path or identifier. **Required**.
---backend	Container technology to employ. **Required**.
+--image		Image to use when launching the container. Can be a path or identifier. [required]_.
+--backend	Container technology to employ. [required]_.
 --libraries	Comma-separated list of libraries to make available at run-time in the container. Optional.
 --files		Comma-separated list of files to make accessible in the container. They will be bound in-place in the container. Optional.
 --source	Path of a script to source before execution. Optional.
 --from		If MPI library translation is needed, specify which family the binary comes from. The following are implemented: :code:`intelmpi`, :code:`openmpi`, :code:`mpich`. Optional.
+-h, --help		    print a help message
+
+.. [required] This field is required for execution, but can be set by the selected profile and omitted from the command line.
 
 Description
 -----------

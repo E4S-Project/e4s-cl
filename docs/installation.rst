@@ -1,3 +1,5 @@
+.. _install:
+
 Installation
 ================
 
@@ -25,6 +27,12 @@ You can install **e4s-cl** using the `spack package manager <https://github.com/
 
    $ spack install e4s-cl
 
+Extras are available in the spack specification:
+
+.. code-block:: bash
+
+   $ spack install e4s-cl+docker
+
 From source
 -------------
 
@@ -34,8 +42,8 @@ To install a version from the sources, first clone the repository or download a 
 
     $ git clone https://github.com/E4S-Project/e4s-cl
 
-Installation
-**************
+Program installation
+*********************
 
 Install **e4s-cl** using :code:`make install`. The installation directory can be modified using the :code:`INSTALLDIR` variable:
 
@@ -47,10 +55,11 @@ The **e4s-cl** program will be copied over to :code:`<prefix>/bin`. On success, 
 
 A python interpreter will be downloaded to ensure a compatible Python 3 version is available.
 
-Completion
-************
+Completion installation
+************************
 
-Automatic completion for commands and profiles can be installed by running :code:`make completion`. Whichever :code:`INSTALLDIR` chosen, a BASH completion script will be installed in :code:`$HOME/.local/share/bash-completion/completions/`. Sourcing it will enable **e4s-cl** completion in the shell; if the :code:`bash-completion` package is installed, it will be enabled for every new shell.
+Automatic completion for commands and profiles can be installed by running :code:`make completion`. Whichever :code:`INSTALLDIR` chosen, a BASH completion script will be downloaded and installed in :code:`$HOME/.local/share/bash-completion/completions/`.
+Sourcing it will enable **e4s-cl** completion in the current shell; if the :code:`bash-completion` package is installed, it will be enabled for every new shell.
 
 The :code:`INSTALLDIR` used for the :code:`make install` must be specified to tie the completion to the installed package.
 
@@ -62,7 +71,7 @@ The :code:`INSTALLDIR` used for the :code:`make install` must be specified to ti
 Manual page
 ************
 
-This website can also be installed in the :code:`man` format to be accessible on the CLI with :code:`make man`. This will create a man page in :code:`$HOME/.local/share/man/man1` and update the manual page database. This is the default user-level install directory, but you may have to add :code:`$HOME/.local/share/man` to the :code:`MANPATH` environment variable to access it depending on your system's configuration.
+This website can also be installed in the :code:`man` format to be accessible on the command-line with :code:`make man`. This will create a man page in :code:`$HOME/.local/share/man/man1` and update the manual page database. This is the default user-level install directory, but you may have to add :code:`$HOME/.local/share/man` to the :code:`MANPATH` environment variable to access it depending on your system's configuration.
 
 The :code:`INSTALLDIR` used for the :code:`make install` must be specified to tie the manual to the installed package.
 
