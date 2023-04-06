@@ -32,6 +32,7 @@ version = release = '1.0.3'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx_toolbox.collapse',
+    'sphinxcontrib.sass',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -52,7 +53,12 @@ html_theme = 'furo'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ["_static"]
+html_css_files = ["css/main.css"]
+
+sass_src_dir = "styles"
+sass_out_dir = "_static/css"
+sass_targets = {"main.scss": "main.css"}
 
 # -- HTML theme options ------------------------------------------------------
 

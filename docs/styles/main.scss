@@ -1,0 +1,25 @@
+.citation-list {
+    font-size: .8rem;
+
+    .label {
+        font-weight: bold;
+    }
+
+    p {
+        font-style: italic;
+    }
+}
+
+dl {
+    &.option-list,
+    &.simple {
+        kbd {
+            border: unset;
+            font-size: 1rem;
+        }
+    }
+}
+
+p code.literal {
+    border: unset;
+}
