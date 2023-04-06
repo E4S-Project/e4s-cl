@@ -3,14 +3,14 @@
 **init** - Initialize the tool
 ==============================
 
-This command initializes the E4S Container Launcher by generating a template profile from the environment.
+This command initializes the E4S Container Launcher by generating a profile for the first MPI library found in the environment.
 
 Usage
 -----
 
 .. code-block::
 
-    e4s-cl init [ OPTIONS ] [ [ LAUNCHER [ -- ] ] COMMAND ]
+    e4s-cl init [ OPTIONS ] [ COMMAND ]
 
 Arguments
 ----------
@@ -18,11 +18,8 @@ Arguments
 Positional arguments
 ^^^^^^^^^^^^^^^^^^^^^
 
-:kbd:`LAUNCHER`
-    An MPI launcher binary and arguments. **e4s-cl** is compatible with several launchers and will detect their presence. **Optional**.
-
 :kbd:`COMMAND`
-    The command to run in a container. **Optional**.
+    The MPI command to analyze instead of the default values. You can use a launcher and arguments here. This is needed if the binaries the library produces are non-standard. **Optional**.
 
 Common options
 ^^^^^^^^^^^^^^^
@@ -32,7 +29,7 @@ These arguments' values will be directly added to the created profile.
 --profile           Name of the profile to create or overwrite
 --backend           Container technology to use for this profile
 --image             Identifier for the image to use when launching the container
---source            Script to run before execution
+--source            Script to run in the container before execution
 --wi4mpi            Path to a Wi4MPI installation to use for this profile
 
 MPI analysis options

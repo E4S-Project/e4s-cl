@@ -1,30 +1,37 @@
 """
-This command is intended to be run once, and will create a \
-:ref:`profile<profile>` from the resources made available to it. \
+This command is intended to be run once for any given MPI library, and will \
+create a :ref:`profile<profile>` to substitute that library in a container.
 
-The initialization method will create a profile from the execution analysis \
-of a sample MPI program. A program compiled with the MPI library's compiler \
-will run in a debug environment. The opened files and libraries will be \
-detected using the :code:`ptrace` system call, and added to the resulting \
-profile.
-
-The sample command used depends on the arguments given to **e4s-cl**. An entire \
-command can be passed on the command line, or it will be constructed from the \
-:code:`--mpi`, :code:`--launcher` and :code:`--launcher_args` options.
+This is done by tracing the execution of a program using a given MPI library. The opened files and libraries will be detected, filtered, and stored in a profile.
 
 It is highly encouraged to load the MPI library beforehand using the module \
 system available (:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the \
 paths and dependencies are valid and loaded.
 
+A :ref:`profile<profile>` name will be generated from the version of the found MPI library. Make sure it corresponds to the library you want to use, or continue to the below section.
+
+Changing launcher and libraries
+*********************************
+
+**e4s-cl** can load an MPI library and run it without any other information. This is however a very generic operation that may fail on your system. The following options can be used to tune this process:
+
+--mpi
+    MPI installation to target. **e4s-cl** will search for a launcher and libraries in this folder. If not supplied, the environment is used.
+
+--launcher
+    MPI launcher to use. Defaults to :code:`mpirun`.
+
+--launcher_args
+    Options to pass to the MPI launcher. Defaults to the empty string.
+
+Alternatively, you can override the above options by providing a full command to run. This will require to compile an executable beforehand.
+
 .. admonition:: The importance of inter-process communication
 
     This process relies on the execution of a sample MPI program to discover \
-    its dependencies. In some cases, a library will lazy-load network \
-    libraries, preventing them from being detected. A message will appear in \
-    case some limitations were detected.
-
-If no name is passed to :code:`--profile`, a :ref:`profile<profile>` \
-name will be generated from the version of the found MPI library.
+    its dependencies. In rare cases, a library will lazy-load network \
+    libraries, preventing them from being detected with a simple example. \
+    A message will appear in case some limitations were detected.
 
 Examples
 --------
@@ -34,20 +41,28 @@ Initializing using MPI resources from the environment:
 .. code::
 
     module load mpich
-    e4s-cl init
+    e4s-cl init  # Will use the launcher and library from the mpich module
 
-Initializing by passing a MPI command:
+Using :code:`srun` with special arguments:
 
 .. code::
 
-    module load mpich
-    e4s-cl init mpirun -np 2 ./sample-program
+    module load cray-mpich-abi
+    e4s-cl init --launcher srun
+            --launcher_args "-A account-name -n 2 -N 2 -t 00:00:30"
 
 Using a library installed on the system in :code:`/packages`:
 
 .. code::
 
     e4s-cl init --mpi /packages/mpich --profile mpich
+
+Using a fully formed command and an existing executable:
+
+.. code-block:: bash
+
+    $ e4s-cl init srun -n X -N Y ./executable
+
 """
 
 import os
