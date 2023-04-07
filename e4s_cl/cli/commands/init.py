@@ -2,21 +2,27 @@
 This command is intended to be run once for any given MPI library, and will \
 create a :ref:`profile<profile>` to substitute that library in a container.
 
-This is done by tracing the execution of a program using a given MPI library. The opened files and libraries will be detected, filtered, and stored in a profile.
+This is done by tracing the execution of a program using a given MPI library. \
+The opened files and libraries will be detected, filtered, and stored in a profile.
 
 It is highly encouraged to load the MPI library beforehand using the module \
 system available (:code:`spack`/:code:`modules`/:code:`lmod`) to ensure the \
 paths and dependencies are valid and loaded.
 
-A :ref:`profile<profile>` name will be generated from the version of the found MPI library. Make sure it corresponds to the library you want to use, or continue to the below section.
+A :ref:`profile<profile>` name will be generated from the version of the found MPI \
+library. Make sure it corresponds to the library you want to use, or continue to the \
+below section.
 
 Changing launcher and libraries
 *********************************
 
-**e4s-cl** can load an MPI library and run it without any other information. This is however a very generic operation that may fail on your system. The following options can be used to tune this process:
+**e4s-cl** can load an MPI library and run it without any other information. This is \
+however a very generic operation that may fail on your system. The following \
+options can be used to tune this process:
 
 --mpi
-    MPI installation to target. **e4s-cl** will search for a launcher and libraries in this folder. If not supplied, the environment is used.
+    MPI installation to target. **e4s-cl** will search for a launcher and \
+    libraries in this folder. If not supplied, the environment is used.
 
 --launcher
     MPI launcher to use. Defaults to :code:`mpirun`.
@@ -24,7 +30,8 @@ Changing launcher and libraries
 --launcher_args
     Options to pass to the MPI launcher. Defaults to the empty string.
 
-Alternatively, you can override the above options by providing a full command to run. This will require to compile an executable beforehand.
+Alternatively, you can override the above options by providing a full command to \
+run. This will require to compile an executable beforehand.
 
 .. admonition:: The importance of inter-process communication
 
@@ -72,6 +79,7 @@ import shlex
 import argparse
 from pathlib import Path
 from typing import (
+    Iterable,
     List,
     Optional,
     Union,
@@ -89,6 +97,7 @@ from e4s_cl.cf.detect_mpi import (
     library_install_dir,
     profile_mpi_name,
 )
+from e4s_cl.cf.trace import opened_files
 from e4s_cl.cf.containers import guess_backend, EXPOSED_BACKENDS
 from e4s_cl.cli.arguments import (
     REMAINDER,
@@ -289,6 +298,73 @@ def _rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
     return True
 
 
+def _filter_files(
+    files: List[Path],
+    blacklist: List[Path],
+    mpi_libraries: Iterable[Path],
+) -> List[Path]:
+    filtered = files
+    # Removing files contained in the MPI installation tree
+    mpi_install_dir = library_install_dir(mpi_libraries)
+    if mpi_install_dir:
+        filtered = filter(
+            lambda file: not util.path_contains(mpi_install_dir, file),
+            filtered,
+        )
+
+    filtered = filter(
+        lambda file: not file in blacklist,
+        filtered,
+    )
+
+    return list(filter(None, {*filtered, mpi_install_dir}))
+
+
+def optimize_profile(args: argparse.Namespace, profile_eid: int) -> int:
+    """
+    After the analysis has succeeded, agglomerate bound files and rename profile
+    """
+    controller = Profile.controller()
+
+    blacklist = []
+    tester_used = not bool(getattr(args, 'cmd', None))
+    if tester_used:
+        _, blacklist = opened_files([_find_tester(), "-n"])
+
+    # Reload the profile created as it was modified by the analysis
+    selected_profile = controller.one(profile_eid)
+
+    profile_files = map(Path, selected_profile.get('files', []))
+    profile_libraries = map(Path, selected_profile.get('libraries', []))
+    profile_mpi_libraries = filter_mpi_libs(profile_libraries)
+
+    file_paths = _filter_files(
+        profile_files,
+        blacklist,
+        profile_mpi_libraries,
+    )
+    file_strings = list(map(str, file_paths))
+    file_strings.sort()
+
+    # Update the profile
+    controller.update(
+        {'files': file_strings},
+        selected_profile.eid,
+    )
+
+    requested_name = (getattr(args, 'profile_name', None)
+                      or profile_mpi_name(profile_mpi_libraries))
+
+    if requested_name == INIT_TEMP_PROFILE_NAME:
+        LOGGER.error(
+            "This name is reserved. Please use another name for your profile")
+        return EXIT_FAILURE
+
+    if not _rename_profile(selected_profile, requested_name):
+        return EXIT_FAILURE
+    return EXIT_SUCCESS
+
+
 class InitCommand(AbstractCommand):
     """`init` macrocommand."""
 
@@ -385,11 +461,10 @@ class InitCommand(AbstractCommand):
         controller.delete({"name": profile_data['name']})
 
         # Create and select a profile for use
-        profile = controller.create(profile_data)
-        controller.select(profile)
+        profile_eid = controller.create(profile_data).eid
+        controller.select(profile_eid)
 
         status = EXIT_SUCCESS
-
         if _skip_analysis(args):
             try:
                 status = _analyze_binary(args)
@@ -397,47 +472,13 @@ class InitCommand(AbstractCommand):
                 status = EXIT_FAILURE
 
         if status == EXIT_FAILURE:
-            controller.delete(profile.eid)
+            controller.delete(profile_eid)
             return status
 
-        # Reload the profile created above in case it was modified by the analysis
-        selected_profile = Profile.selected()
-
-        # Check for MPI in the analysis' results
-        profile_libraries = map(Path, selected_profile.get('libraries', []))
-        profile_mpi_libraries = filter_mpi_libs(profile_libraries)
-        mpi_install_dir = library_install_dir(profile_mpi_libraries)
-
-        # Simplify the profile by removing files contained in the MPI
-        # installation directory
-        profile_files = map(Path, profile.get('files', []))
-        filtered_files = filter(
-            lambda x: not util.path_contains(mpi_install_dir, x),
-            profile_files)
-        new_files = list(map(str, {*filtered_files, mpi_install_dir}))
-
-        # Update the profile
-        controller = Profile.controller()
-        controller.update(
-            {'files': new_files},
-            selected_profile.eid,
-        )
-
-        requested_name = (getattr(args, 'profile_name', None)
-                          or profile_mpi_name(profile_mpi_libraries))
-
-        if requested_name == INIT_TEMP_PROFILE_NAME:
-            LOGGER.error(
-                "This name is reserved. Please use another name for your profile"
-            )
-            return EXIT_FAILURE
-
-        if not _rename_profile(selected_profile, requested_name):
-            return EXIT_FAILURE
-
+        status = optimize_profile(args, profile_eid)
         LOGGER.info("Created profile %s", controller.selected().get('name'))
 
-        return EXIT_SUCCESS
+        return status
 
 
 SUMMARY = "Initialize %(prog)s with the accessible MPI library, and create a profile with the results."

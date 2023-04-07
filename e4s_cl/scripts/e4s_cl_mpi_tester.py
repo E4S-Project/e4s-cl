@@ -31,6 +31,13 @@ PARSER.add_argument(
 )
 
 PARSER.add_argument(
+    "-n",
+    "--no-mpi",
+    action="store_true",
+    help="Disable MPI binding; run an empty program",
+)
+
+PARSER.add_argument(
     "-v",
     "--verbose",
     action="store_true",
@@ -125,6 +132,11 @@ def main():
             level=logging.DEBUG,
             format="%(message)s",
         )
+
+    if args.no_mpi:
+        libc = resolve("libc.so.6")
+        ctypes.CDLL(libc)
+        return 0
 
     try:
         #pylint: disable=invalid-name
