@@ -28,7 +28,7 @@ class ProfileDetectTest(tests.TestCase):
     @tests.skipIf(not resolve(__TEST_LIBRARY_SONAME__),
                   f"{__TEST_LIBRARY_SONAME__} not found on this system")
     def test_filter_files_lib(self):
-        library = resolve(__TEST_LIBRARY_SONAME__)
+        library = str(resolve(__TEST_LIBRARY_SONAME__))
 
         libraries, files = filter_files([Path(library)])
 
@@ -97,8 +97,11 @@ class ProfileDetectTest(tests.TestCase):
                 0, COMMAND, split(f"{__TEST_BINARY__} {__TEST_ARGS__}"))
 
     def test_profile_detect_error(self):
-        self.assertNotCommandReturnValue(0, COMMAND,
-                                         split("bash -c \"exit 1\""))
+        self.assertNotCommandReturnValue(
+            0,
+            COMMAND,
+            split("python -c 'import sys; sys.exit(1)'"),
+        )
 
     def test_profile_detect_no_command(self):
         self.assertNotCommandReturnValue(0, COMMAND, [])
