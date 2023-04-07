@@ -299,11 +299,16 @@ def _rename_profile(profile: Profile, requested_name: Optional[str]) -> None:
 
 
 def _filter_files(
-    files: List[Path],
-    blacklist: List[Path],
+    files: Iterable[Path],
+    blacklist: Iterable[Path],
     mpi_libraries: Iterable[Path],
 ) -> List[Path]:
+    """
+    Optimize the 'files' list by removing files contained in the blacklist
+    or in the MPI installation directory, if one is identified
+    """
     filtered = files
+
     # Removing files contained in the MPI installation tree
     mpi_install_dir = library_install_dir(mpi_libraries)
     if mpi_install_dir:
@@ -320,6 +325,20 @@ def _filter_files(
     return list(filter(None, {*filtered, mpi_install_dir}))
 
 
+def _filter_libraries(
+    libraries: List[Path],
+    blacklist: List[Path],
+) -> List[Path]:
+    filtered = libraries
+
+    filtered = filter(
+        lambda file: not file in blacklist,
+        filtered,
+    )
+
+    return list(filtered)
+
+
 def optimize_profile(args: argparse.Namespace, profile_eid: int) -> int:
     """
     After the analysis has succeeded, agglomerate bound files and rename profile
@@ -334,8 +353,8 @@ def optimize_profile(args: argparse.Namespace, profile_eid: int) -> int:
     # Reload the profile created as it was modified by the analysis
     selected_profile = controller.one(profile_eid)
 
-    profile_files = map(Path, selected_profile.get('files', []))
-    profile_libraries = map(Path, selected_profile.get('libraries', []))
+    profile_files = list(map(Path, selected_profile.get('files', [])))
+    profile_libraries = list(map(Path, selected_profile.get('libraries', [])))
     profile_mpi_libraries = filter_mpi_libs(profile_libraries)
 
     file_paths = _filter_files(
@@ -346,9 +365,19 @@ def optimize_profile(args: argparse.Namespace, profile_eid: int) -> int:
     file_strings = list(map(str, file_paths))
     file_strings.sort()
 
+    library_paths = _filter_libraries(
+        profile_libraries,
+        blacklist,
+    )
+    library_strings = list(map(str, library_paths))
+    library_strings.sort()
+
     # Update the profile
     controller.update(
-        {'files': file_strings},
+        {
+            'files': file_strings,
+            'libraries': library_strings
+        },
         selected_profile.eid,
     )
 
