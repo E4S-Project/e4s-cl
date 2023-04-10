@@ -309,7 +309,7 @@ def _filter_files(
     """
     filtered = files
 
-    # Removing files contained in the MPI installation tree
+    # Remove files contained in the MPI installation tree
     mpi_install_dir = library_install_dir(mpi_libraries)
     if mpi_install_dir:
         filtered = filter(
@@ -317,10 +317,19 @@ def _filter_files(
             filtered,
         )
 
+    # Remove files present in a blacklist.
     filtered = filter(
         lambda file: not file in blacklist,
         filtered,
     )
+
+    # If a blacklist is used, remove files used by the interpreter that might
+    # have slipped the blacklist definition
+    if blacklist:
+        filtered = filter(
+            lambda file: 'conda' not in file.parts,
+            filtered,
+        )
 
     return list(filter(None, {*filtered, mpi_install_dir}))
 
@@ -329,12 +338,26 @@ def _filter_libraries(
     libraries: List[Path],
     blacklist: List[Path],
 ) -> List[Path]:
+    """
+    Remove libraries from the list passed as an argument. Removal depends on
+    the contents of the blacklist or the file path that could indicate it is
+    not relevant to the profile being constructed
+    """
     filtered = libraries
 
+    # Remove libraries present in a blacklist.
     filtered = filter(
         lambda file: not file in blacklist,
         filtered,
     )
+
+    # If a blacklist is used, remove files used by the interpreter that might
+    # have slipped the blacklist definition
+    if blacklist:
+        filtered = filter(
+            lambda file: 'conda' not in file.parts,
+            filtered,
+        )
 
     return list(filtered)
 
@@ -345,18 +368,25 @@ def optimize_profile(args: argparse.Namespace, profile_eid: int) -> int:
     """
     controller = Profile.controller()
 
+    # File blacklist. This is calculated by running the detection script with
+    # no MPI library, to list all the python files required when interpreting
+    # the program.
+    # When a command is passed to the init command, we do not use a python
+    # script/interpreter and do not need to blacklist any files.
     blacklist = []
     tester_used = not bool(getattr(args, 'cmd', None))
     if tester_used:
         _, blacklist = opened_files([_find_tester(), "-n"])
 
-    # Reload the profile created as it was modified by the analysis
+    # Fetch the profile
     selected_profile = controller.one(profile_eid)
 
+    # Get the profile data and cast to Path
     profile_files = list(map(Path, selected_profile.get('files', [])))
     profile_libraries = list(map(Path, selected_profile.get('libraries', [])))
     profile_mpi_libraries = filter_mpi_libs(profile_libraries)
 
+    # Filter the files
     file_paths = _filter_files(
         profile_files,
         blacklist,
@@ -365,6 +395,7 @@ def optimize_profile(args: argparse.Namespace, profile_eid: int) -> int:
     file_strings = list(map(str, file_paths))
     file_strings.sort()
 
+    # Filter the libraries
     library_paths = _filter_libraries(
         profile_libraries,
         blacklist,
