@@ -70,6 +70,10 @@ E4S_CL_SCRIPT = os.environ.get('__E4S_CL_SCRIPT__', sys.argv[0] or 'e4s-cl')
 Mainly used for help messages. **Do not** change it once it is set.
 """
 
+E4S_CL_MPI_TESTER_SCRIPT_NAME = "e4s-cl-mpi-tester"
+"""str: Name of the MPI tester script bundled with e4s-cl.
+"""
+
 SYSTEM_PREFIX = os.path.realpath(
     os.path.abspath(
         os.environ.get('__E4S_CL_SYSTEM_PREFIX__',

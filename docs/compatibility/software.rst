@@ -59,7 +59,7 @@ The available options are:
 
 .. admonition:: :code:`docker` support
 
-   :code:`docker` support in HPC is limited at best. Due to its architecture, it will most likely not work with your MPI implementation. To enable :code:`docker` support from **e4s-cl**, install with the :code:`docker` extra enabled. 
+   :code:`docker` support in HPC is limited at best. Due to its architecture, it will most likely not work with your MPI implementation. To enable :code:`docker` support from **e4s-cl**, :ref:`install<install>` with the :code:`docker` extra enabled.
 
 :code:`docker` support is achieved using the :code:`docker-py` `module <https://github.com/docker/docker-py>`_. The :code:`docker` daemon has to be installed and running on the system to be accessed.
 
