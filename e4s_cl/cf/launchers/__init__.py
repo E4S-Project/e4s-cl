@@ -61,12 +61,28 @@ class Parser:
         while known and position < len(command):
             flag = command[position]
 
-            if flag in self.arguments.keys():
+            if flag in self.arguments:
                 to_skip = self.arguments[flag]
 
             # Catch generic --flag=value
             elif re.match(r'^--[\-A-Za-z0-9]+=.*$', flag):
                 to_skip = 0
+
+            # Catch concatenated flag and value, -p gpu => -pgpu
+            # We know flag is not in self.arguments
+            elif re.match(r'^-[\w\-]+', flag):
+                # List arguments that match the start of flag and that take only one option
+                matches = list(
+                    filter(
+                        lambda option: (flag.startswith(option) and self.
+                                        arguments[option] == 1),
+                        self.arguments))
+
+                if (matches):
+                    to_skip = 0
+                else:
+                    known = False
+                    break
 
             else:
                 known = False

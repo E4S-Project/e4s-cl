@@ -4,7 +4,7 @@ COPY = cp -rv
 MKDIR = mkdir -p
 RMDIR = rm -fr
 
-VERSION = $(shell $(shell pwd)/scripts/version.sh 2>/dev/null || echo "0.0.0")
+VERSION = $(shell git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
 
 # Get build system locations from configuration file or command line
 ifneq ("$(wildcard setup.cfg)","")
@@ -97,8 +97,10 @@ all: install completion man
 # Conda setup and fetch target
 
 $(CONDA): $(CONDA_SRC)
-	bash $< -b -u -p $(CONDA_DEST)
-	touch $(CONDA_BIN)/*
+	@bash $< -b -u -p $(CONDA_DEST)
+	@touch $(CONDA_BIN)/*
+	@# The following libraries are RPATH'ed and outdated - preventing the use of ctype in python code. Remove them to use the system's.
+	@rm $(CONDA_DEST)/lib/libssl* $(CONDA_DEST)/lib/libcrypto*
 
 $(CONDA_SRC):
 	$(MKDIR) `dirname "$(CONDA_SRC)"`
@@ -141,14 +143,13 @@ completion:
 PROJECT=.
 DOCS=$(PROJECT)/docs
 MANBUILDDIR=$(PROJECT)/docs/build/man
-USER_MAN=$(HOME)/.local/share/man
+USER_MAN=$(INSTALLDIR)/man
 
 man: $(PYTHON_EXE)
 	$(PYTHON) -m pip install -q -U -r ./docs/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	$(MKDIR) $(USER_MAN)/man1
 	$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1
-	MANPATH=$(MANPATH):$(USER_MAN) mandb || true
 	echo "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
 html: $(PYTHON_EXE)

@@ -40,6 +40,11 @@ class MPIFamily:
         return self.cli_name
 
 
+# If the MPI family's specific library name is not found, fallback on the below
+# values to possibly avoid a crash
+FALLBACK_MPI_C_SONAME = "libmpi.so"
+FALLBACK_MPI_F_SONAME = "libmpifort.so"
+
 # MPI vendor libraries metadata. On top of the different MPI families, some
 # vendors adopt standard paths different from the norm. This collection keeps
 # track of all metadata for each of those vendors.
@@ -323,8 +328,10 @@ def wi4mpi_find_libraries(
         return None
 
     # Find the entry C and Fortran MPI libraries
-    run_c_lib = locate(target.mpi_c_soname, mpi_libraries)
-    run_f_lib = locate(target.mpi_f_soname, mpi_libraries)
+    run_c_lib = (locate(target.mpi_c_soname, mpi_libraries)
+                 or locate(FALLBACK_MPI_C_SONAME, mpi_libraries))
+    run_f_lib = (locate(target.mpi_f_soname, mpi_libraries)
+                 or locate(FALLBACK_MPI_F_SONAME, mpi_libraries))
 
     return (run_c_lib, run_f_lib)
 

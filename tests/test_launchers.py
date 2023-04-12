@@ -126,6 +126,16 @@ class LauncherTest(tests.TestCase):
         self.assertEqual(valid, "-a test -c ofi btl".split())
         self.assertEqual(foreign, "-b 1 2 3 -d host1:2,host2:2".split())
 
+    def test_concat_arguments(self):
+        """
+        Check concatenated argument support
+        """
+        text = "srun -n4 -pgpu -Acourses01-gpu command"
+        launcher, command = interpret(split(text))
+
+        self.assertEqual(launcher, ['srun', '-n4', '-pgpu', '-Acourses01-gpu'])
+        self.assertEqual(command, ['command'])
+
     def test_additional_options_config(self):
         """Check configuration options get added to the launcher command"""
         command = ['mpirun', '-np', '4', './foo', '--bar']
