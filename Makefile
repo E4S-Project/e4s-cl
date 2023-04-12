@@ -4,7 +4,7 @@ COPY = cp -rv
 MKDIR = mkdir -p
 RMDIR = rm -fr
 
-VERSION = $(shell $(shell pwd)/scripts/version.sh 2>/dev/null || echo "0.0.0")
+VERSION = $(shell git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
 
 # Get build system locations from configuration file or command line
 ifneq ("$(wildcard setup.cfg)","")
