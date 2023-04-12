@@ -66,20 +66,40 @@ class ExecuteTests(tests.TestCase):
     def test_execute(self):
         set_dry_run(True)
 
+        libmpi = str(linker.resolve('libmpi.so'))
+
         self.assertCommandReturnValue(0, COMMAND, [
-            '--backend', 'containerless', '--image', '', '--libraries',
-            linker.resolve('libmpi.so'), '--files',
-            Path.home().as_posix(), 'ls'
+            '--backend',
+            'containerless',
+            '--image',
+            '',
+            '--libraries',
+            libmpi,
+            '--files',
+            Path.home().as_posix(),
+            'ls',
         ])
 
         set_dry_run(False)
 
         self.assertCommandReturnValue(0, COMMAND, [
-            '--backend', 'containerless', '--image', '', '--libraries',
-            linker.resolve('libmpi.so'), 'ls'
+            '--backend',
+            'containerless',
+            '--image',
+            '',
+            '--libraries',
+            libmpi,
+            'ls',
         ])
 
         self.assertCommandReturnValue(123, COMMAND, [
-            '--backend', 'containerless', '--image', '', '--libraries',
-            linker.resolve('libmpi.so'), 'bash', '-c', '"exit 123"'
+            '--backend',
+            'containerless',
+            '--image',
+            '',
+            '--libraries',
+            libmpi,
+            'bash',
+            '-c',
+            '"exit 123"',
         ])

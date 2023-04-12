@@ -26,7 +26,6 @@ config.update_configuration(
 
 from e4s_cl.error import ConfigurationError
 from e4s_cl.cf.storage.levels import USER_STORAGE, SYSTEM_STORAGE
-from e4s_cl.cf.assets import SAMPLE_BINARY_TABLE, BUILTIN_PROFILE_TABLE
 
 _NOT_IMPLEMENTED = []
 
@@ -135,7 +134,7 @@ class TestCase(unittest.TestCase):
 
     @classmethod
     def resetStorage(cls):
-        tables = ["Profile", SAMPLE_BINARY_TABLE, BUILTIN_PROFILE_TABLE]
+        tables = ["Profile"]
         for table in tables:
             USER_STORAGE.purge(table_name=table)
             SYSTEM_STORAGE.purge(table_name=table)

@@ -527,3 +527,11 @@ def safe_tar(archive: TarFile) -> bool:
                 archive.name, member.name)
             return False
     return True
+
+
+def prepend_library_path(path: Union[str, Path]):
+    """
+    Prepend 'path' to the LD_LIBRARY_PATH variable
+    """
+    env = os.environ.get("LD_LIBRARY_PATH", [])
+    os.environ["LD_LIBRARY_PATH"] = os.pathsep.join([str(path), *env])

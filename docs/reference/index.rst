@@ -13,9 +13,12 @@ Usage
 Options
 --------
 
--V, --version		print the version information of **e4s-cl** and exit
--v, --verbose		print debugging information during execution
 -d, --dry-run		do nothing; print what would have been done instead
+-h, --help		    print a help message
+--print-config		output the available configuration options with their default values
+-q, --quiet		    print only errors during execution
+-v, --verbose		print debugging information during execution
+-V, --version		print the version information of **e4s-cl** and exit
 
 Description
 -------------

@@ -1,3 +1,4 @@
 sphinx
 sphinx-toolbox>=2.18.2
+sphinxcontrib-sass
 furo
