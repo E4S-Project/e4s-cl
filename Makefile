@@ -91,7 +91,7 @@ endif
 
 HOME_MARKER = .e4s-cl-home
 
-all: install download_assets completion man
+all: install completion man
 
 #>============================================================================<
 # Conda setup and fetch target
@@ -121,11 +121,6 @@ install: $(PYTHON_EXE)
 #>============================================================================<
 # Data fetching targets
 
-ASSET_URL=https://oaciss.uoregon.edu/e4s/e4s-cl
-
-download_assets: $(PYTHON_EXE)
-	$(PYTHON) scripts/download_assets.py $(ASSET_URL) $(HOST_ARCH) $(E4SCL_TARGETSYSTEM)
-
 COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
 COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)
 COMPLETION_DEST=$(INSTALLDIR)/bin/__e4s_cl_completion.$(HOST_ARCH)
@@ -148,14 +143,13 @@ completion:
 PROJECT=.
 DOCS=$(PROJECT)/docs
 MANBUILDDIR=$(PROJECT)/docs/build/man
-USER_MAN=$(HOME)/.local/share/man
+USER_MAN=$(INSTALLDIR)/man
 
 man: $(PYTHON_EXE)
 	$(PYTHON) -m pip install -q -U -r ./docs/requirements.txt
 	VERSION=$(VERSION) PATH=$(CONDA_BIN):$(PATH) $(MAKE) -C $(DOCS) man
 	$(MKDIR) $(USER_MAN)/man1
 	$(COPY) $(MANBUILDDIR)/* $(USER_MAN)/man1
-	MANPATH=$(MANPATH):$(USER_MAN) mandb || true
 	echo "Append '$(USER_MAN)' to your MANPATH to access the e4s-cl manual."
 
 html: $(PYTHON_EXE)
