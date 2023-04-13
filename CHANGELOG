@@ -1,3 +1,12 @@
+v1.0.3
+---------------------
+
+- Introduced python bindings for MPI libraries in script
+    - Script is `e4s-cl-mpi-tester`
+    - Runs with MPICH ABI or OpenMPI
+    - Obsoletes the compiler detection, and the precompiled binary database
+- Sort the detected libraries and files in init
+
 v1.0.2 (Mar 31 2023)
 ---------------------
 
