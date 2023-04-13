@@ -257,7 +257,7 @@ class ExecuteCommand(AbstractCommand):
                             metavar='libraries')
 
         parser.add_argument('--source',
-                            type=arguments.existing_posix_path,
+                            type=arguments.posix_path,
                             help="Script to source",
                             metavar='libraries')
 
