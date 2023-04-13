@@ -18,11 +18,20 @@ The program will run a simple program using the MPI library and observe its exec
 
 .. code-block:: bash
 
-   $ e4s-cl init                                   \
-        --backend singularity                      \
-        --image <IMAGE PATH>                       \
-        --launcher srun                            \
-        --launcher_args '-n 2 -N 2 -A<ACCOUNT>'    \
+    $ e4s-cl init                                   \
+        --backend singularity                       \
+        --image <IMAGE PATH>                        \
+        --launcher srun                             \
+        --launcher_args '-n 2 -N 2 -A<ACCOUNT> ...' \
+
+For e.g.,
+
+.. code-block:: bash
+
+    $ e4s-cl init --backend singularity                 \
+        --image /path/to/openfoam-foundation_10.sif     \
+        --launcher srun                                 \
+        --launcher_args '-n 8 -c 8 -N 2 -p gpu --gpus-per-task=1 --exclusive -A csc439_crusher'
 
 Creating an initialization script - Optional
 **********************************************
@@ -83,7 +92,7 @@ Example
 
 The above was used to run OpenFOAM compiled with OpenMPI on Crusher:
 
-.. code-block:: bash
+.. code-block::
 
     $ e4s-cl --from openmpi srun -N 4 -A CSC439_crusher -t 00:05:00 pimpleFoam -parallel
     [+] Using selected profile CRAY_MPICH@8.1.17.7
@@ -120,7 +129,7 @@ The above was used to run OpenFOAM compiled with OpenMPI on Crusher:
     sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
     fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
     allowSystemOperations : Allowing user-supplied system call operations
-    //                                     * //
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
     Create time
     Create mesh for time = 0
     PIMPLE: No convergence criteria found
@@ -167,13 +176,11 @@ The above was used to run OpenFOAM compiled with OpenMPI on Crusher:
     Time = 40s
     smoothSolver:  Solving for Ux, Initial residual = 0.000570409, Final residual = 5.68148e-06, No Iterations 1
     smoothSolver:  Solving for Uy, Initial residual = 0.076615, Final residual = 7.53652e-06, No Iterations 3
-    #!/bin/bash
     smoothSolver:  Solving for Uz, Initial residual = 0.0592336, Final residual = 4.46852e-06, No Iterations 3
     Pressure gradient source: uncorrected Ubar = 0.1335, pressure gradient = 5.60231e-05
     GAMG:  Solving for p, Initial residual = 0.668119, Final residual = 0.0237955, No Iterations 2
     time step continuity errors : sum local = 9.8623e-10, global = -2.94168e-18, cumulative = -3.81884e-16
     Pressure gradient source: uncorrected Ubar = 0.1335, pressure gradient = 5.63292e-05
-    #!/bin/bash
     GAMG:  Solving for p, Initial residual = 0.644923, Final residual = 8.53502e-07, No Iterations 9
     time step continuity errors : sum local = 3.63622e-14, global = -2.91724e-18, cumulative = -3.84801e-16
     Pressure gradient source: uncorrected Ubar = 0.1335, pressure gradient = 5.63227e-05
