@@ -94,19 +94,19 @@ class Entrypoint:
 
         # The linker statement to prefix to the command
         rtdl = []
+        # The command to run
         command = self.command
+
+        # The following is true when the container libc is being replaced
         if self.linker:
             # In case of an ELF binary, start it with the linker; if the
-            # command is a script, run bash with the linker to ensure the
-            # imported libc is loaded and to resolve what the user asked
+            # command cannot be identified as a binary, run it through bash
+            # with the imported linker to ensure the imported libc is loaded
             if self.__command and is_elf(self.__command[0]):
                 rtdl = [self.linker]
             elif self.interpreter:
-                if Path(self.command[0]).exists():
-                    rtdl = [self.linker, self.interpreter]
-                else:
-                    rtdl = [self.linker, self.interpreter, '-c']
-                    command = " ".join(['"', *self.__command, '"'])
+                rtdl = [self.linker, self.interpreter, '-c']
+                command = " ".join(['"', *self.__command, '"'])
             else:
                 LOGGER.error(
                     "Running a script or command from path is not "
