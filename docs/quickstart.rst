@@ -43,3 +43,4 @@ argument will be launched using the desired library.
 
    $ e4s-cl launch mpirun -np 4 -hosts node1,node2 /path/to/executable
 
+When the executable was compile with a version of MPI that is not ABI compatible, use the :code:`--from` flag to signal to **e4s-cl** to enable the translation.
