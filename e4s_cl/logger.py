@@ -82,33 +82,6 @@ def get_terminal_size():
 
     return width, height
 
-
-def _get_term_size_tput():
-    """Discover the size of the user's terminal via `tput`_.
-    
-    Returns:
-        tuple: (width, height) tuple giving the dimensions of the user's terminal window in characters,
-               or None if the size could not be determined.
-               
-    .. _tput: http://stackoverflow.com/questions/263890/how-do-i-find-the-width-height-of-a-terminal-window
-    """
-    try:
-        import subprocess
-        with subprocess.Popen(["tput", "cols"],
-                              stdin=subprocess.PIPE,
-                              stdout=subprocess.PIPE) as proc:
-            output = proc.communicate(input=None)
-        cols = int(output[0])
-        with subprocess.Popen(["tput", "lines"],
-                              stdin=subprocess.PIPE,
-                              stdout=subprocess.PIPE) as proc:
-            output = proc.communicate(input=None)
-        rows = int(output[0])
-        return (cols, rows)
-    except:  # pylint: disable=bare-except
-        return None
-
-
 def _get_term_size_posix():
     """Discover the size of the user's terminal on a POSIX operating system (e.g. Linux).
     
