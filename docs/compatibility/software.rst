@@ -3,11 +3,35 @@ Software Compatibility
 
 **e4s-cl** wraps itself around a MPI command and inserts a container launch before the command is run. This implies an understanding of both the process launcher and the container technology to use. This section details the software **e4s-cl** was developped for and tested with.
 
+MPI implementations
+--------------------
+
+.. _mpi_compatibility:
+
+**e4s-cl** is able to launch executables compiled with a different version than the one available on the system at runtime.
+
+MPI families
++++++++++++++
+
+With the introduction of the MPICH ABI initiative and the MPI implementations that followed it, we see the emergence of multiple 'families' of MPI implementations. Members within a family can usually swap their libraries at runtime, while this is impossible accross families.
+
+If you are unsure about the implementation used to compile a binary, a simple check is to run :code:`ldd` on the executable and looking at the MPI library listed as a dependency. The below table lists the usual libray name in the :code:`soname` column.
+
+.. csv-table::
+   :file: mpi.csv
+
+Enabling translation
++++++++++++++++++++++
+
+**e4s-cl** is able to detect the MPI implementation used on the host from the input parameters; however the implementation used in the container cannot be ascertained easily. MPI translation is thus not needed when running executables with an implementation from the same family as the host's; when this is not the case, one can enable it from the command line using the :code:`--from` flag:
+
+.. code::
+
+   # Enable translation from an OpenMPI binary to a MPICH-based profile
+   e4s-cl --from openmpi srun -n 4 [...] path/to/executable
+
 Container backends
 -------------------
-
-Introduction
-+++++++++++++
 
 During a :code:`launch` command, a list of required files will be computed on each target node, and bound to a container spawned on those nodes. Container backends are the container technologies **e4s-cl** is able to use.
 

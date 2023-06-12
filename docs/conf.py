@@ -31,6 +31,7 @@ version = release = '1.0.3'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosectionlabel',
     'sphinx_toolbox.collapse',
     'sphinxcontrib.sass',
 ]

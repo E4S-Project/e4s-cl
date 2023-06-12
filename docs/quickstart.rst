@@ -43,3 +43,7 @@ argument will be launched using the desired library.
 
    $ e4s-cl launch mpirun -np 4 -hosts node1,node2 /path/to/executable
 
+When the executable was compiled with a different MPI than the host's, use \
+the :code:`--from` flag to signal to **e4s-cl** to enable translation. For a \
+list of MPI families and values to use, refer to the :ref:`MPI implementations` \
+section.
