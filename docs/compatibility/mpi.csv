@@ -1,0 +1,6 @@
+MPI implementation,MPICH ABI compatible,Family,:code:`soname`
+OpenMPI, No, :code:`openmpi`, :code:`libmpi.so.40`
+MPICH, Yes, :code:`mpich`, :code:`libmpi.so.12`
+CRAY MPICH, Yes, :code:`mpich`, :code:`libmpi.so.12`
+MVAPICH, Yes, :code:`mpich`, :code:`libmpi.so.12`
+Intel MPI, Yes\*, :code:`mpich`, :code:`libmpi.so.12`
