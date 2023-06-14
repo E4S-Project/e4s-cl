@@ -95,6 +95,7 @@ def overlay_libraries(library_set, container, entrypoint):
     # Hardcoded glib libraries sonames
     glib_sonames = [
         'libc.so.6',
+        'libdl.so.2',
         'libcrypt.so.1',
         'libm.so.6',
         'libmvec.so.1',
