@@ -362,7 +362,25 @@ def _filter_libraries(
     return list(filtered)
 
 
-def optimize_profile(args: argparse.Namespace, profile_eid: int) -> int:
+def _set_defaults(args: argparse.Namespace, profile_eid: int):
+    """
+    Update the profile with the backend, image and source arguments from the command line
+    """
+    controller = Profile.controller()
+    changes = {}
+
+    for label in ["backend", "image", "source", "wi4mpi"]:
+        if label in args:
+            changes.update({label: getattr(args, label, "")})
+
+    # Update the profile
+    controller.update(
+        changes,
+        profile_eid,
+    )
+
+
+def _optimize_profile(args: argparse.Namespace, profile_eid: int) -> int:
     """
     After the analysis has succeeded, agglomerate bound files and rename profile
     """
@@ -411,6 +429,8 @@ def optimize_profile(args: argparse.Namespace, profile_eid: int) -> int:
         },
         selected_profile.eid,
     )
+
+    _set_defaults(args, selected_profile.eid)
 
     requested_name = (getattr(args, 'profile_name', None)
                       or profile_mpi_name(profile_mpi_libraries))
@@ -535,7 +555,7 @@ class InitCommand(AbstractCommand):
             controller.delete(profile_eid)
             return status
 
-        status = optimize_profile(args, profile_eid)
+        status = _optimize_profile(args, profile_eid)
         LOGGER.info("Created profile %s", controller.selected().get('name'))
 
         return status
