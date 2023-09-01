@@ -30,8 +30,8 @@ One of the core components of the tool are profiles. They contain specific infor
 
 They can be accessed and modified using the `e4s-cl profile` commands.
 ```
-[jskutnik@spoutnik ~]$ e4s-cl profile list
-============= Profile Configurations (/home/jskutnik/.local/e4s_cl/user.json) ==
+$ e4s-cl profile list
+============= Profile Configurations (/home/user/.local/e4s_cl/user.json) ==
 +----------+------------+-------------+------------+-----------+-------+--------+
 | Selected |    Name    |   Backend   |   Image    | Libraries | Files | WI4MPI |
 +==========+============+=============+============+===========+=======+========+

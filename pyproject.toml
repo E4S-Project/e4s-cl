@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "e4s-cl"
 authors = [
-    {name = "Jean-Baptiste Skutnik", email = "jskutnik@uoregon.edu"},
     {name = "Frederick Deny", email = "fdeny@uoregon.edu"},
+    {name = "Jean-Baptiste Skutnik", email = "jb.skutnik@gmail.com"},
 ]
 description = "A command-line utility to run MPI projects in E4S containers"
 readme = "README.md"
