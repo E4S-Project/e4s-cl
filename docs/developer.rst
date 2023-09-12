@@ -135,7 +135,10 @@ Looking at the above capabilities, there are a multiple ways in which **e4s-cl**
   Enabling the debugging information helps pinpoint when the execution stopped and what to look at.
 - If the error stems from the **e4s-cl** preprocessing, run a simpler command and try to isolate the issue
 - If the error appears after the final process is started in the container:
+
   - Check the logs for individual processes
     The :code:`-v` flag enables the debug dynamic linker messages that trace the steps from the moment the program was started to the moment the final dynamic dependency is loaded. This can allow us to see if a missing symbol was (not) found and in which library.
+  - Take control of the entrypoint
+    The template in :code:`cf/template.py` can be modified to perform additional tasks once inside the container. It preloads libraries and needs the proper order; checking it does its job right is important as it can lead to dynamic issues.
   - Try and run the same process manually
     Use the :code:`--dry-run` option to show the :code:`__execute` command and retrace the steps manually. Sometimes on segfaults buffers are cleared and an error message does not show up.
