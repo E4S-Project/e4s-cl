@@ -124,3 +124,18 @@ Launching a job is the most in-depth operation of **e4s-cl**. There are multiple
     - :code:`cf/containers/*.py`: Drivers to run containers
     - :code:`cf/template.py`: Script building module to create an entrypoint once in the container, to preload any libraries that might be RPATHed.
 
+Troubleshooting
+==================
+
+Looking at the above capabilities, there are a multiple ways in which **e4s-cl** can encounter errors, be it in the profile creation, job creation, or MPI execution. There are a few checks that can be made to understand where execution encountered an issue and was halted.
+
+- Check created profile
+  After an :code:`init` command, look at the created profile and assert the lists of files and libraries are consistent with the desired execution.
+- Run the command with :code:`-v` flag
+  Enabling the debugging information helps pinpoint when the execution stopped and what to look at.
+- If the error stems from the **e4s-cl** preprocessing, run a simpler command and try to isolate the issue
+- If the error appears after the final process is started in the container:
+  - Check the logs for individual processes
+    The :code:`-v` flag enables the debug dynamic linker messages that trace the steps from the moment the program was started to the moment the final dynamic dependency is loaded. This can allow us to see if a missing symbol was (not) found and in which library.
+  - Try and run the same process manually
+    Use the :code:`--dry-run` option to show the :code:`__execute` command and retrace the steps manually. Sometimes on segfaults buffers are cleared and an error message does not show up.
