@@ -5,6 +5,7 @@ Developer documentation
 The project source code is split between different logical sections:
 
 .. code::
+
     .
     ├── cf                          # Common Framework. Contains "library" 
                                     # modules to handles the moving parts
@@ -121,3 +122,5 @@ Launching a job is the most in-depth operation of **e4s-cl**. There are multiple
     - :code:`cli/commands/__execute.py`: On-node execution, start container for analysis, then run it again to run command
     - :code:`cf/libraries.py`: Library dependency tree analysis and completion. Makes sure the most up to date libc (host or container's) is used in the container.
     - :code:`cf/containers/*.py`: Drivers to run containers
+    - :code:`cf/template.py`: Script building module to create an entrypoint once in the container, to preload any libraries that might be RPATHed.
+
