@@ -27,5 +27,5 @@ E4S Container Launcher includes tools to automatically detect the MPI binary's n
    compatibility/system
    how
    examples
-   developers
+   developer
    authors
