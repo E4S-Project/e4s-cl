@@ -100,7 +100,6 @@ $(CONDA): $(CONDA_SRC)
 	@bash $< -b -u -p $(CONDA_DEST)
 	@touch $(CONDA_BIN)/*
 	@# The following libraries are RPATH'ed and outdated - preventing the use of ctype in python code. Remove them to use the system's.
-	@rm $(CONDA_DEST)/lib/libcrypto*
 
 $(CONDA_SRC):
 	$(MKDIR) `dirname "$(CONDA_SRC)"`
