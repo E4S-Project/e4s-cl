@@ -47,7 +47,7 @@ from e4s_cl.error import ConfigurationError
 LOGGER = get_logger(__name__)
 
 # List of available modules, accessible by their "executable" or cli tool names
-BACKENDS = {}
+BACKENDS = {'barebones': 'e4s_cl.cf.containers.barebones'}
 
 # List of available, non-debug backends, for help and completion
 EXPOSED_BACKENDS = []
