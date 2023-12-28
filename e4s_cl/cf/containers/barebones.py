@@ -91,8 +91,6 @@ class BarebonesContainer(Container):
 
     def run(self, command: List[str], overload: bool = True) -> int:
         executable = self._executable()
-        if executable is None:
-            raise BackendNotAvailableError(self.__class__.__name__)
 
         container_cmd = [executable, *self._prepare(command, overload)]
 

@@ -297,6 +297,8 @@ class LaunchCommand(AbstractCommand):
         # Ensure the minimum fields required for launch are present
         for _field in ['backend', 'image']:
             if not getattr(parameters, _field, None):
+                if getattr(parameters, 'backend',None) == 'barebones':
+                    continue
                 self.parser.error(
                     f"Missing field: '{_field}'. Specify it using the "
                     "appropriate option or by selecting a profile.")

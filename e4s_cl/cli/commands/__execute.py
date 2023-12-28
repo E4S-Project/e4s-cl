@@ -241,7 +241,6 @@ class ExecuteCommand(AbstractCommand):
         parser.add_argument('--image',
                             type=str,
                             dest='image',
-                            required=True,
                             help="Container image to use",
                             metavar='image')
 
