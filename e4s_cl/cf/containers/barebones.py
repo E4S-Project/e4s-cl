@@ -5,7 +5,7 @@ Module introducing singularity support
 import os
 from pathlib import Path
 from typing import List
-from e4s_cl import logger
+from e4s_cl import logger, BAREBONES_SCRIPT
 from e4s_cl.util import run_subprocess
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
@@ -42,6 +42,10 @@ class BarebonesContainer(Container):
         #self.bind_file('/dev', option=FileOptions.READ_WRITE)
         #self.bind_file('/tmp', option=FileOptions.READ_WRITE)
 
+    @property
+    def script(self):
+        return Path(BAREBONES_SCRIPT)
+
     def _format_bound(self):
         """
         Format a list of files to a compatible bind option of singularity
@@ -69,12 +73,7 @@ class BarebonesContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            *self._additional_options(),
-            'exec',
-            *self._working_dir(),
-            *nvidia_flag,
             *self._additional_options('exec'),
-            self.image,
             *command,
         ]
 
@@ -90,9 +89,12 @@ class BarebonesContainer(Container):
         return True
 
     def run(self, command: List[str], overload: bool = True) -> int:
-        executable = self._executable()
 
-        container_cmd = [executable, *self._prepare(command, overload)]
+        container_cmd = [*self._prepare(command, overload)]
+        LOGGER.debug("***************************************888")
+        LOGGER.debug(container_cmd)
+        LOGGER.debug(command)
+        LOGGER.debug("***************************************888")
 
         return run_subprocess(container_cmd, env=self.env)
 

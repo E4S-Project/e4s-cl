@@ -93,6 +93,9 @@ CONTAINER_DIR = Path("/", ".e4s-cl").as_posix()
 CONTAINER_SCRIPT = Path(CONTAINER_DIR, "script").as_posix()
 """str: Path of the script to execute in the container"""
 
+BAREBONES_SCRIPT = Path(USER_PREFIX, "barebones_script").as_posix()
+"""str: Path of the script to execute in the use of the barebones backend"""
+
 CONTAINER_LIBRARY_DIR = Path(CONTAINER_DIR, "hostlibs").as_posix()
 """str: Path of the libraries bound in the container"""
 
