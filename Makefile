@@ -67,19 +67,23 @@ CONDA_BIN = $(CONDA_DEST)/bin
 CONDA = $(CONDA_DEST)/bin/python
 
 ifeq ($(USE_MINICONDA),true)
-	PYTHON_EXE = $(CONDA)
-	PYTHON_FLAGS = -EOu
+PYTHON_EXE = $(CONDA)
+PYTHON_FLAGS = -EOu
 else
-    $(warning WARNING: There are no miniconda packages for this system: $(HOST_OS), $(HOST_ARCH).)
-	CONDA_SRC =
-	PYTHON_EXE = $(shell command -pv python || type -P python || which python)
-	PYTHON_FLAGS = -O
+$(warning WARNING: There are no miniconda packages for this system: $(HOST_OS), $(HOST_ARCH).)
+CONDA_SRC =
+PYTHON_EXE = $(shell command -pv python || which python)
+PYTHON_FLAGS = -O
+ifeq ($(PYTHON_EXE),)
+	PYTHON_EXE = $(shell command -pv python3 || which python3)
 	ifeq ($(PYTHON_EXE),)
-        $(error python not found in PATH.)
-	else
-        $(warning WARNING: Trying to use '$(PYTHON_EXE)' instead.)
+		$(error python not found in PATH.)
 	endif
+else
+	$(warning WARNING: Trying to use '$(PYTHON_EXE)' instead.)
 endif
+endif
+
 PYTHON = $(PYTHON_EXE) $(PYTHON_FLAGS)
 
 # Completion folder resolution from https://github.com/scop/bash-completion#faq
