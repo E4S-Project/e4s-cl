@@ -5,7 +5,7 @@ Module introducing singularity support
 import os
 from pathlib import Path
 from typing import List
-from e4s_cl import logger, BAREBONES_SCRIPT
+from e4s_cl import logger, BAREBONES_SCRIPT, BAREBONES_LIBRARY_DIR
 from e4s_cl.util import run_subprocess
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
@@ -45,6 +45,10 @@ class BarebonesContainer(Container):
     @property
     def script(self):
         return Path(BAREBONES_SCRIPT)
+
+    @property
+    def import_library_dir(self):
+        return Path(BAREBONES_LIBRARY_DIR)
 
     def _format_bound(self):
         """
