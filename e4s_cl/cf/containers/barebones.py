@@ -55,15 +55,14 @@ class BarebonesContainer(Container):
             for file in self.bound:
                 yield f"{file.origin}:{file.destination}:{OPTION_STRINGS[file.option]}"
 
-        self.env.update({"SINGULARITY_BIND": ','.join(_format())})
+        self.env.update({"BAREBONES_BIND": ','.join(_format())})
 
     def _prepare(self, command: List[str], overload: bool = True) -> List[str]:
         """
         Return the command to run in a list of string
         """
-        self.add_ld_library_path("/.singularity.d/libs")
         self.env.update(
-            {'SINGULARITYENV_LD_PRELOAD': ":".join(self.ld_preload)})
+            {'BAREBONESENV_LD_PRELOAD': ":".join(self.ld_preload)})
 
         # LD_LIBRARY_PATH override does not respect container's values.
         # Enabling this may prevent crashes with nvidia library import
@@ -78,7 +77,7 @@ class BarebonesContainer(Container):
         ]
 
     def bind_env_var(self, key, value):
-        self.env.update({f"SINGULARITYENV_{key}": value})
+        self.env.update({f"BAREBONESENV_{key}": value})
 
     def _has_nvidia(self):
         # Assume that the proper ldconfig call has been run and that nvidia
@@ -90,10 +89,11 @@ class BarebonesContainer(Container):
 
     def run(self, command: List[str], overload: bool = True) -> int:
 
+
         container_cmd = [*self._prepare(command, overload)]
         LOGGER.debug("***************************************888")
         LOGGER.debug(container_cmd)
-        LOGGER.debug(command)
+        LOGGER.debug(self.env)
         LOGGER.debug("***************************************888")
 
         return run_subprocess(container_cmd, env=self.env)
