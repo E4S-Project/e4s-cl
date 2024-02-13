@@ -96,6 +96,9 @@ CONTAINER_SCRIPT = Path(CONTAINER_DIR, "script").as_posix()
 BAREBONES_SCRIPT = Path(USER_PREFIX, "barebones_script").as_posix()
 """str: Path of the script to execute in the use of the barebones backend"""
 
+BAREBONES_LIBRARY_DIR = Path(USER_PREFIX, "barebones_libraries").as_posix()
+"""str: Path of the script to execute in the use of the barebones backend"""
+
 CONTAINER_LIBRARY_DIR = Path(CONTAINER_DIR, "hostlibs").as_posix()
 """str: Path of the libraries bound in the container"""
 
