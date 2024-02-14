@@ -311,6 +311,8 @@ def parse_bool(value, additional_true=None, additional_false=None):
         raise TypeError
     return bool(value)
 
+def create_symlink(str_path, str_dest):
+    os.symlink(str_path, str_dest + "/" + os.path.basename(str_path))
 
 def hline(title, *args, **kwargs):
     """Build a colorful horizontal rule for console output.

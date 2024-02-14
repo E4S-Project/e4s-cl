@@ -4,9 +4,9 @@ Module introducing singularity support
 
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Union, Optional
 from e4s_cl import logger, BAREBONES_SCRIPT, BAREBONES_LIBRARY_DIR
-from e4s_cl.util import run_subprocess
+from e4s_cl.util import run_subprocess, create_symlink
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
@@ -36,7 +36,7 @@ class BarebonesContainer(Container):
         Bind minimal directories stripped from the use of `--contain`
         """
         # Ensure HOME is bound
-        self.bind_file(Path.home(), option=FileOptions.READ_WRITE)
+        #self.bind_file(Path.home(), option=FileOptions.READ_WRITE)
 
         # To use with --contain, but removed as it prevented PMI setup on Theta
         #self.bind_file('/dev', option=FileOptions.READ_WRITE)
@@ -79,6 +79,19 @@ class BarebonesContainer(Container):
             *self._additional_options('exec'),
             *command,
         ]
+
+    def bind_file(self,
+                  path: Union[Path, str],
+                  dest: Optional[Path] = None,
+                  option: int = FileOptions.READ_ONLY) -> None:
+        """
+        This doesn't bind files, but does the equivalent preparation
+        of making required files available for the final process to 
+        run using them for the barebones container.
+        """
+
+        create_symlink(path, BAREBONES_LIBRARY_DIR)
+
 
     def bind_env_var(self, key, value):
         self.env.update({f"BAREBONESENV_{key}": value})
