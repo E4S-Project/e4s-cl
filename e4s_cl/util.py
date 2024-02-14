@@ -21,7 +21,7 @@ from typing import (
     Union,
 )
 from functools import lru_cache, reduce
-from shutil import which as sh_which
+from shutil import which as sh_which, rmtree
 from collections import deque
 from tarfile import TarFile
 from e4s_cl import (
@@ -311,8 +311,20 @@ def parse_bool(value, additional_true=None, additional_false=None):
         raise TypeError
     return bool(value)
 
-def create_symlink(str_path, str_dest):
-    os.symlink(str_path, str_dest + "/" + os.path.basename(str_path))
+def empty_dir(path: Path):
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                rmtree(file_path)
+        except Exception as e:
+            LOGGER.error(f'Failed to delete {file_path}, raised exception {e}')
+
+def create_symlink(path: Path, dest: Path):
+    dest_full_path = dest / path.name
+    dest_full_path.symlink_to(path)
 
 def hline(title, *args, **kwargs):
     """Build a colorful horizontal rule for console output.

@@ -90,7 +90,7 @@ class BarebonesContainer(Container):
         run using them for the barebones container.
         """
 
-        create_symlink(path, BAREBONES_LIBRARY_DIR)
+        create_symlink(Path(path), Path(BAREBONES_LIBRARY_DIR))
 
 
     def bind_env_var(self, key, value):
