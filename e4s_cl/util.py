@@ -323,7 +323,8 @@ def empty_dir(path: Path):
 
 def create_symlink(path: Path, dest: Path):
     dest_full_path = dest / path.name
-    dest_full_path.symlink_to(path)
+    if not dest_full_path.exists():
+        dest_full_path.symlink_to(path)
 
 def hline(title, *args, **kwargs):
     """Build a colorful horizontal rule for console output.
