@@ -314,7 +314,7 @@ def parse_bool(value, additional_true=None, additional_false=None):
 def empty_dir(path: Path):
     for file_path in path.iterdir():
         try:
-            if file_path.is_file() or file_path.is_symlink(file_path):
+            if file_path.is_file() or file_path.is_symlink():
                 file_path.unlink()
             elif file_path.isdir():
                 file_path.rmdir()
