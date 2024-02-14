@@ -312,13 +312,12 @@ def parse_bool(value, additional_true=None, additional_false=None):
     return bool(value)
 
 def empty_dir(path: Path):
-    for filename in os.listdir(folder):
-        file_path = os.path.join(folder, filename)
+    for file_path in path.iterdir():
         try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                rmtree(file_path)
+            if file_path.is_file() or file_path.is_symlink(file_path):
+                file_path.unlink()
+            elif file_path.isdir():
+                file_path.rmdir()
         except Exception as e:
             LOGGER.error(f'Failed to delete {file_path}, raised exception {e}')
 

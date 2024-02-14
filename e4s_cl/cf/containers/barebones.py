@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import List, Union, Optional
 from e4s_cl import logger, BAREBONES_SCRIPT, BAREBONES_LIBRARY_DIR
-from e4s_cl.util import run_subprocess, create_symlink
+from e4s_cl.util import run_subprocess, create_symlink, empty_dir
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
@@ -26,6 +26,7 @@ class BarebonesContainer(Container):
     executable_name = ''
 
     def __init__(self, *args, **kwargs):
+        empty_dir(Path(BAREBONES_LIBRARY_DIR))
         super().__init__(*args, **kwargs)
 
     def _working_dir(self):
@@ -89,7 +90,6 @@ class BarebonesContainer(Container):
         of making required files available for the final process to 
         run using them for the barebones container.
         """
-
         create_symlink(Path(path), Path(BAREBONES_LIBRARY_DIR))
 
 
