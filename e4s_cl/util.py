@@ -311,6 +311,13 @@ def parse_bool(value, additional_true=None, additional_false=None):
         raise TypeError
     return bool(value)
 
+def list_directory_sofiles(path: Path) -> str:
+    file_paths = ""
+    for file_path in path.iterdir():
+        if '.so' in file_path.suffixes: # Check if it is a library file
+            file_paths += str(file_path.absolute()) + ' '
+    return file_paths.rstrip()
+
 def empty_dir(path: Path):
     for file_path in path.iterdir():
         try:
@@ -325,6 +332,9 @@ def create_symlink(path: Path, dest: Path):
     dest_full_path = dest / path.name
     if not dest_full_path.exists():
         dest_full_path.symlink_to(path)
+    else:
+        LOGGER.warning(f'Did not create symlink of {path} as {path.name} is \
+                already symlinked')
 
 def hline(title, *args, **kwargs):
     """Build a colorful horizontal rule for console output.
