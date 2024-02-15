@@ -325,16 +325,16 @@ def empty_dir(path: Path):
                 file_path.unlink()
             elif file_path.is_dir():
                 file_path.rmdir()
-        except Exception as e:
-            LOGGER.error(f'Failed to delete {file_path}, raised exception {e}')
+        except Exception:
+           pass
 
 def create_symlink(path: Path, dest: Path):
     dest_full_path = dest / path.name
     if not dest_full_path.exists():
-        dest_full_path.symlink_to(path)
-    else:
-        LOGGER.warning(f'Did not create symlink of {path} as {path.name} is\
-        already symlinked')
+        try:
+            dest_full_path.symlink_to(path)
+        except:
+            pass
 
 def hline(title, *args, **kwargs):
     """Build a colorful horizontal rule for console output.
