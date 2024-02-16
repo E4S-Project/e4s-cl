@@ -334,6 +334,7 @@ def empty_dir(path: Path):
     """
     if not path.is_dir():
         LOGGER.debug("Can't empty {path} directory at it isn't one.")
+        pass
     for file_path in path.iterdir():
         try:
             if file_path.is_file() or file_path.is_symlink():
@@ -351,12 +352,12 @@ def create_symlink(path: Path, dest: Path):
         dest (Path): path to make the symlink at.
     """
 
-    if not dest.exists():
+    dest_dir = dest.parent
+    if not dest_dir.exists():
         mkdirp(dest)
-    dest_full_path = dest / path.name
-    if not dest_full_path.exists():
+    if not dest.exists():
         try:
-            dest_full_path.symlink_to(path)
+            dest.symlink_to(path)
         except:
             pass
 

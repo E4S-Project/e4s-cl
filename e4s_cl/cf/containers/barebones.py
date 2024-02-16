@@ -66,6 +66,7 @@ class BarebonesContainer(Container):
         """
         Return the command to run in a list of string
         """
+
         self.env.update(
             {'BAREBONESENV_LD_PRELOAD': ":".join(self.ld_preload)})
 
@@ -90,7 +91,12 @@ class BarebonesContainer(Container):
         of making required files available for the final process to 
         run using them for the barebones container.
         """
-        create_symlink(Path(path), Path(BAREBONES_LIBRARY_DIR))
+        file_to_bind = Path(path)
+        file_basename = file_to_bind.name
+        if dest is not None:
+            create_symlink(file_to_bind, Path(dest))
+        else:
+            create_symlink(file_to_bind, Path(BAREBONES_LIBRARY_DIR) / file_basename)
 
 
     def bind_env_var(self, key, value):
