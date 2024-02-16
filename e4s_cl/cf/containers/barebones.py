@@ -68,7 +68,7 @@ class BarebonesContainer(Container):
         """
         to_be_preloaded = list_directory_sofiles(Path(BAREBONES_LIBRARY_DIR))
         for file_path in to_be_preloaded:
-            self.add_ld_preload(file_path)
+            self.add_ld_preload(str(file_path))
         self.env.update(
             {'BAREBONESENV_LD_PRELOAD': ":".join(self.ld_preload)})
 
