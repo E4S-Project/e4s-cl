@@ -535,7 +535,7 @@ class Container:
 
     def add_ld_preload(self, path):
         if path not in self.ld_preload:
-            self.ld_preload.append(path)
+            self.ld_preload.append(str(path))
 
     def add_ld_library_path(self, path):
         if path not in self.ld_lib_path:

@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import List, Union, Optional
 from e4s_cl import logger, BAREBONES_SCRIPT, BAREBONES_LIBRARY_DIR
-from e4s_cl.util import run_subprocess, create_symlink, empty_dir
+from e4s_cl.util import run_subprocess, create_symlink, empty_dir, list_directory_sofiles
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 
@@ -66,7 +66,9 @@ class BarebonesContainer(Container):
         """
         Return the command to run in a list of string
         """
-
+        to_be_preloaded = list_directory_sofiles(Path(BAREBONES_LIBRARY_DIR))
+        for file_path in to_be_preloaded:
+            self.add_ld_preload(file_path)
         self.env.update(
             {'BAREBONESENV_LD_PRELOAD': ":".join(self.ld_preload)})
 

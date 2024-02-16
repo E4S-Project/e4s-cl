@@ -311,20 +311,20 @@ def parse_bool(value, additional_true=None, additional_false=None):
         raise TypeError
     return bool(value)
 
-def list_directory_sofiles(path: Path) -> str:
+def list_directory_sofiles(path: Path):
     """Lists all the so files of a directory.
 
     Args:
         path (Path): path of the directory list the so files of.
 
     Returns:
-        A string of the so files in a directory separated by spaces.
+        A list of paths of the so files in the given directory.
     """
-    file_paths = ""
+    file_paths = []
     for file_path in path.iterdir():
         if '.so' in file_path.suffixes: # Check if it is a library file
-            file_paths += str(file_path.absolute()) + ' '
-    return file_paths.rstrip()
+            file_paths.append(file_path.absolute())
+    return file_paths
 
 def empty_dir(path: Path):
     """Empties a directory.
