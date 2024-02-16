@@ -312,6 +312,14 @@ def parse_bool(value, additional_true=None, additional_false=None):
     return bool(value)
 
 def list_directory_sofiles(path: Path) -> str:
+    """Lists all the so files of a directory.
+
+    Args:
+        path (Path): path of the directory list the so files of.
+
+    Returns:
+        A string of the so files in a directory separated by spaces.
+    """
     file_paths = ""
     for file_path in path.iterdir():
         if '.so' in file_path.suffixes: # Check if it is a library file
@@ -319,6 +327,13 @@ def list_directory_sofiles(path: Path) -> str:
     return file_paths.rstrip()
 
 def empty_dir(path: Path):
+    """Empties a directory.
+
+    Args:
+        path (Path): path of the directory to empty.
+    """
+    if not path.is_dir():
+        LOGGER.debug("Can't empty {path} directory at it isn't one.")
     for file_path in path.iterdir():
         try:
             if file_path.is_file() or file_path.is_symlink():
@@ -329,6 +344,15 @@ def empty_dir(path: Path):
            pass
 
 def create_symlink(path: Path, dest: Path):
+    """Creates a symlink.
+
+    Args:
+        path (Path): file address to make the symlink towards.
+        dest (Path): path to make the symlink at.
+    """
+
+    if not dest.exists():
+        mkdirp(dest)
     dest_full_path = dest / path.name
     if not dest_full_path.exists():
         try:
