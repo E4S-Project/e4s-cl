@@ -70,7 +70,7 @@ class BarebonesContainer(Container):
         for file_path in to_be_preloaded:
             self.add_ld_preload(str(file_path))
         self.env.update(
-            {'BAREBONESENV_LD_PRELOAD': ":".join(self.ld_preload)})
+            {'LD_PRELOAD': ":".join(self.ld_preload)})
 
         # LD_LIBRARY_PATH override does not respect container's values.
         # Enabling this may prevent crashes with nvidia library import
@@ -102,7 +102,7 @@ class BarebonesContainer(Container):
 
 
     def bind_env_var(self, key, value):
-        self.env.update({f"BAREBONESENV_{key}": value})
+        self.env.update({f"{key}": value})
 
     def _has_nvidia(self):
         # Assume that the proper ldconfig call has been run and that nvidia
