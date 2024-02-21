@@ -116,10 +116,6 @@ class BarebonesContainer(Container):
 
 
         container_cmd = [*self._prepare(command, overload)]
-        LOGGER.debug("***************************************888")
-        LOGGER.debug(container_cmd)
-        LOGGER.debug(self.env)
-        LOGGER.debug("***************************************888")
 
         return run_subprocess(container_cmd, env=self.env)
 
