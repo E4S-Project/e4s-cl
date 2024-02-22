@@ -9,6 +9,7 @@ from e4s_cl import logger, BAREBONES_SCRIPT, BAREBONES_LIBRARY_DIR
 from e4s_cl.util import run_subprocess, create_symlink, empty_dir, list_directory_sofiles
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
+from e4s_cl.cf.wi4mpi import wi4mpi_root
 
 LOGGER = logger.get_logger(__name__)
 
@@ -66,11 +67,16 @@ class BarebonesContainer(Container):
         """
         Return the command to run in a list of string
         """
-        to_be_preloaded = list_directory_sofiles(Path(BAREBONES_LIBRARY_DIR))
-        for file_path in to_be_preloaded:
-            self.add_ld_preload(str(file_path))
-        self.env.update(
-            {'LD_PRELOAD': ":".join(self.ld_preload)})
+
+        # Chech the environment for the use of Wi4MPI
+        wi4mpi_install_dir = wi4mpi_root()
+        # If WI4MPI is to be used, we don't preload the mpi's libraries
+        if wi4mpi_install_dir is None:
+            to_be_preloaded = list_directory_sofiles(Path(BAREBONES_LIBRARY_DIR))
+            for file_path in to_be_preloaded:
+                self.add_ld_preload(str(file_path))
+            self.env.update(
+                {'LD_PRELOAD': ":".join(self.ld_preload)})
 
         # LD_LIBRARY_PATH override does not respect container's values.
         # Enabling this may prevent crashes with nvidia library import
@@ -92,6 +98,8 @@ class BarebonesContainer(Container):
         This doesn't bind files, but does the equivalent preparation
         of making required files available for the final process to 
         run using them for the barebones container.
+        Instead of binding files it creates a symlink of them to a
+        specific directory for e4s-cl to find them.
         """
         file_to_bind = Path(path)
         file_basename = file_to_bind.name
@@ -113,7 +121,6 @@ class BarebonesContainer(Container):
         return True
 
     def run(self, command: List[str], overload: bool = True) -> int:
-
 
         container_cmd = [*self._prepare(command, overload)]
 
