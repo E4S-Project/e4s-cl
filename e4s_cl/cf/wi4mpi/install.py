@@ -160,7 +160,7 @@ def _double_tap(cmd):
 def install_wi4mpi(install_dir: Path) -> Optional[Path]:
     """Clones and installs wi4mpi from github releases"""
 
-    if os.uname().machine not in {'x86_64', 'amd64'}:
+    if os.uname().machine not in {'x86_64', 'amd64', 'aarch64'}:
         LOGGER.warning(
             "Wi4MPI not available for the following architecture: %s",
             os.uname().machine)
