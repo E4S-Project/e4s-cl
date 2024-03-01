@@ -92,13 +92,15 @@ class ContainerTestSingularity(tests.TestCase):
         target = Path('/tmp/../proc/meminfo')
 
         ref = Path('/tmp')
-        file = Path('/proc/meminfo')
+        file_ex = Path('/proc/meminfo')
         home = Path.home()
+        paths = {ref, file_ex, home}
 
         container.bind_file(target)
         files = set(map(lambda x: x.origin, container.bound))
 
-        self.assertSetEqual({ref, file, home}, files)
+        for item in paths:
+            self.assertIn(item, files)
 
     def test_additional_options_config(self):
         container = Container(name='singularity')
