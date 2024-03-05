@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import List, Union, Optional
 from e4s_cl import logger, BAREBONES_SCRIPT, BAREBONES_LIBRARY_DIR
-from e4s_cl.util import run_subprocess, create_symlink, empty_dir, list_directory_sofiles
+from e4s_cl.util import run_subprocess, create_symlink, empty_dir, mkdirp, list_directory_sofiles
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 from e4s_cl.cf.wi4mpi import wi4mpi_root
@@ -29,6 +29,8 @@ class BarebonesContainer(Container):
     def __init__(self, *args, **kwargs):
         if Path(BAREBONES_LIBRARY_DIR).is_dir():
             empty_dir(Path(BAREBONES_LIBRARY_DIR))
+        else:
+            mkdirp(Path(BAREBONES_LIBRARY_DIR))
         super().__init__(*args, **kwargs)
 
     def _working_dir(self):
