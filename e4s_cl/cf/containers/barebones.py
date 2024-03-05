@@ -27,7 +27,8 @@ class BarebonesContainer(Container):
     executable_name = ''
 
     def __init__(self, *args, **kwargs):
-        empty_dir(Path(BAREBONES_LIBRARY_DIR))
+        if Path(BAREBONES_LIBRARY_DIR).is_dir():
+            empty_dir(Path(BAREBONES_LIBRARY_DIR))
         super().__init__(*args, **kwargs)
 
     def _working_dir(self):
