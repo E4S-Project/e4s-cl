@@ -108,6 +108,7 @@ SUPPORTED_TRANSLATIONS = {
     ('interface', 'mvapich'),
     ('interface', 'openmpi'),
     ('mpich', 'openmpi'),
+    ('mvapich', 'openmpi'),
     ('openmpi', 'intelpmi'),
     ('openmpi', 'mpich'),
     ('openmpi', 'openmpi'),
