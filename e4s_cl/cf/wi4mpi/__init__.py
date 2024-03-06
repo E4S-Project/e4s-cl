@@ -85,6 +85,15 @@ WI4MPI_METADATA = [
         mpi_c_soname='libmpi_cray.so',
         mpi_f_soname='libmpifort_cray.so',
     ),
+    MPIFamily(
+        vendor_name='MVAPICH',
+        cli_name='mvapich',
+        env_name='MVAPICH',
+        path_key='MVAPICH_ROOT',
+        default_path_key='MVAPICH_DEFAULT_ROOT',
+        mpi_c_soname='libmpi.so',
+        mpi_f_soname='libmpifort.so',
+    ),
 ]
 
 # Keys used to describe MPI families. Wi4MPI is needed if a pair of those keys
@@ -96,11 +105,14 @@ SUPPORTED_TRANSLATIONS = {
     ('intelmpi', 'openmpi'),
     ('interface', 'intelpmi'),
     ('interface', 'mpich'),
+    ('interface', 'mvapich'),
     ('interface', 'openmpi'),
     ('mpich', 'openmpi'),
     ('openmpi', 'intelpmi'),
     ('openmpi', 'mpich'),
     ('openmpi', 'openmpi'),
+    ('intelmpi', 'mvapich'),
+    ('openmpi', 'mvapich'),
 }
 
 _FAMILY_ENV_VARS = set(map(lambda x: x.path_key, WI4MPI_METADATA))

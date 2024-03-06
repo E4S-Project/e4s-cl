@@ -138,6 +138,11 @@ def _setup_wi4mpi(
     LOGGER.debug("Setting up Wi4MPI to translate '%s' to '%s' (%s)",
                  *translation, family_metadata.vendor_name)
 
+    # Switch translation from mvapich to mpich, as wi4mpi doesn't recognise
+    # mvapich as a separate flag
+    if 'mvapich' in translation:
+        translation = [vendor.replace('mvapich', 'mpich') for vendor in translation]
+
     # Locate the Wi4MPI installation and store it in parameters
     if parameters.wi4mpi is None:
         target_dir = Path(config.CONFIGURATION.wi4mpi_install_directory)
