@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import List, Union, Optional
 from e4s_cl import logger, BAREBONES_SCRIPT, BAREBONES_LIBRARY_DIR
-from e4s_cl.util import run_subprocess, create_symlink, empty_dir, mkdirp, list_directory_sofiles
+from e4s_cl.util import run_subprocess, create_symlink, empty_dir, mkdirp, list_directory_files
 from e4s_cl.cf.libraries import cache_libraries
 from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
 from e4s_cl.cf.wi4mpi import wi4mpi_root
@@ -66,6 +66,22 @@ class BarebonesContainer(Container):
 
         self.env.update({"BAREBONES_BIND": ','.join(_format())})
 
+
+    def list_directory_sofiles(self, path: Path):
+        """Lists all the so files of a directory.
+
+        Args:
+            path (Path): path of the directory list the so files of.
+
+        Returns:
+            A list of paths of the so files in the given directory.
+        """
+        file_paths = list_directory_files(path)
+        for file_path in file_paths:
+            if '.so' in file_path.suffixes: # Check if it is a library file
+                file_paths.append(file_path.absolute())
+        return file_paths
+
     def _prepare(self, command: List[str], overload: bool = True) -> List[str]:
         """
         Return the command to run in a list of string
@@ -74,8 +90,9 @@ class BarebonesContainer(Container):
         # Chech the environment for the use of Wi4MPI
         wi4mpi_install_dir = wi4mpi_root()
         # If WI4MPI is to be used, we don't preload the mpi's libraries
+        import pdb;pdb.set_trace()
         if wi4mpi_install_dir is None:
-            to_be_preloaded = list_directory_sofiles(Path(BAREBONES_LIBRARY_DIR))
+            to_be_preloaded = self.list_directory_sofiles(Path(BAREBONES_LIBRARY_DIR))
             for file_path in to_be_preloaded:
                 self.add_ld_preload(str(file_path))
             self.env.update(
