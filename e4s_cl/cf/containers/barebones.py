@@ -90,7 +90,6 @@ class BarebonesContainer(Container):
         # Chech the environment for the use of Wi4MPI
         wi4mpi_install_dir = wi4mpi_root()
         # If WI4MPI is to be used, we don't preload the mpi's libraries
-        import pdb;pdb.set_trace()
         if wi4mpi_install_dir is None:
             to_be_preloaded = self.list_directory_sofiles(Path(BAREBONES_LIBRARY_DIR))
             for file_path in to_be_preloaded:
