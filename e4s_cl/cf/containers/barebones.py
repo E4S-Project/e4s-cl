@@ -77,10 +77,11 @@ class BarebonesContainer(Container):
             A list of paths of the so files in the given directory.
         """
         file_paths = list_directory_files(path)
+        sofile_paths = []
         for file_path in file_paths:
             if '.so' in file_path.suffixes: # Check if it is a library file
-                file_paths.append(file_path.absolute())
-        return file_paths
+                sofile_paths.append(file_path.absolute())
+        return sofile_paths
 
     def _prepare(self, command: List[str], overload: bool = True) -> List[str]:
         """
