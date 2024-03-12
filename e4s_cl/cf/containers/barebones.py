@@ -106,8 +106,9 @@ class BarebonesContainer(Container):
         nvidia_flag = ['--nv'] if self._has_nvidia() else []
 
         return [
-            *self._additional_options('exec'),
+            *self._additional_options(),
             *command,
+            *self._additional_options('exec'),
         ]
 
     def bind_file(self,

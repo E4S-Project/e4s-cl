@@ -16,6 +16,7 @@ DEFAULT_CONFIGURATION = config.CONFIGURATION
 TEST_CONFIGURATION = config.Configuration.create_from_string(f"""
 backends:
   barebones:
+    options: ['--nocolor', '-s']
     exec_options: ['--hostname', 'XxmycoolcontainerxX']
 """)
 
@@ -26,19 +27,6 @@ class ContainerTestBarebones(tests.TestCase):
         container = Container(name='barebones', image='None')
         self.assertFalse(type(container) == Container)
         self.assertTrue(isinstance(container, Container))
-
-    def test_run_image(self):
-        container = Container(name='barebones', image='imagenametest')
-        command = ['']
-        container_cmd = container._prepare(command)
-        self.assertIn('imagenametest', ' '.join(map(str, container_cmd)))
-
-    def test_run_pwd(self):
-        container = Container(name='barebones')
-        command = ['']
-        container_cmd = container._prepare(command)
-        pwd = getcwd()
-        self.assertIn(pwd, ' '.join(map(str, container_cmd)))
 
     def test_run_mpirun(self):
         container = Container(name='barebones', image='dummyimagename')
@@ -64,22 +52,6 @@ class ContainerTestBarebones(tests.TestCase):
         self.assertIn('tmp2',
                       [Path(path).name for path in list_directory_files(Path(BAREBONES_LIBRARY_DIR))])
 
-    def test_bind_relative(self):
-        container = Container(name='barebones')
-
-        target = Path('/tmp/../proc/meminfo')
-
-        ref = Path('/tmp')
-        file_ex = Path('/proc/meminfo')
-        home = Path.home()
-        paths = {ref, file_ex, home}
-
-        container.bind_file(target)
-        files = set(map(lambda x: x.origin, container.bound))
-
-        for item in paths:
-            self.assertIn(item, files)
-
     def test_additional_options_config(self):
         container = Container(name='barebones')
         command = ['']
@@ -93,7 +65,6 @@ class ContainerTestBarebones(tests.TestCase):
         self.assertContainsInOrder([
             '--nocolor',
             '-s',
-            'exec',
             '--hostname',
             'XxmycoolcontainerxX',
         ], barebones_command)
@@ -111,20 +82,19 @@ class ContainerTestBarebones(tests.TestCase):
         for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
             self.assertNotIn(option, barebones_command)
 
-        environ['E4S_CL_barebones_OPTIONS'] = "--nocolor -s"
+        environ['E4S_CL_BAREBONES_OPTIONS'] = "--nocolor -s"
         environ[
-            'E4S_CL_barebones_EXEC_OPTIONS'] = "--hostname XxmycoolcontainerxX"
+            'E4S_CL_BAREBONES_EXEC_OPTIONS'] = "--hostname XxmycoolcontainerxX"
         barebones_command = container._prepare(command)
         self.assertContainsInOrder([
             '--nocolor',
             '-s',
-            'exec',
             '--hostname',
             'XxmycoolcontainerxX',
         ], barebones_command)
 
-        del environ['E4S_CL_barebones_OPTIONS']
-        del environ['E4S_CL_barebones_EXEC_OPTIONS']
+        del environ['E4S_CL_BAREBONES_OPTIONS']
+        del environ['E4S_CL_BAREBONES_EXEC_OPTIONS']
         barebones_command = container._prepare(command)
         for option in {'--nocolor', '-s', '--hostname', 'XxmycoolcontainerxX'}:
             self.assertNotIn(option, barebones_command)

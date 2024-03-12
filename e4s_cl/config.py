@@ -327,6 +327,24 @@ ALLOWED_CONFIG = ConfigurationGroup(
                             "Options to pass to the shifter executable",
                         ),
                     }),
+                ConfigurationGroup(
+                    "barebones",
+                    {
+                        ConfigurationField(
+                            "options",
+                            list,
+                            lambda: [],
+                            "Options to pass before the execution script",
+                        ),
+                        ConfigurationField(
+                            "exec_options",
+                            list,
+                            lambda: [],
+                            "Options to pass after the execution script",
+                        ),
+                    },
+                    "Barebones backend configuration",
+                ),
             }),
     })
 
