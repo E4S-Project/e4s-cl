@@ -206,6 +206,36 @@ The available options are:
      - :code:`[]`
      - Options to pass to the :code:`exec` command of the spawned :code:`singularity` process.
 
+:code:`barebones`
+++++++++++++++++++++
+
+:code:`barebones` support is achieved by bypassing the use of a container technology.
+
+The configuration file section for :code:`barebones` is :code:`backends/barebones`.
+The available options are:
+
+.. list-table::
+   :widths: 10 10 5 5 20
+   :header-rows: 1
+
+   * - Configuration variable
+     - Environment variable
+     - Type
+     - Default
+     - Description
+
+   * - :code:`options`
+     - :code:`E4S_CL_BAREBONES_OPTIONS`
+     - List
+     - :code:`[]`
+     - Options to pass to the spawned process.
+
+   * - :code:`run_options`
+     - :code:`E4S_CL_BAREBONES_EXEC_OPTIONS`
+     - List
+     - :code:`[]`
+     - Options to pass to the script of the spawned process.
+
 Other container backends
 ++++++++++++++++++++++++++
 
