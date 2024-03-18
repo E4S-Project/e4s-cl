@@ -79,7 +79,6 @@ Running **e4s-cl** with the :code:`--print-config` option makes the program outp
         options: []
       barebones:
         exec_options: []
-        executable: ''
         options: []
     container_directory: /.e4s-cl
     disable_ranked_log: false
