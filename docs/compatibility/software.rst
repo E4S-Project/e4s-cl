@@ -30,7 +30,7 @@ Enabling translation
    # Enable translation from an OpenMPI binary to a MPICH-based profile
    e4s-cl --from openmpi srun -n 4 [...] path/to/executable
 
-This will install and leverage :code:`WI4MPI` (git repos `here https://github.com/cea-hpc/wi4mpi`_), which is a wrapper interface that performs translations from one MPI implementation to another. This allows :code:`e4s-cl` to function even when substituting two MPI libraries that are ABI-incompatible.
+This will install and leverage :code:`WI4MPI` (git repos `here <https://github.com/cea-hpc/wi4mpi>`_), which is a wrapper interface that performs translations from one MPI implementation to another. This allows :code:`e4s-cl` to function even when substituting two MPI libraries that are ABI-incompatible.
 
 Container backends
 -------------------
