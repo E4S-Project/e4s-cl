@@ -35,21 +35,12 @@ target library. The intended method to achieve this is by using the \
     Bound libraries:
      - libgfortran.so.5 (/lib64/libgfortran.so.5)
      - libibumad.so.3 (/lib64/libibumad.so.3)
-     - libibverbs.so.1 (/lib64/libibverbs.so.1)
-     - libnl-3.so.200 (/lib64/libnl-3.so.200)
-     - libnl-route-3.so.200 (/lib64/libnl-route-3.so.200)
-     - librdmacm.so.1 (/lib64/librdmacm.so.1)
-     - librt.so.1 (/lib64/librt.so.1)
-     - libiconv.so.2 (/storage/packages/SRC/spack/opt/spack/linux-centos8-x86_64/gcc-8.3.1/libiconv-1.16-6qf7jjkiomgfuy2q6zzdhgexjltrcndr/lib/libiconv.so.2)
-     - libpciaccess.so.0 (/storage/packages/SRC/spack/opt/spack/linux-centos8-x86_64/gcc-8.3.1/libpciaccess-0.16-vuksfecftytntszixk4bucdmxtnca5tf/lib/libpciaccess.so.0)
-     - libxml2.so.2 (/storage/packages/SRC/spack/opt/spack/linux-centos8-x86_64/gcc-8.3.1/libxml2-2.9.10-oojs5h5upe6tz5y2gaqelfwhexlnvjj2/lib/libxml2.so.2)
-     - libmpi.so.12 (/storage/packages/SRC/spack/opt/spack/linux-centos8-x86_64/gcc-8.3.1/mvapich2-2.3.4-cjjb5csr7qqo7bcmddxsctcmacs3kxev/lib/libmpi.so.12)
+     [...]
      - libmlx5-rdmav34.so (/usr/lib64/libibverbs/libmlx5-rdmav34.so)
 
     Bound files:
      - /etc/libibverbs.d/mlx5.driver
-     - /etc/libnl/classid
-     - /storage/packages/SRC/spack/opt/spack/linux-centos8-x86_64/gcc-8.3.1/mvapich2-2.3.4-cjjb5csr7qqo7bcmddxsctcmacs3kxev
+     [...]
      - /usr/share/hwdata/pci.ids
 
 
@@ -73,7 +64,8 @@ in which to run the binary:
 
    :code:`e4s-cl` is also able to run binaries directly on the host's environment. To do so, the :code:`barebones` backend should be selected, and the :code:`None` image specified. This usually will only work when the binary was also compiled in the host's environment.
 
-.. code:: 
+.. code::
+
    $ e4s-cl profile edit --backend barebones --image None
    $ e4s-cl profile list
     == Profile Configurations (/storage/users/fdeny/.local/e4s_cl/user.json) =======
