@@ -62,11 +62,11 @@ in which to run the binary:
 
 .. admonition:: Running e4s-cl barebones
 
-   :code:`e4s-cl` is also able to run binaries directly on the host's environment. To do so, the :code:`barebones` backend should be selected, and the :code:`None` image specified. This usually will only work when the binary was also compiled in the host's environment.
+   :code:`e4s-cl` is also able to run binaries directly on the host's environment. To do so, select the :code:`barebones` backend. This usually will only work when the binary was also compiled in the host's environment.
 
 .. code::
 
-   $ e4s-cl profile edit --backend barebones --image None
+   $ e4s-cl profile edit --backend barebones
    $ e4s-cl profile list
     == Profile Configurations (/storage/users/fdeny/.local/e4s_cl/user.json) =======
     ----------+---------------+-------------+-------------+
