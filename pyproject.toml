@@ -42,8 +42,8 @@ documentation = "https://e4s-cl.readthedocs.io"
 repository = "https://github.com/E4S-Project/e4s-cl.git"
 changelog = "https://github.com/E4S-Project/e4s-cl/blob/master/CHANGELOG"
 
-[tool.setuptools]
-packages = ["e4s_cl"]
+[tool.setuptools.packages]
+find = {}
 
 [project.scripts]
 e4s-cl = "e4s_cl.__main__:main"
