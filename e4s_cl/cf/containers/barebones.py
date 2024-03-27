@@ -125,7 +125,12 @@ class BarebonesContainer(Container):
         file_to_bind = Path(path)
         file_basename = file_to_bind.name
         if dest is not None:
-            create_symlink(file_to_bind, Path(dest))
+            dest = Path(dest)
+            if dest.name == 'barebones_script':
+                dest.write_text(file_to_bind.read_text())
+                os.chmod(dest, 0o755)
+            else:
+                create_symlink(file_to_bind, Path(dest))
         else:
             create_symlink(file_to_bind, Path(BAREBONES_LIBRARY_DIR) / file_basename)
 
