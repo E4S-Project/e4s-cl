@@ -142,7 +142,6 @@ def main():
     try:
         #pylint: disable=invalid-name
         if args.library is not None:
-            logging.info("Using library '%s'", path)
             MPI = bind_library(Path(args.library))
         else:
             MPI = select_bind_library()
