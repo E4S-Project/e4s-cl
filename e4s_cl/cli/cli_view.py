@@ -705,6 +705,7 @@ class CopyCommand(CreateCommand):
         ctrl = self.model.controller(store)
         key_attr = self.model.key_attribute
         matching = ctrl.search({key_attr: key})
+        found = []
         if not matching:
             self.parser.error(
                 f"No {ctrl.storage.name}-level {self.model_name} with {key_attr}='{key}'."

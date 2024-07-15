@@ -309,7 +309,7 @@ def set_log_level(level):
     # pylint: disable=global-statement
     global LOG_LEVEL
     LOG_LEVEL = level.upper()
-    _STDERR_HANDLER.setLevel(LOG_LEVEL)
+    _STDERR_HANDLER.setLevel(LOG_LEVEL) # pylint: disable=E0606
 
 
 def debug_mode():
@@ -355,7 +355,7 @@ def setup_process_logger(name: str) -> logging.Logger:
 
     # Locate and ensure the log file directory is writeable
     # - Compatible with symlinks in LOG_ID
-    log_file = Path(_LOG_FILE_PREFIX, LOG_ID, name).resolve()
+    log_file = Path(_LOG_FILE_PREFIX, LOG_ID, name).resolve() # pylint: disable=E0606
     Path.mkdir(log_file.parent, parents=True, exist_ok=True)
 
     # Create a logger in debug mode
