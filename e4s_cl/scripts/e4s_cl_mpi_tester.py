@@ -96,6 +96,7 @@ def bind_ompi(lib: ctypes.CDLL) -> MPIHandles:
 SONAMES = [
     ("libmpi.so.12", bind_mpich),
     ("libmpi.so.40", bind_ompi),
+    ("libmpi_cray.so.12", bind_mpich),
 ]
 
 
@@ -141,6 +142,7 @@ def main():
     try:
         #pylint: disable=invalid-name
         if args.library is not None:
+            logging.info("Using library '%s'", path)
             MPI = bind_library(Path(args.library))
         else:
             MPI = select_bind_library()
