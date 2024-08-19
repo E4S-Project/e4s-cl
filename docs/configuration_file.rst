@@ -42,7 +42,7 @@ The following options can be set in a configuration file:
    * - :code:`preload_root_libraries`
      - Force preload of bound libraries. Useful if some of the libraries were compiled with RPATHs.
      - Boolean
-     - :code:`False`
+     - :code:`True`
 
    * - :code:`disable_ranked_log`
      - Disable generation of log files on a per-rank basis.
@@ -81,7 +81,7 @@ Running **e4s-cl** with the :code:`--print-config` option makes the program outp
         exec_options: []
         options: []
     container_directory: /.e4s-cl
-    disable_ranked_log: false
+    disable_ranked_log: true
     launcher_options: []
     preload_root_libraries: false
     profile_list_columns: []
