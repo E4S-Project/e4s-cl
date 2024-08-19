@@ -220,7 +220,7 @@ ALLOWED_CONFIG = ConfigurationGroup(
         ConfigurationField(
             "preload_root_libraries",
             bool,
-            lambda: False,
+            lambda: True,
             "Insert LD_PRELOAD calls to ensure bound libraries are preloaded. Required when using RPATH'ed libraries",
         ),
         ConfigurationField(
