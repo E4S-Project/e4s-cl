@@ -117,6 +117,11 @@ class MainCommand(AbstractCommand):
 
         return parser
 
+    def set_log_level(self, argList):
+        quiet = getattr(argList, 'quiet', logger.LOG_LEVEL)
+        verbose = getattr(argList, 'verbose', quiet)
+        logger.set_log_level(verbose)
+
     def _py38_parse(self, argv):
         """
         If a command is not detected, insert 'launch' in the argv array
@@ -124,8 +129,7 @@ class MainCommand(AbstractCommand):
 
         # Debug is not enabled until below, so the following statement
         # enables it for this code block
-        if {'-v', '--verbose'} & set(argv):
-            logger.set_log_level('DEBUG')
+        self.set_log_level(argv)
 
         empty = len(argv) == 0
         command = set(argv) & set(cli.commands_next())
@@ -161,8 +165,8 @@ class MainCommand(AbstractCommand):
         except arguments.ArgumentError as err:
             # Debug is not enabled until below, so the following statement
             # enables it for this code block
-            if {'-v', '--verbose'} & set(argv):
-                logger.set_log_level('DEBUG')
+            self.set_log_level(argv)
+
             LOGGER.debug("Argument parsing errored out with '%s'", argv)
 
             # Check for the presence of a e4s-cl command
@@ -213,9 +217,7 @@ class MainCommand(AbstractCommand):
 
         args = parse_method(argv)
 
-        quiet = getattr(args, 'quiet', logger.LOG_LEVEL)
-        verbose = getattr(args, 'verbose', quiet)
-        logger.set_log_level(verbose)
+        self.set_log_level(args)
 
         # Try to execute as a command
         try:
