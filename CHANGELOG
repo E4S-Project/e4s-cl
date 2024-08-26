@@ -6,6 +6,9 @@ restablishing srun support
 - Added libmpi_cray.so.12 to the list of accepted libmpi.so files in
 the `e4s-cl-mpi-tester` script, for library detection, restablishing
 cray mpich support
+- Fixed verbosity issue when implicitely using launch command where
+verbosity was asked for the runned application that would propagate
+to e4s-cl's verbosity status
 
 v1.0.3 (Apr 16 2024)
 ---------------------
