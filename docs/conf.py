@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 # -- Project information -----------------------------------------------------
 
 project = 'E4S Container Launcher'
-copyright = '2023, Frederick Deny'
+copyright = '2024, Frederick Deny'
 author = 'Frederick Deny'
 
 # The full version, including alpha/beta/rc tags

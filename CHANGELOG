@@ -1,4 +1,4 @@
-v1.0.4
+v1.0.4 (Aug 26 2024)
 ---------------------
 
 - Changed default value of preload_root_libraries from false to true,
