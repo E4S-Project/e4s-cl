@@ -700,7 +700,7 @@ def wildcard_defined_object(model, field):
             raise argparse.ArgumentTypeError(
                 f"no {model.name} selected nor specified")
 
-        wildcard_string = re.sub(re.escape('\#'), '.*', re.escape(string))
+        wildcard_string = re.escape(string).replace(r'\#', '.*')
         matches = _search_available_databases(model, field,
                                               f"^{wildcard_string}$")
 

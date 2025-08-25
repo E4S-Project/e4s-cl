@@ -8,6 +8,7 @@ This command is used internally and thus cloaked from the UI
 
 from typing import Union, List
 from pathlib import Path
+import re 
 from sotools.linker import resolve
 from sotools.libraryset import LibrarySet, Library
 from e4s_cl import (
@@ -223,6 +224,95 @@ def _check_access(path: Union[Path, str]) -> bool:
     return check
 
 
+# ------------------- MPICH-family aliasing (no OMPI) -------------------
+
+# Families we support for aliasing (MPICH lineage, including Cray)
+# - C MPI:      libmpi.so.*, libmpi_cray.so.*
+# - Fortran:    libmpifort.so.*, libmpifort_cray.so.*
+# - C++ MPI:    libmpicxx.so.*, libmpi_cxx.so.*
+#
+# Explicitly excluded (Open MPI):
+# - libmpi.so.4X (e.g., .40, .41, ...)
+# - libmpi_{mpifh,usempi,usempif08}.so.*
+_MPI_FAMILY_PATTERNS = {
+    'mpi': re.compile(r'^libmpi(?:_cray)?\.so(?:\.(?!4[0-9])\d+)*$'),
+    'mpifort': re.compile(r'^libmpifort(?:_cray)?\.so(?:\.\d+)*$'),
+    'mpicxx': re.compile(r'^(?:libmpicxx|libmpi_cxx)\.so(?:\.\d+)*$'),
+}
+# Open MPI exclusions
+_OMPI_MPI_RE = re.compile(r'^libmpi\.so\.4[0-9]+$')
+_OMPI_FORTRAN_SPLIT_RE = re.compile(
+    r'^libmpi_(?:mpifh|usempi|usempif08)\.so(?:\.\d+)*$')
+
+
+def _which_mpi_family(name: str) -> str:
+    for fam, pat in _MPI_FAMILY_PATTERNS.items():
+        if pat.match(name):
+            return fam
+    return ''
+
+
+def _lib_name_candidates(lib: Library) -> List[str]:
+    """
+    Return candidate names to classify a Library (prefer soname, fallback to filename).
+    """
+    names = []
+    try:
+        if lib.soname:
+            names.append(lib.soname)
+    except AttributeError:
+        pass
+    names.append(Path(lib.binary_path).name)
+    return names
+
+
+def alias_guest_mpi_sonames_conservative(library_set: LibrarySet,
+                                         container: Container) -> None:
+    """
+    Bind additional alias filenames for MPICH-family MPI libs into the import dir,
+    matching guest SONAMEs from the container's ld.so.cache. Excludes Open MPI.
+
+    For each host library in a supported family (mpi, mpifort, mpicxx), and for
+    each guest SONAME in the same family, bind:
+      origin: <host lib path>
+      dest:   /.e4s-cl/hostlibs/<guest SONAME>
+
+    This ensures the guest loader resolves its expected SONAME to the host file.
+    """
+    if not container.cache:
+        return
+
+    # Build guest SONAMEs by family from ld.so.cache keys, excluding Open MPI
+    guest_by_family = {fam: [] for fam in _MPI_FAMILY_PATTERNS.keys()}
+    for soname in container.cache.keys():
+        # Skip Open MPI variants explicitly
+        if _OMPI_MPI_RE.match(soname) or _OMPI_FORTRAN_SPLIT_RE.match(soname):
+            continue
+        fam = _which_mpi_family(soname)
+        if fam:
+            guest_by_family[fam].append(soname)
+
+    # For each host lib in the set, classify and alias to matching guest SONAMEs
+    for lib in library_set:
+        host_family = ''
+        for candidate in _lib_name_candidates(lib):
+            host_family = _which_mpi_family(candidate)
+            if host_family:
+                break
+        if not host_family:
+            continue  # not an MPI lib we manage
+
+        guest_names = guest_by_family.get(host_family, [])
+        if not guest_names:
+            continue
+
+        for gname in guest_names:
+            dest = Path(container.import_library_dir, gname)
+            LOGGER.debug("Aliasing host '%s' as guest '%s' at '%s'",
+                         lib.binary_path, gname, dest)
+            container.bind_file(lib.binary_path, dest=dest)
+
+
 class ExecuteCommand(AbstractCommand):
     """``execute`` subcommand."""
 
@@ -318,6 +408,10 @@ class ExecuteCommand(AbstractCommand):
         # Import each library along with all symlinks pointing to it
         for shared_object in final_libset:
             import_library(shared_object, container)
+
+        # MPICH-family aliasing (skip if Wi4MPI is active)
+        if wi4mpi_install_dir is None:
+            alias_guest_mpi_sonames_conservative(final_libset, container)
 
         if wi4mpi_install_dir is None:
             # Preload the top-level libraries of the imported set to bypass
