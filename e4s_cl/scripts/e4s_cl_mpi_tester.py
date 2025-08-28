@@ -97,6 +97,7 @@ SONAMES = [
     ("libmpi.so.12", bind_mpich),
     ("libmpi.so.0.0.0", bind_mpich),
     ("libmpi.so.40", bind_ompi),
+    ("libmpi.so.41", bind_ompi),
     ("libmpi_cray.so.12", bind_mpich),
 ]
 

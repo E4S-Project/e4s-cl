@@ -409,9 +409,8 @@ class ExecuteCommand(AbstractCommand):
         for shared_object in final_libset:
             import_library(shared_object, container)
 
-        # MPICH-family aliasing (skip if Wi4MPI is active)
-        if wi4mpi_install_dir is None:
-            alias_guest_mpi_sonames_conservative(final_libset, container)
+        # MPICH-family aliasing 
+        alias_guest_mpi_sonames_conservative(final_libset, container)
 
         if wi4mpi_install_dir is None:
             # Preload the top-level libraries of the imported set to bypass

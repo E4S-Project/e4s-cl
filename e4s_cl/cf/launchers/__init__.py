@@ -28,73 +28,116 @@ class Parser:
     """
     Default parser.
 
-    Relies on a dictionnary, arguments, with an almost-exhaustive list
-    of the launchers options to determine when the launcher stops and
-    when the command begins.
+    Uses a dictionary of known options when available, but applies robust
+    fallbacks so unknown options don't prematurely terminate parsing.
 
-    All the --option=value will be caught and don't need to be present in
-    the dictionnary.
-
-    A minimal launcher module can use this to simplify implementation:
-    ```
-    from e4s_cl.cf.launchers import Parser
-    SCRIPT_NAMES = [identifiers]
-    ARGUMENTS = {...}
-    PARSER = Parser(ARGUMENTS)
-    ```
+    Rules:
+    - '--' ends option parsing; remainder is the program.
+    - ':' (Open MPI app-context delimiter) is retained on the launcher side.
+      Note: multi-app context still needs higher-level handling to inject the
+      wrapper before each app.
+    - Known options consume their declared nargs.
+    - '--opt=value' is always accepted.
+    - Unknown long options ('--opt') consume one value if the next token isn't
+      an option; otherwise consume none.
+    - Unknown short options consume one value if the next token isn't an option.
+      For concatenated known 1-arg short opts (e.g., '-xFOO=bar'), the entire
+      token is accepted as one.
     """
 
     def __init__(self, arguments: Dict[str, int]):
-        self.arguments = arguments
+        self.arguments = arguments or {}
+
+    @staticmethod
+    def _is_option(tok: str) -> bool:
+        return tok.startswith('-') and tok != '-'
+
+    @staticmethod
+    def _has_inline_value(tok: str) -> bool:
+        return tok.startswith('--') and '=' in tok
 
     def parse(self, command: List[str]) -> Tuple[List[str], List[str]]:
         """
         Separate a command line into launcher and program.
         """
+        if not command:
+            return [], []
+
         position = 0
-        known = True
-        launcher = []
-
-        launcher.append(command[position])
+        launcher = [command[position]]
         position += 1
+        n = len(command)
 
-        while known and position < len(command):
+        while position < n:
             flag = command[position]
 
-            if flag in self.arguments:
-                to_skip = self.arguments[flag]
-
-            # Catch generic --flag=value
-            elif re.match(r'^--[\-A-Za-z0-9]+=.*$', flag):
-                to_skip = 0
-
-            # Catch concatenated flag and value, -p gpu => -pgpu
-            # We know flag is not in self.arguments
-            elif re.match(r'^-[\w\-]+', flag):
-                # List arguments that match the start of flag and that take only one option
-                matches = list(
-                    filter(
-                        lambda option: (flag.startswith(option) and self.
-                                        arguments[option] == 1),
-                        self.arguments))
-
-                if (matches):
-                    to_skip = 0
-                else:
-                    known = False
-                    break
-
-            else:
-                known = False
+            # End-of-options sentinel: keep it on the launcher side and stop
+            if flag == '--':
+                launcher.append(flag)
+                position += 1
                 break
 
-            for index in range(0, to_skip + 1):
-                launcher.append(command[position + index])
+            # Open MPI app-context delimiter: retain and continue parsing
+            if flag == ':':
+                launcher.append(flag)
+                position += 1
+                continue
 
-            position += (to_skip + 1)
+            # Known option: consume declared nargs
+            if flag in self.arguments:
+                nargs = self.arguments[flag]
+                launcher.append(flag)
+                # Append up to nargs following tokens safely
+                for k in range(min(nargs, n - position - 1)):
+                    launcher.append(command[position + 1 + k])
+                position += 1 + nargs
+                continue
+
+            # Generic '--opt=value'
+            if self._has_inline_value(flag):
+                launcher.append(flag)
+                position += 1
+                continue
+
+            # Unknown long option: '--opt'
+            if flag.startswith('--'):
+                launcher.append(flag)
+                # Heuristic: if next token is not an option, treat as value
+                if position + 1 < n and not self._is_option(command[position + 1]):
+                    launcher.append(command[position + 1])
+                    position += 2
+                else:
+                    position += 1
+                continue
+
+            # Short options (unknown or concatenated)
+            if flag.startswith('-') and flag != '-':
+                # If any known 1-arg option is a prefix of this token, accept concatenated form
+                concatenated = next(
+                    (
+                        opt for opt, nargs in self.arguments.items()
+                        if nargs == 1 and flag.startswith(opt)
+                    ),
+                    None,
+                )
+                if concatenated:
+                    launcher.append(flag)
+                    position += 1
+                    continue
+
+                # Otherwise, assume unknown short option possibly with one value
+                launcher.append(flag)
+                if position + 1 < n and not self._is_option(command[position + 1]):
+                    launcher.append(command[position + 1])
+                    position += 2
+                else:
+                    position += 1
+                continue
+
+            # First non-option token: program starts here
+            break
 
         return launcher, command[position:]
-
 
 LAUNCHERS = {}
 

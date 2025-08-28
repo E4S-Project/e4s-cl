@@ -2,7 +2,7 @@
 
 from e4s_cl.cf.launchers import Parser
 
-SCRIPT_NAMES = ['mpirun']
+SCRIPT_NAMES = ['mpirun','mpiexec']
 
 _global = {
     "--allow-run-as-root": 0,
@@ -42,11 +42,13 @@ _global = {
     "--max-restarts": 1,
     "--max-vm-size": 1,
     "--mca": 2,
+    "-mca": 2,
     "--merge-stderr-to-stdout": 0,
     "--n": 1,
     "--no-ready-msg": 0,
     "--noprefix": 0,
     "--np": 1,
+    "--npernode": 1,
     "--omca": 2,
     "--ompi-server": 1,
     "--output-directory": 1,

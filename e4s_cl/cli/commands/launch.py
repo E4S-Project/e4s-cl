@@ -355,7 +355,19 @@ class LaunchCommand(AbstractCommand):
                             launcher.extend(shlex.split(f"-x {varname}"))
 
         execute_command = _format_execute(parameters)
-        full_command = [*launcher, *wi4mpi_call, *execute_command, *program]
+
+        def _supports_end_of_options(tokens: List[str]) -> bool:
+            if not tokens:
+                return False
+            name = Path(tokens[0]).name
+            return name in {"mpirun", "mpiexec", "srun", "jsrun", "aprun", "ibrun"}
+
+        launcher_tokens = list(launcher)
+        # Insert end-of-options delimiter if not already present
+        if _supports_end_of_options(launcher_tokens) and (not launcher_tokens or launcher_tokens[-1] != "--"):
+            launcher_tokens.append("--")
+
+        full_command = [*launcher_tokens, *wi4mpi_call, *execute_command, *program]
 
         if variables.is_dry_run():
             print(' '.join(map(str, full_command)))
