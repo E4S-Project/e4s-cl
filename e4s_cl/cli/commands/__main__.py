@@ -19,6 +19,7 @@ from e4s_cl.cf.version import Version
 from e4s_cl.cli import UnknownCommandError, arguments
 from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cli.commands.launch import COMMAND as LAUNCH_COMMAND
+from e4s_cl.util import sanitize_args
 
 LOGGER = logger.get_logger(__name__)
 
@@ -215,6 +216,7 @@ class MainCommand(AbstractCommand):
         else:
             parse_method = self._py39_parse
 
+        argv = sanitize_args(argv)
         args = parse_method(argv)
 
         self.set_log_level(args)

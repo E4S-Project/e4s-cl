@@ -12,6 +12,7 @@ import pkgutil
 from pathlib import Path
 from hashlib import sha256
 import json
+import unicodedata
 from typing import (
     Any,
     Callable,
@@ -583,3 +584,23 @@ def prepend_library_path(path: Union[str, Path]):
     """
     env = os.environ.get("LD_LIBRARY_PATH", [])
     os.environ["LD_LIBRARY_PATH"] = os.pathsep.join([str(path), *env])
+
+
+def sanitize_args(argv: List[str]) -> List[str]:
+    """
+    Cleans a list of command-line arguments by normalizing Unicode characters
+    and collapsing all whitespace to a single space.
+    """
+    sanitized_argv = []
+    for arg in argv:
+        if isinstance(arg, str):
+            # NFKC normalization 
+            normalized_str = unicodedata.normalize('NFKC', arg)
+            # Collapse all whitespace and strip ends
+            sanitized_arg = ' '.join(normalized_str.split())
+            sanitized_argv.append(sanitized_arg)
+        else:
+            # Preserve non-string arguments
+            sanitized_argv.append(arg)
+
+    return sanitized_argv
