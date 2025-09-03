@@ -2,10 +2,7 @@
 
 name: Run tests
 
-on: 
-  push:
-    paths:
-      - '**.py'
+on: push
 
 jobs:
   Test:
