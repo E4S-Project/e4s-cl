@@ -53,6 +53,8 @@ class LauncherTest(tests.TestCase):
         self.assertEqual(launcher, split(launcher_txt))
         self.assertEqual(command, split(command_txt))
 
+    #Obselete. We pass user args directly to launchers
+    '''
     def test_unsupported_option(self):
         """
         Check unsupported option behaviour
@@ -64,7 +66,8 @@ class LauncherTest(tests.TestCase):
 
         self.assertNotEqual(launcher, split(launcher_txt))
         self.assertNotEqual(command, split(command_txt))
-
+    '''
+    
     def test_equalled_option(self):
         """
         Check support for --x=y style options
