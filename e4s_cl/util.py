@@ -170,6 +170,8 @@ def run_subprocess(cmd, cwd=None, env=None, discard_output=False) -> int:
                 # Log the errors in a log file
                 for line in proc.stderr.readlines():
                     process_logger.error(line[:-1])
+                    sys.stderr.write(line)
+                    sys.stderr.flush()
                     buffer.append(line)
         returncode = proc.wait()
 
