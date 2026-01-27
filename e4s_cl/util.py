@@ -19,6 +19,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Tuple,
     Union,
 )
 from functools import lru_cache, reduce
@@ -193,7 +194,7 @@ def run_subprocess(cmd, cwd=None, env=None, discard_output=False) -> int:
     return returncode
 
 
-def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False, timeout=None) -> int:
+def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False, timeout=None) -> Tuple[int, str]:
     """
     cmd: list[str],
     env: Optional[dict],
