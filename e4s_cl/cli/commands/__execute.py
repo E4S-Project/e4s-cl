@@ -524,12 +524,14 @@ class ExecuteCommand(AbstractCommand):
             # the container path where host libraries are bound
             host_mpi_lib = os.environ.get("WI4MPI_RUN_MPI_C_LIB", "")
             if host_mpi_lib:
+                import_library(Library.from_path(Path(host_mpi_lib)), container)
                 container_mpi_lib = Path(container.import_library_dir) / Path(host_mpi_lib).name
                 params.extra_env["WI4MPI_RUN_MPI_C_LIB"] = container_mpi_lib.as_posix()
                 LOGGER.debug("Wi4MPI: Overriding WI4MPI_RUN_MPI_C_LIB to container path: %s", container_mpi_lib)
             
             host_mpi_f_lib = os.environ.get("WI4MPI_RUN_MPI_F_LIB", "")
             if host_mpi_f_lib:
+                import_library(Library.from_path(Path(host_mpi_f_lib)), container)
                 container_mpi_f_lib = Path(container.import_library_dir) / Path(host_mpi_f_lib).name
                 params.extra_env["WI4MPI_RUN_MPI_F_LIB"] = container_mpi_f_lib.as_posix()
                 params.extra_env["WI4MPI_RUN_MPIIO_C_LIB"] = container_mpi_lib.as_posix()
