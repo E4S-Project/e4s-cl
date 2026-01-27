@@ -534,7 +534,8 @@ class ExecuteCommand(AbstractCommand):
                 import_library(Library.from_path(Path(host_mpi_f_lib)), container)
                 container_mpi_f_lib = Path(container.import_library_dir) / Path(host_mpi_f_lib).name
                 params.extra_env["WI4MPI_RUN_MPI_F_LIB"] = container_mpi_f_lib.as_posix()
-                params.extra_env["WI4MPI_RUN_MPIIO_C_LIB"] = container_mpi_lib.as_posix()
+                if host_mpi_lib:
+                    params.extra_env["WI4MPI_RUN_MPIIO_C_LIB"] = container_mpi_lib.as_posix()
                 params.extra_env["WI4MPI_RUN_MPIIO_F_LIB"] = container_mpi_f_lib.as_posix()
 
         # Write the entry script to a file, then bind it to the container
