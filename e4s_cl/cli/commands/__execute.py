@@ -468,10 +468,10 @@ class ExecuteCommand(AbstractCommand):
                 if len(parts) == 2:
                     source, dest = parts
 
-            if _check_access(path):
-                container.bind_file(path, option=FileOptions.READ_WRITE)
-            elif dest and _check_access(source):
+            if dest and _check_access(source):
                 container.bind_file(source, dest=dest, option=FileOptions.READ_WRITE)
+            elif _check_access(path):
+                container.bind_file(path, option=FileOptions.READ_WRITE)
             else:
                 LOGGER.error("File '%s' not found.", source)
 
