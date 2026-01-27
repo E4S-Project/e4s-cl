@@ -399,7 +399,7 @@ class ExecuteCommand(AbstractCommand):
 
         parser.add_argument('--files',
                             type=arguments.posix_path_list,
-                            help="Files to bind, comma-separated",
+                            help="Files to bind, comma-separated. Supports host:container syntax.",
                             default=[],
                             metavar='files')
 
@@ -460,9 +460,20 @@ class ExecuteCommand(AbstractCommand):
         files = [p for p in (args.files or []) if Path(p) != Path('/')]
         if len(files) != len(args.files or []):
             LOGGER.warning("Filtered root '/' from bound files to avoid container permission errors.")
-        
-        for path in filter(_check_access, files):
-            container.bind_file(path, option=FileOptions.READ_WRITE)
+
+        for path in files:
+            source, dest = path, None
+            if ':' in path:
+                parts = path.split(':')
+                if len(parts) == 2:
+                    source, dest = parts
+
+            if _check_access(path):
+                container.bind_file(path, option=FileOptions.READ_WRITE)
+            elif dest and _check_access(source):
+                container.bind_file(source, dest=dest, option=FileOptions.READ_WRITE)
+            else:
+                LOGGER.error("File '%s' not found.", source)
 
         # This script is sourced before any other command in the container
         params.source_script_path = args.source

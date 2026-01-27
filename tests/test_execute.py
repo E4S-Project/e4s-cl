@@ -5,7 +5,9 @@ from sotools.libraryset import LibrarySet
 from e4s_cl.util import which
 from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.template import Entrypoint
-from e4s_cl.cf.containers import Container
+from e4s_cl.cf.containers import Container, FileOptions
+import tempfile
+from unittest.mock import patch
 from e4s_cl.cli.commands.__execute import (import_library, filter_libraries,
                                            overlay_libraries, select_libraries,
                                            COMMAND)
@@ -103,3 +105,27 @@ class ExecuteTests(tests.TestCase):
             '-c',
             '"exit 123"',
         ])
+
+    @tests.skipIf(not linker.resolve("libmpi.so"), "No test library available")
+    def test_execute_alias(self):
+        set_dry_run(True)
+
+        libmpi = str(linker.resolve('libmpi.so'))
+
+        with patch('e4s_cl.cf.containers.Container.bind_file') as bind_mock:
+            with tempfile.NamedTemporaryFile() as temp_file:
+                self.assertCommandReturnValue(0, COMMAND, [
+                    '--backend',
+                    'containerless',
+                    '--image',
+                    '',
+                    '--libraries',
+                    libmpi,
+                    '--files',
+                    f"{temp_file.name}:/tmp/target",
+                    'ls',
+                ])
+
+                bind_mock.assert_any_call(temp_file.name, dest='/tmp/target', option=FileOptions.READ_WRITE)
+
+        set_dry_run(False)
