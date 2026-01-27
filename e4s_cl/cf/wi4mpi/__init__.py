@@ -169,10 +169,14 @@ def wi4mpi_root() -> Optional[Path]:
 
     if string is None or not string:
         LOGGER.debug("Getting Wi4MPI root failed - WI4MPI_ROOT not in environment")
-        LOGGER.debug(f"Available Wi4MPI env vars: WI4MPI_FROM={os.environ.get('WI4MPI_FROM')}, WI4MPI_TO={os.environ.get('WI4MPI_TO')}")
+        LOGGER.debug(
+            "Available Wi4MPI env vars: WI4MPI_FROM=%s, WI4MPI_TO=%s",
+            os.environ.get("WI4MPI_FROM"),
+            os.environ.get("WI4MPI_TO"),
+        )
         return None
 
-    LOGGER.debug(f"Wi4MPI root found: {string}")
+    LOGGER.debug("Wi4MPI root found: %s", string)
     return Path(string)
 
 
