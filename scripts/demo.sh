@@ -285,7 +285,7 @@ run_timed() {
   local end
   end=$(python3 -c 'import time; print(time.time())')
   local duration
-  duration=$(python3 -c "print(f'{${end} - ${start}:.3f}')")
+  duration=$(python3 -c "print('{:.3f}'.format(${end} - ${start}))")
 
   # Use flock or simple append (pipe serialization usually handles simple appends)
   printf "%s %s\n" "${label}" "${duration}" >> "${out_file}"
