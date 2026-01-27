@@ -28,6 +28,8 @@ E4S_CL_IMAGE=""
 E4S_CL_PROFILE_NAME="HOST_MPI"
 E4S_CL_MPI_PROCS="2"
 E4S_CL_OSU_URL="https://mvapich.cse.ohio-state.edu/download/mvapich/osu-micro-benchmarks-5.9.tar.gz"
+E4S_CL_OSU_SHA256="d619740a1c2cc7c02a9763931546b320d0fa4093c415ff3873c2958e121c0609"
+E4S_CL_OSU_CHECKSUM_REQUIRED="1"
 E4S_CL_MODE="full"
 E4S_CL_TAG=""
 E4S_CL_WORKDIR="${REPO_ROOT}/_e4scl_test"
@@ -54,6 +56,42 @@ E4S_CL_TIMEOUT_DURATION="60s"
 
 log() { printf "[e4s-cl-test] %s\n" "$*"; }
 fail() { printf "[e4s-cl-test] ERROR: %s\n" "$*" >&2; exit 1; }
+
+verify_checksum() {
+  local filepath="$1"
+  local expected_hash="$2"
+  local algorithm="${3:-sha256}"
+  
+  if [[ ! -f "${filepath}" ]]; then
+    fail "File not found: ${filepath}"
+  fi
+  
+  if [[ -z "${expected_hash}" ]]; then
+    fail "No checksum provided for verification"
+  fi
+  
+  local computed_hash
+  case "${algorithm}" in
+    sha256)
+      if command -v sha256sum >/dev/null 2>&1; then
+        computed_hash=$(sha256sum "${filepath}" | awk '{print $1}')
+      elif command -v shasum >/dev/null 2>&1; then
+        computed_hash=$(shasum -a 256 "${filepath}" | awk '{print $1}')
+      else
+        fail "No SHA256 tool available (sha256sum or shasum)"
+      fi
+      ;;
+    *)
+      fail "Unsupported checksum algorithm: ${algorithm}"
+      ;;
+  esac
+  
+  if [[ "${computed_hash}" != "${expected_hash}" ]]; then
+    fail "Checksum mismatch for ${filepath}\n  Expected: ${expected_hash}\n  Got:      ${computed_hash}\n  This may indicate a compromised or corrupted download. Refusing to proceed."
+  fi
+  
+  log "Checksum verified for ${filepath}"
+}
 
 DOC_TODO_FILE="${REPO_ROOT}/documentation.TODO"
 doc_todo() {
@@ -82,7 +120,9 @@ Options:
   --apptainer-build-args <arg> Extra args for apptainer build (default: --fakeroot)
   --profile-name <name>        Profile name to use (default: HOST_MPI)
   --mpi-procs <n>              MPI ranks (default: 2)
-  --osu-url <url>              OSU benchmarks tarball URL (default: https://mvapich.cse.ohio-state.edu/download/mvapich/osu-micro-benchmarks-5.9.tar.gz)
+  --osu-url <url>              OSU benchmarks tarball URL (default: pinned to known verified release)
+  --osu-sha256 <hash>          Expected SHA256 hash of tarball (default: hash for pinned version)
+  --osu-skip-checksum          Skip checksum verification (WARNING: only use with trusted URLs; default: off)
   --mode <light|full>          Light: latency/bw tests (shorter). Full: adds allreduce + full range (default: full)
   --tag <name>                 Artifact tag used for work/cache paths (default: auto)
   --workdir <path>             Working directory (default: _e4scl_test_<tag>)
@@ -104,10 +144,17 @@ Options:
   --check                      Check environment prerequisites and exit
   -h, --help                   Show help
 
+NOTE: OSU benchmarks integrity verification
+  By default, downloads are verified against a pinned release with a known SHA256 checksum
+  to mitigate supply-chain attacks. If you specify a custom --osu-url, you must either:
+    1) Provide the expected --osu-sha256 hash and let verification run, or
+    2) Use --osu-skip-checksum to accept the risk (verify the URL yourself)
+
 Examples:
   ./scripts/demo.sh --image /path/to/mpi.sif --mode light
   ./scripts/demo.sh --build-image --mode light --host-baseline off
   ./scripts/demo.sh --image docker://ecpe4s/e4s-mpi-cpu-x86_64:v4.3.1-1762472545 --mode light
+  ./scripts/demo.sh --image docker://ecpe4s/e4s-mpi-cpu-x86_64 --osu-url /path/to/local/osu.tar.gz --osu-sha256 <hash>
 EOF
 }
 
@@ -152,7 +199,9 @@ while [[ $# -gt 0 ]]; do
     --apptainer-build-args) E4S_CL_APPTAINER_BUILD_ARGS="$2"; shift 2 ;;
     --profile-name) E4S_CL_PROFILE_NAME="$2"; shift 2 ;;
     --mpi-procs) E4S_CL_MPI_PROCS="$2"; shift 2 ;;
-    --osu-url) E4S_CL_OSU_URL="$2"; shift 2 ;;
+    --osu-url) E4S_CL_OSU_URL="$2"; E4S_CL_OSU_CHECKSUM_REQUIRED="1"; shift 2 ;;
+    --osu-sha256) E4S_CL_OSU_SHA256="$2"; shift 2 ;;
+    --osu-skip-checksum) E4S_CL_OSU_CHECKSUM_REQUIRED="0"; shift ;;
     --mode) E4S_CL_MODE="$2"; shift 2 ;;
     --tag) E4S_CL_TAG="$2"; shift 2 ;;
     --workdir) E4S_CL_WORKDIR="$2"; shift 2 ;;
@@ -480,18 +529,51 @@ log "Fetching OSU benchmarks"
 OSU_TARBALL="${E4S_CL_CACHE_DIR}/osu.tar.gz"
 OSU_SRC_DIR="${E4S_CL_WORKDIR}/osu"
 OSU_META_FILE="${E4S_CL_WORKDIR}/osu.meta"
+OSU_CHECKSUM_FILE="${E4S_CL_CACHE_DIR}/osu.sha256"
+
+NEED_DOWNLOAD="0"
 if [[ ! -f "${OSU_TARBALL}" || ! -f "${OSU_META_FILE}" ]]; then
-  curl -L "${E4S_CL_OSU_URL}" -o "${OSU_TARBALL}"
+  NEED_DOWNLOAD="1"
   rm -rf "${OSU_SRC_DIR}"
 elif ! grep -Fq "osu_url=${E4S_CL_OSU_URL}" "${OSU_META_FILE}"; then
-  curl -L "${E4S_CL_OSU_URL}" -o "${OSU_TARBALL}"
+  NEED_DOWNLOAD="1"
   rm -rf "${OSU_SRC_DIR}"
 fi
+
+if [[ "${NEED_DOWNLOAD}" == "1" ]]; then
+  log "Downloading OSU benchmarks from: ${E4S_CL_OSU_URL}"
+  curl -L "${E4S_CL_OSU_URL}" -o "${OSU_TARBALL}"
+  
+  # Verify checksum unless explicitly skipped
+  if [[ "${E4S_CL_OSU_CHECKSUM_REQUIRED}" == "1" ]]; then
+    if [[ -z "${E4S_CL_OSU_SHA256}" ]]; then
+      fail "OSU checksum verification enabled but no hash provided. Use --osu-sha256 or --osu-skip-checksum"
+    fi
+    log "Verifying OSU benchmarks integrity (SHA256)..."
+    verify_checksum "${OSU_TARBALL}" "${E4S_CL_OSU_SHA256}" "sha256"
+    printf "%s\n" "${E4S_CL_OSU_SHA256}" > "${OSU_CHECKSUM_FILE}"
+  else
+    log "WARNING: Skipping OSU checksum verification. Ensure you trust the source at ${E4S_CL_OSU_URL}"
+    printf "%s  (unverified)\n" "manual-skip" > "${OSU_CHECKSUM_FILE}"
+  fi
+else
+  # Already downloaded; verify cached version matches current expectations if verification is enabled
+  if [[ "${E4S_CL_OSU_CHECKSUM_REQUIRED}" == "1" && -n "${E4S_CL_OSU_SHA256}" ]]; then
+    if [[ -f "${OSU_CHECKSUM_FILE}" ]] && grep -Fq "${E4S_CL_OSU_SHA256}" "${OSU_CHECKSUM_FILE}" 2>/dev/null; then
+      log "Cached OSU benchmarks already verified"
+    else
+      log "Verifying cached OSU benchmarks integrity (SHA256)..."
+      verify_checksum "${OSU_TARBALL}" "${E4S_CL_OSU_SHA256}" "sha256"
+      printf "%s\n" "${E4S_CL_OSU_SHA256}" > "${OSU_CHECKSUM_FILE}"
+    fi
+  fi
+fi
+
 if [[ ! -d "${OSU_SRC_DIR}" ]]; then
   mkdir -p "${OSU_SRC_DIR}"
   tar -xzf "${OSU_TARBALL}" -C "${OSU_SRC_DIR}" --strip-components=1
 fi
-printf "osu_url=%s\n" "${E4S_CL_OSU_URL}" > "${OSU_META_FILE}"
+printf "osu_url=%s\nosu_sha256=%s\n" "${E4S_CL_OSU_URL}" "${E4S_CL_OSU_SHA256}" > "${OSU_META_FILE}"
 
 if [[ "${E4S_CL_MODE}" == "light" ]]; then
   OSU_BENCHES=("pt2pt/osu_latency" "pt2pt/osu_bw")
