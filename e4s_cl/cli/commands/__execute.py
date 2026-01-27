@@ -6,6 +6,7 @@ argument.
 This command is used internally and thus cloaked from the UI
 """
 
+import os
 from typing import Union, List
 from pathlib import Path
 import re 
@@ -313,6 +314,68 @@ def alias_guest_mpi_sonames_conservative(library_set: LibrarySet,
             container.bind_file(lib.binary_path, dest=dest)
 
 
+def _alias_wi4mpi_fake_libs_for_guest(wi4mpi_install_dir: Path,
+                                      container: Container) -> None:
+    """
+    When using Wi4MPI, bind fake MPI libraries with guest SONAME aliases.
+    
+    Wi4MPI provides fake libraries (e.g., libmpi.so.12) that need to be accessible
+    with MPICH-specific names (e.g., libmpich.so.12, libmpichfort.so.12) so that
+    container binaries linked to MPICH can find them.
+    
+    This creates bindings so that guest MPI SONAMEs resolve to Wi4MPI fake libraries.
+    """
+    # Get the Wi4MPI FROM parameter to determine which fake library directory to use
+    from_family = os.environ.get("WI4MPI_FROM", "").upper()
+    
+    if not from_family:
+        LOGGER.debug("WI4MPI_FROM not set; skipping fake library aliasing")
+        return
+    
+    LOGGER.debug("Wi4MPI fake lib aliasing: from_family=%s", from_family)
+    fakelib_dir = wi4mpi_install_dir / 'libexec' / 'wi4mpi' / f"fakelib{from_family}"
+    
+    if not fakelib_dir.exists():
+        LOGGER.warning("Wi4MPI fakelib directory not found: %s", fakelib_dir)
+        return
+    
+    LOGGER.debug("Wi4MPI fake lib aliasing: fakelib_dir=%s", fakelib_dir)
+    
+    # Mapping from generic MPI library names to MPICH-specific names
+    # Wi4MPI provides libmpi.so.*, libmpifort.so.*, etc.
+    # MPICH uses libmpich.so.*, libmpichfort.so.*, etc.
+    name_mappings = {
+        'libmpi.so': ['libmpich.so', 'libmpi.so'],
+        'libmpifort.so': ['libmpichfort.so', 'libmpifort.so'],
+        'libmpicxx.so': ['libmpichcxx.so', 'libmpicxx.so'],
+    }
+    
+    # Bind Wi4MPI fake libraries with appropriate SONAME aliases for MPICH
+    # This ensures binaries linked to libmpich.so.X find the Wi4MPI translation layer
+    for wi4mpi_base, target_bases in name_mappings.items():
+        # Find all Wi4MPI fake libraries matching this base (e.g., libmpi.so.12, libmpi.so.4)
+        fake_libs = list(fakelib_dir.glob(f"{wi4mpi_base}*"))
+        if not fake_libs:
+            continue
+        
+        for fake_lib in fake_libs:
+            # Extract version suffix (e.g., ".12" from "libmpi.so.12")
+            fake_name = fake_lib.name
+            if '.' in fake_name and fake_name.count('.') >= 2:
+                # Get suffix after base name (e.g., ".12" from "libmpi.so.12")
+                suffix_start = fake_name.find('.', fake_name.find('.') + 1)
+                suffix = fake_name[suffix_start:]
+                
+                # Create aliases for each target base name
+                for target_base in target_bases:
+                    target_soname = f"{target_base}{suffix}"
+                    # Always create alias for MPICH variants when translating from MPICH
+                    dest = Path(container.import_library_dir, target_soname)
+                    LOGGER.debug("Aliasing Wi4MPI fake lib '%s' as guest '%s' at '%s'",
+                               fake_lib, target_soname, dest)
+                    container.bind_file(fake_lib, dest=dest)
+
+
 class ExecuteCommand(AbstractCommand):
     """``execute`` subcommand."""
 
@@ -382,6 +445,11 @@ class ExecuteCommand(AbstractCommand):
         # The following is a set of all libraries required. It
         # is used in the container to check version mismatches
         required_libraries = [*args.libraries, *wi4mpi_required]
+        
+        # NOTE: Do NOT filter OpenMPI core libraries (libmpi.so.40, libopen-pal.so.40, etc.)
+        # when Wi4MPI is active - Wi4MPI needs these to translate MPICH->OpenMPI calls.
+        # Only the OpenMPI/PMIx plugin FILES should be filtered (see below).
+        
         libset = LibrarySet.create_from(required_libraries)
         if libset:
             # Analyze the container to get library information from the environment
@@ -389,7 +457,11 @@ class ExecuteCommand(AbstractCommand):
             container.get_data()
 
         # Bind all accessible requested files
-        for path in filter(_check_access, args.files or []):
+        files = [p for p in (args.files or []) if Path(p) != Path('/')]
+        if len(files) != len(args.files or []):
+            LOGGER.warning("Filtered root '/' from bound files to avoid container permission errors.")
+        
+        for path in filter(_check_access, files):
             container.bind_file(path, option=FileOptions.READ_WRITE)
 
         # This script is sourced before any other command in the container
@@ -410,7 +482,13 @@ class ExecuteCommand(AbstractCommand):
             import_library(shared_object, container)
 
         # MPICH-family aliasing 
-        alias_guest_mpi_sonames_conservative(final_libset, container)
+        # Skip aliasing when Wi4MPI is active, as it would bypass Wi4MPI translation
+        if wi4mpi_install_dir is None:
+            alias_guest_mpi_sonames_conservative(final_libset, container)
+        else:
+            # Wi4MPI is active: create aliases for Wi4MPI fake libraries to match guest SONAMEs
+            # This ensures binaries linked to libmpich.so.12 find Wi4MPI's libmpi.so.12
+            _alias_wi4mpi_fake_libs_for_guest(wi4mpi_install_dir, container)
 
         if wi4mpi_install_dir is None:
             # Preload the top-level libraries of the imported set to bypass
@@ -427,7 +505,24 @@ class ExecuteCommand(AbstractCommand):
             # If WI4MPI is found in the environment, import its files and
             # preload its required components
             wi4mpi_import(container, wi4mpi_install_dir)
-            params.preload += wi4mpi_preload(wi4mpi_install_dir)
+            params.preload += wi4mpi_preload(wi4mpi_install_dir, container.import_library_dir)
+            
+            # Override Wi4MPI environment variables to use container paths
+            # Wi4MPI uses WI4MPI_RUN_MPI_C_LIB to dlopen the target MPI library
+            # The host path won't exist inside the container; we need to use
+            # the container path where host libraries are bound
+            host_mpi_lib = os.environ.get("WI4MPI_RUN_MPI_C_LIB", "")
+            if host_mpi_lib:
+                container_mpi_lib = Path(container.import_library_dir) / Path(host_mpi_lib).name
+                params.extra_env["WI4MPI_RUN_MPI_C_LIB"] = container_mpi_lib.as_posix()
+                LOGGER.debug("Wi4MPI: Overriding WI4MPI_RUN_MPI_C_LIB to container path: %s", container_mpi_lib)
+            
+            host_mpi_f_lib = os.environ.get("WI4MPI_RUN_MPI_F_LIB", "")
+            if host_mpi_f_lib:
+                container_mpi_f_lib = Path(container.import_library_dir) / Path(host_mpi_f_lib).name
+                params.extra_env["WI4MPI_RUN_MPI_F_LIB"] = container_mpi_f_lib.as_posix()
+                params.extra_env["WI4MPI_RUN_MPIIO_C_LIB"] = container_mpi_lib.as_posix()
+                params.extra_env["WI4MPI_RUN_MPIIO_F_LIB"] = container_mpi_f_lib.as_posix()
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()

@@ -193,11 +193,12 @@ def run_subprocess(cmd, cwd=None, env=None, discard_output=False) -> int:
     return returncode
 
 
-def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
+def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False, timeout=None) -> int:
     """
     cmd: list[str],
     env: Optional[dict],
     capture_output: bool
+    timeout: Optional[float], timeout in seconds
     Run a subprocess, tailored for recursive e4s-cl processes
     """
     with ParentStatus():
@@ -222,8 +223,15 @@ def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
                 universal_newlines=True,
                 bufsize=1) as proc:
 
-            output, _ = proc.communicate()
-            returncode = proc.returncode
+            try:
+                output, _ = proc.communicate(timeout=timeout)
+                returncode = proc.returncode
+            except subprocess.TimeoutExpired:
+                LOGGER.warning("Subprocess timed out after %s seconds: %s", timeout, cmd)
+                proc.kill()
+                proc.wait()
+                returncode = -1
+                output = ""
 
     if capture_output:
         return returncode, output

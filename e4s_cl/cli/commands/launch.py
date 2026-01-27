@@ -174,7 +174,35 @@ def _setup_wi4mpi(
     # Deduce the MPI installation directory, add it to the imported files
     mpi_install_dir = library_install_dir([run_c_lib, run_f_lib])
     if mpi_install_dir:
-        parameters.files.add(mpi_install_dir)
+        if mpi_install_dir == Path('/'):
+            LOGGER.debug("Refusing to bind '/' as MPI install dir; binding library files instead.")
+            # If the install dir is root (e.g. system install), we cannot bind root.
+            # Bind the specific library files instead of the directory to avoid creating
+            # an overlay that hides container system libraries (like libmpich.so).
+            if run_c_lib:
+                parameters.files.add(run_c_lib)
+                # Helper: bind openmpi plugins if present (common in system installs)
+                # Typically in <libdir>/openmpi
+                plugin_dir = run_c_lib.parent / 'openmpi'
+                if plugin_dir.exists():
+                    parameters.files.add(plugin_dir)
+
+                # Helper: bind pmix plugins if present (external pmix in system installs)
+                for pmix_name in ['pmix', 'pmix2']:
+                    pmix_dir = run_c_lib.parent / pmix_name
+                    if pmix_dir.exists():
+                        parameters.files.add(pmix_dir)
+
+            if run_f_lib:
+                parameters.files.add(run_f_lib)
+
+            # Helper: bind /usr/share/openmpi for help files/config
+            share_dir = Path('/usr/share/openmpi')
+            if share_dir.exists():
+                parameters.files.add(share_dir)
+
+        else:
+            parameters.files.add(mpi_install_dir)
 
     wi4mpi_wrapper = parameters.wi4mpi / 'bin' / 'wi4mpi'
 
@@ -298,6 +326,14 @@ class LaunchCommand(AbstractCommand):
 
         # Merge profile and cli arguments to get a definitive list of arguments
         parameters = _parameters(args)
+
+        if parameters.files:
+            root_paths = {p for p in parameters.files if str(p) == "/"}
+            if root_paths:
+                parameters.files.difference_update(root_paths)
+                LOGGER.warning(
+                    "Filtered root '/' from bound files to avoid container permission errors."
+                )
 
         # Ensure the minimum fields required for launch are present
         for _field in ['backend', 'image']:
