@@ -387,10 +387,8 @@ HOST_MPIRUN="${E4S_CL_HOST_MPIRUN:-$(command -v mpirun || command -v mpiexec || 
 [[ -n "${HOST_MPIRUN}" ]] || fail "Host MPI launcher not found (mpirun or mpiexec)"
 
 log "Container Runtime: $CONTAINER_CMD"
-log "Host MPI compiler: ${HOST_MPICC}"\
-"$("${HOST_MPICC}" --version | head -n 1 || true)"
-log "Host MPI launcher: ${HOST_MPIRUN}"\
-"$("${HOST_MPIRUN}" --version | head -n 1 || true)"
+log "Host MPI compiler: ${HOST_MPICC}" "$("${HOST_MPICC}" --version | head -n 1 || true)"
+log "Host MPI launcher: ${HOST_MPIRUN}" "$("${HOST_MPIRUN}" --version | head -n 1 || true)"
 
 LAUNCHER_BIN="${E4S_CL_LAUNCHER:-}"
 if [[ -z "${LAUNCHER_BIN}" && "${E4S_CL_SCHEDULER}" == "slurm" ]]; then
