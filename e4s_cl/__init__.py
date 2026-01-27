@@ -66,8 +66,6 @@ E4S_CL_ENV_PREFIX = 'E4S_CL'
 
 def _get_e4s_cl_script():
     """Get a reliable path to the e4s-cl script for subprocess invocation."""
-    import sys
-    import os
     import shutil
     
     # First try the environment variable
