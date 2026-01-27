@@ -417,6 +417,16 @@ CONTAINER_MPI_FAMILY="$(detect_mpi_family "${CONTAINER_MPI_VERSION}")"
 log "Detected host MPI family: ${HOST_MPI_FAMILY:-unknown}"
 log "Detected container MPI family: ${CONTAINER_MPI_FAMILY:-unknown}"
 
+# Best-effort heads-up for the Open MPI CMA user-namespace warning that shows up
+# when the host MPI is Open MPI and we run ranks inside an apptainer/singularity
+# user namespace (non-setuid). In that case the `vader` BTL drops to memcpy and
+# emits a cma-different-user-namespace warning; bandwidth/latency dip is normal.
+if [[ "${HOST_MPI_FAMILY}" == "openmpi" && "${CONTAINER_CMD}" =~ ^(apptainer|singularity)$ ]]; then
+  log "INFO: Host Open MPI under ${CONTAINER_CMD} often runs ranks in separate user namespaces;"
+  log "INFO: Open MPI's vader BTL will warn about CMA and fall back to memcpy (small perf drop expected)."
+  log "INFO: If you need to avoid it, run with setuid ${CONTAINER_CMD}, share the user namespace, or bind a helpfile path for clearer messaging."
+fi
+
 E4SCL_LAUNCH_ARGS=()
 if [[ -n "${E4S_CL_E4SCL_LAUNCH_ARGS}" ]]; then
   read -r -a E4SCL_LAUNCH_ARGS <<< "${E4S_CL_E4SCL_LAUNCH_ARGS}"
