@@ -103,11 +103,10 @@ SYSTEM_PREFIX = os.path.realpath(
                        os.path.join(E4S_CL_HOME, 'system'))))
 """str: System-level E4S Container Launcher files."""
 
-USER_PREFIX = os.path.realpath(
-    os.path.abspath(
-        os.environ.get(
-            '__E4S_CL_USER_PREFIX__',
-            os.path.join(os.path.expanduser('~'), '.local', 'e4s_cl'))))
+USER_PREFIX = os.path.abspath(
+    os.environ.get(
+        '__E4S_CL_USER_PREFIX__',
+        os.path.join(os.path.expanduser('~'), '.local', 'e4s_cl')))
 """str: User-level E4S Container Launcher files."""
 
 _CONTAINER_DIR_ENV = os.environ.get("E4S_CL_CONTAINER_DIR") or os.environ.get("E4S_CL_CONTAINER_DIRECTORY")

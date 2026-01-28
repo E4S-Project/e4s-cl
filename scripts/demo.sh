@@ -41,7 +41,7 @@ E4S_CL_IMAGE_DEF=""
 E4S_CL_REBUILD_IMAGE="0"
 E4S_CL_APPTAINER_BUILD_ARGS=""
 E4S_CL_RUN_HOST_BASELINE="1"
-E4S_CL_RUN_CONTAINER_BASELINE="0"
+E4S_CL_RUN_CONTAINER_BASELINE="1"
 E4S_CL_PRUNE_INTEL_OPENCL="0"
 E4S_CL_SKIP_PROFILE_DETECT="0"
 E4S_CL_WI4MPI_CFLAGS="-Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=format -Wno-error=int-conversion -Wno-error=return-type -include string.h -include sys/time.h"
@@ -52,6 +52,8 @@ E4S_CL_HOST_MPIRUN=""
 E4S_CL_LAUNCHER=""
 E4S_CL_SCHEDULER=""
 E4S_CL_E4SCL_LAUNCH_ARGS=""
+E4S_CL_LAUNCHER_ARGS=""
+E4S_CL_OSU_ARGS=""
 E4S_CL_TIMEOUT_DURATION="60s"
 
 log() { printf "[e4s-cl-test] %s\n" "$*"; }
@@ -129,7 +131,7 @@ Options:
   --cache-dir <path>           Cache directory (default: _e4scl_cache_<tag>)
   --clean-workdir              Delete workdir on exit (default: off)
   --host-baseline <on|off>     Run host-only baseline (default: on)
-  --container-baseline <on|off> Run container-only baseline (default: off)
+  --container-baseline <on|off> Run container-only baseline (default: on)
   --no-prune-intel-opencl      Disable workaround that prunes Intel/OpenCL libs from profile (default: pruning enabled)
   --skip-profile-detect        Skip profile detect if profile already has bindings (default: off)
   --wi4mpi-cflags "..."         Extra C/C++ flags for Wi4MPI build (default: relax GCC 14 errors)
@@ -139,7 +141,9 @@ Options:
   --host-mpirun <path>         Override host mpirun/mpiexec (default: auto-detect)
   --launcher <cmd>             Force launcher (mpirun or srun) (default: auto-detect)
   --scheduler <name>           If "slurm", use srun when available (default: none)
-  --e4scl-launch-args "..."     Extra args for e4s-cl launch (default: none)
+  --launcher-args "..."        Extra arguments for the MPI launcher (e.g. -p partition -N 2)
+  --osu-args "..."             Override OSU benchmark arguments (e.g. "-i 1000 -m 1024:1048576")
+                               Safe for latency, bw, and allreduce.
   --timeout <duration>         Timeout for MPI runs (default: 60s)
   --check                      Check environment prerequisites and exit
   -h, --help                   Show help
@@ -223,6 +227,8 @@ while [[ $# -gt 0 ]]; do
     --launcher) E4S_CL_LAUNCHER="$2"; shift 2 ;;
     --scheduler) E4S_CL_SCHEDULER="$2"; shift 2 ;;
     --e4scl-launch-args) E4S_CL_E4SCL_LAUNCH_ARGS="$2"; shift 2 ;;
+    --launcher-args) E4S_CL_LAUNCHER_ARGS="$2"; shift 2 ;;
+    --osu-args) E4S_CL_OSU_ARGS="$2"; shift 2 ;;
     --timeout) E4S_CL_TIMEOUT_DURATION="$2"; shift 2 ;;
     --check) E4S_CL_ONLY_CHECK="1"; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -334,6 +340,7 @@ run_timed() {
   local out_file="${E4S_CL_WORKDIR}/timing.dat"
 
   log "Running [${label}]..."
+  log "Command: ${cmd[*]}"
   # Use python for distinct wall-clock measurement
   local start
   start=$(python3 -c 'import time; print(time.time())')
@@ -472,6 +479,11 @@ else
   LAUNCHER_ARGS=("-np" "${E4S_CL_MPI_PROCS}")
 fi
 
+if [[ -n "${E4S_CL_LAUNCHER_ARGS}" ]]; then
+  read -r -a EXTRA_LAUNCHER_ARGS <<< "${E4S_CL_LAUNCHER_ARGS}"
+  LAUNCHER_ARGS+=("${EXTRA_LAUNCHER_ARGS[@]}")
+fi
+
 HOST_MPI_VERSION="$(${HOST_MPIRUN} --version 2>/dev/null | head -n 2 || true)"
 HOST_MPI_FAMILY="$(detect_mpi_family "${HOST_MPI_VERSION}")"
 CONTAINER_MPI_VERSION="$(${CONTAINER_CMD} exec "${E4S_CL_IMAGE}" mpirun --version 2>/dev/null | head -n 2 || true)"
@@ -548,6 +560,12 @@ E4S_CL_BIN="${REPO_ROOT}/.venv/bin/e4s-cl"
 
 if [[ "${NEEDS_TRANSLATION}" == "1" ]]; then
   log "Wi4MPI translation required; e4s-cl will install Wi4MPI during launch if missing"
+
+  # Force wi4mpi to use a local directory inside the workdir
+  WI4MPI_LOCAL_PREFIX="${E4S_CL_WORKDIR}/wi4mpi"
+  E4SCL_LAUNCH_ARGS+=("--wi4mpi" "${WI4MPI_LOCAL_PREFIX}")
+  log "CONFIG: using local Wi4MPI prefix: ${WI4MPI_LOCAL_PREFIX}"
+
   if [[ -n "${E4S_CL_WI4MPI_CFLAGS}" ]]; then
     log "CONFIG: Wi4MPI build flags set (for e4s-cl internal use): ${E4S_CL_WI4MPI_CFLAGS}"
     log "CONFIG: These flags will be used by e4s-cl when building Wi4MPI, not for OSU benchmarks"
@@ -625,10 +643,19 @@ printf "osu_url=%s\nosu_sha256=%s\n" "${E4S_CL_OSU_URL}" "${E4S_CL_OSU_SHA256}" 
 
 if [[ "${E4S_CL_MODE}" == "light" ]]; then
   OSU_BENCHES=("pt2pt/osu_latency" "pt2pt/osu_bw")
-  OSU_ARGS=("-x" "10" "-i" "100" "-m" "8:1024")
+  OSU_ARGS=("-x" "100" "-i" "1000" "-m" "8:65536")
 else
   OSU_BENCHES=("pt2pt/osu_latency" "pt2pt/osu_bw" "collective/osu_allreduce")
   OSU_ARGS=()
+fi
+
+if [[ -n "${E4S_CL_OSU_ARGS}" ]]; then
+  read -r -a OSU_ARGS <<< "${E4S_CL_OSU_ARGS}"
+else
+  # Default Arguments:
+  # - Latency: 1000 iterations to dampen startup noise
+  # - Bandwidth: up to 1MB (1048576) is usually sufficient to see peak BW without timing out
+  OSU_ARGS=("-x" "100" "-i" "1000" "-m" "8:1048576")
 fi
 
 if [[ "${E4S_CL_MPI_PROCS}" != "2" ]]; then
@@ -730,6 +757,9 @@ if ! profile_has_bindings; then
   fi
 fi
 
+log "Profile Content (Libraries/Files to be bound):"
+"${E4S_CL_BIN}" profile show
+
 log "Step 5: Building Container Benchmarks. We compile the same benchmarks *inside* the container against the Container's MPI to demonstrate ABI compatibility or translation."
 OSU_CONT_PREFIX="${E4S_CL_WORKDIR}/osu-container"
 OSU_CONT_META="${OSU_CONT_PREFIX}/.build-meta"
@@ -750,6 +780,7 @@ if [[ "${REBUILD_CONT_OSU}" == "1" ]]; then
     set -euo pipefail; \
     unset CFLAGS; \
     unset CXXFLAGS; \
+    unset CXX; \
     cd /work; \
     rm -rf osu-container-build && mkdir osu-container-build; \
     tar -xzf /cache/osu.tar.gz -C osu-container-build --strip-components=1; \
@@ -764,6 +795,9 @@ else
 fi
 
 log "Step 6: MAIN TEST. Running the container-compiled binary using the Host's MPI. e4s-cl handles the library injection and launcher wrapping."
+log "Debug: Verifying library resolution inside container (ldd)"
+"${E4S_CL_BIN}" launch "${E4SCL_LAUNCH_ARGS[@]}" "${LAUNCHER_BIN}" -n 1 ldd "${OSU_CONT_PREFIX}/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency" | grep -E "libmpi|libmpich|libpami|libfabric" || echo "  (ldd check finished, no obvious MPI libs found in grep filter)"
+
 for bench in "${OSU_BENCHES[@]}"; do
   bench_name="$(basename "${bench}")"
   out_file="${E4S_CL_WORKDIR}/e4scl_${bench_name}.txt"

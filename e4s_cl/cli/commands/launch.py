@@ -144,17 +144,19 @@ def _setup_wi4mpi(
         translation = [vendor.replace('mvapich', 'mpich') for vendor in translation]
 
     # Locate the Wi4MPI installation and store it in parameters
-    if parameters.wi4mpi is None:
+    target_dir = parameters.wi4mpi
+    if target_dir is None:
         target_dir = Path(config.CONFIGURATION.wi4mpi_install_directory)
-        LOGGER.debug("Target: %s", target_dir)
-        wi4mpi_install = install_wi4mpi(target_dir)
-        if wi4mpi_install:
-            parameters.wi4mpi = wi4mpi_install
-        else:
-            LOGGER.error(
-                "Wi4MPI is required for this configuration, but installation failed"
-            )
-            return []
+
+    LOGGER.debug("Target: %s", target_dir)
+    wi4mpi_install = install_wi4mpi(target_dir)
+    if wi4mpi_install:
+        parameters.wi4mpi = wi4mpi_install
+    else:
+        LOGGER.error(
+            "Wi4MPI is required for this configuration, but installation failed"
+        )
+        return []
 
     run_c_lib, run_f_lib = wi4mpi_find_libraries(family_metadata,
                                                  mpi_libraries)
@@ -290,7 +292,7 @@ class LaunchCommand(AbstractCommand):
         parser.add_argument(
             '--wi4mpi',
             type=arguments.posix_path,
-            help="Path towards a Wi4MPI installation to use",
+            help="Path to a Wi4MPI installation (will be installed there if missing)",
             metavar='installation',
         )
 
@@ -389,6 +391,54 @@ class LaunchCommand(AbstractCommand):
                     for varname in WI4MPI_ENVIRONMENT_VARIABLES:
                         if varname in os.environ.keys():
                             launcher.extend(shlex.split(f"-x {varname}"))
+
+        # Helper: bind system configuration for libraries that use plugins/drivers
+        # This prevents the host library from loading incompatible container drivers
+        # by masking the container's configuration directories with the host's.
+        
+        # Define known configuration paths for libraries that require masking
+        system_config_dirs = ['/etc', '/usr/etc', '/usr/local/etc']
+        
+        # Library -> Subdirectories to mask
+        config_masks = {
+            'libibverbs.so': ['libibverbs.d'],
+            'libOpenCL.so': ['OpenCL'],
+            'libvulkan.so': ['vulkan'],
+            'libGLX.so': ['glvnd'],
+            'libEGL.so': ['glvnd']
+        }
+
+        # Check environment variables for driver paths that need directory binding
+        # (Binding the full directory handles scanning/plugins better than individual files)
+        driver_env_vars = {
+            'libibverbs.so': ['IBVERBS_DRIVER_PATH']
+        }
+
+        for lib in getattr(parameters, 'libraries', []):
+            # Check for driver directories relative to lib (Standard convention)
+            if lib.name.startswith('libibverbs.so'):
+                verbs_dir = lib.parent / 'libibverbs'
+                if verbs_dir.exists():
+                    parameters.files.add(verbs_dir)
+            
+            # Check for environment-defined driver paths
+            for prefix, vars in driver_env_vars.items():
+                if lib.name.startswith(prefix):
+                    for var in vars:
+                        if var in os.environ:
+                            path = Path(os.environ[var])
+                            if path.exists():
+                                parameters.files.add(path)
+
+            # Check for configuration directories to mask
+            for prefix, subdirs in config_masks.items():
+                if lib.name.startswith(prefix):
+                    for conf_root in system_config_dirs:
+                        for subdir in subdirs:
+                            conf_path = Path(conf_root) / subdir
+                            if conf_path.exists():
+                                parameters.files.add(conf_path)
+
 
         execute_command = _format_execute(parameters)
 
