@@ -214,6 +214,16 @@ def install_wi4mpi(install_dir: Path) -> Optional[Path]:
         source_dir.as_posix(),
     ]
 
+    # Apply custom CFLAGS/CXXFLAGS if provided via environment variables
+    wi4mpi_cflags = os.environ.get('E4S_CL_WI4MPI_CFLAGS')
+    wi4mpi_cxxflags = os.environ.get('E4S_CL_WI4MPI_CXXFLAGS')
+    if wi4mpi_cflags:
+        configure_cmd.append(f"-DCMAKE_C_FLAGS={wi4mpi_cflags}")
+        LOGGER.debug("Using custom Wi4MPI CFLAGS: %s", wi4mpi_cflags)
+    if wi4mpi_cxxflags:
+        configure_cmd.append(f"-DCMAKE_CXX_FLAGS={wi4mpi_cxxflags}")
+        LOGGER.debug("Using custom Wi4MPI CXXFLAGS: %s", wi4mpi_cxxflags)
+
     build_cmd = [
         cmake_executable,
         "--build",

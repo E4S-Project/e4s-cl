@@ -245,7 +245,25 @@ if [[ "${E4S_CL_ONLY_CHECK:-0}" == "1" ]]; then
   
   log "Checking Python..."
   if check_cmd python3; then
-     log "  Found: $(command -v python3) ($(python3 --version))"
+     PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "unknown")
+     log "  Found: $(command -v python3) (Python ${PYTHON_VERSION})"
+     
+     # Check version (need 3.7+)
+     if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)" 2>/dev/null; then
+       log "  Version check: OK (>= 3.7)"
+     else
+       log "  ERROR: Python ${PYTHON_VERSION} is too old (need 3.7+)"
+       MISSING=1
+     fi
+     
+     # Check for ctypes support (required by e4s-cl)
+     if python3 -c "import ctypes" 2>/dev/null; then
+       log "  ctypes support: OK"
+     else
+       log "  ERROR: Python missing ctypes module (compiled without libffi)"
+       log "  Try: module unload python, or use a Python built with libffi-dev"
+       MISSING=1
+     fi
   else
      log "  MISSING: python3"
      MISSING=1
@@ -431,6 +449,7 @@ fi
 
 # Host MPI detection
 HOST_MPICC="${E4S_CL_HOST_MPI:-$(command -v mpicc || true)}"
+HOST_MPICXX="${E4S_CL_HOST_MPICXX:-$(command -v mpicxx || command -v mpic++ || true)}"
 HOST_MPIRUN="${E4S_CL_HOST_MPIRUN:-$(command -v mpirun || command -v mpiexec || true)}"
 [[ -n "${HOST_MPICC}" ]] || fail "Host MPI compiler not found (mpicc)"
 [[ -n "${HOST_MPIRUN}" ]] || fail "Host MPI launcher not found (mpirun or mpiexec)"
@@ -490,6 +509,34 @@ elif [[ -n "${HOST_MPI_FAMILY}" && -n "${CONTAINER_MPI_FAMILY}" && "${HOST_MPI_F
 fi
 
 log "Step 1: Setting up e4s-cl. Using a local virtual environment and editable install to ensure the latest code is used."
+
+# Verify Python has required features before creating venv
+if ! python3 -c "import ctypes" 2>/dev/null; then
+  log "ERROR: Python installation at $(command -v python3) is missing the ctypes module"
+  log "ERROR: This is typically caused by Python being compiled without libffi support"
+  log "ERROR: "
+  log "ERROR: To fix this issue:"
+  log "ERROR:   1. If you loaded a Python module: module unload python"
+  log "ERROR:   2. Use system Python (usually /usr/bin/python3)"
+  log "ERROR:   3. Or load a different Python module that has ctypes support"
+  log "ERROR:   4. Verify with: python3 -c 'import ctypes; print(\"OK\")'"
+  fail "Python missing required ctypes module (needs libffi)"
+fi
+
+PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)"; then
+  log "Python version check passed: ${PYTHON_VERSION}"
+else
+  log "ERROR: Python ${PYTHON_VERSION} is too old (e4s-cl requires Python 3.7+)"
+  log "ERROR: Current Python: $(command -v python3)"
+  log "ERROR: "
+  log "ERROR: To fix this issue:"
+  log "ERROR:   1. Load a newer Python module: module load python/3.9 (or similar)"
+  log "ERROR:   2. Or use a newer system Python if available"
+  log "ERROR:   3. Ensure the Python has ctypes: python3 -c 'import ctypes'"
+  fail "Python version ${PYTHON_VERSION} is too old (need 3.7+)"
+fi
+
 if [[ ! -x "${REPO_ROOT}/.venv/bin/python" ]]; then
   python3 -m venv "${REPO_ROOT}/.venv"
 fi
@@ -502,10 +549,11 @@ E4S_CL_BIN="${REPO_ROOT}/.venv/bin/e4s-cl"
 if [[ "${NEEDS_TRANSLATION}" == "1" ]]; then
   log "Wi4MPI translation required; e4s-cl will install Wi4MPI during launch if missing"
   if [[ -n "${E4S_CL_WI4MPI_CFLAGS}" ]]; then
-    log "CONFIG: injecting Wi4MPI build flags to ensure compatibility (e.g., GCC 14)"
-    log "CONFIG: CFLAGS/CXXFLAGS=${E4S_CL_WI4MPI_CFLAGS}"
-    export CFLAGS="${E4S_CL_WI4MPI_CFLAGS} ${CFLAGS:-}"
-    export CXXFLAGS="${E4S_CL_WI4MPI_CFLAGS} ${CXXFLAGS:-}"
+    log "CONFIG: Wi4MPI build flags set (for e4s-cl internal use): ${E4S_CL_WI4MPI_CFLAGS}"
+    log "CONFIG: These flags will be used by e4s-cl when building Wi4MPI, not for OSU benchmarks"
+    # Export as E4S_CL_WI4MPI_* variables that e4s-cl can use when building Wi4MPI
+    export E4S_CL_WI4MPI_CFLAGS="${E4S_CL_WI4MPI_CFLAGS}"
+    export E4S_CL_WI4MPI_CXXFLAGS="${E4S_CL_WI4MPI_CFLAGS}"
   fi
 fi
 
@@ -609,8 +657,19 @@ if [[ "${REBUILD_HOST_OSU}" == "1" ]]; then
   rm -rf "${OSU_HOST_PREFIX}"
   mkdir -p "${OSU_HOST_PREFIX}"
   (
+    # Clear CFLAGS/CXXFLAGS to avoid injecting incompatible compiler flags
+    # (e.g., GCC-specific flags when using NVIDIA HPC or other compilers)
+    unset CFLAGS
+    unset CXXFLAGS
     cd "${OSU_SRC_DIR}"
-    ./configure CC="${HOST_MPICC}" --prefix="${OSU_HOST_PREFIX}"
+    # Configure with both CC and CXX set to MPI wrappers to avoid linker issues
+    if [[ -n "${HOST_MPICXX}" ]]; then
+      ./configure CC="${HOST_MPICC}" CXX="${HOST_MPICXX}" --prefix="${OSU_HOST_PREFIX}"
+    else
+      # If no MPI C++ wrapper found, unset CXX to prevent using raw compiler for linking
+      unset CXX
+      ./configure CC="${HOST_MPICC}" --prefix="${OSU_HOST_PREFIX}"
+    fi
     make -j
     make install
   )
@@ -689,6 +748,8 @@ if [[ "${REBUILD_CONT_OSU}" == "1" ]]; then
   mkdir -p "${OSU_CONT_PREFIX}"
   ${CONTAINER_CMD} exec -B "${E4S_CL_WORKDIR}:/work" -B "${E4S_CL_CACHE_DIR}:/cache" "${E4S_CL_IMAGE}" bash -lc "\
     set -euo pipefail; \
+    unset CFLAGS; \
+    unset CXXFLAGS; \
     cd /work; \
     rm -rf osu-container-build && mkdir osu-container-build; \
     tar -xzf /cache/osu.tar.gz -C osu-container-build --strip-components=1; \
