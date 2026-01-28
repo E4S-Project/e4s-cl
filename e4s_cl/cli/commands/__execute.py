@@ -467,13 +467,20 @@ class ExecuteCommand(AbstractCommand):
                 parts = path.split(':')
                 if len(parts) == 2:
                     source, dest = parts
+                else:
+                    LOGGER.error("Invalid file binding specification '%s'. Expected 'source:dest'.", path)
+                    continue
 
-            if dest and _check_access(source):
-                container.bind_file(source, dest=dest, option=FileOptions.READ_WRITE)
-            elif _check_access(path):
-                container.bind_file(path, option=FileOptions.READ_WRITE)
+            if dest is not None:
+                if _check_access(source):
+                    container.bind_file(source, dest=dest, option=FileOptions.READ_WRITE)
+                else:
+                    LOGGER.error("File '%s' not found.", source)
             else:
-                LOGGER.error("File '%s' not found.", source)
+                if _check_access(path):
+                    container.bind_file(path, option=FileOptions.READ_WRITE)
+                else:
+                    LOGGER.error("File '%s' not found.", path)
 
         # This script is sourced before any other command in the container
         params.source_script_path = args.source
