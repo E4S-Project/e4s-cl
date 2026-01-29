@@ -475,7 +475,7 @@ if [[ -n "${E4S_CL_LAUNCHER_ARGS}" ]]; then
   LAUNCHER_ARGS+=("${EXTRA_LAUNCHER_ARGS[@]}")
 fi
 
-HOST_MPI_VERSION="$(${HOST_MPIRUN} --version 2>/dev/null | head -n 2 || true)"
+HOST_MPI_VERSION="$("${HOST_MPIRUN}" --version 2>/dev/null | head -n 2 || true)"
 HOST_MPI_FAMILY="$(detect_mpi_family "${HOST_MPI_VERSION}")"
 log "Detected host MPI family: ${HOST_MPI_FAMILY:-unknown}"
 
@@ -545,10 +545,10 @@ OSU_CHECKSUM_FILE="${E4S_CL_CACHE_DIR}/osu.sha256"
 NEED_DOWNLOAD="0"
 if [[ ! -f "${OSU_TARBALL}" || ! -f "${OSU_META_FILE}" ]]; then
   NEED_DOWNLOAD="1"
-  rm -rf "${OSU_SRC_DIR}"
+  [[ -n "${OSU_SRC_DIR}" ]] && rm -rf "${OSU_SRC_DIR}"
 elif ! grep -Fq "osu_url=${E4S_CL_OSU_URL}" "${OSU_META_FILE}"; then
   NEED_DOWNLOAD="1"
-  rm -rf "${OSU_SRC_DIR}"
+  [[ -n "${OSU_SRC_DIR}" ]] && rm -rf "${OSU_SRC_DIR}"
 fi
 
 if [[ "${NEED_DOWNLOAD}" == "1" ]]; then
@@ -626,7 +626,7 @@ fi
 
 if [[ "${REBUILD_HOST_OSU}" == "1" ]]; then
   log "(Re)building host OSU benchmarks"
-  rm -rf "${OSU_HOST_PREFIX}"
+  [[ -n "${OSU_HOST_PREFIX}" ]] && rm -rf "${OSU_HOST_PREFIX}"
   mkdir -p "${OSU_HOST_PREFIX}"
   (
     # Clear CFLAGS/CXXFLAGS to avoid injecting incompatible compiler flags
@@ -707,7 +707,8 @@ EOF
     if [[ -z "${E4S_CL_APPTAINER_BUILD_ARGS}" ]]; then
       E4S_CL_APPTAINER_BUILD_ARGS="--fakeroot"
     fi
-    run_silent ${CONTAINER_CMD} build ${E4S_CL_APPTAINER_BUILD_ARGS} "${E4S_CL_IMAGE}" "${E4S_CL_IMAGE_DEF}"
+    # Note: E4S_CL_APPTAINER_BUILD_ARGS intentionally unquoted to allow word-splitting for multiple flags
+    run_silent "${CONTAINER_CMD}" build ${E4S_CL_APPTAINER_BUILD_ARGS} "${E4S_CL_IMAGE}" "${E4S_CL_IMAGE_DEF}"
   fi
 fi
 
@@ -716,9 +717,9 @@ if [[ "${E4S_CL_IMAGE}" != docker://* && "${E4S_CL_IMAGE}" != library://* ]]; th
   [[ -f "${E4S_CL_IMAGE}" ]] || fail "E4S_CL_IMAGE not found: ${E4S_CL_IMAGE}"
 fi
 
-CONTAINER_MPI_VERSION="$(${CONTAINER_CMD} exec "${E4S_CL_IMAGE}" mpirun --version 2>/dev/null | head -n 2 || true)"
+CONTAINER_MPI_VERSION="$("${CONTAINER_CMD}" exec "${E4S_CL_IMAGE}" mpirun --version 2>/dev/null | head -n 2 || true)"
 if [[ -z "$(detect_mpi_family "${CONTAINER_MPI_VERSION}")" ]]; then
-  CONTAINER_MPI_VERSION+=$'\n'"$(${CONTAINER_CMD} exec "${E4S_CL_IMAGE}" mpichversion 2>/dev/null | head -n 2 || true)"
+  CONTAINER_MPI_VERSION+=$'\n'"$("${CONTAINER_CMD}" exec "${E4S_CL_IMAGE}" mpichversion 2>/dev/null | head -n 2 || true)"
 fi
 CONTAINER_MPI_FAMILY="$(detect_mpi_family "${CONTAINER_MPI_VERSION}")"
 
@@ -774,7 +775,7 @@ run "${E4S_CL_BIN}" profile select "${E4S_CL_PROFILE_NAME}"
 # This mirrors how a user would re-run detection when the profile isn't populated.
 profile_has_bindings() {
   local output
-  output="$(${E4S_CL_BIN} profile show)"
+  output="$("${E4S_CL_BIN}" profile show)"
   if echo "${output}" | awk '/^Bound libraries:/{inlib=1; next} /^Bound files:/{inlib=0} inlib && /^ - /{print}' | grep -q .; then
     return 0
   fi
@@ -821,7 +822,7 @@ fi
 
 if [[ "${REBUILD_CONT_OSU}" == "1" ]]; then
   log "(Re)building container OSU benchmarks"
-  rm -rf "${OSU_CONT_PREFIX}"
+  [[ -n "${OSU_CONT_PREFIX}" ]] && rm -rf "${OSU_CONT_PREFIX}"
   mkdir -p "${OSU_CONT_PREFIX}"
   run_silent "${CONTAINER_CMD}" exec -B "${E4S_CL_WORKDIR}:/work" -B "${E4S_CL_CACHE_DIR}:/cache" "${E4S_CL_IMAGE}" bash -lc "\
     set -euo pipefail; \
@@ -861,9 +862,9 @@ if [[ "${E4S_CL_RUN_CONTAINER_BASELINE}" == "1" ]]; then
   for bench in "${OSU_BENCHES[@]}"; do
     bench_name="$(basename "${bench}")"
     out_file="${E4S_CL_WORKDIR}/container_${bench_name}.txt"
-    run_timed "container_${bench_name}" ${CONTAINER_CMD} exec -B "${E4S_CL_WORKDIR}:/work" "${E4S_CL_IMAGE}" bash -lc "\
-      mpirun -np ${E4S_CL_MPI_PROCS} /work/osu-container/libexec/osu-micro-benchmarks/mpi/${bench} ${OSU_ARGS[*]} \
-    " | tee "${out_file}"
+    # Build command array to avoid injection via bash -lc string interpolation
+    mpi_cmd=(mpirun -np "${E4S_CL_MPI_PROCS}" "/work/osu-container/libexec/osu-micro-benchmarks/mpi/${bench}" "${OSU_ARGS[@]}")
+    run_timed "container_${bench_name}" "${CONTAINER_CMD}" exec -B "${E4S_CL_WORKDIR}:/work" "${E4S_CL_IMAGE}" bash -lc "$(printf '%q ' "${mpi_cmd[@]}")" | tee "${out_file}"
   done
 fi
 

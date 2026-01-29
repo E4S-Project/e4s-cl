@@ -464,7 +464,8 @@ class ExecuteCommand(AbstractCommand):
         for path in files:
             source, dest = path, None
             if ':' in path:
-                parts = path.split(':')
+                # Split on rightmost colon to handle Unix paths that may contain colons
+                parts = path.rsplit(':', 1)
                 if len(parts) == 2:
                     source, dest = parts
                 else:
@@ -523,9 +524,8 @@ class ExecuteCommand(AbstractCommand):
             # If WI4MPI is found in the environment, import its files and
             # preload its required components
             wi4mpi_import(container, wi4mpi_install_dir)
-            params.preload += wi4mpi_preload(wi4mpi_install_dir, container.import_library_dir)
             
-            # Override Wi4MPI environment variables to use container paths
+            # Import target MPI libraries BEFORE constructing preload list
             # Wi4MPI uses WI4MPI_RUN_MPI_C_LIB to dlopen the target MPI library
             # The host path won't exist inside the container; we need to use
             # the container path where host libraries are bound
@@ -544,6 +544,10 @@ class ExecuteCommand(AbstractCommand):
                 if host_mpi_lib:
                     params.extra_env["WI4MPI_RUN_MPIIO_C_LIB"] = container_mpi_lib.as_posix()
                 params.extra_env["WI4MPI_RUN_MPIIO_F_LIB"] = container_mpi_f_lib.as_posix()
+            
+            # Now construct preload list AFTER libraries are imported
+            # wi4mpi_preload will use container paths that we just ensured exist
+            params.preload += wi4mpi_preload(wi4mpi_install_dir, container.import_library_dir)
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()

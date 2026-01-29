@@ -230,9 +230,15 @@ def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False, timeout=
             except subprocess.TimeoutExpired:
                 LOGGER.warning("Subprocess timed out after %s seconds: %s", timeout, cmd)
                 proc.kill()
-                proc.wait()
+                # Drain remaining output to avoid deadlock when process has buffered data
+                # communicate() will collect any remaining output and wait for termination
+                try:
+                    output, _ = proc.communicate(timeout=5)  # Give 5s for cleanup
+                except subprocess.TimeoutExpired:
+                    # Process still hasn't terminated after kill+communicate, force wait
+                    proc.wait()
+                    output = ""
                 returncode = -1
-                output = ""
 
     if capture_output:
         return returncode, output

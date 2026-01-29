@@ -49,12 +49,13 @@ def opened_files(command):
                 event = debugger.waitSyscall()
             except ProcessExit as event:
                 return_code = event.exitcode
-                # When a process exits (especially in MPI with multiple processes),
-                # the debugger may still have other processes. Check if we should continue.
-                if len(debugger.dict) > 0:
-                    continue
-                else:
-                    break
+                # When a process exits in a multi-process MPI run, we need to check
+                # if there are other active processes remaining. The exiting process
+                # may still be in debugger.dict at this point, so check if there are
+                # processes other than the one that just exited.
+                # Note: while debugger checks len(debugger.list), which tracks active processes.
+                # If the loop continues (debugger is still truthy), we can continue tracing.
+                continue
             except ProcessSignal as event:
                 event.process.syscall(event.signum)
                 continue

@@ -286,6 +286,11 @@ def wi4mpi_preload(install_dir: Path, container_library_dir: str = None) -> List
     NOTE: The fake libraries (fakelib{FROM}/) go in LD_LIBRARY_PATH, NOT in LD_PRELOAD.
     This matches the official Wi4MPI launcher script behavior.
     
+    IMPORTANT: When container_library_dir is provided, this function assumes the target
+    MPI libraries (WI4MPI_RUN_MPI_C_LIB and WI4MPI_RUN_MPI_F_LIB) have already been
+    imported into the container at that location. The caller must ensure import_library()
+    is called before this function when running in container mode.
+    
     Args:
         install_dir: Path to Wi4MPI installation directory
         container_library_dir: The path where host libraries are mounted inside

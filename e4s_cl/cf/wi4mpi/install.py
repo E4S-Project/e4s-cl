@@ -191,10 +191,13 @@ def _check_wi4mpi_install(install_dir: Path) -> bool:
                 try:
                     with open(lib, 'rb') as f:
                         elf = ELFFile(f)
-                        if elf.header.e_machine != expected:
+                        # Note: With pyelftools 0.27, header['e_machine'] returns a string like 'EM_X86_64'
+                        # Both elf.header.e_machine and elf.header['e_machine'] work equivalently
+                        machine_type = elf.header['e_machine']
+                        if machine_type != expected:
                             LOGGER.error(
                                 "Wi4MPI library %s architecture mismatch: expected %s, got %s",
-                                lib.name, expected, elf.header.e_machine)
+                                lib.name, expected, machine_type)
                             return False
                 except Exception as err:
                     LOGGER.debug("Failed to check architecture of %s: %s", lib,

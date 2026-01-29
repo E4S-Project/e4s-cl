@@ -286,9 +286,20 @@ def _filter_mpi_artifacts(libs: List[Path], files: List[Path],
     launcher = resolved_launcher.resolve()
 
     def _get_lib_prefix(path: Path) -> Path:
+        """Extract installation prefix from library path.
+        
+        Looks for 'lib' or 'lib64' directory markers to determine the prefix.
+        For example, /opt/mpich/lib/libmpi.so -> /opt/mpich
+        Falls back to parent directory for non-standard layouts.
+        """
         for marker in ['lib', 'lib64']:
             if marker in path.parts:
-                return Path(*path.parts[:path.parts.index(marker)])
+                marker_idx = path.parts.index(marker)
+                # Ensure marker is a directory component, not the filename
+                if marker_idx < len(path.parts) - 1:
+                    return Path(*path.parts[:marker_idx])
+        # Fallback: use parent directory for non-standard layouts
+        # This handles cases like /custom/path/libmpi.so
         return path.parent
 
     def _is_core_mpi(path: Path) -> bool:
