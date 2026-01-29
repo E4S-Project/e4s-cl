@@ -144,17 +144,19 @@ def _setup_wi4mpi(
         translation = [vendor.replace('mvapich', 'mpich') for vendor in translation]
 
     # Locate the Wi4MPI installation and store it in parameters
-    if parameters.wi4mpi is None:
+    target_dir = parameters.wi4mpi
+    if target_dir is None:
         target_dir = Path(config.CONFIGURATION.wi4mpi_install_directory)
-        LOGGER.debug("Target: %s", target_dir)
-        wi4mpi_install = install_wi4mpi(target_dir)
-        if wi4mpi_install:
-            parameters.wi4mpi = wi4mpi_install
-        else:
-            LOGGER.error(
-                "Wi4MPI is required for this configuration, but installation failed"
-            )
-            return []
+
+    LOGGER.debug("Target: %s", target_dir)
+    wi4mpi_install = install_wi4mpi(target_dir)
+    if wi4mpi_install:
+        parameters.wi4mpi = wi4mpi_install
+    else:
+        LOGGER.error(
+            "Wi4MPI is required for this configuration, but installation failed"
+        )
+        return []
 
     run_c_lib, run_f_lib = wi4mpi_find_libraries(family_metadata,
                                                  mpi_libraries)
@@ -174,7 +176,35 @@ def _setup_wi4mpi(
     # Deduce the MPI installation directory, add it to the imported files
     mpi_install_dir = library_install_dir([run_c_lib, run_f_lib])
     if mpi_install_dir:
-        parameters.files.add(mpi_install_dir)
+        if mpi_install_dir == Path('/'):
+            LOGGER.debug("Refusing to bind '/' as MPI install dir; binding library files instead.")
+            # If the install dir is root (e.g. system install), we cannot bind root.
+            # Bind the specific library files instead of the directory to avoid creating
+            # an overlay that hides container system libraries (like libmpich.so).
+            if run_c_lib:
+                parameters.files.add(run_c_lib)
+                # Helper: bind openmpi plugins if present (common in system installs)
+                # Typically in <libdir>/openmpi
+                plugin_dir = run_c_lib.parent / 'openmpi'
+                if plugin_dir.exists():
+                    parameters.files.add(plugin_dir)
+
+                # Helper: bind pmix plugins if present (external pmix in system installs)
+                for pmix_name in ['pmix', 'pmix2']:
+                    pmix_dir = run_c_lib.parent / pmix_name
+                    if pmix_dir.exists():
+                        parameters.files.add(pmix_dir)
+
+            if run_f_lib:
+                parameters.files.add(run_f_lib)
+
+            # Helper: bind /usr/share/openmpi for help files/config
+            share_dir = Path('/usr/share/openmpi')
+            if share_dir.exists():
+                parameters.files.add(share_dir)
+
+        else:
+            parameters.files.add(mpi_install_dir)
 
     wi4mpi_wrapper = parameters.wi4mpi / 'bin' / 'wi4mpi'
 
@@ -262,7 +292,7 @@ class LaunchCommand(AbstractCommand):
         parser.add_argument(
             '--wi4mpi',
             type=arguments.posix_path,
-            help="Path towards a Wi4MPI installation to use",
+            help="Path to a Wi4MPI installation (will be installed there if missing)",
             metavar='installation',
         )
 
@@ -298,6 +328,14 @@ class LaunchCommand(AbstractCommand):
 
         # Merge profile and cli arguments to get a definitive list of arguments
         parameters = _parameters(args)
+
+        if parameters.files:
+            root_paths = {p for p in parameters.files if str(p) == "/"}
+            if root_paths:
+                parameters.files.difference_update(root_paths)
+                LOGGER.warning(
+                    "Filtered root '/' from bound files to avoid container permission errors."
+                )
 
         # Ensure the minimum fields required for launch are present
         for _field in ['backend', 'image']:
@@ -353,6 +391,54 @@ class LaunchCommand(AbstractCommand):
                     for varname in WI4MPI_ENVIRONMENT_VARIABLES:
                         if varname in os.environ.keys():
                             launcher.extend(shlex.split(f"-x {varname}"))
+
+        # Helper: bind system configuration for libraries that use plugins/drivers
+        # This prevents the host library from loading incompatible container drivers
+        # by masking the container's configuration directories with the host's.
+        
+        # Define known configuration paths for libraries that require masking
+        system_config_dirs = ['/etc', '/usr/etc', '/usr/local/etc']
+        
+        # Library -> Subdirectories to mask
+        config_masks = {
+            'libibverbs.so': ['libibverbs.d'],
+            'libOpenCL.so': ['OpenCL'],
+            'libvulkan.so': ['vulkan'],
+            'libGLX.so': ['glvnd'],
+            'libEGL.so': ['glvnd']
+        }
+
+        # Check environment variables for driver paths that need directory binding
+        # (Binding the full directory handles scanning/plugins better than individual files)
+        driver_env_vars = {
+            'libibverbs.so': ['IBVERBS_DRIVER_PATH']
+        }
+
+        for lib in getattr(parameters, 'libraries', []):
+            # Check for driver directories relative to lib (Standard convention)
+            if lib.name.startswith('libibverbs.so'):
+                verbs_dir = lib.parent / 'libibverbs'
+                if verbs_dir.exists():
+                    parameters.files.add(verbs_dir)
+            
+            # Check for environment-defined driver paths
+            for prefix, vars in driver_env_vars.items():
+                if lib.name.startswith(prefix):
+                    for var in vars:
+                        if var in os.environ:
+                            path = Path(os.environ[var])
+                            if path.exists():
+                                parameters.files.add(path)
+
+            # Check for configuration directories to mask
+            for prefix, subdirs in config_masks.items():
+                if lib.name.startswith(prefix):
+                    for conf_root in system_config_dirs:
+                        for subdir in subdirs:
+                            conf_path = Path(conf_root) / subdir
+                            if conf_path.exists():
+                                parameters.files.add(conf_path)
+
 
         execute_command = _format_execute(parameters)
 

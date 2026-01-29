@@ -48,7 +48,7 @@ from e4s_cl import (EXIT_SUCCESS, EXIT_FAILURE, E4S_CL_SCRIPT, logger,
 from e4s_cl import variables
 from e4s_cl.error import ProfileSelectionError
 from e4s_cl.util import (run_e4scl_subprocess, flatten, json_dumps, json_loads,
-                         path_contains, apply_filters)
+                         path_contains, apply_filters, which)
 from e4s_cl.cf.trace import opened_files
 from e4s_cl.cf.launchers import interpret, get_reserved_directories
 from e4s_cl.cli import arguments
@@ -102,6 +102,9 @@ def filter_files(path_list: List[Path],
             if path_contains(entry, path):
                 return False
         return True
+
+    def _not_root(path: Path) -> bool:
+        return path != Path('/')
 
     def _existence(path: Path) -> bool:
         """Assert the file still exists and is accessible"""
@@ -162,7 +165,7 @@ def filter_files(path_list: List[Path],
     orphan_libraries = elf_objects - libraries
 
     filtered_files = set(
-        apply_filters([_not_cache, _not_blacklisted, _waived_launcher],
+        apply_filters([_not_cache, _not_blacklisted, _not_root, _waived_launcher],
                       regular_files))
     files = filtered_files.union(orphan_libraries)
 
@@ -208,16 +211,194 @@ def save_to_profile(profile_name, libraries, files) -> int:
     return EXIT_SUCCESS
 
 
+CORE_MPI_PREFIXES = (
+    'libmpi',
+    'libmpich',
+    'libopen-rte',
+    'liborte',
+    'liboshmem',
+)
+
+
+def _filter_mpi_artifacts(libs: List[Path], files: List[Path],
+                          launcher: Path,
+                          mpi_filter: str = 'auto',
+                          exclude_prefixes: List[str] = None,
+                          exclude_names: List[str] = None) -> (List[str], List[str]):
+    """
+    Filter MPI-related artifacts using one of three modes:
+      - off: no filtering (trust ptrace)
+      - manual: apply user exclusions only
+      - auto: infer authoritative MPI from libmpi and launcher prefix
+
+    Manual exclusions are always applied before MPI filtering.
+    Filtering fails open on ambiguity.
+    """
+    if not libs or not launcher:
+        return [str(p) for p in libs], [str(p) for p in files]
+
+    if mpi_filter == 'off':
+        return [str(p) for p in libs], [str(p) for p in files]
+
+    exclude_prefixes = exclude_prefixes or []
+    exclude_names = exclude_names or []
+
+    # Normalize exclude prefixes
+    normalized_exclude_prefixes = [Path(p).resolve() for p in exclude_prefixes]
+
+    # Warn if exclusions are used in auto mode
+    if mpi_filter == 'auto' and (exclude_prefixes or exclude_names):
+        LOGGER.warning(
+            "Manual exclusions are applied before MPI auto-filtering. "
+            "Consider --mpi-filter=manual if this is intentional."
+        )
+
+    # Handle manual exclusions first, regardless of auto/manual mode
+    if normalized_exclude_prefixes or exclude_names:
+        kept_libs = []
+        for lib in libs:
+            resolved = lib.resolve()
+            excluded = False
+            if resolved.name in exclude_names:
+                excluded = True
+
+            if not excluded:
+                for prefix in normalized_exclude_prefixes:
+                    if path_contains(prefix, resolved):
+                        excluded = True
+                        break
+
+            if excluded:
+                LOGGER.info("Excluding user-blacklisted artifact %s", lib)
+                continue
+            kept_libs.append(lib)
+        libs = kept_libs
+
+    if mpi_filter == 'manual':
+        return [str(p) for p in libs], [str(p) for p in files]
+
+    resolved_launcher = launcher
+    if not launcher.is_absolute():
+        path_str = which(str(launcher))
+        if path_str:
+            resolved_launcher = Path(path_str)
+
+    launcher = resolved_launcher.resolve()
+
+    def _get_lib_prefix(path: Path) -> Path:
+        """Extract installation prefix from library path.
+        
+        Looks for 'lib' or 'lib64' directory markers to determine the prefix.
+        For example, /opt/mpich/lib/libmpi.so -> /opt/mpich
+        Falls back to parent directory for non-standard layouts.
+        """
+        for marker in ['lib', 'lib64']:
+            if marker in path.parts:
+                marker_idx = path.parts.index(marker)
+                # Ensure marker is a directory component, not the filename
+                if marker_idx < len(path.parts) - 1:
+                    return Path(*path.parts[:marker_idx])
+        # Fallback: use parent directory for non-standard layouts
+        # This handles cases like /custom/path/libmpi.so
+        return path.parent
+
+    def _is_core_mpi(path: Path) -> bool:
+        name = path.name
+        return any(name.startswith(prefix) for prefix in CORE_MPI_PREFIXES)
+
+    resolved_libs = [lib.resolve() for lib in libs]
+
+    # 1. Identify authoritative libmpi candidates
+    candidates = list(set([
+        lib for lib in resolved_libs
+        if lib.name == 'libmpi.so' or lib.name.startswith('libmpi.so.')
+    ]))
+
+    if not candidates:
+        return [str(p) for p in libs], [str(p) for p in files]
+
+    # Check for system launcher
+    is_system_launcher = str(launcher).startswith('/usr/bin') or str(launcher).startswith('/bin')
+
+    selected_lib = None
+
+    if is_system_launcher:
+        if len(candidates) == 1:
+            selected_lib = candidates[0]
+        else:
+             # Ambiguity or 0 -> fail open
+             return [str(p) for p in libs], [str(p) for p in files]
+    else:
+        # Standard launcher
+        if len(candidates) == 1:
+            selected_lib = candidates[0]
+        else:
+            # Multiple candidates. Filter by overlap with launcher prefix.
+            launcher_prefix = launcher.parent
+            if 'bin' in launcher.parts:
+                 launcher_prefix = Path(*launcher.parts[:launcher.parts.index('bin')])
+
+            matches = []
+            for cand in candidates:
+                 cand_prefix = _get_lib_prefix(cand)
+                 # Check overlap
+                 if (launcher_prefix == cand_prefix or
+                     launcher_prefix in cand_prefix.parents or
+                     cand_prefix in launcher_prefix.parents):
+                     matches.append(cand)
+
+            if len(matches) == 1:
+                selected_lib = matches[0]
+            else:
+                 # No match or Multiple matches -> Fail open
+                 return [str(p) for p in libs], [str(p) for p in files]
+
+    # We have a selected authoritative library
+    selected_prefix = _get_lib_prefix(selected_lib)
+
+    LOGGER.info("MPI filtering mode: %s", mpi_filter)
+    LOGGER.info("Authoritative MPI: %s", selected_lib)
+
+    kept_libs = []
+    discarded_libs = []
+
+    for lib in libs:
+        resolved = lib.resolve()
+
+        # Keep non-core libraries always (whitelist)
+        if not _is_core_mpi(resolved):
+            kept_libs.append(lib)
+            continue
+
+        # For core libs, check prefix consistency with authoritative lib
+        lib_prefix = _get_lib_prefix(resolved)
+
+        if (selected_prefix == lib_prefix or
+            selected_prefix in lib_prefix.parents or
+            lib_prefix in selected_prefix.parents):
+             kept_libs.append(lib)
+        else:
+             LOGGER.info("Discarding MPI artifact %s (prefix mismatch with %s)", lib, selected_lib)
+             discarded_libs.append(lib)
+
+    if discarded_libs:
+        LOGGER.info("Discarded core MPI libs: %s", [l.name for l in discarded_libs])
+
+    return [str(p) for p in kept_libs], [str(p) for p in files]
+
+
 def detect_subprocesses(launcher, program):
     """Run process profiling in subprocesses with the detected launcher"""
     files, libs = [], []
 
     os.environ[LAUNCHER_VAR] = launcher[0]
     # If a launcher is present, act as a launcher
+    # Use a timeout to prevent hanging on mpirun with multiple processes
     return_code, json_data = run_e4scl_subprocess([
         *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect", *program
     ],
-                                                  capture_output=True)
+                                                  capture_output=True,
+                                                  timeout=60)
 
     if return_code:
         LOGGER.error(
@@ -261,6 +442,22 @@ class ProfileDetectCommand(AbstractCliView):
                             help="Executable command, e.g. './a.out'",
                             metavar='command',
                             nargs=arguments.REMAINDER)
+        
+        parser.add_argument('--mpi-filter',
+                            help="Filter mode for MPI artifacts (default: auto)",
+                            choices=['auto', 'off', 'manual'],
+                            default='auto')
+        
+        parser.add_argument('--exclude-lib-prefix',
+                            help="Exclude libraries under this prefix when --mpi-filter=manual",
+                            action='append',
+                            default=[])
+
+        parser.add_argument('--exclude-lib-name',
+                            help="Exclude libraries with this exact name when --mpi-filter=manual",
+                            action='append',
+                            default=[])
+
         return parser
 
     def main(self, argv):
@@ -273,6 +470,15 @@ class ProfileDetectCommand(AbstractCliView):
 
         if launcher:
             libs, files = detect_subprocesses(launcher, program)
+
+            # Filter out artifacts from other MPI implementations
+            libs, files = _filter_mpi_artifacts([Path(l) for l in libs],
+                                                [Path(f) for f in files],
+                                                Path(launcher[0]),
+                                                mpi_filter=getattr(args, 'mpi_filter', 'auto'),
+                                                exclude_prefixes=getattr(args, 'exclude_lib_prefix', []),
+                                                exclude_names=getattr(args, 'exclude_lib_name', [])
+                                                )
         else:
             launcher = os.environ.get(LAUNCHER_VAR, '').split(' ')
 

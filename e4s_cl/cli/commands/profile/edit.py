@@ -62,7 +62,7 @@ class ProfileEditCommand(EditCommand):
                             default=arguments.SUPPRESS)
 
         parser.add_argument('--add-files',
-                            help="Add files to the profile",
+                            help="Add files to the profile. Supports host:container syntax.",
                             metavar='<file>',
                             nargs='+',
                             type=arguments.posix_path,

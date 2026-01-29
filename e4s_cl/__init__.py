@@ -64,7 +64,30 @@ for system-level package installation paths. **Do not** change it once it is set
 
 E4S_CL_ENV_PREFIX = 'E4S_CL'
 
-E4S_CL_SCRIPT = os.environ.get('__E4S_CL_SCRIPT__', sys.argv[0] or 'e4s-cl')
+def _get_e4s_cl_script():
+    """Get a reliable path to the e4s-cl script for subprocess invocation."""
+    import shutil
+    
+    # First try the environment variable
+    if '__E4S_CL_SCRIPT__' in os.environ:
+        script = os.environ['__E4S_CL_SCRIPT__']
+        # If it's just a command name, try to resolve it to a full path
+        if not os.path.isabs(script) and not os.path.exists(script):
+            # Try to find it in PATH
+            resolved = shutil.which(script)
+            if resolved:
+                return resolved
+        return script
+    
+    # Try using sys.argv[0] if it's available
+    script_candidate = sys.argv[0] or ''
+    if script_candidate:
+        return script_candidate
+    
+    # Fallback to just 'e4s-cl'
+    return 'e4s-cl'
+
+E4S_CL_SCRIPT = _get_e4s_cl_script()
 """str: Script that launched E4S Container Launcher.
 
 Mainly used for help messages. **Do not** change it once it is set.
@@ -80,14 +103,14 @@ SYSTEM_PREFIX = os.path.realpath(
                        os.path.join(E4S_CL_HOME, 'system'))))
 """str: System-level E4S Container Launcher files."""
 
-USER_PREFIX = os.path.realpath(
-    os.path.abspath(
-        os.environ.get(
-            '__E4S_CL_USER_PREFIX__',
-            os.path.join(os.path.expanduser('~'), '.local', 'e4s_cl'))))
+USER_PREFIX = os.path.abspath(
+    os.environ.get(
+        '__E4S_CL_USER_PREFIX__',
+        os.path.join(os.path.expanduser('~'), '.local', 'e4s_cl')))
 """str: User-level E4S Container Launcher files."""
 
-CONTAINER_DIR = Path("/", ".e4s-cl").as_posix()
+_CONTAINER_DIR_ENV = os.environ.get("E4S_CL_CONTAINER_DIR") or os.environ.get("E4S_CL_CONTAINER_DIRECTORY")
+CONTAINER_DIR = Path(_CONTAINER_DIR_ENV).as_posix() if _CONTAINER_DIR_ENV else Path("/", ".e4s-cl").as_posix()
 """str: Path of a directory in which to bind files when in containers"""
 
 CONTAINER_SCRIPT = Path(CONTAINER_DIR, "script").as_posix()

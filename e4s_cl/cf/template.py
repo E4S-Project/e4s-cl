@@ -22,6 +22,9 @@ TEMPLATE = """#!/bin/bash
 # If in debug mode, enable linker debugging from here
 %(debugging)s
 
+# Extra environment variables (e.g., Wi4MPI path overrides)
+%(extra_env)s
+
 # Enable the host's libraries for this last command by prepending the
 # resulting LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=%(library_dir)s${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
@@ -65,6 +68,9 @@ class Entrypoint:
 
         # Path to the imported host bash/interpreter
         self.interpreter = None
+
+        # Extra environment variables to export (dict of name -> value)
+        self.extra_env = {}
 
         self.debug = debug
 
@@ -113,12 +119,19 @@ class Entrypoint:
                     "supported in this configuration: missing interpreter"
                     "(linker: %s)", self.linker)
 
+        # Build extra environment exports
+        extra_env_lines = []
+        for name, value in self.extra_env.items():
+            extra_env_lines.append(f'export {name}="{value}"')
+        extra_env_str = '\n'.join(extra_env_lines)
+
         fields = dict(source_script=self.source_script,
                       command=command,
                       library_dir=pathsep.join(
                           map(str, self.linker_library_path)),
                       linker=' '.join(rtdl),
                       preload=':'.join(preload),
+                      extra_env=extra_env_str,
                       debugging="export LD_DEBUG=files" if self.debug else '')
 
         return TEMPLATE % fields

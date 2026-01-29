@@ -168,9 +168,15 @@ def wi4mpi_root() -> Optional[Path]:
     string = os.environ.get("WI4MPI_ROOT")
 
     if string is None or not string:
-        LOGGER.debug("Getting Wi4MPI root failed")
+        LOGGER.debug("Getting Wi4MPI root failed - WI4MPI_ROOT not in environment")
+        LOGGER.debug(
+            "Available Wi4MPI env vars: WI4MPI_FROM=%s, WI4MPI_TO=%s",
+            os.environ.get("WI4MPI_FROM"),
+            os.environ.get("WI4MPI_TO"),
+        )
         return None
 
+    LOGGER.debug("Wi4MPI root found: %s", string)
     return Path(string)
 
 
@@ -268,23 +274,66 @@ def wi4mpi_libpath(install_dir: Path):
             yield Path(filename)
 
 
-def wi4mpi_preload(install_dir: Path) -> List[str]:
+def wi4mpi_preload(install_dir: Path, container_library_dir: str = None) -> List[str]:
     """
     Returns a list of libraries to preload for WI4MPI
+    
+    Preload order follows Wi4MPI's official script:
+    1. The Wi4MPI translation library (libwi4mpi_{FROM}_{TO}.so) - intercepts MPI calls
+    2. The target MPI Fortran library (WI4MPI_RUN_MPI_F_LIB) - provides symbols for translation
+    3. The target MPI C library (WI4MPI_RUN_MPI_C_LIB) - provides symbols like ompi_mpi_char
+    
+    NOTE: The fake libraries (fakelib{FROM}/) go in LD_LIBRARY_PATH, NOT in LD_PRELOAD.
+    This matches the official Wi4MPI launcher script behavior.
+    
+    IMPORTANT: When container_library_dir is provided, this function assumes the target
+    MPI libraries (WI4MPI_RUN_MPI_C_LIB and WI4MPI_RUN_MPI_F_LIB) have already been
+    imported into the container at that location. The caller must ensure import_library()
+    is called before this function when running in container mode.
+    
+    Args:
+        install_dir: Path to Wi4MPI installation directory
+        container_library_dir: The path where host libraries are mounted inside
+            the container (e.g., '/.e4s-cl/hostlibs'). Required for container execution.
     """
     to_preload = []
 
-    # Pass along the preloaded libraries from wi4mpi
-    for file in os.environ.get("LD_PRELOAD", "").split():
-        to_preload.append(file)
-
     source = os.environ.get("WI4MPI_FROM", "")
+    target = os.environ.get("WI4MPI_TO", "")
 
-    fakelib_dir = install_dir / 'libexec' / 'wi4mpi' / f"fakelib{source}"
+    # 1. Add the translation library FIRST
+    if source and target:
+        translation_lib = install_dir / 'libexec' / 'wi4mpi' / f"libwi4mpi_{source}_{target}.so"
+        if translation_lib.exists():
+            to_preload.append(translation_lib.as_posix())
+            LOGGER.debug("Wi4MPI: Adding translation library to preload: %s", translation_lib)
+        else:
+            LOGGER.warning("Wi4MPI translation library not found: %s", translation_lib)
 
-    if fakelib_dir.exists():
-        for file in fakelib_dir.glob('lib*'):
-            to_preload.append(file.as_posix())
+    # 2. Add the target MPI F library (provides Fortran symbols)
+    target_mpi_f_lib = os.environ.get("WI4MPI_RUN_MPI_F_LIB", "")
+    if target_mpi_f_lib and Path(target_mpi_f_lib).exists():
+        if container_library_dir:
+            container_path = Path(container_library_dir) / Path(target_mpi_f_lib).name
+            to_preload.append(container_path.as_posix())
+            LOGGER.debug("Wi4MPI: Adding target MPI F library to preload (container path): %s", container_path)
+        else:
+            to_preload.append(target_mpi_f_lib)
+            LOGGER.debug("Wi4MPI: Adding target MPI F library to preload: %s", target_mpi_f_lib)
+
+    # 3. Add the target MPI C library (provides C symbols like ompi_mpi_char)
+    target_mpi_c_lib = os.environ.get("WI4MPI_RUN_MPI_C_LIB", "")
+    if target_mpi_c_lib and Path(target_mpi_c_lib).exists():
+        if container_library_dir:
+            container_path = Path(container_library_dir) / Path(target_mpi_c_lib).name
+            to_preload.append(container_path.as_posix())
+            LOGGER.debug("Wi4MPI: Adding target MPI C library to preload (container path): %s", container_path)
+        else:
+            to_preload.append(target_mpi_c_lib)
+            LOGGER.debug("Wi4MPI: Adding target MPI C library to preload: %s", target_mpi_c_lib)
+
+    # NOTE: Fake libraries are NOT preloaded - they go in LD_LIBRARY_PATH
+    # (handled by wi4mpi_libpath function)
 
     return to_preload
 

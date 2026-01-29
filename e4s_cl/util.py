@@ -19,6 +19,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Tuple,
     Union,
 )
 from functools import lru_cache, reduce
@@ -193,11 +194,12 @@ def run_subprocess(cmd, cwd=None, env=None, discard_output=False) -> int:
     return returncode
 
 
-def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
+def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False, timeout=None) -> Tuple[int, str]:
     """
     cmd: list[str],
     env: Optional[dict],
     capture_output: bool
+    timeout: Optional[float], timeout in seconds
     Run a subprocess, tailored for recursive e4s-cl processes
     """
     with ParentStatus():
@@ -222,8 +224,21 @@ def run_e4scl_subprocess(cmd, cwd=None, env=None, capture_output=False) -> int:
                 universal_newlines=True,
                 bufsize=1) as proc:
 
-            output, _ = proc.communicate()
-            returncode = proc.returncode
+            try:
+                output, _ = proc.communicate(timeout=timeout)
+                returncode = proc.returncode
+            except subprocess.TimeoutExpired:
+                LOGGER.warning("Subprocess timed out after %s seconds: %s", timeout, cmd)
+                proc.kill()
+                # Drain remaining output to avoid deadlock when process has buffered data
+                # communicate() will collect any remaining output and wait for termination
+                try:
+                    output, _ = proc.communicate(timeout=5)  # Give 5s for cleanup
+                except subprocess.TimeoutExpired:
+                    # Process still hasn't terminated after kill+communicate, force wait
+                    proc.wait()
+                    output = ""
+                returncode = -1
 
     if capture_output:
         return returncode, output

@@ -26,6 +26,7 @@ from e4s_cl.cf.compiler import (
     VENDOR_BINARIES,
     available_compilers,
 )
+from elftools.elf.elffile import ELFFile
 
 LOGGER = get_logger(__name__)
 
@@ -157,27 +158,80 @@ def _double_tap(cmd):
     return not success
 
 
+def _check_wi4mpi_install(install_dir: Path) -> bool:
+    """
+    Sanity check for the Wi4MPI installation
+    """
+    # Check binary existence
+    binary = install_dir / 'bin' / 'wi4mpi'
+    if not binary.exists():
+        LOGGER.debug("Wi4MPI binary not found at %s", binary)
+        return False
+
+    # Check architecture of shares objects
+    # Expected machine from os.uname().machine
+    machine = os.uname().machine
+    expected = {
+        'x86_64': 'EM_X86_64',
+        'amd64': 'EM_X86_64',
+        'aarch64': 'EM_AARCH64',
+        'ppc64le': 'EM_PPC64',
+        'ppc64': 'EM_PPC64',
+    }.get(machine)
+
+    if expected:
+        # Check libexec shared objects
+        lib_dir = install_dir / 'libexec' / 'wi4mpi'
+        libraries = list(lib_dir.glob('libwi4mpi_*.so'))
+
+        if libraries:
+            for lib in libraries:
+                if not lib.is_file():
+                    continue
+                try:
+                    with open(lib, 'rb') as f:
+                        elf = ELFFile(f)
+                        # Note: With pyelftools 0.27, header['e_machine'] returns a string like 'EM_X86_64'
+                        # Both elf.header.e_machine and elf.header['e_machine'] work equivalently
+                        machine_type = elf.header['e_machine']
+                        if machine_type != expected:
+                            LOGGER.error(
+                                "Wi4MPI library %s architecture mismatch: expected %s, got %s",
+                                lib.name, expected, machine_type)
+                            return False
+                except Exception as err:
+                    LOGGER.debug("Failed to check architecture of %s: %s", lib,
+                                 err)
+
+    # Check if executable runs
+    if run_subprocess([str(binary), '-h'], discard_output=True):
+        LOGGER.error("Wi4MPI binary at %s failed to run", binary)
+        return False
+
+    return True
+
+
 def install_wi4mpi(install_dir: Path) -> Optional[Path]:
     """Clones and installs wi4mpi from github releases"""
 
-    if os.uname().machine not in {'x86_64', 'amd64', 'aarch64'}:
+    if os.uname().machine not in {'x86_64', 'amd64', 'aarch64', 'ppc64le'}:
         LOGGER.warning(
             "Wi4MPI not available for the following architecture: %s",
             os.uname().machine)
         return None
 
-    binary = install_dir / 'bin' / 'wi4mpi'
-    if install_dir.exists() and binary.exists():
-        LOGGER.debug(
-            "Skipping installation for already installed Wi4MPI in %s",
-            install_dir)
-        return install_dir
+    if install_dir.exists():
+        if _check_wi4mpi_install(install_dir):
+            LOGGER.debug(
+                "Skipping installation for already installed Wi4MPI in %s",
+                install_dir)
+            return install_dir
 
-    if install_dir.exists() and list(install_dir.glob('*')):
-        LOGGER.error(
-            "Attempting Wi4MPI installation in a non-empty directory: %s",
-            str(install_dir))
-        return None
+        if list(install_dir.glob('*')):
+            LOGGER.error(
+                "Target directory %s is not empty and contains an invalid or incomplete Wi4MPI installation.",
+                install_dir)
+            return None
 
     # Assert CMake is available
     cmake_executable = which("cmake")
@@ -213,6 +267,16 @@ def install_wi4mpi(install_dir: Path) -> Optional[Path]:
         f"-DWI4MPI_COMPILER={compiler}",
         source_dir.as_posix(),
     ]
+
+    # Apply custom CFLAGS/CXXFLAGS if provided via environment variables
+    wi4mpi_cflags = os.environ.get('E4S_CL_WI4MPI_CFLAGS')
+    wi4mpi_cxxflags = os.environ.get('E4S_CL_WI4MPI_CXXFLAGS')
+    if wi4mpi_cflags:
+        configure_cmd.append(f"-DCMAKE_C_FLAGS={wi4mpi_cflags}")
+        LOGGER.debug("Using custom Wi4MPI CFLAGS: %s", wi4mpi_cflags)
+    if wi4mpi_cxxflags:
+        configure_cmd.append(f"-DCMAKE_CXX_FLAGS={wi4mpi_cxxflags}")
+        LOGGER.debug("Using custom Wi4MPI CXXFLAGS: %s", wi4mpi_cxxflags)
 
     build_cmd = [
         cmake_executable,
