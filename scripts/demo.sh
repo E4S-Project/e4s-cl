@@ -823,7 +823,7 @@ if [[ "${REBUILD_CONT_OSU}" == "1" ]]; then
   log "(Re)building container OSU benchmarks"
   rm -rf "${OSU_CONT_PREFIX}"
   mkdir -p "${OSU_CONT_PREFIX}"
-  run_silent ${CONTAINER_CMD} exec -B "${E4S_CL_WORKDIR}:/work" -B "${E4S_CL_CACHE_DIR}:/cache" "${E4S_CL_IMAGE}" bash -lc "\
+  run_silent "${CONTAINER_CMD}" exec -B "${E4S_CL_WORKDIR}:/work" -B "${E4S_CL_CACHE_DIR}:/cache" "${E4S_CL_IMAGE}" bash -lc "\
     set -euo pipefail; \
     unset CFLAGS; \
     unset CXXFLAGS; \
