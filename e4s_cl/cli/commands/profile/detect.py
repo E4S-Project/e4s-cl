@@ -123,6 +123,13 @@ def filter_files(path_list: List[Path],
         return True
 
     valid_files = set(filter(_existence, path_list))
+
+    # Apply blacklist and root filters BEFORE is_elf to avoid opening device
+    # nodes (e.g. /dev/dri/renderD*) which block on open(), and to skip
+    # thousands of /sys/ entries that are never ELF shared libraries.
+    valid_files = set(
+        apply_filters([_not_blacklisted, _not_root], valid_files))
+
     elf_objects = set(filter(is_elf, valid_files))
     regular_files = valid_files - elf_objects
 
@@ -165,7 +172,7 @@ def filter_files(path_list: List[Path],
     orphan_libraries = elf_objects - libraries
 
     filtered_files = set(
-        apply_filters([_not_cache, _not_blacklisted, _not_root, _waived_launcher],
+        apply_filters([_not_cache, _waived_launcher],
                       regular_files))
     files = filtered_files.union(orphan_libraries)
 
@@ -393,12 +400,18 @@ def detect_subprocesses(launcher, program):
 
     os.environ[LAUNCHER_VAR] = launcher[0]
     # If a launcher is present, act as a launcher
-    # Use a timeout to prevent hanging on mpirun with multiple processes
+    # Use a timeout to prevent hanging on mpirun with multiple processes.
+    # The timeout is configurable via __E4S_CL_DETECT_TIMEOUT (seconds).
+    # Default is 120s to accommodate srun job-scheduling overhead.
+    try:
+        detect_timeout = int(os.environ.get('__E4S_CL_DETECT_TIMEOUT', '120'))
+    except ValueError:
+        detect_timeout = 120
     return_code, json_data = run_e4scl_subprocess([
         *launcher, sys.executable, E4S_CL_SCRIPT, "profile", "detect", *program
     ],
                                                   capture_output=True,
-                                                  timeout=60)
+                                                  timeout=detect_timeout)
 
     if return_code:
         LOGGER.error(

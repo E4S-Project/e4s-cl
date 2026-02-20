@@ -349,7 +349,7 @@ class LaunchCommand(AbstractCommand):
         launcher, program = interpret(args.cmd)
 
         for path in get_reserved_directories(launcher):
-            if path not in parameters.files:
+            if path.exists() and path not in parameters.files:
                 parameters.files.add(path)
 
         wi4mpi_call = []

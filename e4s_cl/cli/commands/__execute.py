@@ -404,7 +404,7 @@ class ExecuteCommand(AbstractCommand):
                             metavar='files')
 
         parser.add_argument('--libraries',
-                            type=arguments.existing_posix_path_list,
+                            type=arguments.posix_path_list,
                             help="Libraries to bind, comma-separated",
                             default=[],
                             metavar='libraries')
@@ -445,6 +445,18 @@ class ExecuteCommand(AbstractCommand):
         # The following is a set of all libraries required. It
         # is used in the container to check version mismatches
         required_libraries = [*args.libraries, *wi4mpi_required]
+
+        # Filter out libraries that don't exist on this node. This can happen
+        # in multi-node launches where filesystems differ across nodes (e.g.
+        # ROCm libs present on some nodes but not others).
+        available_libraries = []
+        for lib_path in required_libraries:
+            if Path(lib_path).exists():
+                available_libraries.append(lib_path)
+            else:
+                LOGGER.warning("Library '%s' not found on this node, skipping",
+                               lib_path)
+        required_libraries = available_libraries
         
         # NOTE: Do NOT filter OpenMPI core libraries (libmpi.so.40, libopen-pal.so.40, etc.)
         # when Wi4MPI is active - Wi4MPI needs these to translate MPICH->OpenMPI calls.

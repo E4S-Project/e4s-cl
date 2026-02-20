@@ -64,6 +64,7 @@ E4S_CL_LAUNCHER_ARGS=""
 E4S_CL_OSU_ARGS=""
 E4S_CL_TIMEOUT_DURATION="60s"
 E4S_CL_VERBOSE="0"
+E4S_CL_SKIP_PMI_CHECK="0"
 
 log() { printf "[e4s-cl-test] %s\n" "$*"; }
 fail() { printf "[e4s-cl-test] ERROR: %s\n" "$*" >&2; exit 1; }
@@ -179,9 +180,10 @@ Options:
   --container-dir <path>       Container data dir (default: /tmp/.e4s-cl)
   --host-mpicc <path>          Override host mpicc (default: auto-detect)
   --host-mpirun <path>         Override host mpirun/mpiexec (default: auto-detect)
-  --launcher <cmd>             Force launcher (mpirun or srun) (default: auto-detect)
+  --launcher <cmd>             Force launcher (mpirun or srun path) (default: auto-detect)
   --scheduler <name>           If "slurm", use srun when available (default: none)
   --launcher-args "..."        Extra arguments for the MPI launcher (e.g. -p partition -N 2)
+  --skip-pmi-check             Skip PMI connectivity sanity check (default: off)
   --osu-args "..."             Override OSU benchmark arguments (e.g. "-i 1000 -m 1024:1048576")
                                Safe for latency, bw, and allreduce.
   --timeout <duration>         Timeout for MPI runs (default: 60s)
@@ -266,6 +268,7 @@ while [[ $# -gt 0 ]]; do
     --host-mpirun) E4S_CL_HOST_MPIRUN="$2"; shift 2 ;;
     --launcher) E4S_CL_LAUNCHER="$2"; shift 2 ;;
     --scheduler) E4S_CL_SCHEDULER="$2"; shift 2 ;;
+    --skip-pmi-check) E4S_CL_SKIP_PMI_CHECK="1"; shift ;;
     --e4scl-launch-args) E4S_CL_E4SCL_LAUNCH_ARGS="$2"; shift 2 ;;
     --launcher-args) E4S_CL_LAUNCHER_ARGS="$2"; shift 2 ;;
     --osu-args) E4S_CL_OSU_ARGS="$2"; shift 2 ;;
@@ -336,8 +339,12 @@ if [[ "${E4S_CL_ONLY_CHECK:-0}" == "1" ]]; then
   
   if check_cmd mpirun; then
      log "  Found: $(command -v mpirun)"
+  elif check_cmd mpiexec; then
+     log "  Found: $(command -v mpiexec)"
+  elif check_cmd srun; then
+     log "  mpirun/mpiexec not found, but srun is available (use --launcher srun or --scheduler slurm)"
   else
-     log "  MISSING: mpirun"
+     log "  MISSING: mpirun/mpiexec (and no srun available)"
      MISSING=1
   fi
   
@@ -350,6 +357,85 @@ if [[ "${E4S_CL_ONLY_CHECK:-0}" == "1" ]]; then
        MISSING=1
     fi
   done
+
+  log "Checking Slurm/PMI..."
+  if check_cmd srun; then
+    SRUN_PATH="$(command -v srun)"
+    SRUN_VER="$(srun --version 2>/dev/null | awk '{print $2}' || true)"
+    log "  Found: srun ${SRUN_VER} (${SRUN_PATH})"
+
+    # Check for srun/slurmd version mismatch — collect per-node info
+    # Build a map of slurmd version → node names for readable output
+    SRUN_MAJOR="$(echo "${SRUN_VER}" | cut -d. -f1-2)"
+    SLURM_MISMATCH=0
+    declare -A VERSION_NODES  # version -> comma-separated node list
+    # Parse scontrol output: extract NodeName and Version from each node block
+    CURRENT_NODE=""
+    while IFS= read -r LINE; do
+      if [[ "${LINE}" =~ NodeName=([^[:space:]]+) ]]; then
+        CURRENT_NODE="${BASH_REMATCH[1]}"
+      fi
+      if [[ -n "${CURRENT_NODE}" && "${LINE}" =~ Version=([^[:space:]]+) ]]; then
+        NODE_VER="${BASH_REMATCH[1]}"
+        if [[ -n "${VERSION_NODES[${NODE_VER}]+x}" ]]; then
+          VERSION_NODES[${NODE_VER}]="${VERSION_NODES[${NODE_VER}]}, ${CURRENT_NODE}"
+        else
+          VERSION_NODES[${NODE_VER}]="${CURRENT_NODE}"
+        fi
+        CURRENT_NODE=""
+      fi
+    done < <(scontrol show node 2>/dev/null || true)
+
+    if [[ ${#VERSION_NODES[@]} -gt 0 ]]; then
+      # Find the single best srun for the most common mismatched version
+      SUGGESTED_SRUN=""
+      SUGGESTED_VER=""
+      for NV in "${!VERSION_NODES[@]}"; do
+        NV_MAJOR="$(echo "${NV}" | cut -d. -f1-2)"
+        if [[ "${SRUN_MAJOR}" != "${NV_MAJOR}" ]]; then
+          SLURM_MISMATCH=1
+          NODES="${VERSION_NODES[${NV}]}"
+          log "  WARNING: slurmd ${NV} on nodes: ${NODES}"
+        fi
+      done
+
+      if [[ "${SLURM_MISMATCH}" == "1" ]]; then
+        log "  WARNING: srun ${SRUN_VER} does not match slurmd on some compute nodes!"
+        log "  WARNING: This causes PMI2 failures. Use --launcher <path-to-matching-srun>"
+        log "  WARNING: Pick the srun version matching the nodes in your target partition."
+
+        # Find compatible srun paths for each mismatched version
+        declare -A SUGGESTED_FOR_MAJOR  # major.minor -> best srun path
+        for NV in "${!VERSION_NODES[@]}"; do
+          NV_MAJOR="$(echo "${NV}" | cut -d. -f1-2)"
+          [[ "${SRUN_MAJOR}" != "${NV_MAJOR}" ]] || continue
+          [[ -z "${SUGGESTED_FOR_MAJOR[${NV_MAJOR}]+x}" ]] || continue
+
+          EXACT="" FALLBACK=""
+          for D in /usr/local/packages/slurm/*/bin/srun; do
+            [[ -x "$D" ]] || continue
+            DV="$("$D" --version 2>/dev/null | awk '{print $2}' || true)"
+            if [[ "${DV}" == "${NV}" ]]; then EXACT="$D"; break; fi
+            DV_MAJOR="$(echo "${DV}" | cut -d. -f1-2)"
+            if [[ "${DV_MAJOR}" == "${NV_MAJOR}" && -z "${FALLBACK}" ]]; then FALLBACK="$D"; fi
+          done
+          BEST="${EXACT:-${FALLBACK}}"
+          if [[ -n "${BEST}" ]]; then
+            BMV="$("${BEST}" --version 2>/dev/null | awk '{print $2}' || true)"
+            SUGGESTED_FOR_MAJOR[${NV_MAJOR}]="${BEST}"
+            log "  SUGGESTION: --launcher ${BEST} (version ${BMV}, for slurmd ${NV_MAJOR}.x nodes)"
+          fi
+        done
+        MISSING=1
+      else
+        log "  srun/slurmd version match: OK"
+      fi
+    else
+      log "  Could not check slurmd versions (scontrol unavailable)"
+    fi
+  else
+    log "  srun not found (not Slurm-managed, or srun not in PATH)"
+  fi
   
   if [[ "$MISSING" -eq 1 ]]; then
      fail "One or more prerequisites missing."
@@ -392,8 +478,10 @@ run_timed() {
   set -e
 
   if [[ $ret -eq 124 ]]; then
+    log "HINT: Run './scripts/demo.sh --check' to diagnose environment issues (e.g. srun/slurmd version mismatch)"
     fail "Command timed out (${E4S_CL_TIMEOUT_DURATION}): ${cmd[*]}"
   elif [[ $ret -ne 0 ]]; then
+    log "HINT: Run './scripts/demo.sh --check' to diagnose environment issues (e.g. srun/slurmd version mismatch)"
     fail "Command failed (exit $ret): ${cmd[*]}"
   fi
 
@@ -424,6 +512,156 @@ detect_mpi_family() {
     echo "mpich"
   else
     echo ""
+  fi
+}
+
+# Compute environment fingerprint for build cache invalidation.
+# When the MPI environment changes (e.g., different module loaded), cached builds
+# must be invalidated even if the mpicc path hasn't changed.
+compute_env_fingerprint() {
+  local mpicc_path="${1:-}"
+  local fingerprint_parts=""
+
+  # 1. mpicc path
+  fingerprint_parts+="mpicc=${mpicc_path};"
+
+  # 2. mpicc -show output (captures link flags, include paths, library paths)
+  if [[ -n "${mpicc_path}" && -x "${mpicc_path}" ]]; then
+    fingerprint_parts+="mpicc_show=$("${mpicc_path}" -show 2>/dev/null || true);"
+  fi
+
+  # 3. MPI_HOME if set
+  fingerprint_parts+="MPI_HOME=${MPI_HOME:-};"
+
+  # 4. Key MPI-related env vars that affect library resolution
+  fingerprint_parts+="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-};"
+
+  # 5. Module list (if available)
+  if command -v modulecmd >/dev/null 2>&1 || [[ -n "${LOADEDMODULES:-}" ]]; then
+    fingerprint_parts+="LOADEDMODULES=${LOADEDMODULES:-};"
+  fi
+
+  # 6. srun/slurm version if srun is the launcher
+  if check_cmd srun; then
+    fingerprint_parts+="srun_version=$(srun --version 2>/dev/null || true);"
+  fi
+
+  # Hash the fingerprint for compact storage
+  printf '%s' "${fingerprint_parts}" | sha256sum | awk '{print $1}'
+}
+
+# Check srun/slurmd version compatibility and PMI2 connectivity.
+# Slurm version mismatches between srun and slurmd cause silent PMI2 failures.
+check_slurm_pmi() {
+  local srun_bin="$1"
+  local partition="${2:-}"
+  local warned=0
+
+  if [[ ! -x "${srun_bin}" ]]; then
+    return 0
+  fi
+
+  local srun_version
+  srun_version="$("${srun_bin}" --version 2>/dev/null | awk '{print $2}')"
+  if [[ -z "${srun_version}" ]]; then
+    log "WARNING: Could not determine srun version"
+    return 0
+  fi
+  log "srun version: ${srun_version} (${srun_bin})"
+
+  # Check slurmd versions on target partition nodes
+  local partition_nodes=""
+  if [[ -n "${partition}" ]]; then
+    partition_nodes="$(scontrol show partition "${partition}" 2>/dev/null | grep -oP 'Nodes=\K\S+' || true)"
+  fi
+  if [[ -z "${partition_nodes}" ]]; then
+    # Try to get nodes from default partition or any available
+    partition_nodes="$(scontrol show partition 2>/dev/null | grep -oP 'Nodes=\K\S+' | head -1 || true)"
+  fi
+
+  if [[ -n "${partition_nodes}" ]]; then
+    # Expand node list and check versions
+    local node_versions
+    node_versions="$(scontrol show node "${partition_nodes}" 2>/dev/null | grep -oP 'Version=\K\S+' | sort -u || true)"
+    if [[ -n "${node_versions}" ]]; then
+      local srun_major srun_minor
+      srun_major="$(echo "${srun_version}" | cut -d. -f1-2)"
+      while IFS= read -r nv; do
+        local nv_major
+        nv_major="$(echo "${nv}" | cut -d. -f1-2)"
+        if [[ "${srun_major}" != "${nv_major}" ]]; then
+          log "WARNING: srun version (${srun_version}) does not match slurmd on compute nodes (${nv})"
+          log "WARNING: This version mismatch causes PMI2 communication failures!"
+          log "WARNING: The srun major.minor (${srun_major}) differs from slurmd (${nv_major})"
+
+          # Try to find a matching srun: prefer exact version, fall back to major.minor
+          local slurm_base="/usr/local/packages/slurm"
+          local exact_match="" major_match=""
+          if [[ -d "${slurm_base}" ]]; then
+            # Check exact version path first
+            if [[ -x "${slurm_base}/${nv}/bin/srun" ]]; then
+              exact_match="${slurm_base}/${nv}/bin/srun"
+            fi
+            # Scan for major.minor match as fallback
+            if [[ -z "${exact_match}" ]]; then
+              for d in "${slurm_base}"/*/bin/srun; do
+                if [[ -x "$d" ]]; then
+                  local dv
+                  dv="$("$d" --version 2>/dev/null | awk '{print $2}' || true)"
+                  if [[ "${dv}" == "${nv}" ]]; then
+                    exact_match="$d"
+                    break
+                  fi
+                  local dv_major
+                  dv_major="$(echo "${dv}" | cut -d. -f1-2)"
+                  if [[ "${dv_major}" == "${nv_major}" && -z "${major_match}" ]]; then
+                    major_match="$d"
+                  fi
+                fi
+              done
+            fi
+            local best_match="${exact_match:-${major_match}}"
+            if [[ -n "${best_match}" ]]; then
+              log "WARNING: Found compatible srun at: ${best_match}"
+              log "WARNING: Use --launcher ${best_match} to fix this"
+            fi
+          fi
+          warned=1
+        fi
+      done <<< "${node_versions}"
+    fi
+  fi
+
+  if [[ "${warned}" == "1" ]]; then
+    fail "Slurm version mismatch detected (see above). Use --launcher <path> to specify a compatible srun, or --skip-pmi-check to bypass this check."
+  fi
+
+  # Quick PMI2 connectivity test: run a trivial command through srun
+  if [[ "${E4S_CL_SKIP_PMI_CHECK}" != "1" ]]; then
+    log "Running PMI2 connectivity sanity check..."
+    local pmi_test_args=("-n" "1")
+    if [[ -n "${partition}" ]]; then
+      pmi_test_args+=("-p" "${partition}")
+    fi
+    set +e
+    local pmi_output
+    pmi_output="$("${srun_bin}" "${pmi_test_args[@]}" --mpi=pmi2 hostname 2>&1)"
+    local pmi_ret=$?
+    set -e
+    if [[ $pmi_ret -ne 0 ]]; then
+      log "WARNING: PMI2 sanity check failed (exit ${pmi_ret}):"
+      log "${pmi_output}" | tail -n 5
+      log ""
+      log "This typically indicates:"
+      log "  1. srun/slurmd version mismatch (most common)"
+      log "  2. PMI2 library incompatibility"
+      log "  3. Slurm configuration issue"
+      log ""
+      log "Try: --launcher <path-to-matching-srun> or check 'srun --version' vs 'scontrol show node <node> | grep Version'"
+      fail "PMI2 connectivity test failed. Use --skip-pmi-check to bypass."
+    else
+      log "PMI2 connectivity check passed"
+    fi
   fi
 }
 
@@ -479,6 +717,22 @@ HOST_MPI_VERSION="$("${HOST_MPIRUN}" --version 2>/dev/null | head -n 2 || true)"
 HOST_MPI_FAMILY="$(detect_mpi_family "${HOST_MPI_VERSION}")"
 log "Detected host MPI family: ${HOST_MPI_FAMILY:-unknown}"
 
+# Slurm version / PMI sanity check (when srun is the launcher)
+if [[ "${LAUNCHER_BIN##*/}" == "srun" ]]; then
+  # Extract partition from launcher args if present (look for -p or --partition)
+  LAUNCHER_PARTITION=""
+  for ((i=0; i<${#LAUNCHER_ARGS[@]}; i++)); do
+    if [[ "${LAUNCHER_ARGS[$i]}" == "-p" || "${LAUNCHER_ARGS[$i]}" == "--partition" ]]; then
+      LAUNCHER_PARTITION="${LAUNCHER_ARGS[$((i+1))]:-}"
+      break
+    fi
+  done
+  check_slurm_pmi "${LAUNCHER_BIN}" "${LAUNCHER_PARTITION}"
+fi
+
+# Compute environment fingerprint for build cache validation
+ENV_FINGERPRINT="$(compute_env_fingerprint "${HOST_MPICC}")"
+log "Environment fingerprint: ${ENV_FINGERPRINT:0:12}..."
 
 log "Step 1: Setting up e4s-cl. Using a local virtual environment and editable install to ensure the latest code is used."
 
@@ -618,10 +872,16 @@ if [[ ! -d "${OSU_HOST_PREFIX}" || ! -f "${OSU_HOST_META}" ]]; then
   REBUILD_HOST_OSU="1"
 elif ! grep -Fq "mpicc=${HOST_MPICC}" "${OSU_HOST_META}"; then
   REBUILD_HOST_OSU="1"
+  log "Build cache invalidated: mpicc path changed"
 elif ! grep -Fq "mpicc_version=${HOST_MPICC_VERSION}" "${OSU_HOST_META}"; then
   REBUILD_HOST_OSU="1"
+  log "Build cache invalidated: mpicc version changed"
 elif ! grep -Fq "osu_url=${E4S_CL_OSU_URL}" "${OSU_HOST_META}"; then
   REBUILD_HOST_OSU="1"
+  log "Build cache invalidated: OSU URL changed"
+elif ! grep -Fq "env_fingerprint=${ENV_FINGERPRINT}" "${OSU_HOST_META}"; then
+  REBUILD_HOST_OSU="1"
+  log "Build cache invalidated: MPI environment changed (modules, LD_LIBRARY_PATH, MPI_HOME, etc.)"
 fi
 
 if [[ "${REBUILD_HOST_OSU}" == "1" ]]; then
@@ -649,7 +909,7 @@ if [[ "${REBUILD_HOST_OSU}" == "1" ]]; then
     
     run_silent build_cmd
   )
-  printf "mpicc=%s\nmpicc_version=%s\nosu_url=%s\n" "${HOST_MPICC}" "${HOST_MPICC_VERSION}" "${E4S_CL_OSU_URL}" > "${OSU_HOST_META}"
+  printf "mpicc=%s\nmpicc_version=%s\nosu_url=%s\nenv_fingerprint=%s\n" "${HOST_MPICC}" "${HOST_MPICC_VERSION}" "${E4S_CL_OSU_URL}" "${ENV_FINGERPRINT}" > "${OSU_HOST_META}"
 else
   log "Reusing host OSU benchmarks: ${OSU_HOST_PREFIX}"
 fi
@@ -784,6 +1044,20 @@ profile_has_bindings() {
   fi
   return 1
 }
+
+# Propagate the demo timeout to e4s-cl's internal detect timeout so that
+# srun-based launches (which include job-scheduling overhead) don't hit the
+# default 120 s ceiling before the outer timeout fires.
+# E4S_CL_TIMEOUT_DURATION may have a suffix (s/m/h); convert to seconds.
+_detect_timeout="${E4S_CL_TIMEOUT_DURATION}"
+if [[ "${_detect_timeout}" =~ ^([0-9]+)[sS]?$ ]]; then
+  _detect_timeout="${BASH_REMATCH[1]}"
+elif [[ "${_detect_timeout}" =~ ^([0-9]+)[mM]$ ]]; then
+  _detect_timeout=$(( BASH_REMATCH[1] * 60 ))
+elif [[ "${_detect_timeout}" =~ ^([0-9]+)[hH]$ ]]; then
+  _detect_timeout=$(( BASH_REMATCH[1] * 3600 ))
+fi
+export __E4S_CL_DETECT_TIMEOUT="${_detect_timeout}"
 
 if [[ "${E4S_CL_SKIP_PROFILE_DETECT}" == "1" ]]; then
   if profile_has_bindings; then
