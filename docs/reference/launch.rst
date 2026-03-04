@@ -33,6 +33,8 @@ Positional arguments
 
         To ensure the arguments are understood correctly, an additional \
         :kbd:`--` can be added between the launcher options and the command.
+        All launcher and command arguments are passed through as-is once the
+        split is clear.
 
         See the examples below for an illustration.
 
@@ -45,7 +47,7 @@ The :code:`launch` command accepts several arguments to tune its execution:
 --image		Image to use when launching the container. Can be a path or identifier. [needed]_
 --backend	Container technology to employ. [needed]_
 --libraries	Comma-separated list of libraries to make available at run-time in the container. Optional.
---files		Comma-separated list of files to make accessible in the container. They will be bound in-place in the container. Optional.
+--files		Comma-separated list of files to make accessible in the container. They will be bound in-place in the container. Supports :code:`host:container` mappings. Optional.
 --source	Path of a script to source before execution. Optional.
 --from		If MPI library translation is needed, specify which family the binary comes from. The following are implemented: :code:`intelmpi`, :code:`openmpi`, :code:`mpich`. Optional. See :ref:`MPI implementations` for details.
 -h, --help		    print a help message

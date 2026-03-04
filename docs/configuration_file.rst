@@ -53,6 +53,24 @@ The following options can be set in a configuration file:
 
 Some configuration values can also be enabled on a per-module basis. They will be detailed on those modules' documentation.
 
+Command-line configuration management
+-------------------------------------
+
+You can read or update configuration values without editing YAML by using the
+:ref:`config<config>` command. The :code:`list` action prints the merged
+configuration, while :code:`set` writes to the user configuration file.
+
+.. code::
+
+    # Show merged configuration
+    e4s-cl config list
+
+    # Read a single value
+    e4s-cl config get wi4mpi.install_directory
+
+    # Update user configuration
+    e4s-cl config set wi4mpi.install_directory /opt/wi4mpi
+
 Configuration file template
 ---------------------------
 

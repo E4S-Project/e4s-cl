@@ -17,7 +17,7 @@ Options
 --backend			Change the profile's backend
 --image				Change the profile's default image
 --source			Change the profile's default init script
---add-files			List of files to add
+--add-files			List of files to add. Supports :code:`host:container` mappings.
 --remove-files		List of files to remove
 --add-libraries		List of libraries to add
 --remove-libraries	List of libraries to remove

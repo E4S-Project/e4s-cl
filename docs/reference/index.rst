@@ -8,7 +8,7 @@ Usage
 
     e4s-cl [ OPTIONS ] OBJECT { COMMAND }
 
-    OBJECT := { init | launch | profile }
+    OBJECT := { init | launch | profile | config }
 
 Options
 --------
@@ -33,10 +33,11 @@ Sub-Commands Description
 ---------------------------
 
 .. toctree::
-   :maxdepth: 1
+    :maxdepth: 1
 
-   init
-   launch
-   profiles/index.rst
+    init
+    launch
+    config
+    profiles/index.rst
 
 

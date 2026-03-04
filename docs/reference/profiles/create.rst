@@ -13,8 +13,8 @@ Usage
 Options 
 --------
 
---libraries	A space-separated list of libraries to add to the profile
---files		A space-separated list of files to add to the profile
+--libraries	A comma-separated list of libraries to add to the profile
+--files		A comma-separated list of files to add to the profile. Supports :code:`host:container` mappings.
 --image		The image to use with the profile
 --backend	The container technology to use for the profile's image
 --source	Path towards a script to source before execution

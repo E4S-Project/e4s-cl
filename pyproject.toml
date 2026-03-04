@@ -7,10 +7,11 @@ name = "e4s-cl"
 authors = [
     {name = "Frederick Deny", email = "fdeny@uoregon.edu"},
     {name = "Jean-Baptiste Skutnik", email = "jb.skutnik@gmail.com"},
+    {name = "Wyatt Spear", email = "wspear@uoregon.edu"},
 ]
 description = "A command-line utility to run MPI projects in E4S containers"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 keywords = ["containers", "MPI", "hpc", "libraries", "linux"]
 license = {text = "MIT"}
 classifiers = [

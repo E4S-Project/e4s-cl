@@ -17,6 +17,18 @@ Listing the available profiles::
 
     e4s-cl profile list
 
+Demo runner
+------------
+
+The repository includes a guided demo script that exercises a full run, builds
+or downloads an MPI-enabled container, and validates performance with OSU
+benchmarks. Use it when you want an end-to-end sanity check:
+
+.. code::
+
+    ./scripts/demo.sh --help
+    ./scripts/demo.sh --image /path/to/mpi.sif --mode light
+
 .. _init_override:
 
 Library detection override

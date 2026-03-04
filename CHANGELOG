@@ -1,6 +1,32 @@
-v1.0.5
+v1.0.6
 ---------------------
 
+- New Features & CLI Enhancements
+    - File Aliasing: Added support for host:container path mapping in profiles and the execute command.
+    - Config Command: Introduced a new config command to list, get, and set internal configuration values.
+    - Argument Passthrough: Updated MPI launchers to pass all user arguments directly to the underlying binaries.
+    - Demo Runner: Added a new step-by-step interactive demo script for easier onboarding and testing. Includes docker container generation and download/build of SHA checked OSU benchmark code.
+- MPI & Wi4MPI Improvements
+    - Artifact Filtering: Implemented intelligent filtering to discard libraries from conflicting MPI stacks during profile detection.
+    - Wi4MPI Verification: Added installation verification, PPC64LE support, and improved handling of missing install directories.
+    - Library Binding: Automated binding for graphics and interconnect driver directories (e.g., ibverbs, Vulkan) to prevent loader errors.
+    - SONAME Aliasing: Added dynamic aliasing (e.g., libmpich.so → libmpi.so) for Wi4MPI "fake" libraries to ensure guest binary compatibility.
+    - Environment Fixes: Explicitly imported Wi4MPI target environment variables into containers to resolve "file too short" loader errors.
+    - Library Recognition: Added support for OpenMPI so.41 libraries and improved detection of alternate SONAMEs on guest systems.
+- Stability & Robustness
+    - Multi-node Reliability: Improved handling of missing files on remote nodes and added Slurm/PMI version compatibility checks.
+    - Process Tracing: Updated the tracer to correctly handle process exits in multi-process MPI runs to prevent hangs.
+    - Input Scrubbing: Added logic to scrub bogus spaces and Unicode characters from command-line arguments.
+    - Error Reporting: Redirected stderr to the console for better visibility into underlying execution errors.
+    - Timeout Support: Added timeouts to internal subprocesses to prevent hangs during profile detection.
+- Maintenance & Security
+    - Pinned completion builds to Rust 1.92.0 to resolve upstream dependency security issues.
+    - Dropped support for Python 3.7
+    - CI workflows trigger only on pushes.
+
+v1.0.5
+---------------------
+Check for libmpi.so.0.0.0 to support MVAPICH-Plus 4.x
 
 v1.0.4 (Aug 26 2024)
 ---------------------
