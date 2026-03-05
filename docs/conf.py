@@ -22,7 +22,7 @@ copyright = '2024, Frederick Deny'
 author = 'Frederick Deny'
 
 # The full version, including alpha/beta/rc tags
-version = release = '1.0.6'
+version = release = '1.0.7'
 
 # -- General configuration ---------------------------------------------------
 
