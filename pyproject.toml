@@ -13,13 +13,12 @@ description = "A command-line utility to run MPI projects in E4S containers"
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = ["containers", "MPI", "hpc", "libraries", "linux"]
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Operating System :: POSIX :: Linux",
     "Intended Audience :: Science/Research",
-    "License :: MIT License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
 ]
@@ -28,10 +27,10 @@ dependencies = [
     "PyYAML>=6.0",
     "texttable>=1.6.2",
     "python-ptrace>=0.9.7",
-    "pyelftools==0.27",
+    "pyelftools>=0.27",
     "requests>=2.26.0",
-    "tinydb==4.5.2",
-    "python-sotools==0.1.3",
+    "tinydb>=4.5.2",
+    "python-sotools>=0.1.3",
 ]
 dynamic = ["version"]
 
