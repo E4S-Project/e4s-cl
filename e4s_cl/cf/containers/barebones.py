@@ -8,7 +8,7 @@ from typing import List, Union, Optional
 from e4s_cl import logger, BAREBONES_SCRIPT, BAREBONES_LIBRARY_DIR
 from e4s_cl.util import run_subprocess, create_symlink, empty_dir, mkdirp, list_directory_files
 from e4s_cl.cf.libraries import cache_libraries
-from e4s_cl.cf.containers import Container, FileOptions, BackendNotAvailableError
+from e4s_cl.cf.containers import Container, FileOptions
 from e4s_cl.cf.wi4mpi import wi4mpi_root
 
 LOGGER = logger.get_logger(__name__)

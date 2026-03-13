@@ -339,20 +339,21 @@ def _generate_completion_tree() -> dict:
             command = mod.COMMAND
 
             for action in command.parser.actions:
-                if isinstance(action, _StoreAction) and not action.nargs:
-                    action.nargs = 1
+                nargs = action.nargs
+                if isinstance(action, _StoreAction) and not nargs:
+                    nargs = 1
 
-                if action.nargs in _ARG_TYPES:
-                    action.nargs = _ARG_TYPES[action.nargs]
+                if nargs in _ARG_TYPES:
+                    nargs = _ARG_TYPES[nargs]
 
-                if action.nargs == '...':
+                if nargs == '...':
                     continue
 
                 if not action.option_strings:
-                    if not (action.nargs and action.type):
+                    if not (nargs and action.type):
                         continue
                     self.positionals.append(_Positional(
-                        arguments=action.nargs,
+                        arguments=nargs,
                         values=sorted(action.choices or []),
                         expected_type=getattr(action.type, '__name__', '') or '',
                     ))
@@ -360,7 +361,7 @@ def _generate_completion_tree() -> dict:
 
                 self.options.append(_Option(
                     names=action.option_strings,
-                    arguments=action.nargs,
+                    arguments=nargs,
                     values=sorted(action.choices or []),
                     expected_type=getattr(action.type, '__name__', '') or '',
                 ))

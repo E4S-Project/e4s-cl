@@ -333,8 +333,8 @@ def _filter_mpi_artifacts(libs: List[Path], files: List[Path],
         if len(candidates) == 1:
             selected_lib = candidates[0]
         else:
-             # Ambiguity or 0 -> fail open
-             return [str(p) for p in libs], [str(p) for p in files]
+            # Ambiguity or 0 -> fail open
+            return [str(p) for p in libs], [str(p) for p in files]
     else:
         # Standard launcher
         if len(candidates) == 1:
@@ -343,22 +343,22 @@ def _filter_mpi_artifacts(libs: List[Path], files: List[Path],
             # Multiple candidates. Filter by overlap with launcher prefix.
             launcher_prefix = launcher.parent
             if 'bin' in launcher.parts:
-                 launcher_prefix = Path(*launcher.parts[:launcher.parts.index('bin')])
+                launcher_prefix = Path(*launcher.parts[:launcher.parts.index('bin')])
 
             matches = []
             for cand in candidates:
-                 cand_prefix = _get_lib_prefix(cand)
-                 # Check overlap
-                 if (launcher_prefix == cand_prefix or
-                     launcher_prefix in cand_prefix.parents or
-                     cand_prefix in launcher_prefix.parents):
-                     matches.append(cand)
+                cand_prefix = _get_lib_prefix(cand)
+                # Check overlap
+                if (launcher_prefix == cand_prefix or
+                        launcher_prefix in cand_prefix.parents or
+                        cand_prefix in launcher_prefix.parents):
+                    matches.append(cand)
 
             if len(matches) == 1:
                 selected_lib = matches[0]
             else:
-                 # No match or Multiple matches -> Fail open
-                 return [str(p) for p in libs], [str(p) for p in files]
+                # No match or Multiple matches -> Fail open
+                return [str(p) for p in libs], [str(p) for p in files]
 
     # We have a selected authoritative library
     selected_prefix = _get_lib_prefix(selected_lib)
@@ -381,12 +381,12 @@ def _filter_mpi_artifacts(libs: List[Path], files: List[Path],
         lib_prefix = _get_lib_prefix(resolved)
 
         if (selected_prefix == lib_prefix or
-            selected_prefix in lib_prefix.parents or
-            lib_prefix in selected_prefix.parents):
-             kept_libs.append(lib)
+                selected_prefix in lib_prefix.parents or
+                lib_prefix in selected_prefix.parents):
+            kept_libs.append(lib)
         else:
-             LOGGER.info("Discarding MPI artifact %s (prefix mismatch with %s)", lib, selected_lib)
-             discarded_libs.append(lib)
+            LOGGER.info("Discarding MPI artifact %s (prefix mismatch with %s)", lib, selected_lib)
+            discarded_libs.append(lib)
 
     if discarded_libs:
         LOGGER.info("Discarded core MPI libs: %s", [l.name for l in discarded_libs])

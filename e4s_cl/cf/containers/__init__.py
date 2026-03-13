@@ -608,8 +608,8 @@ def assert_module(_module) -> bool:
 
     if getattr(_module, 'CLASS') and not getattr(_module.CLASS, 'run'):
         LOGGER.warning(
-            "Container module '%s' has an incomplete module class; skipping ..."
-        )
+            "Container module '%s' has an incomplete module class; skipping ...",
+            _module.__name__)
 
     return True
 

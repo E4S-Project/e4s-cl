@@ -6,7 +6,7 @@ Load and propagate the contents of configuration files in YAML format
 import sys
 import yaml
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import Dict
 from pathlib import Path
 from e4s_cl import (
     CONTAINER_DIR,

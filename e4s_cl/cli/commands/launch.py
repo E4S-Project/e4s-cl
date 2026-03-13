@@ -27,7 +27,7 @@ import os
 import shlex
 from pathlib import Path
 from argparse import Namespace
-from typing import Tuple, List, Optional
+from typing import Tuple, List
 from dataclasses import (dataclass, field)
 from e4s_cl import (
     E4S_CL_SCRIPT,
@@ -51,14 +51,11 @@ from e4s_cl.cf.wi4mpi import (
     MPIFamily,
     SUPPORTED_TRANSLATIONS,
     WI4MPI_ENVIRONMENT_VARIABLES,
-    WI4MPI_METADATA,
     WI4MPI_SOURCES,
     wi4mpi_find_libraries,
     wi4mpi_get_metadata,
-    wi4mpi_identify,
     wi4mpi_prepare_environment_interface,
     wi4mpi_prepare_environment_preload,
-    wi4mpi_qualifier,
 )
 from e4s_cl.cf.wi4mpi.install import install_wi4mpi
 
@@ -422,9 +419,9 @@ class LaunchCommand(AbstractCommand):
                     parameters.files.add(verbs_dir)
             
             # Check for environment-defined driver paths
-            for prefix, vars in driver_env_vars.items():
+            for prefix, var_names in driver_env_vars.items():
                 if lib.name.startswith(prefix):
-                    for var in vars:
+                    for var in var_names:
                         if var in os.environ:
                             path = Path(os.environ[var])
                             if path.exists():

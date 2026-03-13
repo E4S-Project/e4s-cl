@@ -23,7 +23,7 @@ from typing import (
     Union,
 )
 from functools import lru_cache, reduce
-from shutil import which as sh_which, rmtree
+from shutil import which as sh_which
 from collections import deque
 from tarfile import TarFile
 from e4s_cl import (
@@ -351,7 +351,6 @@ def empty_dir(path: Path):
     """
     if not path.is_dir():
         LOGGER.debug("Can't empty {path} directory at it isn't one.")
-        pass
     for file_path in path.iterdir():
         try:
             if file_path.is_file() or file_path.is_symlink():
@@ -359,7 +358,7 @@ def empty_dir(path: Path):
             elif file_path.is_dir():
                 file_path.rmdir()
         except Exception:
-           pass
+            pass
 
 def create_symlink(path: Path, dest: Path):
     """Creates a symlink.
@@ -375,7 +374,7 @@ def create_symlink(path: Path, dest: Path):
     if not dest.exists():
         try:
             dest.symlink_to(path)
-        except:
+        except Exception:
             pass
 
 def hline(title, *args, **kwargs):
@@ -445,8 +444,7 @@ def walk_packages(path, prefix):
             __import__(name)
             path = getattr(sys.modules[name], '__path__', None) or []
             path = [p for p in path if not seen(p)]
-            for item in walk_packages(path, name + '.'):
-                yield item
+            yield from walk_packages(path, name + '.')
 
 
 def _iter_modules(paths, prefix):

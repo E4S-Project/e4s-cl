@@ -6,7 +6,6 @@ library loading)
 """
 
 from os import chmod, unlink, pathsep
-from pathlib import Path
 from tempfile import NamedTemporaryFile
 from shlex import split
 from sotools import is_elf

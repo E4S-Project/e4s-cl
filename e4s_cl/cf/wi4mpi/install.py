@@ -9,7 +9,6 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 from e4s_cl import (
-    USER_PREFIX,
     WI4MPI_DIR,
 )
 from e4s_cl.util import (
