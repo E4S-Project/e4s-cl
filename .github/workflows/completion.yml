@@ -1,0 +1,34 @@
+# Verify the committed completions/e4s-cl.bash is up-to-date with the
+# current CLI structure.  Fails if a developer changed CLI options or
+# subcommands without regenerating the completion script.
+name: Check completion script freshness
+
+on: push
+
+jobs:
+  check-completion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Regenerate completion script
+        run: python scripts/generate_completion_bash.py > /tmp/e4s-cl.bash
+
+      - name: Verify no drift
+        run: |
+          if ! diff -u completions/e4s-cl.bash /tmp/e4s-cl.bash; then
+            echo ""
+            echo "ERROR: completions/e4s-cl.bash is out of date."
+            echo "Regenerate it with:"
+            echo "   python scripts/generate_completion_bash.py > completions/e4s-cl.bash"
+            echo "and commit the result."
+            exit 1
+          fi
