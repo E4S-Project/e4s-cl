@@ -1,7 +1,0 @@
-if [[ -f {} ]] ; then
-    complete -C {} \
-        -o bashdefault \
-        -o default \
-        -o filenames \
-        e4s-cl
-fi

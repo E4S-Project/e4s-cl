@@ -127,20 +127,10 @@ install: $(PYTHON_EXE)
 #>============================================================================<
 # Data fetching targets
 
-COMPLETION_TARGET=$(shell git describe --abbrev=0 --tags)
-COMPLETION_BIN_URL=https://github.com/E4S-Project/e4s-cl/releases/download/$(COMPLETION_TARGET)/completion.$(HOST_ARCH)
-COMPLETION_DEST=$(INSTALLDIR)/bin/__e4s_cl_completion.$(HOST_ARCH)
-
 completion:
-	$(MKDIR) $(INSTALL_BIN_DIR)
-	$(call download,$(COMPLETION_BIN_URL),$(COMPLETION_DEST)) || \
-		(rm -f "$(COMPLETION_DEST)" ; \
-		echo "* ERROR: Unable to download $(COMPLETION_BIN_URL)." ; \
-		false)
-	chmod +x $(COMPLETION_DEST)
 	$(MKDIR) $(COMPLETION_DIR)
-	$(COMPLETION_DEST) > $(COMPLETION_DIR)/e4s-cl
-	echo "Please source '$(COMPLETION_DIR)/e4s-cl' to enable completion to the current shell."
+	$(COPY) completions/e4s-cl.bash $(COMPLETION_DIR)/e4s-cl
+	echo "Please source '$(COMPLETION_DIR)/e4s-cl' to enable completion in the current shell."
 	echo "If the bash-completion package is installed, completion will be enabled on new sessions."
 
 #>============================================================================<
