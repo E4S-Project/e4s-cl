@@ -1,4 +1,14 @@
+v1.0.8
+---------------------
+
+- Included missing config module
+- Fixed tests and formatting
+- Added more tests
+- Switched rust based completions to bash (light weight, no binary builds required)
+
 v1.0.7
+---------------------
+
 - Fix licence and version pinning in release configuration
 
 v1.0.6
