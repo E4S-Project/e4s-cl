@@ -26,8 +26,8 @@ benchmarks. Use it when you want an end-to-end sanity check:
 
 .. code::
 
-    ./scripts/demo.sh --help
-    ./scripts/demo.sh --image /path/to/mpi.sif --mode light
+    ./scripts/e4s-cl-demo.sh --help
+    ./scripts/e4s-cl-demo.sh --image /path/to/mpi.sif --mode light
 
 .. _init_override:
 

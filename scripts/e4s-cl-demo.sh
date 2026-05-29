@@ -12,8 +12,8 @@
 # - Cross-scheduler support (host and container differ) is future work.
 #
 # Usage:
-#   ./scripts/demo.sh [options]
-#   ./scripts/demo.sh --help
+#   ./scripts/e4s-cl-demo.sh [options]
+#   ./scripts/e4s-cl-demo.sh --help
 #
 # Host MPI notes:
 # - Typical host MPI stacks: MPICH, Open MPI, MVAPICH2, Intel MPI, Cray MPICH.
@@ -33,6 +33,17 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Detect whether running from a source checkout (dev mode) or an installed location.
+# Dev mode: script lives at <repo>/scripts/e4s-cl-demo.sh and pyproject.toml is present.
+# Installed mode: script was installed into a bin/ directory by pip/spack/etc.
+if [[ -f "${REPO_ROOT}/pyproject.toml" ]]; then
+  E4S_CL_DEV_MODE="1"
+  E4S_CL_WORK_BASE="${REPO_ROOT}"
+else
+  E4S_CL_DEV_MODE="0"
+  E4S_CL_WORK_BASE="$(pwd)"
+fi
+
 E4S_CL_IMAGE=""
 E4S_CL_PROFILE_NAME="HOST_MPI"
 E4S_CL_MPI_PROCS="2"
@@ -41,8 +52,8 @@ E4S_CL_OSU_SHA256="d619740a1c2cc7c02a9763931546b320d0fa4093c415ff3873c2958e121c0
 E4S_CL_OSU_CHECKSUM_REQUIRED="1"
 E4S_CL_MODE="full"
 E4S_CL_TAG=""
-E4S_CL_WORKDIR="${REPO_ROOT}/_e4scl_test"
-E4S_CL_CACHE_DIR="${REPO_ROOT}/_e4scl_cache"
+E4S_CL_WORKDIR="${E4S_CL_WORK_BASE}/_e4scl_test"
+E4S_CL_CACHE_DIR="${E4S_CL_WORK_BASE}/_e4scl_cache"
 E4S_CL_KEEP_WORKDIR="1"
 E4S_CL_BUILD_IMAGE="0"
 E4S_CL_IMAGE_OUTPUT="${E4S_CL_CACHE_DIR}/e4s-cl-mpich.sif"
@@ -65,6 +76,7 @@ E4S_CL_OSU_ARGS=""
 E4S_CL_TIMEOUT_DURATION="60s"
 E4S_CL_VERBOSE="0"
 E4S_CL_SKIP_PMI_CHECK="0"
+E4S_CL_USE_INSTALLED="${E4S_CL_USE_INSTALLED:-0}"  # Set to 1 (or use --use-installed) to force use of e4s-cl from PATH
 
 log() { printf "[e4s-cl-test] %s\n" "$*"; }
 fail() { printf "[e4s-cl-test] ERROR: %s\n" "$*" >&2; exit 1; }
@@ -153,7 +165,7 @@ usage() {
 High-level e4s-cl validation script
 
 Usage:
-  ./scripts/demo.sh [options]
+  ./scripts/e4s-cl-demo.sh [options]
 
 Options:
   --image <path|uri>           Apptainer image path (.sif) or URI (docker://...) (default: none)
@@ -188,6 +200,9 @@ Options:
                                Safe for latency, bw, and allreduce.
   --timeout <duration>         Timeout for MPI runs (default: 60s)
   --verbose                    Show build output (default: off, only errors shown)
+  --use-installed              Use e4s-cl from PATH instead of building a local venv (default: off)
+                               Useful when running from a source checkout against a deployed install.
+                               May also be set via the E4S_CL_USE_INSTALLED=1 environment variable.
   --check                      Check environment prerequisites and exit
   -h, --help                   Show help
 
@@ -198,10 +213,10 @@ NOTE: OSU benchmarks integrity verification
     2) Use --osu-skip-checksum to accept the risk (verify the URL yourself)
 
 Examples:
-  ./scripts/demo.sh --image /path/to/mpi.sif --mode light
-  ./scripts/demo.sh --build-image --mode light --host-baseline off
-  ./scripts/demo.sh --image docker://ecpe4s/e4s-mpi-cpu-x86_64:v4.3.1-1762472545 --mode light
-  ./scripts/demo.sh --image docker://ecpe4s/e4s-mpi-cpu-x86_64 --osu-url /path/to/local/osu.tar.gz --osu-sha256 <hash>
+  ./scripts/e4s-cl-demo.sh --image /path/to/mpi.sif --mode light
+  ./scripts/e4s-cl-demo.sh --build-image --mode light --host-baseline off
+  ./scripts/e4s-cl-demo.sh --image docker://ecpe4s/e4s-mpi-cpu-x86_64:v4.3.1-1762472545 --mode light
+  ./scripts/e4s-cl-demo.sh --image docker://ecpe4s/e4s-mpi-cpu-x86_64 --osu-url /path/to/local/osu.tar.gz --osu-sha256 <hash>
 EOF
 }
 
@@ -274,6 +289,7 @@ while [[ $# -gt 0 ]]; do
     --osu-args) E4S_CL_OSU_ARGS="$2"; shift 2 ;;
     --timeout) E4S_CL_TIMEOUT_DURATION="$2"; shift 2 ;;
     --verbose) E4S_CL_VERBOSE="1"; shift ;;
+    --use-installed) E4S_CL_USE_INSTALLED="1"; shift ;;
     --check) E4S_CL_ONLY_CHECK="1"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) fail "Unknown argument: $1 (use --help)" ;;
@@ -445,8 +461,21 @@ if [[ "${E4S_CL_ONLY_CHECK:-0}" == "1" ]]; then
   fi
 fi
 
-DEFAULT_WORKDIR="${REPO_ROOT}/_e4scl_test"
-DEFAULT_CACHE_DIR="${REPO_ROOT}/_e4scl_cache"
+# Apply --use-installed override: force installed mode even when running from a source checkout.
+# Useful for testing a deployed e4s-cl (e.g. via 'spack load e4s-cl') without write access to the prefix.
+if [[ "${E4S_CL_USE_INSTALLED}" == "1" && "${E4S_CL_DEV_MODE}" == "1" ]]; then
+  log "--use-installed: overriding dev-mode detection; will use e4s-cl from PATH"
+  E4S_CL_DEV_MODE="0"
+  # Redirect default workdir/cachedir to cwd if they still point at the repo root
+  if [[ "${E4S_CL_WORKDIR}" == "${REPO_ROOT}/_e4scl_test" ]]; then
+    E4S_CL_WORK_BASE="$(pwd)"
+    E4S_CL_WORKDIR="${E4S_CL_WORK_BASE}/_e4scl_test"
+    E4S_CL_CACHE_DIR="${E4S_CL_WORK_BASE}/_e4scl_cache"
+  fi
+fi
+
+DEFAULT_WORKDIR="${E4S_CL_WORK_BASE}/_e4scl_test"
+DEFAULT_CACHE_DIR="${E4S_CL_WORK_BASE}/_e4scl_cache"
 if [[ -z "${E4S_CL_TAG}" ]]; then
   E4S_CL_TAG="$(sanitize_tag "$(derive_tag)")"
 fi
@@ -478,10 +507,10 @@ run_timed() {
   set -e
 
   if [[ $ret -eq 124 ]]; then
-    log "HINT: Run './scripts/demo.sh --check' to diagnose environment issues (e.g. srun/slurmd version mismatch)"
+    log "HINT: Run './scripts/e4s-cl-demo.sh --check' to diagnose environment issues (e.g. srun/slurmd version mismatch)"
     fail "Command timed out (${E4S_CL_TIMEOUT_DURATION}): ${cmd[*]}"
   elif [[ $ret -ne 0 ]]; then
-    log "HINT: Run './scripts/demo.sh --check' to diagnose environment issues (e.g. srun/slurmd version mismatch)"
+    log "HINT: Run './scripts/e4s-cl-demo.sh --check' to diagnose environment issues (e.g. srun/slurmd version mismatch)"
     fail "Command failed (exit $ret): ${cmd[*]}"
   fi
 
@@ -734,43 +763,50 @@ fi
 ENV_FINGERPRINT="$(compute_env_fingerprint "${HOST_MPICC}")"
 log "Environment fingerprint: ${ENV_FINGERPRINT:0:12}..."
 
-log "Step 1: Setting up e4s-cl. Using a local virtual environment and editable install to ensure the latest code is used."
+if [[ "${E4S_CL_DEV_MODE}" == "1" ]]; then
+  log "Step 1: Dev mode — setting up local venv and editable install to ensure the latest code is used."
 
-# Verify Python has required features before creating venv
-if ! python3 -c "import ctypes" 2>/dev/null; then
-  log "ERROR: Python installation at $(command -v python3) is missing the ctypes module"
-  log "ERROR: This is typically caused by Python being compiled without libffi support"
-  log "ERROR: "
-  log "ERROR: To fix this issue:"
-  log "ERROR:   1. If you loaded a Python module: module unload python"
-  log "ERROR:   2. Use system Python (usually /usr/bin/python3)"
-  log "ERROR:   3. Or load a different Python module that has ctypes support"
-  log "ERROR:   4. Verify with: python3 -c 'import ctypes; print(\"OK\")'"
-  fail "Python missing required ctypes module (needs libffi)"
-fi
+  # Verify Python has required features before creating venv
+  if ! python3 -c "import ctypes" 2>/dev/null; then
+    log "ERROR: Python installation at $(command -v python3) is missing the ctypes module"
+    log "ERROR: This is typically caused by Python being compiled without libffi support"
+    log "ERROR: "
+    log "ERROR: To fix this issue:"
+    log "ERROR:   1. If you loaded a Python module: module unload python"
+    log "ERROR:   2. Use system Python (usually /usr/bin/python3)"
+    log "ERROR:   3. Or load a different Python module that has ctypes support"
+    log "ERROR:   4. Verify with: python3 -c 'import ctypes; print(\"OK\")'"
+    fail "Python missing required ctypes module (needs libffi)"
+  fi
 
-PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)"; then
-  log "Python version check passed: ${PYTHON_VERSION}"
+  PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+  if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)"; then
+    log "Python version check passed: ${PYTHON_VERSION}"
+  else
+    log "ERROR: Python ${PYTHON_VERSION} is too old (e4s-cl requires Python 3.7+)"
+    log "ERROR: Current Python: $(command -v python3)"
+    log "ERROR: "
+    log "ERROR: To fix this issue:"
+    log "ERROR:   1. Load a newer Python module: module load python/3.9 (or similar)"
+    log "ERROR:   2. Or use a newer system Python if available"
+    log "ERROR:   3. Ensure the Python has ctypes: python3 -c 'import ctypes'"
+    fail "Python version ${PYTHON_VERSION} is too old (need 3.7+)"
+  fi
+
+  if [[ ! -x "${REPO_ROOT}/.venv/bin/python" ]]; then
+    run python3 -m venv "${REPO_ROOT}/.venv"
+  fi
+  run "${REPO_ROOT}/.venv/bin/python" -m pip install -U pip
+  run "${REPO_ROOT}/.venv/bin/python" -m pip install -e "${REPO_ROOT}"
+
+  E4S_CL_BIN="${REPO_ROOT}/.venv/bin/e4s-cl"
+  [[ -x "${E4S_CL_BIN}" ]] || fail "e4s-cl not installed in venv"
 else
-  log "ERROR: Python ${PYTHON_VERSION} is too old (e4s-cl requires Python 3.7+)"
-  log "ERROR: Current Python: $(command -v python3)"
-  log "ERROR: "
-  log "ERROR: To fix this issue:"
-  log "ERROR:   1. Load a newer Python module: module load python/3.9 (or similar)"
-  log "ERROR:   2. Or use a newer system Python if available"
-  log "ERROR:   3. Ensure the Python has ctypes: python3 -c 'import ctypes'"
-  fail "Python version ${PYTHON_VERSION} is too old (need 3.7+)"
+  log "Step 1: Installed mode — using e4s-cl from PATH."
+  E4S_CL_BIN="$(command -v e4s-cl || true)"
+  [[ -n "${E4S_CL_BIN}" ]] || fail "e4s-cl not found in PATH. Is e4s-cl installed?"
+  log "Using e4s-cl: ${E4S_CL_BIN}"
 fi
-
-if [[ ! -x "${REPO_ROOT}/.venv/bin/python" ]]; then
-  run python3 -m venv "${REPO_ROOT}/.venv"
-fi
-run "${REPO_ROOT}/.venv/bin/python" -m pip install -U pip
-run "${REPO_ROOT}/.venv/bin/python" -m pip install -e "${REPO_ROOT}"
-
-E4S_CL_BIN="${REPO_ROOT}/.venv/bin/e4s-cl"
-[[ -x "${E4S_CL_BIN}" ]] || fail "e4s-cl not installed in venv"
 
 
 

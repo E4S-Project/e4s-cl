@@ -45,6 +45,9 @@ changelog = "https://github.com/E4S-Project/e4s-cl/blob/master/CHANGELOG"
 [tool.setuptools.packages]
 find = {}
 
+[tool.setuptools]
+scripts = ["scripts/e4s-cl-demo.sh"]
+
 [project.scripts]
 e4s-cl = "e4s_cl.__main__:main"
 e4s-cl-mpi-tester = "e4s_cl.scripts.e4s_cl_mpi_tester:main"
