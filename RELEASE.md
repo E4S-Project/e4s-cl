@@ -11,7 +11,7 @@
 
         git pull --rebase
 
-2. Update the version in `docs/conf.py`.
+2. Update the version in `docs/conf.py` (remove -dev).
 
 3. Update `CHANGELOG`.
 
@@ -39,21 +39,32 @@
 
         git tag VERSION
 
-2. Build distribution artifacts.
-
-        python3 -m build
-
-3. Push the tag.
+2. Push the tag.
 
         git push --tags
 
-4. Upload to PyPI (optional).
+3. Release on github.
+
+        https://github.com/E4S-Project/e4s-cl/releases/new
+        Title: E4S-CL release VERSION
+        Body: Latest block of CHANGELOG
+        Assets: Automatic
+
+4. Release on Spack
+
+        spack checksum -l e4s_cl
+
+5. Build distribution artifacts.
+
+        python3 -m build
+
+6. Upload to PyPI.
 
         twine upload dist/*
 
 ## Post-release
 
-1. Increment the version in `docs/conf.py`.
+1. Increment the version in `docs/conf.py` and add -dev.
 
 2. Commit and push.
 
