@@ -1,3 +1,10 @@
+v1.0.9
+---------------------
+
+- Include e4s-cl-demo.sh with install
+- Enable non-dev mode for demo script, using local install instead
+- Remove -- launch syntax
+
 v1.0.8
 ---------------------
 
