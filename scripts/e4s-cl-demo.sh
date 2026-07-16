@@ -193,7 +193,7 @@ Options:
   --host-mpicc <path>          Override host mpicc (default: auto-detect)
   --host-mpirun <path>         Override host mpirun/mpiexec (default: auto-detect)
   --launcher <cmd>             Force launcher (mpirun or srun path) (default: auto-detect)
-  --scheduler <name>           If "slurm", use srun when available (default: none)
+  --scheduler <name>           Scheduler hint: slurm (or srun alias) uses srun when available (default: none)
   --launcher-args "..."        Extra arguments for the MPI launcher (e.g. -p partition -N 2)
   --skip-pmi-check             Skip PMI connectivity sanity check (default: off)
   --osu-args "..."             Override OSU benchmark arguments (e.g. "-i 1000 -m 1024:1048576")
@@ -230,6 +230,15 @@ parse_bool() {
 
 sanitize_tag() {
   echo "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9._-]+#-#g' | sed -E 's/^-+|-+$//g'
+}
+
+normalize_scheduler() {
+  local value="${1,,}"
+  case "${value}" in
+    ""|none) echo "" ;;
+    slurm|srun) echo "slurm" ;;
+    *) fail "Invalid scheduler value: $1 (supported: slurm, srun)" ;;
+  esac
 }
 
 derive_tag() {
@@ -282,7 +291,7 @@ while [[ $# -gt 0 ]]; do
     --host-mpicc) E4S_CL_HOST_MPI="$2"; shift 2 ;;
     --host-mpirun) E4S_CL_HOST_MPIRUN="$2"; shift 2 ;;
     --launcher) E4S_CL_LAUNCHER="$2"; shift 2 ;;
-    --scheduler) E4S_CL_SCHEDULER="$2"; shift 2 ;;
+    --scheduler) E4S_CL_SCHEDULER="$(normalize_scheduler "$2")"; shift 2 ;;
     --skip-pmi-check) E4S_CL_SKIP_PMI_CHECK="1"; shift ;;
     --e4scl-launch-args) E4S_CL_E4SCL_LAUNCH_ARGS="$2"; shift 2 ;;
     --launcher-args) E4S_CL_LAUNCHER_ARGS="$2"; shift 2 ;;
@@ -539,9 +548,46 @@ detect_mpi_family() {
     echo "mpich"
   elif echo "$lowered" | grep -q "mpich"; then
     echo "mpich"
+  elif echo "$lowered" | grep -q "mpiexec.slurm"; then
+    # Some MVAPICH deployments expose a Slurm mpiexec wrapper.
+    # The wrapper name alone is not authoritative, but this is usually MPICH-family.
+    echo "mpich"
   else
     echo ""
   fi
+}
+
+# Query launcher version/help text without printing noisy errors to users.
+# Different MPI wrappers expose different flags, so probe a few patterns safely.
+get_mpi_launcher_info() {
+  local launcher_bin="$1"
+  local launcher_name
+  launcher_name="$(basename "${launcher_bin}")"
+  local info=""
+
+  case "${launcher_name}" in
+    srun)
+      info="$(${launcher_bin} --version 2>/dev/null | head -n 2 || true)"
+      ;;
+    mpiexec|mpiexec.slurm)
+      # mpiexec.slurm often rejects --version; use help text first.
+      info="$(${launcher_bin} -help 2>/dev/null | head -n 20 || true)"
+      if [[ -z "${info}" ]]; then
+        info="$(${launcher_bin} --version 2>/dev/null | head -n 2 || true)"
+      fi
+      ;;
+    *)
+      info="$(${launcher_bin} --version 2>/dev/null | head -n 2 || true)"
+      if [[ -z "${info}" ]]; then
+        info="$(${launcher_bin} -V 2>/dev/null | head -n 2 || true)"
+      fi
+      if [[ -z "${info}" ]]; then
+        info="$(${launcher_bin} -help 2>/dev/null | head -n 20 || true)"
+      fi
+      ;;
+  esac
+
+  echo "${info}"
 }
 
 # Compute environment fingerprint for build cache invalidation.
@@ -719,9 +765,16 @@ HOST_MPIRUN="${E4S_CL_HOST_MPIRUN:-$(command -v mpirun || command -v mpiexec || 
 [[ -n "${HOST_MPICC}" ]] || fail "Host MPI compiler not found (mpicc)"
 [[ -n "${HOST_MPIRUN}" ]] || fail "Host MPI launcher not found (mpirun or mpiexec)"
 
+if [[ -z "${E4S_CL_SCHEDULER}" && "${E4S_CL_LAUNCHER##*/}" == "srun" ]]; then
+  E4S_CL_SCHEDULER="slurm"
+  log "Detected srun launcher; inferring scheduler=slurm"
+fi
+
 log "Container Runtime: $CONTAINER_CMD"
-log "Host MPI compiler: ${HOST_MPICC}" "$("${HOST_MPICC}" --version | head -n 1 || true)"
-log "Host MPI launcher: ${HOST_MPIRUN}" "$("${HOST_MPIRUN}" --version | head -n 1 || true)"
+HOST_MPICC_INFO="$(${HOST_MPICC} --version 2>/dev/null | head -n 1 || true)"
+HOST_MPIRUN_INFO="$(get_mpi_launcher_info "${HOST_MPIRUN}" | head -n 1 || true)"
+log "Host MPI compiler: ${HOST_MPICC}" "${HOST_MPICC_INFO}"
+log "Host MPI launcher: ${HOST_MPIRUN}" "${HOST_MPIRUN_INFO}"
 
 LAUNCHER_BIN="${E4S_CL_LAUNCHER:-}"
 if [[ -z "${LAUNCHER_BIN}" && "${E4S_CL_SCHEDULER}" == "slurm" ]]; then
@@ -729,6 +782,10 @@ if [[ -z "${LAUNCHER_BIN}" && "${E4S_CL_SCHEDULER}" == "slurm" ]]; then
 fi
 if [[ -z "${LAUNCHER_BIN}" ]]; then
   LAUNCHER_BIN="${HOST_MPIRUN}"
+fi
+
+if [[ "${E4S_CL_SCHEDULER}" == "slurm" && "${LAUNCHER_BIN##*/}" != "srun" ]]; then
+  log "WARNING: scheduler=slurm but launcher is '${LAUNCHER_BIN##*/}'. Use --launcher srun for Slurm-native launches."
 fi
 
 if [[ "${LAUNCHER_BIN##*/}" == "srun" ]]; then
@@ -742,8 +799,12 @@ if [[ -n "${E4S_CL_LAUNCHER_ARGS}" ]]; then
   LAUNCHER_ARGS+=("${EXTRA_LAUNCHER_ARGS[@]}")
 fi
 
-HOST_MPI_VERSION="$("${HOST_MPIRUN}" --version 2>/dev/null | head -n 2 || true)"
-HOST_MPI_FAMILY="$(detect_mpi_family "${HOST_MPI_VERSION}")"
+HOST_MPI_VERSION="$(get_mpi_launcher_info "${HOST_MPIRUN}")"
+HOST_MPI_SHOW="$(${HOST_MPICC} -show 2>/dev/null || true)"
+HOST_MPI_DETECT_TEXT="${HOST_MPI_VERSION}
+${HOST_MPICC_INFO}
+${HOST_MPI_SHOW}"
+HOST_MPI_FAMILY="$(detect_mpi_family "${HOST_MPI_DETECT_TEXT}")"
 log "Detected host MPI family: ${HOST_MPI_FAMILY:-unknown}"
 
 # Slurm version / PMI sanity check (when srun is the launcher)
@@ -793,8 +854,20 @@ if [[ "${E4S_CL_DEV_MODE}" == "1" ]]; then
     fail "Python version ${PYTHON_VERSION} is too old (need 3.7+)"
   fi
 
+  # Slurm multi-node launches can execute on hosts with different /usr/bin/python3
+  # versions. A symlink-based venv may therefore resolve to a too-old interpreter
+  # on remote nodes. Use --copies to make the venv interpreter node-independent.
+  VENV_PY3_LINK="${REPO_ROOT}/.venv/bin/python3"
+  if [[ -L "${VENV_PY3_LINK}" ]]; then
+    VENV_TARGET="$(readlink "${VENV_PY3_LINK}" || true)"
+    if [[ "${VENV_TARGET}" == "/usr/bin/python3" ]]; then
+      log "Existing venv uses /usr/bin/python3 symlink; recreating with --copies for Slurm multi-node compatibility"
+      rm -rf "${REPO_ROOT}/.venv"
+    fi
+  fi
+
   if [[ ! -x "${REPO_ROOT}/.venv/bin/python" ]]; then
-    run python3 -m venv "${REPO_ROOT}/.venv"
+    run python3 -m venv --copies "${REPO_ROOT}/.venv"
   fi
   run "${REPO_ROOT}/.venv/bin/python" -m pip install -U pip
   run "${REPO_ROOT}/.venv/bin/python" -m pip install -e "${REPO_ROOT}"
