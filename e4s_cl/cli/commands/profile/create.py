@@ -51,6 +51,13 @@ class ProfileCreateCommand(CreateCommand):
             default=arguments.SUPPRESS,
             dest='backend')
 
+        parser.add_argument('--backend-args',
+                            help="Additional raw arguments for the backend runtime",
+                            metavar='args',
+                            type=str,
+                            default=arguments.SUPPRESS,
+                            dest='backend_args')
+
         parser.add_argument('--image',
                             help="Path to a image for this profile",
                             metavar='path/to/image',

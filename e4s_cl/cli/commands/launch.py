@@ -70,6 +70,7 @@ class Parameters:
     image: str = None
     backend: str = None
     source: Path = None
+    backend_args: str = None
     libraries: set = field(default_factory=set)
     files: set = field(default_factory=set)
     wi4mpi: Path = None
@@ -89,6 +90,7 @@ def _parameters(args: dict) -> Parameters:
     for attribute, factory in [
         ('image', str),
         ('backend', str),
+        ('backend_args', str),
         ('libraries', lambda x: set(map(Path, x))),
         ('files', lambda x: set(map(Path, x))),
         ('source', lambda x: Path(x) if x else None),
@@ -112,6 +114,9 @@ def _format_execute(parameters: Parameters) -> List[str]:
         value = getattr(parameters, attr, None)
         if value:
             execute_command += [f"--{attr}", str(value)]
+
+    if parameters.backend_args:
+        execute_command += ["--backend-args", parameters.backend_args]
 
     for attr in ['libraries', 'files']:
         value = getattr(parameters, attr, None)
@@ -270,6 +275,14 @@ class LaunchCommand(AbstractCommand):
             type=arguments.posix_path,
             help="Path to a bash script to source before execution",
             metavar='source',
+        )
+
+        parser.add_argument(
+            '--backend-args',
+            type=str,
+            help=("Additional raw arguments passed to the container backend "
+                  "command (advanced use)"),
+            metavar='args',
         )
 
         parser.add_argument(

@@ -32,6 +32,7 @@ class ProfileShowCommand(ShowCommand):
         outline = """%(field_name)s: %(name)s
 %(field_image)s: %(image)s
 %(field_backend)s: %(backend)s
+    %(field_backend_args)s: %(backend_args)s
 %(field_script)s: %(script)s
 %(field_wi4mpi)s: %(wi4mpi)s
 
@@ -45,6 +46,7 @@ class ProfileShowCommand(ShowCommand):
             'field_name': bold("Profile name"),
             'field_image': bold("Container image"),
             'field_backend': bold("Container tech"),
+            'field_backend_args': bold("Container backend args"),
             'field_script': bold("Pre-execution script"),
             'field_libs': bold("Bound libraries"),
             'field_files': bold("Bound files"),
@@ -55,6 +57,7 @@ class ProfileShowCommand(ShowCommand):
             'name': profile_dict.get('name', 'Not found'),
             'image': profile_dict.get('image', 'Not found'),
             'backend': profile_dict.get('backend', 'Not found'),
+            'backend_args': profile_dict.get('backend_args', 'None'),
             'script': profile_dict.get('source', 'None'),
             'wi4mpi': profile_dict.get('wi4mpi', 'None'),
         }

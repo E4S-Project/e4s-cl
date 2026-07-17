@@ -91,6 +91,7 @@ fields = {
     ('--image', 'image', 'image:id', 'image_docker_style'),
     ('--image', 'image', '/path/to/image', 'image_singularity_style'),
     ('--backend', 'backend', 'singularity', 'backend'),
+    ('--backend-args', 'backend_args', '--fakeroot --cleanenv', 'backend_args'),
     ('--source', 'source', '/path/to/script.sh', 'source'),
     ('--wi4mpi', 'wi4mpi', '/usr/packages/wi4mpi', 'wi4mpi_location'),
 }

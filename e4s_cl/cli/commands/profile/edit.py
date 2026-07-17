@@ -47,6 +47,13 @@ class ProfileEditCommand(EditCommand):
             dest='backend',
             default=arguments.SUPPRESS)
 
+        parser.add_argument('--backend-args',
+                            help="change the profile backend runtime arguments",
+                            metavar='<args>',
+                            dest='backend_args',
+                            type=str,
+                            default=arguments.SUPPRESS)
+
         parser.add_argument('--image',
                             help="change the profile's image",
                             metavar='<path/to/image>',
@@ -135,7 +142,7 @@ class ProfileEditCommand(EditCommand):
 
         updates = dict(profile)
 
-        fields = {'name', 'backend', 'image', 'source', 'wi4mpi'}
+        fields = {'name', 'backend', 'backend_args', 'image', 'source', 'wi4mpi'}
 
         for field in fields:
             updates[field] = getattr(args, field, profile.get(field))

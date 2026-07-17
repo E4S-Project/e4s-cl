@@ -106,6 +106,7 @@ class ProfileEditTest(tests.TestCase):
 fields = {
     ('--image', 'image:id', 'image', 'profile_edit_image'),
     ('--backend', 'singularity', 'backend', 'profile_edit_backend'),
+    ('--backend-args', '--fakeroot --cleanenv', 'backend_args', 'profile_edit_backend_args'),
     ('--source', '/tmp/test.sh', 'source', 'profile_edit_source'),
     ('--wi4mpi', '/usr/packages/installation', 'wi4mpi',
      'profile_edit_wi4mpi'),

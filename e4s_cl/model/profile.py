@@ -28,6 +28,10 @@ def attributes():
             'type': 'string',
             'description': 'container backend technology',
         },
+        'backend_args': {
+            'type': 'string',
+            'description': 'extra backend runtime arguments (optional)',
+        },
         'image': {
             'type': 'string',
             'description': 'image identifier',

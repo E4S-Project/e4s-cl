@@ -169,3 +169,26 @@ class ExecuteTests(tests.TestCase):
                 bind_mock.assert_any_call(temp_file.name, dest='/tmp/target', option=FileOptions.READ_WRITE)
 
         set_dry_run(False)
+
+    @tests.skipIf(not linker.resolve("libmpi.so"), "No test library available")
+    def test_execute_backend_args(self):
+        set_dry_run(True)
+
+        libmpi = str(linker.resolve('libmpi.so'))
+
+        with patch('e4s_cl.cli.commands.__execute.Container.add_runtime_options') as add_opts:
+            self.assertCommandReturnValue(0, COMMAND, [
+                '--backend',
+                'containerless',
+                '--image',
+                '',
+                '--backend-args',
+                '--fakeroot --cleanenv',
+                '--libraries',
+                libmpi,
+                'ls',
+            ])
+
+            add_opts.assert_called_once_with(['--fakeroot', '--cleanenv'])
+
+        set_dry_run(False)

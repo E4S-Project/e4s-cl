@@ -8,6 +8,7 @@ This command is used internally and thus cloaked from the UI
 
 import os
 import subprocess
+import shlex
 from typing import Union, List
 from pathlib import Path
 import re 
@@ -471,6 +472,12 @@ class ExecuteCommand(AbstractCommand):
                             help="Script to source",
                             metavar='libraries')
 
+        parser.add_argument('--backend-args',
+                    type=str,
+                    help="Additional raw arguments passed to the container backend",
+                    default='',
+                    metavar='args')
+
         parser.add_argument('cmd',
                             type=str,
                             help="Executable command, e.g. './a.out'",
@@ -486,6 +493,9 @@ class ExecuteCommand(AbstractCommand):
         # classes, and holds information about what is bound to the future
         # container launch
         container = Container(name=args.backend, image=args.image)
+
+        if args.backend_args:
+            container.add_runtime_options(shlex.split(args.backend_args))
 
         # All execute does is build this object that translates to a bash
         # script, that is then bound to the container to be executed

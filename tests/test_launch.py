@@ -8,7 +8,7 @@ from unittest.mock import patch
 from e4s_cl import config
 from e4s_cl.variables import set_dry_run
 from e4s_cl.cf.launchers import LAUNCHERS
-from e4s_cl.cli.commands.launch import COMMAND
+from e4s_cl.cli.commands.launch import COMMAND, Parameters, _format_execute
 from e4s_cl.cli.cli_view import CreateCommand
 from e4s_cl.model.profile import Profile
 
@@ -40,6 +40,19 @@ class LaunchTest(tests.TestCase):
 
     def tearDown(self):
         self.resetStorage()
+
+    def test_backend_args_forwarded_to_execute(self):
+        params = Parameters(
+            backend='containerless',
+            image='None',
+            backend_args='--fakeroot --cleanenv',
+        )
+
+        command = _format_execute(params)
+        self.assertContainsInOrder([
+            '--backend-args',
+            '--fakeroot --cleanenv',
+        ], command)
 
 
 def wrapper(launcher):

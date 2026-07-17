@@ -293,6 +293,7 @@ class Container:
         # User-set parameters
         # Files to bind: set(BoundFile)
         self._bound_files = set()
+        self._runtime_options = {}
         self.env = {}  # Environment
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
@@ -407,6 +408,8 @@ class Container:
         # If not             -> {container_id}_options
         marker = "_".join(filter(None, [container_type_id, kind, "options"]))
 
+        options = []
+
         # Fetch the options from the environment first
         env_options = get_env(marker)
         if env_options:
@@ -416,25 +419,45 @@ class Container:
                 marker.upper(),
                 env_options.split(),
             )
-            return env_options.split()
+            options = env_options.split()
+        else:
+            # If the environment is empty, try the configuration
+            config_options = getattr(
+                config.CONFIGURATION,
+                f"backends_{marker}",
+                None,
+            )
 
-        # If the environment is empty, try the configuration
-        config_options = getattr(
-            config.CONFIGURATION,
-            f"backends_{marker}",
-            None,
-        )
+            if config_options:
+                LOGGER.debug(
+                    "%s container additional options (from config %s): %s",
+                    container_type_id,
+                    marker,
+                    config_options,
+                )
+                options = list(config_options)
 
-        if config_options:
+        runtime_options = list(self._runtime_options.get(kind, []))
+        if runtime_options:
             LOGGER.debug(
-                "%s container additional options (from config %s): %s",
+                "%s container additional options (runtime %s): %s",
                 container_type_id,
                 marker,
-                config_options,
+                runtime_options,
             )
-            return config_options
+            options.extend(runtime_options)
 
-        return []
+        return options
+
+    def add_runtime_options(self,
+                            options: List[str],
+                            kind: Optional[str] = None) -> None:
+        """Add explicit runtime backend options for this container object."""
+        if not options:
+            return
+
+        slot = self._runtime_options.setdefault(kind, [])
+        slot.extend(options)
 
     def get_data(self):
         """
