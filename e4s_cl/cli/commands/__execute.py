@@ -7,6 +7,7 @@ This command is used internally and thus cloaked from the UI
 """
 
 import os
+import subprocess
 from typing import Union, List
 from pathlib import Path
 import re 
@@ -223,6 +224,62 @@ def _check_access(path: Union[Path, str]) -> bool:
                      Path(path).as_posix())
 
     return check
+
+
+def _missing_ldd_dependencies(path: Path) -> List[str]:
+    """
+    Return missing direct dependencies reported by `ldd` for a given library.
+
+    The function fails open: if `ldd` cannot inspect a file on this node,
+    return an empty list and let the caller keep the library.
+    """
+    try:
+        proc = subprocess.run(
+            ['ldd', path.as_posix()],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as err:
+        LOGGER.debug("Unable to inspect library dependencies for %s: %s", path,
+                     err)
+        return []
+
+    output = "\n".join(filter(None, [proc.stdout, proc.stderr]))
+    missing = []
+    for line in output.splitlines():
+        if '=> not found' in line:
+            missing.append(line.split('=>', 1)[0].strip())
+
+    return missing
+
+
+def _filter_available_libraries(
+        library_paths: List[Union[Path, str]]) -> List[Path]:
+    """
+    Keep libraries that exist locally and whose dependencies resolve locally.
+
+    This avoids importing optional accelerator variants (e.g., ROCm UCX libs)
+    that are visible in a profile but unusable on the current compute node.
+    """
+    filtered = []
+    for lib_path in library_paths:
+        path = Path(lib_path)
+
+        if not path.exists():
+            LOGGER.warning("Library '%s' not found on this node, skipping", path)
+            continue
+
+        missing = _missing_ldd_dependencies(path)
+        if missing:
+            LOGGER.warning(
+                "Library '%s' has unresolved dependencies on this node (%s), "
+                "skipping", path, ", ".join(missing))
+            continue
+
+        filtered.append(path)
+
+    return filtered
 
 
 # ------------------- MPICH-family aliasing (no OMPI) -------------------
@@ -446,17 +503,10 @@ class ExecuteCommand(AbstractCommand):
         # is used in the container to check version mismatches
         required_libraries = [*args.libraries, *wi4mpi_required]
 
-        # Filter out libraries that don't exist on this node. This can happen
-        # in multi-node launches where filesystems differ across nodes (e.g.
-        # ROCm libs present on some nodes but not others).
-        available_libraries = []
-        for lib_path in required_libraries:
-            if Path(lib_path).exists():
-                available_libraries.append(lib_path)
-            else:
-                LOGGER.warning("Library '%s' not found on this node, skipping",
-                               lib_path)
-        required_libraries = available_libraries
+        # Filter out libraries that are unavailable or not self-resolvable on
+        # this node. This avoids binding/preloading optional accelerator libs
+        # from mixed MPI builds when their runtime is not present.
+        required_libraries = _filter_available_libraries(required_libraries)
         
         # NOTE: Do NOT filter OpenMPI core libraries (libmpi.so.40, libopen-pal.so.40, etc.)
         # when Wi4MPI is active - Wi4MPI needs these to translate MPICH->OpenMPI calls.

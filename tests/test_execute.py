@@ -10,10 +10,50 @@ import tempfile
 from unittest.mock import patch
 from e4s_cl.cli.commands.__execute import (import_library, filter_libraries,
                                            overlay_libraries, select_libraries,
+                                           _filter_available_libraries,
                                            COMMAND)
 
 
 class ExecuteTests(tests.TestCase):
+
+    def test_filter_available_libraries_skips_unresolved_dependencies(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            ok_lib = Path(temp_dir) / 'libok.so'
+            bad_lib = Path(temp_dir) / 'libbad.so'
+            ok_lib.touch()
+            bad_lib.touch()
+
+            with patch(
+                    'e4s_cl.cli.commands.__execute._missing_ldd_dependencies',
+                    side_effect=[[], ['libhsa-runtime64.so.1']]):
+                filtered = _filter_available_libraries([ok_lib, bad_lib])
+
+            self.assertEqual(filtered, [ok_lib])
+
+    def test_filter_available_libraries_skips_missing_paths(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            ok_lib = Path(temp_dir) / 'libok.so'
+            missing_lib = Path(temp_dir) / 'libmissing.so'
+            ok_lib.touch()
+
+            with patch(
+                    'e4s_cl.cli.commands.__execute._missing_ldd_dependencies',
+                    return_value=[]):
+                filtered = _filter_available_libraries([ok_lib, missing_lib])
+
+            self.assertEqual(filtered, [ok_lib])
+
+    def test_filter_available_libraries_ldd_fail_open(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            ok_lib = Path(temp_dir) / 'libok.so'
+            ok_lib.touch()
+
+            with patch(
+                    'subprocess.run',
+                    side_effect=OSError('ldd unavailable')):
+                missing = _filter_available_libraries([ok_lib])
+
+            self.assertEqual(missing, [ok_lib])
 
     @tests.skipIf(not linker.resolve("libmpi.so"), "No test library available")
     def test_lib_import(self):
