@@ -181,6 +181,7 @@ class PodmanContainer(Container):
 
         with FDFiller():
             container_cmd = [executable, *self._prepare(command, overload)]
+            LOGGER.debug("%s backend command: %s", self.name, container_cmd)
             return run_subprocess(container_cmd, env=self.env)
 
 

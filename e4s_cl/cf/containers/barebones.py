@@ -149,6 +149,7 @@ class BarebonesContainer(Container):
     def run(self, command: List[str], overload: bool = True) -> int:
 
         container_cmd = [*self._prepare(command, overload)]
+        LOGGER.debug("%s backend command: %s", self.name, container_cmd)
 
         return run_subprocess(container_cmd, env=self.env)
 

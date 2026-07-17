@@ -54,6 +54,8 @@ class DockerContainer(Container):
                 container_env[key] = val
 
         try:
+            LOGGER.debug("%s backend command: image=%s command=%s", self.name,
+                         self.image, command)
             outlog = client.containers.run(image,
                                            command,
                                            environment=container_env,

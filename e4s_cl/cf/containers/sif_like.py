@@ -60,7 +60,10 @@ class SifLikeContainer(Container):
             })
 
         self._format_bound()
-        nvidia_flag = ['--nv'] if self._has_nvidia() else []
+        nvidia_enabled = self._has_nvidia()
+        nvidia_flag = ['--nv'] if nvidia_enabled else []
+        LOGGER.debug("%s backend --nv auto-detection: %s", self.name,
+                 nvidia_enabled)
 
         return [
             *self._additional_options(),
@@ -89,5 +92,6 @@ class SifLikeContainer(Container):
             raise BackendNotAvailableError(self.__class__.__name__)
 
         container_cmd = [executable, *self._prepare(command, overload)]
+        LOGGER.debug("%s backend command: %s", self.name, container_cmd)
 
         return run_subprocess(container_cmd, env=self.env)

@@ -87,6 +87,7 @@ class Containerless(Container):
             raise BackendNotAvailableError(self.executable)
 
         self._setup_import()
+        LOGGER.debug("%s backend command: %s", self.name, command)
 
         return run_subprocess(command, env=self.env)
 
