@@ -56,7 +56,7 @@ _e4s_cl_comp() {
                 --from)
                     COMPREPLY=($(compgen -W 'intelmpi interface mpich mvapich openmpi' -- "$cur")); return ;;
             esac
-            COMPREPLY=($(compgen -W '-h --help --profile --image --backend --source --files --libraries --wi4mpi --from' -- "$cur"))
+            COMPREPLY=($(compgen -W '-h --help --profile --image --backend --source --backend-args --files --libraries --wi4mpi --from' -- "$cur"))
             ;;
         profile)
             case "${words[2]}" in
@@ -72,7 +72,7 @@ _e4s_cl_comp() {
                     COMPREPLY=($(compgen -W '-h --help -@' -- "$cur"))
                     ;;
                 create)
-                    COMPREPLY=($(compgen -W '-h --help --libraries --files --backend --image --source --wi4mpi' -- "$cur"))
+                    COMPREPLY=($(compgen -W '-h --help --libraries --files --backend --backend-args --image --source --wi4mpi' -- "$cur"))
                     ;;
                 delete)
                     case "$prev" in
@@ -111,7 +111,7 @@ _e4s_cl_comp() {
                     if [[ $cword -ge 3 && "$cur" != -* ]]; then
                         __e4s_cl_complete_profiles "$cur"; return
                     fi
-                    COMPREPLY=($(compgen -W '-h --help --name --backend --image --source --add-files --remove-files --add-libraries --remove-libraries --wi4mpi' -- "$cur"))
+                    COMPREPLY=($(compgen -W '-h --help --name --backend --backend-args --image --source --add-files --remove-files --add-libraries --remove-libraries --wi4mpi' -- "$cur"))
                     ;;
                 list)
                     case "$prev" in
