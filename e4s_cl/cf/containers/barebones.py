@@ -103,7 +103,8 @@ class BarebonesContainer(Container):
         # from singularity (--nv flag) but causes MORE crashes with client containers
         # self.env.update({'SINGULARITYENV_LD_LIBRARY_PATH': ":".join(self.ld_lib_path)})
         self._format_bound()
-        nvidia_flag = ['--nv'] if self._has_nvidia() else []
+        # Barebones runs directly on the host and does not invoke a container
+        # runtime command where flags like --nv/--rocm would apply.
 
         return [
             *self._additional_options(),

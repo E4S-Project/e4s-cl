@@ -1,4 +1,6 @@
 from os import environ, pathsep
+from pathlib import Path
+from unittest.mock import patch
 
 import tests
 from e4s_cl.cf.containers import Container
@@ -122,3 +124,80 @@ class SifLikeContainerTestMixin:
                          container._executable())
 
         environ['PATH'] = default_path
+
+    def test_gpu_runtime_flag_nvidia_only(self):
+        container = self._container()
+
+        with patch('e4s_cl.cf.containers.sif_like.cache_libraries',
+                   return_value=['libnvidia-ml.so.1']):
+            runtime_command = container._prepare([''])
+
+        self.assertIn('--nv', runtime_command)
+        self.assertNotIn('--rocm', runtime_command)
+
+    def test_gpu_runtime_flag_rocm_only(self):
+        container = self._container()
+
+        with patch('e4s_cl.cf.containers.sif_like.cache_libraries',
+                   return_value=['libamdhip64.so.6', 'libhsa-runtime64.so.1']):
+            runtime_command = container._prepare([''])
+
+        self.assertIn('--rocm', runtime_command)
+        self.assertNotIn('--nv', runtime_command)
+
+    def test_gpu_runtime_flag_ambiguous_dual_stack(self):
+        container = self._container()
+
+        with patch('e4s_cl.cf.containers.sif_like.cache_libraries',
+                   return_value=['libnvidia-ml.so.1', 'libamdhip64.so.6']):
+            runtime_command = container._prepare([''])
+
+        self.assertIn('--nv', runtime_command)
+        self.assertNotIn('--rocm', runtime_command)
+
+    def test_gpu_runtime_flag_dual_stack_prefers_nvidia_workload_hint(self):
+        container = self._container()
+        container.add_ld_preload('/usr/lib64/libcuda.so.1')
+
+        with patch('e4s_cl.cf.containers.sif_like.cache_libraries',
+                   return_value=['libnvidia-ml.so.1', 'libamdhip64.so.6']):
+            runtime_command = container._prepare([''])
+
+        self.assertIn('--nv', runtime_command)
+        self.assertNotIn('--rocm', runtime_command)
+
+    def test_gpu_runtime_flag_dual_stack_prefers_rocm_workload_hint(self):
+        container = self._container()
+        container.add_ld_preload('/opt/rocm/lib/libamdhip64.so.6')
+
+        with patch('e4s_cl.cf.containers.sif_like.cache_libraries',
+                   return_value=['libnvidia-ml.so.1', 'libamdhip64.so.6']):
+            runtime_command = container._prepare([''])
+
+        self.assertIn('--rocm', runtime_command)
+        self.assertNotIn('--nv', runtime_command)
+
+    def test_gpu_runtime_flag_dual_stack_prefers_rocm_command_hint(self):
+        container = self._container()
+
+        with patch('e4s_cl.cf.containers.sif_like.cache_libraries',
+                   return_value=['libnvidia-ml.so.1', 'libamdhip64.so.6']):
+            runtime_command = container._prepare([Path('rocminfo')])
+
+        self.assertIn('--rocm', runtime_command)
+        self.assertNotIn('--nv', runtime_command)
+
+    def test_gpu_runtime_flag_prefers_resolved_rocm_libraries(self):
+        container = self._container()
+        container.gpu_runtime_libraries = [
+            '/opt/rocm-7.1.1/lib/libamdhip64.so.7',
+            '/opt/rocm-7.1.1/lib/librccl.so.1',
+            '/packages/mvapich2/plus/4.1-rocm7.1.1/lib/ucx/libuct_rocm.so.0',
+        ]
+
+        with patch('e4s_cl.cf.containers.sif_like.cache_libraries',
+                   return_value=['libnvidia-ml.so.1', 'libamdhip64.so.6']):
+            runtime_command = container._prepare([''])
+
+        self.assertIn('--rocm', runtime_command)
+        self.assertNotIn('--nv', runtime_command)

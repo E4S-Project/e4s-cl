@@ -39,6 +39,25 @@ from e4s_cl.cf.wi4mpi import (
 LOGGER = logger.get_logger(__name__)
 _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
 
+# Libraries that must never be force-preloaded via LD_PRELOAD even when they
+# would otherwise be selected as "top level" (unclaimed) members of the
+# imported library set.
+#
+# These are runtime plugins that ROCm/HIP expects to `dlopen` on its own
+# terms. librocprofiler-register.so in particular relies on the *loading*
+# process resolving an optional `rocprofiler_configure` symbol lazily; when
+# it is instead forced into LD_PRELOAD, the dynamic linker performs eager
+# binding of that reference and aborts with a fatal "undefined symbol"
+# error, which crashes the whole launch (observed as a SIGSEGV in the target
+# application once the aborted preload leaves HIP in a broken state).
+_PRELOAD_SONAME_DENYLIST = ('librocprofiler-register.so', )
+
+
+def _preloadable(library_path: str) -> bool:
+    """Return False if a library's soname is known to be unsafe to preload."""
+    name = Path(library_path).name
+    return not name.startswith(_PRELOAD_SONAME_DENYLIST)
+
 
 def import_library(shared_object, container):
     """
@@ -524,6 +543,11 @@ class ExecuteCommand(AbstractCommand):
         
         libset = LibrarySet.create_from(required_libraries)
         if libset:
+            # get_data() itself runs a command in the container (to read
+            # /etc/ld.so.cache), which goes through _prepare() and thus needs
+            # --nv/--rocm decided already; seed it with the pre-filter set.
+            container.gpu_runtime_libraries = [str(shared_object)
+                                               for shared_object in required_libraries]
             # Analyze the container to get library information from the environment
             # it offers, using the entrypoint and the above libraries
             container.get_data()
@@ -567,6 +591,10 @@ class ExecuteCommand(AbstractCommand):
         # Create a set of libraries to import using a library_set object,
         # then filtering it according to the contents of the container
         final_libset = select_libraries(libset, container, params)
+
+        # Narrow to what will actually be imported, for the real run() call below.
+        container.gpu_runtime_libraries = [str(shared_object)
+                                           for shared_object in final_libset]
 
         # Import each library along with all symlinks pointing to it
         for shared_object in final_libset:
@@ -620,6 +648,19 @@ class ExecuteCommand(AbstractCommand):
             # Now construct preload list AFTER libraries are imported
             # wi4mpi_preload will use container paths that we just ensured exist
             params.preload += wi4mpi_preload(wi4mpi_install_dir, container.import_library_dir)
+
+        # Regardless of which branch populated it, strip out any libraries
+        # known to be unsafe to force-load via LD_PRELOAD (e.g. ROCm plugins
+        # that expect to be dlopen'd lazily).
+        denied = [path for path in params.preload if not _preloadable(path)]
+        if denied:
+            for path in denied:
+                LOGGER.debug(
+                    "Not preloading '%s': known to be unsafe to force-load "
+                    "via LD_PRELOAD", path)
+            params.preload = [
+                path for path in params.preload if _preloadable(path)
+            ]
 
         # Write the entry script to a file, then bind it to the container
         script_name = params.setup()

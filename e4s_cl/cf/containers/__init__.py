@@ -298,6 +298,10 @@ class Container:
         self.ld_preload = []  # Files to put in LD_PRELOAD
         self.ld_lib_path = []  # Directories to put in LD_LIBRARY_PATH
 
+        # Libraries resolved for this run (set by callers, e.g. execute.py);
+        # scanned for vendor markers to pick --nv/--rocm. Empty by default.
+        self.gpu_runtime_libraries = []
+
         self.libc_v = Version('0.0.0')
         self.cache = {}
 

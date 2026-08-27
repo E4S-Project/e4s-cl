@@ -11,6 +11,7 @@ from unittest.mock import patch
 from e4s_cl.cli.commands.__execute import (import_library, filter_libraries,
                                            overlay_libraries, select_libraries,
                                            _filter_available_libraries,
+                                           _preloadable,
                                            COMMAND)
 
 
@@ -54,6 +55,14 @@ class ExecuteTests(tests.TestCase):
                 missing = _filter_available_libraries([ok_lib])
 
             self.assertEqual(missing, [ok_lib])
+
+    def test_preloadable_denies_rocprofiler_register(self):
+        self.assertFalse(
+            _preloadable('/.e4s-cl/hostlibs/librocprofiler-register.so.0'))
+
+    def test_preloadable_allows_other_libraries(self):
+        self.assertTrue(_preloadable('/.e4s-cl/hostlibs/libamdhip64.so.7'))
+        self.assertTrue(_preloadable('/.e4s-cl/hostlibs/libuct_rocm.so.0'))
 
     @tests.skipIf(not linker.resolve("libmpi.so"), "No test library available")
     def test_lib_import(self):
