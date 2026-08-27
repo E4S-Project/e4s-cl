@@ -629,7 +629,8 @@ compute_env_fingerprint() {
 # Slurm version mismatches between srun and slurmd cause silent PMI2 failures.
 check_slurm_pmi() {
   local srun_bin="$1"
-  local partition="${2:-}"
+  shift
+  local -a real_launcher_args=("$@") 
   local warned=0
 
   if [[ ! -x "${srun_bin}" ]]; then
@@ -643,6 +644,21 @@ check_slurm_pmi() {
     return 0
   fi
   log "srun version: ${srun_version} (${srun_bin})"
+
+  local partition=""
+  local skip_next=0
+  for ((i=0; i<${#real_launcher_args[@]}; i++)); do
+    arg="${real_launcher_args[$i]}"
+    if [[ "${skip_next}" == "1" ]]; then
+      partition="${arg}"
+      skip_next=0
+      continue
+    fi
+    case "${arg}" in
+      -p|--partition) skip_next=1 ;;
+      --partition=*) partition="${arg#--partition=}" ;;
+    esac
+  done
 
   # Check slurmd versions on target partition nodes
   local partition_nodes=""
@@ -714,13 +730,22 @@ check_slurm_pmi() {
   # Quick PMI2 connectivity test: run a trivial command through srun
   if [[ "${E4S_CL_SKIP_PMI_CHECK}" != "1" ]]; then
     log "Running PMI2 connectivity sanity check..."
-    local pmi_test_args=("-n" "1")
-    if [[ -n "${partition}" ]]; then
-      pmi_test_args+=("-p" "${partition}")
-    fi
+     local -a pmi_test_args=()
+    skip_next=0
+    for ((i=0; i<${#real_launcher_args[@]}; i++)); do
+      arg="${real_launcher_args[$i]}"
+      if [[ "${skip_next}" == "1" ]]; then skip_next=0; continue; fi
+      case "${arg}" in
+        -n|--ntasks) skip_next=1; continue ;;
+        -n*|--ntasks=*) continue ;;
+      esac
+      pmi_test_args+=("${arg}")
+    done
+    pmi_test_args=("-n" "2" "${pmi_test_args[@]}")
+
     set +e
     local pmi_output
-    pmi_output="$("${srun_bin}" "${pmi_test_args[@]}" --mpi=pmi2 hostname 2>&1)"
+    pmi_output="$("${srun_bin}" "${pmi_test_args[@]}" hostname 2>&1)"
     local pmi_ret=$?
     set -e
     if [[ $pmi_ret -ne 0 ]]; then
@@ -781,6 +806,10 @@ HOST_MPIRUN="${E4S_CL_HOST_MPIRUN:-$(command -v mpirun || command -v mpiexec || 
 # On Cray systems, the cc/CC wrappers can behave differently than mpicc/mpicxx
 # Switch when mpicc resolves into a Cray tree.
 # --host-mpicc (or exporting E4S_CL_HOST_MPICXX) overrides.
+
+ORIG_HOST_MPICC="${HOST_MPICC}"
+IS_CRAY_HOST_MPI="0"
+
 if [[ "${HOST_MPICC_EXPLICIT}" == "0" && "${HOST_MPICC}" == *"/cray/pe/"* ]] && check_cmd cc; then
   log "mpicc resolves under /cray/pe/ (${HOST_MPICC}); switching to Cray wrapper 'cc' to avoid PMI failures"
   log "  Override with --host-mpicc <path> if you want a specific mpicc instead"
@@ -788,10 +817,12 @@ if [[ "${HOST_MPICC_EXPLICIT}" == "0" && "${HOST_MPICC}" == *"/cray/pe/"* ]] && 
   if [[ "${HOST_MPICXX_EXPLICIT}" == "0" ]] && check_cmd CC; then
     HOST_MPICXX="$(command -v CC)"
   fi
+   IS_CRAY_HOST_MPI="1"
 fi
 
 [[ -n "${HOST_MPICC}" ]] || fail "Host MPI compiler not found (mpicc, or cc for Cray systems)"
 [[ -n "${HOST_MPIRUN}" ]] || fail "Host MPI launcher not found (mpirun or mpiexec)"
+
 
 if [[ -z "${E4S_CL_SCHEDULER}" && "${E4S_CL_LAUNCHER##*/}" == "srun" ]]; then
   E4S_CL_SCHEDULER="slurm"
@@ -837,15 +868,26 @@ log "Detected host MPI family: ${HOST_MPI_FAMILY:-unknown}"
 
 # Slurm version / PMI sanity check (when srun is the launcher)
 if [[ "${LAUNCHER_BIN##*/}" == "srun" ]]; then
-  # Extract partition from launcher args if present (look for -p or --partition)
-  LAUNCHER_PARTITION=""
-  for ((i=0; i<${#LAUNCHER_ARGS[@]}; i++)); do
-    if [[ "${LAUNCHER_ARGS[$i]}" == "-p" || "${LAUNCHER_ARGS[$i]}" == "--partition" ]]; then
-      LAUNCHER_PARTITION="${LAUNCHER_ARGS[$((i+1))]:-}"
-      break
+
+if [[ "${IS_CRAY_HOST_MPI}" == "1" && "${LAUNCHER_BIN##*/}" == "srun" ]]; then
+  if [[ "${E4S_CL_LAUNCHER_ARGS}" == *"--mpi="* ]]; then
+    log "CONFIG: --launcher-args already specifies --mpi=; not second-guessing it"
+  else
+    SITE_MPI_DEFAULT="$(scontrol show config 2>/dev/null | awk -F= '/^MpiDefault/{gsub(/ /,"",$2); print $2}')"
+    if [[ -n "${SITE_MPI_DEFAULT}" && "${SITE_MPI_DEFAULT,,}" == *cray* ]]; then
+      log "Site MpiDefault='${SITE_MPI_DEFAULT}' looks Cray-aware; leaving launcher args as-is"
+    else
+      log "WARNING: Cray MPICH detected, but this cluster's Slurm MpiDefault is '${SITE_MPI_DEFAULT:-unset}',"
+      log "WARNING: which may not work with Cray-MPICH's native PMI."
+      log "WARNING: Available plugins on this cluster: $(srun --mpi=list 2>&1 | tr '\n' ' ')"
+      log "WARNING: If one of those looks Cray-specific, pass it explicitly:"
+      log "WARNING:   --launcher-args \"--mpi=<plugin-name>\""
     fi
-  done
-  check_slurm_pmi "${LAUNCHER_BIN}" "${LAUNCHER_PARTITION}"
+  fi
+fi
+
+
+  check_slurm_pmi "${LAUNCHER_BIN}" "${LAUNCHER_ARGS[@]}"
 fi
 
 # Compute environment fingerprint for build cache validation
