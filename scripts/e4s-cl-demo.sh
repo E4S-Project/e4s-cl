@@ -759,10 +759,38 @@ fi
 
 
 # Host MPI detection
-HOST_MPICC="${E4S_CL_HOST_MPI:-$(command -v mpicc || true)}"
-HOST_MPICXX="${E4S_CL_HOST_MPICXX:-$(command -v mpicxx || command -v mpic++ || true)}"
+HOST_MPICC_EXPLICIT="0"
+if [[ -n "${E4S_CL_HOST_MPI:-}" ]]; then
+  HOST_MPICC_EXPLICIT="1"
+  HOST_MPICC="${E4S_CL_HOST_MPI}"
+else
+  HOST_MPICC="$(command -v mpicc || true)"
+fi
+
+HOST_MPICXX_EXPLICIT="0"
+if [[ -n "${E4S_CL_HOST_MPICXX:-}" ]]; then
+  HOST_MPICXX_EXPLICIT="1"
+  HOST_MPICXX="${E4S_CL_HOST_MPICXX}"
+else
+  HOST_MPICXX="$(command -v mpicxx || command -v mpic++ || true)"
+fi
+
 HOST_MPIRUN="${E4S_CL_HOST_MPIRUN:-$(command -v mpirun || command -v mpiexec || true)}"
-[[ -n "${HOST_MPICC}" ]] || fail "Host MPI compiler not found (mpicc)"
+
+
+# On Cray systems, the cc/CC wrappers can behave differently than mpicc/mpicxx
+# Switch when mpicc resolves into a Cray tree.
+# --host-mpicc (or exporting E4S_CL_HOST_MPICXX) overrides.
+if [[ "${HOST_MPICC_EXPLICIT}" == "0" && "${HOST_MPICC}" == *"/cray/pe/"* ]] && check_cmd cc; then
+  log "mpicc resolves under /cray/pe/ (${HOST_MPICC}); switching to Cray wrapper 'cc' to avoid PMI failures"
+  log "  Override with --host-mpicc <path> if you want a specific mpicc instead"
+  HOST_MPICC="$(command -v cc)"
+  if [[ "${HOST_MPICXX_EXPLICIT}" == "0" ]] && check_cmd CC; then
+    HOST_MPICXX="$(command -v CC)"
+  fi
+fi
+
+[[ -n "${HOST_MPICC}" ]] || fail "Host MPI compiler not found (mpicc, or cc for Cray systems)"
 [[ -n "${HOST_MPIRUN}" ]] || fail "Host MPI launcher not found (mpirun or mpiexec)"
 
 if [[ -z "${E4S_CL_SCHEDULER}" && "${E4S_CL_LAUNCHER##*/}" == "srun" ]]; then
@@ -1003,20 +1031,20 @@ if [[ "${REBUILD_HOST_OSU}" == "1" ]]; then
     unset CXXFLAGS
     cd "${OSU_SRC_DIR}"
 
-    build_cmd() {
+    #build_cmd() {
       # Configure with both CC and CXX set to MPI wrappers to avoid linker issues
       if [[ -n "${HOST_MPICXX}" ]]; then
-        ./configure CC="${HOST_MPICC}" CXX="${HOST_MPICXX}" --prefix="${OSU_HOST_PREFIX}"
+        run_silent  ./configure CC="${HOST_MPICC}" CXX="${HOST_MPICXX}" --prefix="${OSU_HOST_PREFIX}"
       else
         # If no MPI C++ wrapper found, unset CXX to prevent using raw compiler for linking
         unset CXX
-        ./configure CC="${HOST_MPICC}" --prefix="${OSU_HOST_PREFIX}"
+        run_silent ./configure CC="${HOST_MPICC}" --prefix="${OSU_HOST_PREFIX}"
       fi
-      make -j
-      make install
-    }
+      run_silent make -C mpi -j
+      run_silent make -C mpi install
+    #}
     
-    run_silent build_cmd
+    #run_silent build_cmd
   )
   printf "mpicc=%s\nmpicc_version=%s\nosu_url=%s\nenv_fingerprint=%s\n" "${HOST_MPICC}" "${HOST_MPICC_VERSION}" "${E4S_CL_OSU_URL}" "${ENV_FINGERPRINT}" > "${OSU_HOST_META}"
 else
@@ -1217,8 +1245,8 @@ if [[ "${REBUILD_CONT_OSU}" == "1" ]]; then
     tar -xzf /cache/osu.tar.gz -C osu-container-build --strip-components=1; \
     cd osu-container-build; \
     ./configure CC=mpicc --prefix=/work/osu-container; \
-    make -j; \
-    make install; \
+    make -C mpi -j; \
+    make -C mpi install; \
   "
   printf "container_mpi=%s\nosu_url=%s\n" "${CONTAINER_MPI_VERSION}" "${E4S_CL_OSU_URL}" > "${OSU_CONT_META}"
 else
