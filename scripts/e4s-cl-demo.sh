@@ -203,7 +203,7 @@ Options:
   --use-installed              Use e4s-cl from PATH instead of building a local venv (default: off)
                                Useful when running from a source checkout against a deployed install.
                                May also be set via the E4S_CL_USE_INSTALLED=1 environment variable.
-  --check                      Check environment prerequisites and exit
+  --check                      Check environment prerequisites and exit (use with launcher-args for sanity check)
   -h, --help                   Show help
 
 NOTE: OSU benchmarks integrity verification
@@ -230,6 +230,27 @@ parse_bool() {
 
 sanitize_tag() {
   echo "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9._-]+#-#g' | sed -E 's/^-+|-+$//g'
+}
+
+# Extract a -p/--partition value out of a launcher-args array, if present.
+extract_partition_arg() {
+  local args=("$@")
+  local partition=""
+  local skip_next=0
+  local arg
+  for ((i=0; i<${#args[@]}; i++)); do
+    arg="${args[$i]}"
+    if [[ "${skip_next}" == "1" ]]; then
+      partition="${arg}"
+      skip_next=0
+      continue
+    fi
+    case "${arg}" in
+      -p|--partition) skip_next=1 ;;
+      --partition=*) partition="${arg#--partition=}" ;;
+    esac
+  done
+  echo "${partition}"
 }
 
 normalize_scheduler() {
@@ -315,35 +336,37 @@ check_cmd() {
 
 if [[ "${E4S_CL_ONLY_CHECK:-0}" == "1" ]]; then
   log "Checking environment..."
-  
-  MISSING=0
-  
+
+  # Failure reasons are collected here so the final summary states exactly
+  # what needs fixing, instead of a generic "something is missing" message.
+  CHECK_FAILURES=()
+
   log "Checking Python..."
   if check_cmd python3; then
      PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "unknown")
      log "  Found: $(command -v python3) (Python ${PYTHON_VERSION})"
-     
+
      # Check version (need 3.7+)
      if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)" 2>/dev/null; then
        log "  Version check: OK (>= 3.7)"
      else
        log "  ERROR: Python ${PYTHON_VERSION} is too old (need 3.7+)"
-       MISSING=1
+       CHECK_FAILURES+=("Python ${PYTHON_VERSION} is too old (need 3.7+)")
      fi
-     
+
      # Check for ctypes support (required by e4s-cl)
      if python3 -c "import ctypes" 2>/dev/null; then
        log "  ctypes support: OK"
      else
        log "  ERROR: Python missing ctypes module (compiled without libffi)"
        log "  Try: module unload python, or use a Python built with libffi-dev"
-       MISSING=1
+       CHECK_FAILURES+=("python3 is missing the ctypes module (needs libffi)")
      fi
   else
      log "  MISSING: python3"
-     MISSING=1
+     CHECK_FAILURES+=("python3 not found in PATH")
   fi
-  
+
   log "Checking Container Runtime..."
   if check_cmd apptainer; then
      log "  Found: $(command -v apptainer) ($(apptainer --version))"
@@ -351,17 +374,17 @@ if [[ "${E4S_CL_ONLY_CHECK:-0}" == "1" ]]; then
      log "  Found: $(command -v singularity) ($(singularity --version))"
   else
      log "  MISSING: apptainer or singularity"
-     MISSING=1
+     CHECK_FAILURES+=("neither apptainer nor singularity found in PATH")
   fi
-  
+
   log "Checking MPI..."
   if check_cmd mpicc; then
      log "  Found: $(command -v mpicc)"
   else
      log "  MISSING: mpicc (common in default environments, but needed for tests)"
-     MISSING=1
+     CHECK_FAILURES+=("mpicc not found in PATH")
   fi
-  
+
   if check_cmd mpirun; then
      log "  Found: $(command -v mpirun)"
   elif check_cmd mpiexec; then
@@ -370,16 +393,16 @@ if [[ "${E4S_CL_ONLY_CHECK:-0}" == "1" ]]; then
      log "  mpirun/mpiexec not found, but srun is available (use --launcher srun or --scheduler slurm)"
   else
      log "  MISSING: mpirun/mpiexec (and no srun available)"
-     MISSING=1
+     CHECK_FAILURES+=("no MPI launcher found (mpirun, mpiexec, or srun)")
   fi
-  
+
   log "Checking Utilities..."
   for tool in curl tar make gcc timeout; do
     if check_cmd "$tool"; then
        log "  Found: $tool"
     else
        log "  MISSING: $tool"
-       MISSING=1
+       CHECK_FAILURES+=("required utility '${tool}' not found in PATH")
     fi
   done
 
@@ -388,82 +411,67 @@ if [[ "${E4S_CL_ONLY_CHECK:-0}" == "1" ]]; then
     SRUN_PATH="$(command -v srun)"
     SRUN_VER="$(srun --version 2>/dev/null | awk '{print $2}' || true)"
     log "  Found: srun ${SRUN_VER} (${SRUN_PATH})"
-
-    # Check for srun/slurmd version mismatch — collect per-node info
-    # Build a map of slurmd version → node names for readable output
     SRUN_MAJOR="$(echo "${SRUN_VER}" | cut -d. -f1-2)"
-    SLURM_MISMATCH=0
-    declare -A VERSION_NODES  # version -> comma-separated node list
-    # Parse scontrol output: extract NodeName and Version from each node block
-    CURRENT_NODE=""
-    while IFS= read -r LINE; do
-      if [[ "${LINE}" =~ NodeName=([^[:space:]]+) ]]; then
-        CURRENT_NODE="${BASH_REMATCH[1]}"
-      fi
-      if [[ -n "${CURRENT_NODE}" && "${LINE}" =~ Version=([^[:space:]]+) ]]; then
-        NODE_VER="${BASH_REMATCH[1]}"
-        if [[ -n "${VERSION_NODES[${NODE_VER}]+x}" ]]; then
-          VERSION_NODES[${NODE_VER}]="${VERSION_NODES[${NODE_VER}]}, ${CURRENT_NODE}"
-        else
-          VERSION_NODES[${NODE_VER}]="${CURRENT_NODE}"
-        fi
+
+    # Only compare versions against the nodes this run will actually use,
+    # taken from --launcher-args "-p <partition>". Scanning every node in
+    # the cluster is noisy and often flags nodes that are never targeted.
+    CHECK_PARTITION=""
+    if [[ -n "${E4S_CL_LAUNCHER_ARGS}" ]]; then
+      read -r -a _check_launcher_args <<< "${E4S_CL_LAUNCHER_ARGS}"
+      CHECK_PARTITION="$(extract_partition_arg "${_check_launcher_args[@]}")"
+    fi
+
+    if [[ -z "${CHECK_PARTITION}" ]]; then
+      log "  No partition given (pass --launcher-args \"-p <partition>\" to check the nodes you'll actually use);"
+      log "  skipping slurmd version check to avoid flagging irrelevant nodes."
+    else
+      log "  Checking slurmd versions on partition: ${CHECK_PARTITION}"
+      PARTITION_NODES="$(scontrol show partition "${CHECK_PARTITION}" 2>/dev/null | grep -oP 'Nodes=\K\S+' || true)"
+      if [[ -z "${PARTITION_NODES}" ]]; then
+        log "  WARNING: Could not resolve nodes for partition '${CHECK_PARTITION}' (scontrol unavailable or invalid partition name)"
+      else
+        declare -A VERSION_NODES  # version -> comma-separated node list
         CURRENT_NODE=""
-      fi
-    done < <(scontrol show node 2>/dev/null || true)
+        while IFS= read -r LINE; do
+          if [[ "${LINE}" =~ NodeName=([^[:space:]]+) ]]; then
+            CURRENT_NODE="${BASH_REMATCH[1]}"
+          fi
+          if [[ -n "${CURRENT_NODE}" && "${LINE}" =~ Version=([^[:space:]]+) ]]; then
+            NODE_VER="${BASH_REMATCH[1]}"
+            VERSION_NODES[${NODE_VER}]="${VERSION_NODES[${NODE_VER}]:+${VERSION_NODES[${NODE_VER}]}, }${CURRENT_NODE}"
+            CURRENT_NODE=""
+          fi
+        done < <(scontrol show node "${PARTITION_NODES}" 2>/dev/null || true)
 
-    if [[ ${#VERSION_NODES[@]} -gt 0 ]]; then
-      # Find the single best srun for the most common mismatched version
-      SUGGESTED_SRUN=""
-      SUGGESTED_VER=""
-      for NV in "${!VERSION_NODES[@]}"; do
-        NV_MAJOR="$(echo "${NV}" | cut -d. -f1-2)"
-        if [[ "${SRUN_MAJOR}" != "${NV_MAJOR}" ]]; then
-          SLURM_MISMATCH=1
-          NODES="${VERSION_NODES[${NV}]}"
-          log "  WARNING: slurmd ${NV} on nodes: ${NODES}"
-        fi
-      done
-
-      if [[ "${SLURM_MISMATCH}" == "1" ]]; then
-        log "  WARNING: srun ${SRUN_VER} does not match slurmd on some compute nodes!"
-        log "  WARNING: This causes PMI2 failures. Use --launcher <path-to-matching-srun>"
-        log "  WARNING: Pick the srun version matching the nodes in your target partition."
-
-        # Find compatible srun paths for each mismatched version
-        declare -A SUGGESTED_FOR_MAJOR  # major.minor -> best srun path
+        SLURM_MISMATCH=0
         for NV in "${!VERSION_NODES[@]}"; do
           NV_MAJOR="$(echo "${NV}" | cut -d. -f1-2)"
-          [[ "${SRUN_MAJOR}" != "${NV_MAJOR}" ]] || continue
-          [[ -z "${SUGGESTED_FOR_MAJOR[${NV_MAJOR}]+x}" ]] || continue
-
-          EXACT="" FALLBACK=""
-          for D in /usr/local/packages/slurm/*/bin/srun; do
-            [[ -x "$D" ]] || continue
-            DV="$("$D" --version 2>/dev/null | awk '{print $2}' || true)"
-            if [[ "${DV}" == "${NV}" ]]; then EXACT="$D"; break; fi
-            DV_MAJOR="$(echo "${DV}" | cut -d. -f1-2)"
-            if [[ "${DV_MAJOR}" == "${NV_MAJOR}" && -z "${FALLBACK}" ]]; then FALLBACK="$D"; fi
-          done
-          BEST="${EXACT:-${FALLBACK}}"
-          if [[ -n "${BEST}" ]]; then
-            BMV="$("${BEST}" --version 2>/dev/null | awk '{print $2}' || true)"
-            SUGGESTED_FOR_MAJOR[${NV_MAJOR}]="${BEST}"
-            log "  SUGGESTION: --launcher ${BEST} (version ${BMV}, for slurmd ${NV_MAJOR}.x nodes)"
+          if [[ "${SRUN_MAJOR}" != "${NV_MAJOR}" ]]; then
+            SLURM_MISMATCH=1
+            log "  WARNING: slurmd ${NV} on nodes: ${VERSION_NODES[${NV}]}"
           fi
         done
-        MISSING=1
-      else
-        log "  srun/slurmd version match: OK"
+
+        if [[ "${SLURM_MISMATCH}" == "1" ]]; then
+          log "  WARNING: srun ${SRUN_VER} does not match slurmd on partition '${CHECK_PARTITION}' nodes!"
+          log "  WARNING: This causes PMI2 failures. Use --launcher <path-to-matching-srun>"
+          CHECK_FAILURES+=("srun ${SRUN_VER} does not match slurmd on partition '${CHECK_PARTITION}' (see WARNING lines above)")
+        else
+          log "  srun/slurmd version match: OK"
+        fi
       fi
-    else
-      log "  Could not check slurmd versions (scontrol unavailable)"
     fi
   else
     log "  srun not found (not Slurm-managed, or srun not in PATH)"
   fi
-  
-  if [[ "$MISSING" -eq 1 ]]; then
-     fail "One or more prerequisites missing."
+
+  if [[ ${#CHECK_FAILURES[@]} -gt 0 ]]; then
+     log "Issues found:"
+     for issue in "${CHECK_FAILURES[@]}"; do
+       log "  - ${issue}"
+     done
+     fail "${#CHECK_FAILURES[@]} issue(s) found (see above)."
   else
      log "Environment looks good!"
      exit 0
@@ -645,29 +653,17 @@ check_slurm_pmi() {
   fi
   log "srun version: ${srun_version} (${srun_bin})"
 
-  local partition=""
-  local skip_next=0
-  for ((i=0; i<${#real_launcher_args[@]}; i++)); do
-    arg="${real_launcher_args[$i]}"
-    if [[ "${skip_next}" == "1" ]]; then
-      partition="${arg}"
-      skip_next=0
-      continue
-    fi
-    case "${arg}" in
-      -p|--partition) skip_next=1 ;;
-      --partition=*) partition="${arg#--partition=}" ;;
-    esac
-  done
+  local partition
+  partition="$(extract_partition_arg "${real_launcher_args[@]}")"
 
-  # Check slurmd versions on target partition nodes
-  local partition_nodes=""
-  if [[ -n "${partition}" ]]; then
+  if [[ -z "${partition}" ]]; then
+    log "No partition given via --launcher-args \"-p <partition>\"; skipping slurmd version check"
+    log "(pass --launcher-args \"-p <partition>\" to check the nodes this run will actually use)"
+    partition_nodes=""
+  else
+    # Check slurmd versions on target partition nodes
+    local partition_nodes=""
     partition_nodes="$(scontrol show partition "${partition}" 2>/dev/null | grep -oP 'Nodes=\K\S+' || true)"
-  fi
-  if [[ -z "${partition_nodes}" ]]; then
-    # Try to get nodes from default partition or any available
-    partition_nodes="$(scontrol show partition 2>/dev/null | grep -oP 'Nodes=\K\S+' | head -1 || true)"
   fi
 
   if [[ -n "${partition_nodes}" ]]; then
@@ -684,39 +680,7 @@ check_slurm_pmi() {
           log "WARNING: srun version (${srun_version}) does not match slurmd on compute nodes (${nv})"
           log "WARNING: This version mismatch causes PMI2 communication failures!"
           log "WARNING: The srun major.minor (${srun_major}) differs from slurmd (${nv_major})"
-
-          # Try to find a matching srun: prefer exact version, fall back to major.minor
-          local slurm_base="/usr/local/packages/slurm"
-          local exact_match="" major_match=""
-          if [[ -d "${slurm_base}" ]]; then
-            # Check exact version path first
-            if [[ -x "${slurm_base}/${nv}/bin/srun" ]]; then
-              exact_match="${slurm_base}/${nv}/bin/srun"
-            fi
-            # Scan for major.minor match as fallback
-            if [[ -z "${exact_match}" ]]; then
-              for d in "${slurm_base}"/*/bin/srun; do
-                if [[ -x "$d" ]]; then
-                  local dv
-                  dv="$("$d" --version 2>/dev/null | awk '{print $2}' || true)"
-                  if [[ "${dv}" == "${nv}" ]]; then
-                    exact_match="$d"
-                    break
-                  fi
-                  local dv_major
-                  dv_major="$(echo "${dv}" | cut -d. -f1-2)"
-                  if [[ "${dv_major}" == "${nv_major}" && -z "${major_match}" ]]; then
-                    major_match="$d"
-                  fi
-                fi
-              done
-            fi
-            local best_match="${exact_match:-${major_match}}"
-            if [[ -n "${best_match}" ]]; then
-              log "WARNING: Found compatible srun at: ${best_match}"
-              log "WARNING: Use --launcher ${best_match} to fix this"
-            fi
-          fi
+          log "WARNING: Pass --launcher <path-to-a-srun-matching-slurmd-${nv_major}.x> to fix this"
           warned=1
         fi
       done <<< "${node_versions}"
