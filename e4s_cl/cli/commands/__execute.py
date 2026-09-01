@@ -28,6 +28,7 @@ from e4s_cl.cli.command import AbstractCommand
 from e4s_cl.cf.template import Entrypoint
 from e4s_cl.cf.containers import Container, FileOptions
 from e4s_cl.cf.libraries import (libc_version, library_links)
+from e4s_cl.cf.rocm import ROCM_PRELOAD_DENYLIST, diagnostic_env, discover_rocm_assets
 from e4s_cl.cf.wi4mpi import (
     wi4mpi_import,
     wi4mpi_libpath,
@@ -41,16 +42,10 @@ _SCRIPT_CMD = Path(E4S_CL_SCRIPT).name
 
 # Libraries that must never be force-preloaded via LD_PRELOAD even when they
 # would otherwise be selected as "top level" (unclaimed) members of the
-# imported library set.
-#
-# These are runtime plugins that ROCm/HIP expects to `dlopen` on its own
-# terms. librocprofiler-register.so in particular relies on the *loading*
-# process resolving an optional `rocprofiler_configure` symbol lazily; when
-# it is instead forced into LD_PRELOAD, the dynamic linker performs eager
-# binding of that reference and aborts with a fatal "undefined symbol"
-# error, which crashes the whole launch (observed as a SIGSEGV in the target
-# application once the aborted preload leaves HIP in a broken state).
-_PRELOAD_SONAME_DENYLIST = ('librocprofiler-register.so', )
+# imported library set. Sourced from e4s_cl.cf.rocm so ROCm-specific
+# knowledge stays centralized there; extend with a tuple concatenation here
+# if a non-ROCm backend ever needs its own denylist entries.
+_PRELOAD_SONAME_DENYLIST = ROCM_PRELOAD_DENYLIST
 
 
 def _preloadable(library_path: str) -> bool:
@@ -584,7 +579,16 @@ class ExecuteCommand(AbstractCommand):
 
         # Setup the final command and metadata relating to the execution
         params.command = args.cmd
-        params.debug = logger.debug_mode()
+        # `-v` alone only raises e4s-cl's own log level; it does not imply a
+        # full dynamic-linker trace of the actual command, which is easily
+        # tens of MBs for a multi-rank job. That requires an explicit opt-in.
+        params.debug = logger.debug_mode() and bool(
+            os.environ.get('E4S_CL_LD_DEBUG'))
+        if logger.debug_mode() and not params.debug:
+            LOGGER.debug(
+                "Not enabling LD_DEBUG=files for the container command "
+                "(set E4S_CL_LD_DEBUG=1 to also get a full dynamic linker "
+                "trace of the real launch; this can be very large)")
         params.linker_library_path = generate_rtld_path(
             container, wi4mpi_install_dir)
 
@@ -599,6 +603,34 @@ class ExecuteCommand(AbstractCommand):
         # Import each library along with all symlinks pointing to it
         for shared_object in final_libset:
             import_library(shared_object, container)
+
+        # ROCm/HIP lazy-loads non-.so assets (e.g. the amdgcn/bitcode LLVM
+        # bitcode COMGR needs to JIT-compile blit kernels) by a path
+        # relative to libamdhip64.so/libamd_comgr.so on disk. Since only
+        # the .so itself gets relocated into the container's hostlibs
+        # directory, bind the sibling asset directory too and point ROCm
+        # at it, or HIP crashes at first use (e.g. PMPI_Init). See
+        # e4s_cl.cf.rocm for all ROCm-specific knowledge/registry.
+        rocm_discovery = discover_rocm_assets(final_libset)
+        for host_dir, env_var, container_subdir in rocm_discovery.resolved:
+            container_asset_dir = Path(container.import_dir, container_subdir)
+            container.bind_file(host_dir, dest=container_asset_dir)
+            params.extra_env[env_var] = container_asset_dir.as_posix()
+
+        # Best-effort diagnostics for ROCm-backed launches: any asset
+        # dependency not covered by the registry above should still
+        # surface a clear runtime error (via ROCm's own HSA/COMGR
+        # logging) rather than an opaque crash.
+        params.extra_env.update(
+            diagnostic_env(rocm_discovery, params.debug, params.extra_env))
+
+        # Check these imported libraries actually resolve inside the
+        # container before running anything (see Entrypoint template).
+        params.verify_libraries = [
+            Path(container.import_library_dir,
+                Path(shared_object.binary_path).name).as_posix()
+            for shared_object in final_libset
+        ]
 
         # MPICH-family aliasing 
         # Skip aliasing when Wi4MPI is active, as it would bypass Wi4MPI translation

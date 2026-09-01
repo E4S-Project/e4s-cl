@@ -915,6 +915,13 @@ else
   log "Using e4s-cl: ${E4S_CL_BIN}"
 fi
 
+# -v must precede the subcommand, so wrap the binary path in a command array
+# rather than appending the flag at each call site.
+E4S_CL_CMD=("${E4S_CL_BIN}")
+if [[ "${E4S_CL_VERBOSE}" == "1" ]]; then
+  E4S_CL_CMD=("${E4S_CL_BIN}" -v)
+fi
+
 
 
 if [[ -n "${E4S_CL_APPTAINER_EXEC_OPTIONS}" ]]; then
@@ -1168,17 +1175,17 @@ if [[ "${NEEDS_TRANSLATION}" == "1" ]]; then
 fi
 
 log "Step 3: Configuring e4s-cl Profile. A 'profile' stores metadata about the container backend, image, and the host libraries we want to inject."
-if ! run "${E4S_CL_BIN}" profile create "${E4S_CL_PROFILE_NAME}" --backend "${CONTAINER_CMD}" --image "${E4S_CL_IMAGE}"; then
+if ! run "${E4S_CL_CMD[@]}" profile create "${E4S_CL_PROFILE_NAME}" --backend "${CONTAINER_CMD}" --image "${E4S_CL_IMAGE}"; then
   log "Profile exists, updating image/backend"
-  run "${E4S_CL_BIN}" profile edit --backend "${CONTAINER_CMD}" --image "${E4S_CL_IMAGE}"
+  run "${E4S_CL_CMD[@]}" profile edit --backend "${CONTAINER_CMD}" --image "${E4S_CL_IMAGE}"
 fi
-run "${E4S_CL_BIN}" profile select "${E4S_CL_PROFILE_NAME}"
+run "${E4S_CL_CMD[@]}" profile select "${E4S_CL_PROFILE_NAME}"
 
 # Validate detection results; if empty, retry once and fail early with guidance.
 # This mirrors how a user would re-run detection when the profile isn't populated.
 profile_has_bindings() {
   local output
-  output="$("${E4S_CL_BIN}" profile show)"
+  output="$("${E4S_CL_CMD[@]}" profile show)"
   if echo "${output}" | awk '/^Bound libraries:/{inlib=1; next} /^Bound files:/{inlib=0} inlib && /^ - /{print}' | grep -q .; then
     return 0
   fi
@@ -1207,23 +1214,23 @@ if [[ "${E4S_CL_SKIP_PROFILE_DETECT}" == "1" ]]; then
     log "Skipping profile detect (--skip-profile-detect); using existing profile bindings"
   else
     log "WARNING: --skip-profile-detect specified but profile has no bindings; running detect anyway"
-    run_timed "detect" "${E4S_CL_BIN}" profile detect "${LAUNCHER_BIN}" "${LAUNCHER_ARGS[@]}" -- "${OSU_HOST_PREFIX}/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency"
+    run_timed "detect" "${E4S_CL_CMD[@]}" profile detect "${LAUNCHER_BIN}" "${LAUNCHER_ARGS[@]}" -- "${OSU_HOST_PREFIX}/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency"
   fi
 else
   log "Step 4: Profile Analysis. e4s-cl traces the execution of a host binary to find all shared libraries and files needed to run MPI on this system."
-  run_timed "detect" "${E4S_CL_BIN}" profile detect "${LAUNCHER_BIN}" "${LAUNCHER_ARGS[@]}" -- "${OSU_HOST_PREFIX}/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency"
+  run_timed "detect" "${E4S_CL_CMD[@]}" profile detect "${LAUNCHER_BIN}" "${LAUNCHER_ARGS[@]}" -- "${OSU_HOST_PREFIX}/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency"
 fi
 
 if ! profile_has_bindings; then
   log "Profile detect produced no bound libraries/files; retrying once"
-  run_timed "detect_retry" "${E4S_CL_BIN}" profile detect "${LAUNCHER_BIN}" "${LAUNCHER_ARGS[@]}" -- "${OSU_HOST_PREFIX}/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency"
+  run_timed "detect_retry" "${E4S_CL_CMD[@]}" profile detect "${LAUNCHER_BIN}" "${LAUNCHER_ARGS[@]}" -- "${OSU_HOST_PREFIX}/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency"
   if ! profile_has_bindings; then
     fail "Profile detect produced no libraries/files. Verify launcher and MPI environment, then retry."
   fi
 fi
 
 log "Profile Content (Libraries/Files to be bound):"
-run "${E4S_CL_BIN}" profile show
+run "${E4S_CL_CMD[@]}" profile show
 
 log "Step 5: Building Container Benchmarks. We compile the same benchmarks *inside* the container against the Container's MPI to demonstrate ABI compatibility or translation."
 OSU_CONT_PREFIX="${E4S_CL_WORKDIR}/osu-container"
@@ -1264,12 +1271,12 @@ log "Debug: Verifying library resolution inside container (ldd)"
 # run is used here to show the command, but output is piped to grep, so only if it fails (not matching libmpi) will echo print.
 # But grep consumes stdout. The original logic was: run ldd | grep ... || echo ...
 # If I use 'run' it will print the command.
-run "${E4S_CL_BIN}" launch "${E4SCL_LAUNCH_ARGS[@]}" "${LAUNCHER_BIN}" -n 1 ldd "${OSU_CONT_PREFIX}/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency" | grep -E "libmpi|libmpich|libpami|libfabric" || echo "  (ldd check finished, no obvious MPI libs found in grep filter)"
+run "${E4S_CL_CMD[@]}" launch "${E4SCL_LAUNCH_ARGS[@]}" "${LAUNCHER_BIN}" -n 1 ldd "${OSU_CONT_PREFIX}/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency" | grep -E "libmpi|libmpich|libpami|libfabric" || echo "  (ldd check finished, no obvious MPI libs found in grep filter)"
 
 for bench in "${OSU_BENCHES[@]}"; do
   bench_name="$(basename "${bench}")"
   out_file="${E4S_CL_WORKDIR}/e4scl_${bench_name}.txt"
-  run_timed "e4scl_${bench_name}" "${E4S_CL_BIN}" launch "${E4SCL_LAUNCH_ARGS[@]}" "${LAUNCHER_BIN}" "${LAUNCHER_ARGS[@]}" \
+  run_timed "e4scl_${bench_name}" "${E4S_CL_CMD[@]}" launch "${E4SCL_LAUNCH_ARGS[@]}" "${LAUNCHER_BIN}" "${LAUNCHER_ARGS[@]}" \
     "${OSU_CONT_PREFIX}/libexec/osu-micro-benchmarks/mpi/${bench}" \
     "${OSU_ARGS[@]}" | tee "${out_file}"
 done
