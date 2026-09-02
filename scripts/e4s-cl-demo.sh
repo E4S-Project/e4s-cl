@@ -693,7 +693,7 @@ check_slurm_pmi() {
 
   # Quick PMI2 connectivity test: run a trivial command through srun
   if [[ "${E4S_CL_SKIP_PMI_CHECK}" != "1" ]]; then
-    log "Running PMI2 connectivity sanity check..."
+    log "Running PMI2 connectivity sanity check (timeout ${E4S_CL_TIMEOUT_DURATION}, --immediate=10 to fail fast if nodes are unavailable)..."
      local -a pmi_test_args=()
     skip_next=0
     for ((i=0; i<${#real_launcher_args[@]}; i++)); do
@@ -705,21 +705,37 @@ check_slurm_pmi() {
       esac
       pmi_test_args+=("${arg}")
     done
-    pmi_test_args=("-n" "2" "${pmi_test_args[@]}")
+    # --immediate=10 makes srun fail right away (instead of queueing) if the
+    # requested nodes are down/drained/reserved, which otherwise hangs silently.
+    pmi_test_args=("--immediate=10" "-n" "2" "${pmi_test_args[@]}")
 
     set +e
     local pmi_output
-    pmi_output="$("${srun_bin}" "${pmi_test_args[@]}" hostname 2>&1)"
+    local pmi_log
+    pmi_log="$(mktemp)"
+    print_cmd "${srun_bin}" "${pmi_test_args[@]}" hostname
+    timeout "${E4S_CL_TIMEOUT_DURATION}" "${srun_bin}" "${pmi_test_args[@]}" hostname > "${pmi_log}" 2>&1
     local pmi_ret=$?
+    pmi_output="$(cat "${pmi_log}")"
+    rm -f "${pmi_log}"
     set -e
-    if [[ $pmi_ret -ne 0 ]]; then
+    if [[ $pmi_ret -eq 124 ]]; then
+      log "WARNING: PMI2 sanity check timed out after ${E4S_CL_TIMEOUT_DURATION}:"
+      printf '%s\n' "${pmi_output}" | tail -n 5
+      log ""
+      log "This typically indicates the requested nodes are unavailable (down/drained/reserved)"
+      log "or busy, and srun is queuing the job instead of failing fast."
+      log "Check node status with: sinfo -p <partition> or scontrol show node <node>"
+      fail "PMI2 connectivity test timed out. Use --skip-pmi-check to bypass, or pick an available partition/nodes."
+    elif [[ $pmi_ret -ne 0 ]]; then
       log "WARNING: PMI2 sanity check failed (exit ${pmi_ret}):"
-      log "${pmi_output}" | tail -n 5
+      printf '%s\n' "${pmi_output}" | tail -n 5
       log ""
       log "This typically indicates:"
       log "  1. srun/slurmd version mismatch (most common)"
       log "  2. PMI2 library incompatibility"
       log "  3. Slurm configuration issue"
+      log "  4. Requested nodes unavailable (down/drained/reserved) -- see 'sinfo'"
       log ""
       log "Try: --launcher <path-to-matching-srun> or check 'srun --version' vs 'scontrol show node <node> | grep Version'"
       fail "PMI2 connectivity test failed. Use --skip-pmi-check to bypass."
